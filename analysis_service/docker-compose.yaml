@@ -1,0 +1,92 @@
+version: "3.9"
+
+# ── Shared volume ─────────────────────────────────────────────
+# All services share /app/models so trained .pkl files and the
+# SQLite registry DB are visible to every container.
+volumes:
+  model_store:
+
+# ── Services ──────────────────────────────────────────────────
+services:
+
+  # ── Training Service ───────────────────────────────────────
+  training:
+    build: .
+    container_name: lol_training
+    command: uvicorn training.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    volumes:
+      - model_store:/app/models
+    environment:
+      - MODELS_DIR=/app/models
+      - MODEL_REGISTRY_DB=/app/models/registry.db
+      - MODEL_RELOAD_INTERVAL=600
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── Draft Analysis Service ──────────────────────────────────
+  draft:
+    build: .
+    container_name: lol_draft
+    command: uvicorn services.draft.main:app --host 0.0.0.0 --port 8001 --reload
+    ports:
+      - "8001:8001"
+    volumes:
+      - model_store:/app/models
+    environment:
+      - MODEL_REGISTRY_DB=/app/models/registry.db
+      - MODEL_RELOAD_INTERVAL=600
+    depends_on:
+      training:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── Build Analysis Service ──────────────────────────────────
+  build_svc:
+    build: .
+    container_name: lol_build
+    command: uvicorn services.build.main:app --host 0.0.0.0 --port 8002 --reload
+    ports:
+      - "8002:8002"
+    volumes:
+      - model_store:/app/models
+    environment:
+      - MODEL_REGISTRY_DB=/app/models/registry.db
+      - MODEL_RELOAD_INTERVAL=600
+    depends_on:
+      training:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── Performance Analysis Service ────────────────────────────
+  performance:
+    build: .
+    container_name: lol_performance
+    command: uvicorn services.performance.main:app --host 0.0.0.0 --port 8003 --reload
+    ports:
+      - "8003:8003"
+    volumes:
+      - model_store:/app/models
+    environment:
+      - MODEL_REGISTRY_DB=/app/models/registry.db
+      - MODEL_RELOAD_INTERVAL=600
+    depends_on:
+      training:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
