@@ -1,34 +1,57 @@
 package fc.ul.scrimfinder.dto.request;
 
-import com.arjuna.common.internal.util.propertyservice.ConcatenationPrefix;
-import com.arjuna.common.internal.util.propertyservice.PropertyPrefix;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import fc.ul.scrimfinder.domain.Team;
 import fc.ul.scrimfinder.util.PatchInterval;
 import fc.ul.scrimfinder.util.TimeInterval;
-import io.quarkus.arc.runtime.AdditionalBean;
-import io.quarkus.runtime.annotations.ConfigRoot;
-import io.smallrye.config.ConfigMapping;
-import io.smallrye.config.WithName;
+import io.quarkus.hibernate.orm.JsonFormat;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Positive;
 import jakarta.ws.rs.BeanParam;
 import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.Context;
-import lombok.experimental.FieldNameConstants;
-import org.eclipse.microprofile.config.inject.ConfigProperties;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.jboss.resteasy.reactive.RestQuery;
 
-import java.beans.BeanProperty;
 import java.util.List;
 
 public record MatchStats(
-        @QueryParam("ranks") List<String> ranks,
-        @QueryParam("champions") List<String> champions,
-        @QueryParam("matchTripleKills") Integer matchTripleKills,
-        @QueryParam("matchQuadKills") Integer matchQuadKills,
-        @QueryParam("matchPentaKills") Integer matchPentaKills,
-        @BeanParam PatchInterval patchInterval,
-        @BeanParam TimeInterval timeInterval,
-        @QueryParam("teams") List<TeamStats> teams,
-        @QueryParam("queueId") Long queueId,
-        @QueryParam("players") List<PlayerStats> players
+        @QueryParam("ranks")
+        List<String> ranks,
+
+        @QueryParam("champions")
+        List<String> champions,
+
+        @QueryParam("matchTripleKills")
+        @Min(value = 0, message = "There can be no less than 0 total triple kills per match")
+        Integer matchTripleKills,
+
+        @QueryParam("matchQuadKills")
+        @Min(value = 0, message = "There can be no less than 0 total quad kills per match")
+        Integer matchQuadKills,
+
+        @QueryParam("matchPentaKills")
+        @Min(value = 0, message = "There can be no less than 0 total penta kills per match")
+        Integer matchPentaKills,
+
+        @BeanParam
+        @Valid
+        PatchInterval patchInterval,
+
+        @BeanParam
+        @Valid
+        TimeInterval timeInterval,
+
+        @QueryParam("teams")
+        @Valid
+        List<TeamStats> teams,
+
+        @QueryParam("queueId")
+        @Positive(message = "The queue ID must be positive")
+        Long queueId,
+
+        @QueryParam("players")
+        @Valid
+        List<PlayerStats> players
 ) {
 }

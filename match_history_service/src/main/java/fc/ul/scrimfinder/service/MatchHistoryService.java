@@ -5,11 +5,23 @@ import fc.ul.scrimfinder.dto.request.MatchStats;
 import fc.ul.scrimfinder.dto.response.MatchFullDto;
 import fc.ul.scrimfinder.dto.response.MatchSimplifiedDto;
 import fc.ul.scrimfinder.dto.response.PaginatedResponseDto;
+import fc.ul.scrimfinder.exception.*;
 
 public interface MatchHistoryService {
-    MatchFullDto getMatchById(Long matchId);
+    MatchFullDto getMatchById(Long matchId) throws
+            MatchNotFoundException,
+            ExternalServiceUnavailableException;
 
-    PaginatedResponseDto<MatchSimplifiedDto> getMatches(int page, int size, MatchStats params);
+    PaginatedResponseDto<MatchSimplifiedDto> getMatches(int page, int size, MatchStats params) throws
+            PlayerNotFoundException,
+            ChampionNotFoundException,
+            RankNotFoundException,
+            InvalidIntervalException,
+            InvalidRoleException,
+            InvalidTeamsException;
 
-    MatchSimplifiedDto addMatch(MatchAddDto matchAddDto);
+    MatchSimplifiedDto addMatch(MatchAddDto matchAddDto) throws
+            MatchAlreadyExistsException,
+            InvalidIntervalException,
+            InvalidTeamsException;
 }
