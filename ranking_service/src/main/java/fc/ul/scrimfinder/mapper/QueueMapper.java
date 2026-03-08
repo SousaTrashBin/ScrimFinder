@@ -6,6 +6,7 @@ import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "cdi")
 public interface QueueMapper {
+
     QueueEntity toEntity(QueueDTO queueDTO);
 
     QueueDTO toDTO(QueueEntity queue);
