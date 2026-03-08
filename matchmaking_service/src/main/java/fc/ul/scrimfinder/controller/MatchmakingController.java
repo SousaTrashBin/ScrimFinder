@@ -28,11 +28,11 @@ public class MatchmakingController {
     MatchmakingService matchmakingService;
 
     @POST
-    @Operation(summary = "Join a matchmaking queue", description = "Requires a linked Riot Account via Ranking Service.")
+    @Operation(summary = "Join a matchmaking queue", description = "Requires a linked League of Legends Account via Ranking Service.")
     @APIResponses(value = {
             @APIResponse(responseCode = "202", description = "Ticket created and joined queue",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = MatchTicketDTO.class))),
-            @APIResponse(responseCode = "400", description = "Riot Account not linked",
+            @APIResponse(responseCode = "400", description = "League of Legends Account not linked",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
             @APIResponse(responseCode = "404", description = "Player or Queue not found",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
@@ -101,7 +101,7 @@ public class MatchmakingController {
 
     @PUT
     @Path("/matches/{matchId}/link")
-    @Operation(summary = "Link an external Riot Game ID to the match")
+    @Operation(summary = "Link an external League of Legends Game ID to the match")
     @APIResponses(value = {
             @APIResponse(responseCode = "200", description = "Match linked successfully"),
             @APIResponse(responseCode = "404", description = "Match not found",

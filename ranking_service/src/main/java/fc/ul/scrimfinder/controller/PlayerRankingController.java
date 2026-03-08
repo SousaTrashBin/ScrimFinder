@@ -4,6 +4,7 @@ import fc.ul.scrimfinder.dto.request.CreatePlayerRequest;
 import fc.ul.scrimfinder.dto.request.MatchResultRequest;
 import fc.ul.scrimfinder.dto.response.PlayerRankingDTO;
 import fc.ul.scrimfinder.service.PlayerRankingService;
+import fc.ul.scrimfinder.util.ErrorResponse;
 import io.smallrye.common.constraint.NotNull;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
@@ -18,12 +19,13 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
+import java.util.List;
 import java.util.Optional;
 
 @Path("/players")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
-@Tag(name = "Player Ranking", description = "Player MMR and ranking operations")
+@Tag(name = "Player Ranking", description = "Operations for player MMR and ranking history")
 public class PlayerRankingController {
 
     @Inject
@@ -31,10 +33,12 @@ public class PlayerRankingController {
 
     @GET
     @Path("/{playerId}/queue")
-    @Operation(summary = "Get complete ranking information for a player")
+    @Operation(summary = "Get ranking information for a player")
     @APIResponses(value = {
-            @APIResponse(responseCode = "200", description = "Successfully retrieved player ranking"),
-            @APIResponse(responseCode = "404", description = "Player or Queue not found")
+            @APIResponse(responseCode = "200", description = "Successfully retrieved player ranking",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = PlayerRankingDTO.class))),
+            @APIResponse(responseCode = "404", description = "Player or Queue not found",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     public Response getPlayerRanking(@PathParam("playerId") Long playerId,
                                      @QueryParam("queueId") Optional<Long> queueId) {
@@ -44,29 +48,34 @@ public class PlayerRankingController {
 
     @POST
     @Path("/matches/results")
-    @Operation(summary = "Batch update MMR for all players after a match completion",
-            description = "Processes match results including MMR deltas and winners.")
+    @Operation(summary = "Process match results and update player rankings",
+            description = "Batch update MMR for all participants after a match completion.")
     @APIResponses(value = {
             @APIResponse(responseCode = "200", description = "Match results processed successfully",
                     content = @Content(mediaType = "application/json",
-                            schema = @Schema(type = SchemaType.OBJECT))),
-            @APIResponse(responseCode = "400", description = "Invalid request payload"),
-            @APIResponse(responseCode = "404", description = "One or more players/queue not found")
+                            schema = @Schema(type = SchemaType.ARRAY, implementation = PlayerRankingDTO.class))),
+            @APIResponse(responseCode = "400", description = "Invalid request payload",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @APIResponse(responseCode = "404", description = "One or more players or queue not found",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     public Response processMatchResults(@NotNull @Valid MatchResultRequest matchResultRequest) {
-        var updatedRankings = playerRankingService.processMatchResults(matchResultRequest);
+        List<PlayerRankingDTO> updatedRankings = playerRankingService.processMatchResults(matchResultRequest);
         return Response.ok(updatedRankings).build();
     }
 
     @POST
     @Path("/{playerId}/mmr")
-    @Operation(summary = "Populates initial player MMR according to a pre-determined rule")
+    @Operation(summary = "Initialize player MMR for a specific queue")
     @APIResponses(value = {
             @APIResponse(responseCode = "201", description = "Initial MMR successfully created",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = PlayerRankingDTO.class))),
-            @APIResponse(responseCode = "400", description = "Invalid request payload"),
-            @APIResponse(responseCode = "404", description = "Player or Queue not found"),
-            @APIResponse(responseCode = "409", description = "MMR already exists for this player in this queue")
+            @APIResponse(responseCode = "400", description = "Invalid request payload",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @APIResponse(responseCode = "404", description = "Player or Queue not found",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @APIResponse(responseCode = "409", description = "MMR already exists for this player in this queue",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     public Response populatePlayerMMR(@PathParam("playerId") Long playerId,
                                       @NotNull @Valid CreatePlayerRequest createPlayerRequest) {

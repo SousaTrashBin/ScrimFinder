@@ -58,7 +58,7 @@ public class PlayerController {
     @Operation(summary = "Link a League of Legends account ID to a player via Ranking Service")
     @APIResponses(value = {
             @APIResponse(responseCode = "200", description = "Account linked successfully"),
-            @APIResponse(responseCode = "400", description = "Invalid Riot Account or already linked elsewhere",
+            @APIResponse(responseCode = "400", description = "Invalid League of Legends account or already linked elsewhere",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
             @APIResponse(responseCode = "404", description = "Player not found",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
@@ -73,7 +73,7 @@ public class PlayerController {
     @Operation(summary = "Sync player MMR from external service via Ranking Service")
     @APIResponses(value = {
             @APIResponse(responseCode = "200", description = "MMR synced successfully"),
-            @APIResponse(responseCode = "400", description = "Riot Account not linked",
+            @APIResponse(responseCode = "400", description = "League of Legends account not linked",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
             @APIResponse(responseCode = "404", description = "Player not found",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
