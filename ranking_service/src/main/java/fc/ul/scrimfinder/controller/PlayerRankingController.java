@@ -3,6 +3,7 @@ package fc.ul.scrimfinder.controller;
 import fc.ul.scrimfinder.dto.request.CreatePlayerRequest;
 import fc.ul.scrimfinder.dto.request.MatchResultRequest;
 import fc.ul.scrimfinder.dto.response.PlayerRankingDTO;
+import fc.ul.scrimfinder.exception.PlayerNotFoundException;
 import fc.ul.scrimfinder.service.PlayerRankingService;
 import fc.ul.scrimfinder.util.ErrorResponse;
 import io.smallrye.common.constraint.NotNull;
@@ -19,7 +20,7 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
-import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Path("/players")
@@ -33,17 +34,27 @@ public class PlayerRankingController {
 
     @GET
     @Path("/{playerId}/queue")
-    @Operation(summary = "Get ranking information for a player")
+    @Operation(summary = "Get ranking information for a player", 
+            description = "Returns a single ranking if queueId is provided, or a list of all rankings if omitted.")
     @APIResponses(value = {
-            @APIResponse(responseCode = "200", description = "Successfully retrieved player ranking",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = PlayerRankingDTO.class))),
+            @APIResponse(responseCode = "200", description = "Successfully retrieved player ranking(s)",
+                    content = @Content(mediaType = "application/json", 
+                            schema = @Schema(implementation = PlayerRankingDTO.class))),
             @APIResponse(responseCode = "404", description = "Player or Queue not found",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     public Response getPlayerRanking(@PathParam("playerId") Long playerId,
                                      @QueryParam("queueId") Optional<Long> queueId) {
-        var ranking = playerRankingService.getPlayerRanking(playerId, queueId);
-        return Response.ok(ranking).build();
+        var rankings = playerRankingService.getPlayerRanking(playerId, queueId);
+        
+        if (queueId.isPresent()) {
+            if (rankings.isEmpty()) {
+                throw new PlayerNotFoundException("Ranking not found for player " + playerId + " in queue " + queueId.get());
+            }
+            return Response.ok(rankings.get(0)).build();
+        }
+        
+        return Response.ok(rankings).build();
     }
 
     @POST
@@ -53,14 +64,14 @@ public class PlayerRankingController {
     @APIResponses(value = {
             @APIResponse(responseCode = "200", description = "Match results processed successfully",
                     content = @Content(mediaType = "application/json",
-                            schema = @Schema(type = SchemaType.ARRAY, implementation = PlayerRankingDTO.class))),
+                            schema = @Schema(implementation = Map.class))),
             @APIResponse(responseCode = "400", description = "Invalid request payload",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
             @APIResponse(responseCode = "404", description = "One or more players or queue not found",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     public Response processMatchResults(@NotNull @Valid MatchResultRequest matchResultRequest) {
-        List<PlayerRankingDTO> updatedRankings = playerRankingService.processMatchResults(matchResultRequest);
+        Map<Long, PlayerRankingDTO> updatedRankings = playerRankingService.processMatchResults(matchResultRequest);
         return Response.ok(updatedRankings).build();
     }
 
