@@ -1,7 +1,7 @@
 """
 services/performance/model.py
-Loads the active performance model (pipeline + percentile table) from
-the registry and exposes inference helpers.
+Loads the active performance artifact {pipeline, encoders, percentiles}
+and exposes metric benchmarking.
 """
 
 import numpy as np
@@ -12,42 +12,37 @@ _client = RegistryClient(concern="performance")
 
 
 def _artifact():
-    """Returns {"pipeline": sklearn_pipeline, "percentiles": dict}."""
-    return _client.get_model()
+    return _client.get_model()  # {"pipeline", "encoders", "percentiles"}
 
 
-def compute_metrics(stats: dict, tier: str) -> dict[str, PerformanceMetric]:
+def compute_metrics(stats: dict, position: str) -> dict[str, PerformanceMetric]:
     """
-    Given a dict of raw stats and the player's tier, return benchmarked
-    PerformanceMetric objects for each tracked stat.
+    stats  — dict of raw metric values, e.g. {"kda": 3.2, "vision": 18, ...}
+    position — mapped role string e.g. "BOT", "SUPPORT" (our Role enum values)
 
-    stats keys: kda, avgDamageDealt, avgDamageTaken, avgVisionScore, avgGoldPerMinute
+    Returns a dict of PerformanceMetric with value, tierAverage, and percentile.
     """
-    artifact = _artifact()
-    percentiles = artifact.get("percentiles", {})
-    tier_data = percentiles.get(tier, percentiles.get("GOLD", {}))
+    artifact     = _artifact()
+    percentiles  = artifact["percentiles"]
+    pos_data     = percentiles.get(position, percentiles.get("BOT", {}))
 
     result = {}
     for metric, value in stats.items():
-        if metric not in tier_data:
+        if metric not in pos_data:
             continue
-        p = tier_data[metric]
-        tier_avg = p.get("p50", value)
-        # Compute approximate percentile rank
-        if value <= p.get("p10", 0):
-            pct = 10.0
-        elif value <= p.get("p25", 0):
-            pct = 25.0
-        elif value <= p.get("p50", 0):
-            pct = 50.0
-        elif value <= p.get("p75", 0):
-            pct = 75.0
-        else:
-            pct = 90.0
+        p = pos_data[metric]
+        tier_avg = p["p50"]
+
+        # Simple lookup-based percentile rank
+        if   value <= p["p10"]: pct = 10.0
+        elif value <= p["p25"]: pct = 25.0
+        elif value <= p["p50"]: pct = 50.0
+        elif value <= p["p75"]: pct = 75.0
+        else:                   pct = 90.0
 
         result[metric] = PerformanceMetric(
-            value=round(value, 2),
-            tierAverage=round(tier_avg, 2),
+            value=round(float(value), 2),
+            tierAverage=round(float(tier_avg), 2),
             percentile=pct,
         )
     return result

@@ -1,12 +1,9 @@
-version: "3.9"
-
-# ── Shared volume ─────────────────────────────────────────────
 # All services share /app/models so trained .pkl files and the
 # SQLite registry DB are visible to every container.
+# The dataset folder sits one level above this file (next to analysis_service/).
 volumes:
   model_store:
 
-# ── Services ──────────────────────────────────────────────────
 services:
 
   # ── Training Service ───────────────────────────────────────
@@ -18,15 +15,12 @@ services:
       - "8000:8000"
     volumes:
       - model_store:/app/models
+      - ../dataset:/app/dataset:ro
     environment:
       - MODELS_DIR=/app/models
       - MODEL_REGISTRY_DB=/app/models/registry.db
       - MODEL_RELOAD_INTERVAL=600
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
+      - LEAGUE_DB=/app/dataset/league_data.db
 
   # ── Draft Analysis Service ──────────────────────────────────
   draft:
@@ -41,13 +35,7 @@ services:
       - MODEL_REGISTRY_DB=/app/models/registry.db
       - MODEL_RELOAD_INTERVAL=600
     depends_on:
-      training:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
+      - training
 
   # ── Build Analysis Service ──────────────────────────────────
   build_svc:
@@ -62,13 +50,7 @@ services:
       - MODEL_REGISTRY_DB=/app/models/registry.db
       - MODEL_RELOAD_INTERVAL=600
     depends_on:
-      training:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
+      - training
 
   # ── Performance Analysis Service ────────────────────────────
   performance:
@@ -83,10 +65,4 @@ services:
       - MODEL_REGISTRY_DB=/app/models/registry.db
       - MODEL_RELOAD_INTERVAL=600
     depends_on:
-      training:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
+      - training

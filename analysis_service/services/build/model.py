@@ -1,7 +1,7 @@
 """
 services/build/model.py
-Loads the active build model from the registry and exposes
-inference helpers for the build analysis routes.
+Loads the active build artifact {model, encoders} from the registry
+and exposes build scoring inference.
 """
 
 import numpy as np
@@ -10,30 +10,37 @@ from model_registry.client import RegistryClient
 _client = RegistryClient(concern="build")
 
 
-def score_build(champion: str, items: list[str], enemy_comp: list[str] | None) -> tuple[int, float | None]:
+def _artifact():
+    return _client.get_model()   # {"model": RF, "encoders": {item_mlb, rune_mlb, pos_le, champ_le}}
+
+
+def score_build(
+    champion_id: int,
+    position: str,
+    item_ids: list[int],
+    rune_ids: list[int],
+    gold: float = 0,
+    cs: float = 0,
+    dmg_champs: float = 0,
+) -> tuple[int, float]:
     """
-    Returns (score_0_to_100, win_rate_or_None).
-
-    TODO: replace stub feature encoding with real item/champion embeddings
-          matched to the feature space used during training.
+    Returns (score_0_to_100, win_rate_pct).
+    champion_id and item/rune ids must match the values in dim_champions/dim_items/dim_runes.
     """
-    clf = _client.get_model()
+    artifact = _artifact()
+    clf      = artifact["model"]
+    enc      = artifact["encoders"]
 
-    # Stub feature vector: item hashes + champion hash + enemy hashes
-    item_features = [hash(i) % 1000 / 1000.0 for i in items]
-    champ_feature = [hash(champion) % 1000 / 1000.0]
-    enemy_features = [hash(e) % 1000 / 1000.0 for e in (enemy_comp or [])]
+    item_enc  = enc["item_mlb"].transform([item_ids])
+    rune_enc  = enc["rune_mlb"].transform([rune_ids])
+    pos_enc   = enc["pos_le"].transform([position]).reshape(-1, 1)
+    champ_enc = enc["champ_le"].transform([champion_id]).reshape(-1, 1)
+    numeric   = np.array([[gold, cs, dmg_champs]], dtype=np.float32)
 
-    features = np.array(item_features + champ_feature + enemy_features, dtype=float).reshape(1, -1)
+    features = np.hstack([item_enc, rune_enc, pos_enc, champ_enc, numeric]).astype(np.float32)
 
-    n_features = 30
-    if features.shape[1] < n_features:
-        features = np.pad(features, ((0, 0), (0, n_features - features.shape[1])))
-    else:
-        features = features[:, :n_features]
-
-    win_prob = float(clf.predict_proba(features)[0][1])
-    score = int(round(win_prob * 100))
+    win_prob  = float(clf.predict_proba(features)[0][1])
+    score     = int(round(win_prob * 100))
     return score, round(win_prob * 100, 1)
 
 
