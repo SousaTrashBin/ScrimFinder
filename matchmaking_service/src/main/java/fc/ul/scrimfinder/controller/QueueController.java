@@ -20,7 +20,7 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 @Path("/queues")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
-@Tag(name = "Queue Management", description = "Operations for managing queues and viewing leaderboards")
+@Tag(name = "Queue Management", description = "Operations for managing matchmaking queues and rules")
 public class QueueController {
 
     @Inject
