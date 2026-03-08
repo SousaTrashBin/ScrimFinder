@@ -30,7 +30,7 @@ public interface RankingServiceClient {
 
     @POST
     @Path("/players")
-    void registerPlayer(@QueryParam("username") String username);
+    void registerPlayer(@QueryParam("id") Long id, @QueryParam("username") String username);
 
     @PUT
     @Path("/players/{playerId}/link-lol-account")

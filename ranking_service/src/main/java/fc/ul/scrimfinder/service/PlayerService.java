@@ -5,9 +5,11 @@ import fc.ul.scrimfinder.exception.LeagueAccountNotLinkedException;
 import fc.ul.scrimfinder.exception.PlayerNotFoundException;
 
 public interface PlayerService {
-    PlayerDTO createPlayer(String username);
+
+    PlayerDTO createPlayer(Long id, String username);
 
     PlayerDTO linkLolAccount(Long playerId, String lolAccountId);
+
 
     PlayerDTO syncPlayerMMR(Long playerId) throws PlayerNotFoundException, LeagueAccountNotLinkedException;
 }
