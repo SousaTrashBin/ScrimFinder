@@ -1,6 +1,7 @@
 package fc.ul.scrimfinder.exception;
 
 import fc.ul.scrimfinder.util.ErrorResponse;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
@@ -30,33 +31,11 @@ public class GlobalExceptionHandler {
     }
 
     @ServerExceptionMapper
-    public RestResponse<ErrorResponse> mapException(MMRAlreadyExistsException x) {
+    public RestResponse<ErrorResponse> mapException(TicketNotFoundException x) {
         return RestResponse.status(
-                Response.Status.CONFLICT,
+                Response.Status.NOT_FOUND,
                 ErrorResponse.builder()
-                        .code("MMR_ALREADY_EXISTS")
-                        .message(x.getMessage())
-                        .build()
-        );
-    }
-
-    @ServerExceptionMapper
-    public RestResponse<ErrorResponse> mapException(PlayerAlreadyCreatedException x) {
-        return RestResponse.status(
-                Response.Status.CONFLICT,
-                ErrorResponse.builder()
-                        .code("PLAYER_ALREADY_EXISTS")
-                        .message(x.getMessage())
-                        .build()
-        );
-    }
-
-    @ServerExceptionMapper
-    public RestResponse<ErrorResponse> mapException(ExternalAccountNotFoundException x) {
-        return RestResponse.status(
-                Response.Status.BAD_REQUEST,
-                ErrorResponse.builder()
-                        .code("EXTERNAL_ACCOUNT_NOT_FOUND")
+                        .code("TICKET_NOT_FOUND")
                         .message(x.getMessage())
                         .build()
         );
@@ -74,11 +53,11 @@ public class GlobalExceptionHandler {
     }
 
     @ServerExceptionMapper
-    public RestResponse<ErrorResponse> mapException(ExternalServiceUnavailableException x) {
+    public RestResponse<ErrorResponse> mapException(WebApplicationException x) {
         return RestResponse.status(
-                Response.Status.SERVICE_UNAVAILABLE,
+                Response.Status.fromStatusCode(x.getResponse().getStatus()),
                 ErrorResponse.builder()
-                        .code("EXTERNAL_SERVICE_UNAVAILABLE")
+                        .code("REMOTE_SERVICE_ERROR")
                         .message(x.getMessage())
                         .build()
         );

@@ -33,11 +33,12 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     @Transactional
-    public PlayerDTO createPlayer(String username) {
+    public PlayerDTO createPlayer(Long id, String username) {
         if (playerRepository.find("discordUsername", username).count() > 0) {
             throw new PlayerAlreadyCreatedException("There's already a player created with that discord username");
         }
         Player player = new Player();
+        player.setId(id);
         player.setDiscordUsername(username);
         playerRepository.persist(player);
         return playerMapper.toDTO(player);

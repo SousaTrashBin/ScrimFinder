@@ -1,6 +1,8 @@
 package fc.ul.scrimfinder.controller;
 
+import fc.ul.scrimfinder.dto.response.PaginatedResponseDTO;
 import fc.ul.scrimfinder.service.PlayerRankingService;
+import fc.ul.scrimfinder.util.ErrorResponse;
 import jakarta.inject.Inject;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -8,6 +10,8 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
@@ -17,7 +21,7 @@ import java.util.Optional;
 @Path("/leaderboards")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
-@Tag(name = "Leaderboard", description = "Global and regional leaderboard operations")
+@Tag(name = "Leaderboard", description = "Global and queue-specific leaderboard operations")
 public class LeaderboardController {
 
     @Inject
@@ -26,9 +30,12 @@ public class LeaderboardController {
     @GET
     @Operation(summary = "Get queue leaderboard with pagination")
     @APIResponses(value = {
-            @APIResponse(responseCode = "200", description = "Successfully retrieved the leaderboard"),
-            @APIResponse(responseCode = "400", description = "Invalid pagination parameters (e.g., size < 0 or > 100)"),
-            @APIResponse(responseCode = "404", description = "Queue not found (if queueId is provided but invalid)")
+            @APIResponse(responseCode = "200", description = "Successfully retrieved the leaderboard",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = PaginatedResponseDTO.class))),
+            @APIResponse(responseCode = "400", description = "Invalid pagination parameters",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @APIResponse(responseCode = "404", description = "Queue not found",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     public Response getQueueLeaderboard(
             @QueryParam("page") @DefaultValue("0") int page,
