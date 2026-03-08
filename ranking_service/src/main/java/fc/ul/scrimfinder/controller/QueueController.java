@@ -30,7 +30,7 @@ public class QueueController {
 
     @POST
     @Path("/{queueId}")
-    @Operation(summary = "Create a new queue configuration", description = "Initializes a queue with specific MMR rules and base values.")
+    @Operation(summary = "Create a new queue configuration (Internal)", description = "Initializes a queue with specific MMR rules and base values.")
     @APIResponses(value = {
             @APIResponse(responseCode = "201", description = "Queue successfully created",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = QueueDTO.class))),

@@ -6,8 +6,4 @@ public interface PlayerService {
     PlayerDTO createPlayer(Long id, String username);
 
     PlayerDTO getPlayer(Long id);
-
-    void linkLolAccount(Long id, String lolAccountId);
-
-    void syncMmr(Long id);
 }

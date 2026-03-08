@@ -59,7 +59,7 @@ public class PlayerRankingController {
 
     @POST
     @Path("/matches/results")
-    @Operation(summary = "Process match results and update player rankings",
+    @Operation(summary = "Process match results and update player rankings (Internal)",
             description = "Batch update MMR for all participants after a match completion.")
     @APIResponses(value = {
             @APIResponse(responseCode = "200", description = "Match results processed successfully",
@@ -77,7 +77,7 @@ public class PlayerRankingController {
 
     @POST
     @Path("/{playerId}/mmr")
-    @Operation(summary = "Initialize player MMR for a specific queue")
+    @Operation(summary = "Initialize player MMR for a specific queue (Internal)")
     @APIResponses(value = {
             @APIResponse(responseCode = "201", description = "Initial MMR successfully created",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = PlayerRankingDTO.class))),

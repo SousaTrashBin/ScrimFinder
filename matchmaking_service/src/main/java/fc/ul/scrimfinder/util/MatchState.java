@@ -7,5 +7,6 @@ public enum MatchState {
     ACCEPTED,
     IN_PROGRESS,
     COMPLETED,
+    RESULT_REPORTING_FAILED,
     CANCELLED
 }

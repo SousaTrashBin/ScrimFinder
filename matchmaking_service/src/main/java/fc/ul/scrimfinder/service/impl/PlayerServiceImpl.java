@@ -29,16 +29,15 @@ public class PlayerServiceImpl implements PlayerService {
     @Transactional
     public PlayerDTO createPlayer(Long id, String username) {
         if (playerRepository.findByIdOptional(id).isPresent()) {
-            throw new RuntimeException("Player with ID " + id + " already exists locally.");
+            throw new RuntimeException("Player with this ID already exists locally");
         }
 
         Player player = new Player();
         player.setId(id);
         player.setUsername(username);
-
         playerRepository.persist(player);
 
-        rankingServiceClient.registerPlayer(username);
+        rankingServiceClient.registerPlayer(id, username);
         return playerMapper.toDTO(player);
     }
 
@@ -47,21 +46,5 @@ public class PlayerServiceImpl implements PlayerService {
         Player player = playerRepository.findByIdOptional(id)
                 .orElseThrow(() -> new PlayerNotFoundException("Player not found: " + id));
         return playerMapper.toDTO(player);
-    }
-
-    @Override
-    public void linkLolAccount(Long id, String lolAccountId) {
-        playerRepository.findByIdOptional(id)
-                .orElseThrow(() -> new PlayerNotFoundException("Player not found: " + id));
-
-        rankingServiceClient.linkLolAccount(id, lolAccountId);
-    }
-
-    @Override
-    public void syncMmr(Long id) {
-        playerRepository.findByIdOptional(id)
-                .orElseThrow(() -> new PlayerNotFoundException("Player not found: " + id));
-
-        rankingServiceClient.syncMmr(id);
     }
 }

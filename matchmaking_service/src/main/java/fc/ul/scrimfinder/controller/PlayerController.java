@@ -52,34 +52,4 @@ public class PlayerController {
         PlayerDTO player = playerService.getPlayer(id);
         return Response.ok(player).build();
     }
-
-    @PUT
-    @Path("/{id}/link-lol-account")
-    @Operation(summary = "Link a League of Legends account ID to a player via Ranking Service")
-    @APIResponses(value = {
-            @APIResponse(responseCode = "200", description = "Account linked successfully"),
-            @APIResponse(responseCode = "400", description = "Invalid League of Legends account or already linked elsewhere",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
-            @APIResponse(responseCode = "404", description = "Player not found",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
-    })
-    public Response linkLolAccount(@PathParam("id") Long id, @QueryParam("lolAccountId") String lolAccountId) {
-        playerService.linkLolAccount(id, lolAccountId);
-        return Response.ok().build();
-    }
-
-    @POST
-    @Path("/{id}/sync-mmr")
-    @Operation(summary = "Sync player MMR from external service via Ranking Service")
-    @APIResponses(value = {
-            @APIResponse(responseCode = "200", description = "MMR synced successfully"),
-            @APIResponse(responseCode = "400", description = "League of Legends account not linked",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
-            @APIResponse(responseCode = "404", description = "Player not found",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
-    })
-    public Response syncMmr(@PathParam("id") Long id) {
-        playerService.syncMmr(id);
-        return Response.ok().build();
-    }
 }

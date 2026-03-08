@@ -6,6 +6,7 @@ import fc.ul.scrimfinder.service.PlayerService;
 import fc.ul.scrimfinder.util.ErrorResponse;
 import jakarta.inject.Inject;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -28,7 +29,7 @@ public class PlayerController {
 
 
     @POST
-    @Operation(summary = "Register a new player in the system")
+    @Operation(summary = "Register a new player in the system (Internal)")
     @APIResponses(value = {
             @APIResponse(responseCode = "201", description = "Player successfully created",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = PlayerDTO.class))),
@@ -36,8 +37,9 @@ public class PlayerController {
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     public Response createPlayer(
+            @QueryParam("id") @NotNull Long id,
             @QueryParam("username") @NotBlank String username) {
-        var player = playerService.createPlayer(username);
+        var player = playerService.createPlayer(id, username);
         return Response.status(Response.Status.CREATED).entity(player).build();
     }
 

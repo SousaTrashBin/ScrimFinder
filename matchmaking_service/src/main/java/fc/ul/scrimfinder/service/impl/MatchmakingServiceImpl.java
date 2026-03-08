@@ -22,6 +22,7 @@ import fc.ul.scrimfinder.util.*;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 import java.time.Duration;
@@ -29,6 +30,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @ApplicationScoped
 public class MatchmakingServiceImpl implements MatchmakingService {
 
@@ -278,13 +280,14 @@ public class MatchmakingServiceImpl implements MatchmakingService {
                 .orElseThrow(() -> new RuntimeException("Match not found"));
 
         if (match.getExternalGameId() == null) {
-            throw new RuntimeException("Match must be linked with a valid Riot Game ID first.");
+            throw new RuntimeException("Match must be linked with a valid League of Legends Game ID first.");
         }
 
-        match.setState(MatchState.COMPLETED);
-        match.setEndedAt(LocalDateTime.now());
-        matchRepository.persist(match);
+        if (match.getState() == MatchState.COMPLETED) {
+            return;
+        }
 
+        // 1. Calculate deltas
         List<MatchTicket> team1 = match.getLobby().getTickets().stream()
                 .filter(t -> t.getTeam() != null && t.getTeam() == 1)
                 .toList();
@@ -315,7 +318,18 @@ public class MatchmakingServiceImpl implements MatchmakingService {
                 deltas
         );
 
-        rankingServiceClient.reportMatchResults(result);
+        match.setState(MatchState.COMPLETED);
+        match.setEndedAt(LocalDateTime.now());
+        matchRepository.persist(match);
+
+        try {
+            rankingServiceClient.reportMatchResults(result);
+        } catch (Exception e) {
+            log.error("Failed to report match results for match {}: {}", matchId, e.getMessage());
+            match.setState(MatchState.RESULT_REPORTING_FAILED);
+            matchRepository.persist(match);
+            throw new RuntimeException("Match completed but results failed to sync. State: RESULT_REPORTING_FAILED", e);
+        }
     }
 
     @Override
