@@ -1,0 +1,498 @@
+---
+openapi: 3.1.0
+tags:
+- name: Matchmaking
+  description: "Operations for joining queues, accepting matches, and reporting results"
+- name: Player Management
+  description: Operations for managing players and linking accounts
+- name: Queue Management
+  description: Operations for managing matchmaking queues and rules
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+    JoinQueueRequest:
+      type: object
+      required:
+      - playerId
+      - queueId
+      properties:
+        playerId:
+          type: integer
+          format: int64
+        queueId:
+          type: integer
+          format: int64
+        role:
+          $ref: "#/components/schemas/Role"
+    LobbyDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        queueId:
+          type: integer
+          format: int64
+        tickets:
+          type: array
+          items:
+            $ref: "#/components/schemas/MatchTicketDTO"
+        createdAt:
+          $ref: "#/components/schemas/LocalDateTime"
+    LocalDateTime:
+      type: string
+      format: date-time
+      examples:
+      - 2022-03-10T12:15:50
+    MatchDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        lobbyId:
+          type: integer
+          format: int64
+        state:
+          $ref: "#/components/schemas/MatchState"
+        acceptedPlayerIds:
+          type: array
+          uniqueItems: true
+          items:
+            type: integer
+            format: int64
+        externalGameId:
+          type: string
+        startedAt:
+          $ref: "#/components/schemas/LocalDateTime"
+        endedAt:
+          $ref: "#/components/schemas/LocalDateTime"
+    MatchState:
+      type: string
+      enum:
+      - SEARCHING
+      - PENDING_ACCEPTANCE
+      - MATCH_FOUND
+      - ACCEPTED
+      - IN_PROGRESS
+      - COMPLETED
+      - RESULT_REPORTING_FAILED
+      - CANCELLED
+    MatchTicketDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        playerId:
+          type: integer
+          format: int64
+        queueId:
+          type: integer
+          format: int64
+        role:
+          $ref: "#/components/schemas/Role"
+        status:
+          $ref: "#/components/schemas/TicketStatus"
+        mmr:
+          type: integer
+          format: int32
+        createdAt:
+          $ref: "#/components/schemas/LocalDateTime"
+        lobbyId:
+          type: integer
+          format: int64
+    MatchmakingMode:
+      type: string
+      enum:
+      - RANK_BASED
+      - NORMAL
+    PlayerDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        username:
+          type: string
+    QueueDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        namespace:
+          type: string
+        requiredPlayers:
+          type: integer
+          format: int32
+        isRoleQueue:
+          type: boolean
+        mode:
+          $ref: "#/components/schemas/MatchmakingMode"
+        mmrWindow:
+          type: integer
+          format: int32
+        roleQueue:
+          type: boolean
+    Role:
+      type: string
+      enum:
+      - TOP
+      - JUNGLE
+      - MID
+      - BOT
+      - SUPP
+      - NONE
+    TicketStatus:
+      type: string
+      enum:
+      - IN_QUEUE
+      - MATCHED
+      - CANCELLED
+paths:
+  /api/v1/matchmaking/players/{id}:
+    get:
+      summary: Get player details
+      tags:
+      - Player Management
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: Player found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlayerDTO"
+        "404":
+          description: Player not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: Create a new player and register in Ranking Service
+      description: "Atomic operation: rolls back local creation if remote registration\
+        \ fails."
+      tags:
+      - Player Management
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: username
+        in: query
+        schema:
+          type: string
+      responses:
+        "201":
+          description: Player successfully created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlayerDTO"
+        "409":
+          description: Player or Username already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Remote service registration failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/matchmaking/queues/{id}:
+    get:
+      summary: Get queue details
+      tags:
+      - Queue Management
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: Queue found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueueDTO"
+        "404":
+          description: Queue not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: Create a new queue (can be global or namespaced/local)
+      tags:
+      - Queue Management
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: isRoleQueue
+        in: query
+        schema:
+          type: boolean
+          default: false
+      - name: mmrWindow
+        in: query
+        schema:
+          type: integer
+          format: int32
+          default: 200
+      - name: mode
+        in: query
+        schema:
+          allOf:
+          - $ref: "#/components/schemas/MatchmakingMode"
+          - default: NORMAL
+      - name: name
+        in: query
+        schema:
+          type: string
+      - name: namespace
+        in: query
+        schema:
+          type: string
+      - name: requiredPlayers
+        in: query
+        schema:
+          type: integer
+          format: int32
+          default: 10
+      responses:
+        "201":
+          description: Queue created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueueDTO"
+        "409":
+          description: Queue ID already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/matchmaking/tickets:
+    post:
+      summary: Join a matchmaking queue
+      description: Requires a linked League of Legends Account via Ranking Service.
+      tags:
+      - Matchmaking
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinQueueRequest"
+        required: true
+      responses:
+        "202":
+          description: Ticket created and joined queue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchTicketDTO"
+        "400":
+          description: League of Legends Account not linked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Player or Queue not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/matchmaking/tickets/matches/{matchId}/accept:
+    post:
+      summary: Accept a match proposal
+      tags:
+      - Matchmaking
+      parameters:
+      - name: matchId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: playerId
+        in: query
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: Match accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchDTO"
+        "404":
+          description: Match not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/matchmaking/tickets/matches/{matchId}/complete:
+    post:
+      summary: Calculate deltas and report match results to Ranking Service
+      tags:
+      - Matchmaking
+      parameters:
+      - name: matchId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: Match completed and results reported
+          content:
+            application/json:
+              schema: {}
+        "404":
+          description: Match not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal error or remote service communication failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/matchmaking/tickets/matches/{matchId}/decline:
+    post:
+      summary: Decline a match proposal
+      description: "If declined, the match is cancelled and the decliner's ticket\
+        \ is removed."
+      tags:
+      - Matchmaking
+      parameters:
+      - name: matchId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: playerId
+        in: query
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "204":
+          description: Match declined and cancelled
+        "404":
+          description: Match not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/matchmaking/tickets/matches/{matchId}/link:
+    put:
+      summary: Link an external League of Legends Game ID to the match
+      tags:
+      - Matchmaking
+      parameters:
+      - name: matchId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: externalGameId
+        in: query
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Match linked successfully
+          content:
+            application/json:
+              schema: {}
+        "404":
+          description: Match not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/matchmaking/tickets/{ticketId}:
+    delete:
+      summary: Leave a matchmaking queue
+      tags:
+      - Matchmaking
+      parameters:
+      - name: ticketId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "204":
+          description: Successfully left the queue
+        "404":
+          description: Ticket not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/matchmaking/tickets/{ticketId}/lobby:
+    get:
+      summary: Get the lobby for a specific ticket if matched
+      tags:
+      - Matchmaking
+      parameters:
+      - name: ticketId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: Successfully retrieved lobby info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LobbyDTO"
+        "404":
+          description: Ticket not found or match not yet formed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+info:
+  title: matchmaking-service API
+  version: 0.0.1
