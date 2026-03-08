@@ -14,7 +14,7 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 import java.util.Optional;
 
-@Path("/leaderboard")
+@Path("/leaderboards")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 @Tag(name = "Leaderboard", description = "Global and regional leaderboard operations")
