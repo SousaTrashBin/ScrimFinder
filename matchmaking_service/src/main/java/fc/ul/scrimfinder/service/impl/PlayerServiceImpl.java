@@ -1,0 +1,67 @@
+package fc.ul.scrimfinder.service.impl;
+
+import fc.ul.scrimfinder.client.RankingServiceClient;
+import fc.ul.scrimfinder.domain.Player;
+import fc.ul.scrimfinder.dto.response.PlayerDTO;
+import fc.ul.scrimfinder.exception.PlayerNotFoundException;
+import fc.ul.scrimfinder.mapper.PlayerMapper;
+import fc.ul.scrimfinder.repository.PlayerRepository;
+import fc.ul.scrimfinder.service.PlayerService;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
+
+@ApplicationScoped
+public class PlayerServiceImpl implements PlayerService {
+
+    @Inject
+    PlayerRepository playerRepository;
+
+    @Inject
+    PlayerMapper playerMapper;
+
+    @Inject
+    @RestClient
+    RankingServiceClient rankingServiceClient;
+
+    @Override
+    @Transactional
+    public PlayerDTO createPlayer(Long id, String username) {
+        if (playerRepository.findByIdOptional(id).isPresent()) {
+            throw new RuntimeException("Player with ID " + id + " already exists locally.");
+        }
+
+        Player player = new Player();
+        player.setId(id);
+        player.setUsername(username);
+
+        playerRepository.persist(player);
+
+        rankingServiceClient.registerPlayer(username);
+        return playerMapper.toDTO(player);
+    }
+
+    @Override
+    public PlayerDTO getPlayer(Long id) {
+        Player player = playerRepository.findByIdOptional(id)
+                .orElseThrow(() -> new PlayerNotFoundException("Player not found: " + id));
+        return playerMapper.toDTO(player);
+    }
+
+    @Override
+    public void linkLolAccount(Long id, String lolAccountId) {
+        playerRepository.findByIdOptional(id)
+                .orElseThrow(() -> new PlayerNotFoundException("Player not found: " + id));
+
+        rankingServiceClient.linkLolAccount(id, lolAccountId);
+    }
+
+    @Override
+    public void syncMmr(Long id) {
+        playerRepository.findByIdOptional(id)
+                .orElseThrow(() -> new PlayerNotFoundException("Player not found: " + id));
+
+        rankingServiceClient.syncMmr(id);
+    }
+}
