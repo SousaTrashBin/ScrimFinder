@@ -2,7 +2,6 @@ package fc.ul.scrimfinder.dto.request;
 
 import fc.ul.scrimfinder.util.TeamColor;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.QueryParam;
 
 public record TeamStats(

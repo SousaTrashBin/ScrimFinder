@@ -2,6 +2,7 @@ package fc.ul.scrimfinder.controller;
 
 import fc.ul.scrimfinder.dto.request.MatchAddDto;
 import fc.ul.scrimfinder.dto.request.MatchStats;
+import fc.ul.scrimfinder.dto.request.SortParam;
 import fc.ul.scrimfinder.dto.response.MatchFullDto;
 import fc.ul.scrimfinder.dto.response.MatchSimplifiedDto;
 import fc.ul.scrimfinder.dto.response.PaginatedResponseDto;
@@ -21,6 +22,8 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+
+import java.util.List;
 
 @Path("/matches")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -48,7 +51,7 @@ public class MatchHistoryController {
     }
 
     @GET
-    @Operation(summary = "Get paginated match history with filters")
+    @Operation(summary = "Get paginated match history with filters and sorting")
     @APIResponses(value= {
             @APIResponse(responseCode = "200", description = "Successfully retrieved filtered matches",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = PaginatedResponseDto.class))),
@@ -58,9 +61,10 @@ public class MatchHistoryController {
     public Response getMatches(
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("size") @DefaultValue("20") @Min(0) @Max(100) int size,
-            @BeanParam @Valid MatchStats params
+            @BeanParam @Valid MatchStats filterParams,
+            @QueryParam("sort") List<String> sortParams
             ) {
-        PaginatedResponseDto<MatchSimplifiedDto> matches = matchHistoryService.getMatches(page, size, params);
+        PaginatedResponseDto<MatchSimplifiedDto> matches = matchHistoryService.getMatches(page, size, filterParams, sortParams);
         return Response.ok(matches).build();
     }
 
