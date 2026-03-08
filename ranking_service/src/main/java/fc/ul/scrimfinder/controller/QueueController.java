@@ -33,10 +33,11 @@ public class QueueController {
             @APIResponse(responseCode = "409", description = "Queue with this ID already exists")
     })
     public Response createQueue(@PathParam("queueId") Long queueId,
+                                @QueryParam("name") String name,
                                 @QueryParam("rule") @DefaultValue("NONE") MMRRuleType MMRRuleType,
                                 @QueryParam("initialMMR") @Positive @DefaultValue("1000") int initialMMR
     ) {
-        queueService.createQueue(queueId, MMRRuleType, initialMMR);
+        queueService.createQueue(queueId, name, MMRRuleType, initialMMR);
         return Response.status(Response.Status.CREATED).build();
     }
 
@@ -51,7 +52,7 @@ public class QueueController {
     public Response updateQueue(@PathParam("queueId") Long queueId,
                                 @NotNull @Valid UpdateQueueRequest updateDTO) {
         var updatedQueue = queueService.updateQueue(queueId, updateDTO);
-        return Response.ok(updatedQueue).build(); 
+        return Response.ok(updatedQueue).build();
     }
 
     @DELETE
