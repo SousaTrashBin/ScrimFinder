@@ -1,11 +1,15 @@
 package fc.ul.scrimfinder.dto.external;
 
-import lombok.Data;
+import java.util.UUID;
 
-@Data
-public class PlayerRankingDTO {
-    private Long playerId;
-    private Long queueId;
-    private int mmr;
-    private String lolAccountPPUID;
+public record PlayerRankingDTO(
+        UUID publicId,
+        Long playerId,
+        String username,
+        String lolAccountPPUID,
+        Long queueId,
+        int mmr,
+        int wins,
+        int losses
+) {
 }

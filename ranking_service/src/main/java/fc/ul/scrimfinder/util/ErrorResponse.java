@@ -1,12 +1,15 @@
 package fc.ul.scrimfinder.util;
 
-public class ErrorResponse {
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ErrorResponse {
     public String code;
     public String message;
-
-    public ErrorResponse(String code, String message) {
-        this.code = code;
-        this.message = message;
-    }
 }

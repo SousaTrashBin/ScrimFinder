@@ -6,13 +6,12 @@ import fc.ul.scrimfinder.domain.Queue;
 import fc.ul.scrimfinder.dto.external.PlayerRankingDTO;
 import fc.ul.scrimfinder.dto.request.JoinQueueRequest;
 import fc.ul.scrimfinder.dto.request.MatchResultRequest;
-import fc.ul.scrimfinder.dto.request.PlayerDelta;
 import fc.ul.scrimfinder.dto.response.LobbyDTO;
 import fc.ul.scrimfinder.dto.response.MatchDTO;
 import fc.ul.scrimfinder.dto.response.MatchTicketDTO;
+import fc.ul.scrimfinder.exception.LeagueAccountNotLinkedException;
 import fc.ul.scrimfinder.exception.PlayerNotFoundException;
 import fc.ul.scrimfinder.exception.QueueNotFoundException;
-import fc.ul.scrimfinder.exception.RiotAccountNotLinkedException;
 import fc.ul.scrimfinder.exception.TicketNotFoundException;
 import fc.ul.scrimfinder.mapper.LobbyMapper;
 import fc.ul.scrimfinder.mapper.MatchMapper;
@@ -67,15 +66,10 @@ public class MatchmakingServiceImpl implements MatchmakingService {
         Queue queue = queueRepository.findByIdOptional(request.getQueueId())
                 .orElseThrow(() -> new QueueNotFoundException("Queue not found: " + request.getQueueId()));
 
-        PlayerRankingDTO ranking;
-        try {
-            ranking = rankingServiceClient.getPlayerRanking(player.getId(), queue.getId());
-        } catch (Exception e) {
-            throw new RuntimeException("Could not verify player ranking");
-        }
+        PlayerRankingDTO ranking = rankingServiceClient.getPlayerRanking(player.getId(), queue.getId());
 
-        if (ranking == null || ranking.getLolAccountPPUID() == null) {
-            throw new RiotAccountNotLinkedException("A valid Riot Account must be linked before joining the queue.");
+        if (ranking == null || ranking.lolAccountPPUID() == null) {
+            throw new LeagueAccountNotLinkedException("A valid League Account must be linked before joining the queue.");
         }
 
         MatchTicket ticket = new MatchTicket();
@@ -83,7 +77,7 @@ public class MatchmakingServiceImpl implements MatchmakingService {
         ticket.setQueue(queue);
         ticket.setRole(request.getRole() != null ? request.getRole() : Role.NONE);
         ticket.setStatus(TicketStatus.IN_QUEUE);
-        ticket.setMmr(ranking.getMmr());
+        ticket.setMmr(ranking.mmr());
         ticketRepository.persist(ticket);
 
         redisRepository.addTicket(queue.getId(), ticket.getRole(), ticket.getId(), ticket.getMmr());
@@ -301,24 +295,25 @@ public class MatchmakingServiceImpl implements MatchmakingService {
         double avgMMR1 = team1.stream().mapToInt(MatchTicket::getMmr).average().orElse(0);
         double avgMMR2 = team2.stream().mapToInt(MatchTicket::getMmr).average().orElse(0);
 
-        Map<Long, PlayerDelta> deltas = new HashMap<>();
+        Map<Long, MatchResultRequest.PlayerDelta> deltas = new HashMap<>();
         for (MatchTicket t : team1) {
             double expected = 1.0 / (1.0 + Math.pow(10.0, (avgMMR2 - t.getMmr()) / 400.0));
             int winDelta = (int) Math.round(K_FACTOR * (1.0 - expected));
             int lossDelta = (int) Math.round(K_FACTOR * expected);
-            deltas.put(t.getPlayer().getId(), new PlayerDelta(winDelta, lossDelta));
+            deltas.put(t.getPlayer().getId(), new MatchResultRequest.PlayerDelta(winDelta, lossDelta));
         }
         for (MatchTicket t : team2) {
             double expected = 1.0 / (1.0 + Math.pow(10.0, (avgMMR1 - t.getMmr()) / 400.0));
             int winDelta = (int) Math.round(K_FACTOR * (1.0 - expected));
             int lossDelta = (int) Math.round(K_FACTOR * expected);
-            deltas.put(t.getPlayer().getId(), new PlayerDelta(winDelta, lossDelta));
+            deltas.put(t.getPlayer().getId(), new MatchResultRequest.PlayerDelta(winDelta, lossDelta));
         }
 
-        MatchResultRequest result = new MatchResultRequest();
-        result.setGameId(match.getExternalGameId());
-        result.setQueueId(match.getLobby().getQueue().getId());
-        result.setPlayerDeltas(deltas);
+        MatchResultRequest result = new MatchResultRequest(
+                match.getExternalGameId(),
+                match.getLobby().getQueue().getId(),
+                deltas
+        );
 
         rankingServiceClient.reportMatchResults(result);
     }

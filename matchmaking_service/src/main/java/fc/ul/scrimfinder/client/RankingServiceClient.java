@@ -4,10 +4,12 @@ import fc.ul.scrimfinder.dto.external.PlayerRankingDTO;
 import fc.ul.scrimfinder.dto.request.MatchResultRequest;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import org.eclipse.microprofile.rest.client.annotation.RegisterProvider;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
 @Path("/api/v1/ranking")
 @RegisterRestClient(configKey = "ranking-service-api")
+@RegisterProvider(RankingServiceExceptionMapper.class)
 public interface RankingServiceClient {
 
     @GET

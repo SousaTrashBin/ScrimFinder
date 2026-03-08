@@ -1,0 +1,37 @@
+package fc.ul.scrimfinder.client;
+
+import fc.ul.scrimfinder.exception.LeagueAccountNotLinkedException;
+import fc.ul.scrimfinder.exception.PlayerNotFoundException;
+import fc.ul.scrimfinder.exception.QueueNotFoundException;
+import fc.ul.scrimfinder.util.ErrorResponse;
+import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+
+public class RankingServiceExceptionMapper implements ResponseExceptionMapper<RuntimeException> {
+
+    @Override
+    public RuntimeException toThrowable(Response response) {
+        try {
+            ErrorResponse errorResponse = response.readEntity(ErrorResponse.class);
+            String code = errorResponse.getCode();
+            String message = errorResponse.getMessage();
+
+            return switch (code) {
+                case "PLAYER_NOT_FOUND" -> new PlayerNotFoundException(message);
+                case "QUEUE_NOT_FOUND" -> new QueueNotFoundException(message);
+                case "LEAGUE_ACCOUNT_NOT_LINKED" -> new LeagueAccountNotLinkedException(message);
+                default -> new RuntimeException("Remote service error: " + message);
+            };
+        } catch (Exception e) {
+            return new RuntimeException("Remote service error: " + response.getStatus());
+        }
+    }
+
+    @Override
+    public boolean handles(int status, jakarta.ws.rs.core.MultivaluedMap<String, Object> headers) {
+        return status >= 400;
+    }
+}
