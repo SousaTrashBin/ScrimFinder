@@ -5,4 +5,8 @@ import io.smallrye.config.ConfigMapping;
 @ConfigMapping(prefix = "config")
 public interface Config {
     String defaultPlayerIcon();
+
+    String detailFillingApi();
+
+    String analysisApi();
 }
