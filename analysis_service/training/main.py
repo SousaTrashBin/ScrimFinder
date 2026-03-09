@@ -24,6 +24,7 @@ POST /registry/models/{model_id}/activate
 """
 
 from fastapi import FastAPI, Query, Path, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional, Literal
@@ -46,7 +47,7 @@ app = FastAPI(
     ),
     version="1.0.0",
 )
-from fastapi.middleware.cors import CORSMiddleware
+
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 ConcernType = Literal["draft", "build", "performance", "all"]
@@ -65,18 +66,27 @@ _TRAINERS = {
     summary="Trigger a training job",
     description=(
         "Starts one or more training jobs asynchronously. "
-        "Pass `concern=all` to retrain every model at once. "
+        "Pass `concern=all` to retrain every model at once.\n\n"
+        "**Dataset filters (all optional, combinable):**\n"
+        "- `sample` — train on a random fraction (0.01–1.0), e.g. `0.1` for a quick smoke-test\n"
+        "- `limit` — hard cap on rows loaded, e.g. `50000`\n"
+        "- `matchType` — restrict to a specific match type, e.g. `RANKED`\n\n"
         "Returns job IDs that can be polled via GET /train/jobs/{job_id}."
     ),
     tags=["Training"],
 )
 def trigger_training(
-    concern: ConcernType = Query(..., description="Which model to train, or 'all'.")
+    concern:   ConcernType     = Query(...,  description="Which model to train, or 'all'."),
+    sample:    Optional[float] = Query(None, ge=0.01, le=1.0, description="Fraction of dataset to use (0.01-1.0)."),
+    limit:     Optional[int]   = Query(None, ge=1000, description="Max rows to load."),
+    matchType: Optional[str]   = Query(None, description="Filter to a match type, e.g. RANKED."),
 ):
+    filters = {"sample": sample, "limit": limit, "matchType": matchType}
     concerns = list(_TRAINERS.keys()) if concern == "all" else [concern]
     jobs = []
     for c in concerns:
         job = job_registry.create(concern=c)
+        job.filters = {k: v for k, v in filters.items() if v is not None}
         run_job_async(job, _TRAINERS[c])
         jobs.append(job.to_dict())
     return {"jobs": jobs}
@@ -151,3 +161,28 @@ def manual_activate(model_id: int = Path(..., description="Model record ID to ac
         raise HTTPException(status_code=404, detail=f"Model id={model_id} not found.")
     activate_model(model_id)
     return {"message": f"Model {model_id} activated for concern='{record['concern']}'."}
+
+
+# ── Cancel endpoint ───────────────────────────────────────────
+
+@app.post(
+    "/train/jobs/{job_id}/cancel",
+    summary="Cancel a running or pending training job",
+    description=(
+        "Requests cooperative cancellation of a job. The job will stop at the next "
+        "safe checkpoint (between stages). Any model artifact already saved to the "
+        "registry before cancellation is retained and remains active."
+    ),
+    tags=["Training"],
+)
+def cancel_job(job_id: str = Path(..., description="Job ID to cancel.")):
+    job = job_registry.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found.")
+    cancelled = job.cancel()
+    if not cancelled:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Job '{job_id}' is {job.status} and cannot be cancelled."
+        )
+    return {"message": f"Cancellation requested for job '{job_id}'.", "job": job.to_dict()}

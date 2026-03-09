@@ -66,3 +66,17 @@ services:
       - MODEL_RELOAD_INTERVAL=600
     depends_on:
       - training
+
+  # ── Champion Analysis Service ───────────────────────────────
+  champion:
+    build: .
+    container_name: lol_champion
+    command: uvicorn services.champion.main:app --host 0.0.0.0 --port 8004 --reload
+    ports:
+      - "8004:8004"
+    volumes:
+      - ../dataset:/app/dataset:ro
+    environment:
+      - LEAGUE_DB=/app/dataset/league_data.db
+    depends_on:
+      - training
