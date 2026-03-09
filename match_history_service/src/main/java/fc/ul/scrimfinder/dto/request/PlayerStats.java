@@ -2,6 +2,7 @@ package fc.ul.scrimfinder.dto.request;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fc.ul.scrimfinder.EntryPoint;
 import fc.ul.scrimfinder.exception.InvalidRoleException;
 import fc.ul.scrimfinder.util.RiotId;
 import fc.ul.scrimfinder.util.Role;
@@ -16,6 +17,8 @@ public record PlayerStats(
         @NotNull
         @Valid
         RiotId riotId,
+
+        String playerIconPath,
 
         @QueryParam("kills")
         @Min(value = 0, message = "A player can only have more than or equal to 0 kills")
@@ -83,6 +86,7 @@ public record PlayerStats(
         }
 
         RiotId riotId = fromJsonToRiotId(playerStats);
+        String playerIconPath = fromJsonToPlayerIconPath(playerStats);
         Integer kills = fromJsonToKills(playerStats);
         Integer deaths = fromJsonToDeaths(playerStats);
         Integer assists = fromJsonToAssists(playerStats);
@@ -100,6 +104,7 @@ public record PlayerStats(
 
         return new PlayerStats(
                 riotId,
+                playerIconPath,
                 kills,
                 deaths,
                 assists,
@@ -136,6 +141,14 @@ public record PlayerStats(
         String playerTag = playerTagNode.asText();
 
         return new RiotId(playerName, playerTag);
+    }
+
+    private static String fromJsonToPlayerIconPath(JsonNode json) {
+        JsonNode playerIconNameNode = json.findValue("playerIconName");
+        if  (playerIconNameNode != null) {
+            return playerIconNameNode.asText();
+        }
+        return EntryPoint.getConfig().defaultPlayerIcon();
     }
 
     private static Integer fromJsonToKills(JsonNode json) {
