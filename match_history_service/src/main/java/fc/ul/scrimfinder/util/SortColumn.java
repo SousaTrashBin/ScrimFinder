@@ -38,4 +38,13 @@ public enum SortColumn {
     QUEUE_ID("queueId");
 
     final String column;
+
+    public static SortColumn fromColumnName(String name) {
+        for (SortColumn sc : values()) {
+            if (sc.column.equalsIgnoreCase(name)) {
+                return sc;
+            }
+        }
+        return null;
+    }
 }

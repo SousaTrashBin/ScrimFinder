@@ -15,7 +15,7 @@ public interface MatchHistoryService {
             MatchNotFoundException,
             ExternalServiceUnavailableException;
 
-    PaginatedResponseDto<MatchSimplifiedDto> getMatches(int page, int size, MatchStats filterParams, List<String> sortParams) throws
+    PaginatedResponseDto<MatchSimplifiedDto> getMatches(int page, int size, MatchStats filterParams, List<SortParam> sortParams) throws
             PlayerNotFoundException,
             ChampionNotFoundException,
             RankNotFoundException,

@@ -29,7 +29,7 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
     }
 
     @Override
-    public PaginatedResponseDto<MatchSimplifiedDto> getMatches(int page, int size, MatchStats filterParams, List<String> sortParams) {
+    public PaginatedResponseDto<MatchSimplifiedDto> getMatches(int page, int size, MatchStats filterParams, List<SortParam> sortParams) {
         // TODO
         return null;
     }
