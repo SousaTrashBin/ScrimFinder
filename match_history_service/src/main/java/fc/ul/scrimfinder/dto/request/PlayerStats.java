@@ -2,7 +2,6 @@ package fc.ul.scrimfinder.dto.request;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fc.ul.scrimfinder.EntryPoint;
 import fc.ul.scrimfinder.exception.InvalidRoleException;
 import fc.ul.scrimfinder.util.RiotId;
 import fc.ul.scrimfinder.util.Role;
@@ -18,7 +17,8 @@ public record PlayerStats(
         @Valid
         RiotId riotId,
 
-        String playerIconPath,
+        @Min(value = 0, message = "The icon ID of the player must be greater or equal to 0")
+        Integer playerIcon,
 
         @QueryParam("kills")
         @Min(value = 0, message = "A player can only have more than or equal to 0 kills")
@@ -86,7 +86,7 @@ public record PlayerStats(
         }
 
         RiotId riotId = fromJsonToRiotId(playerStats);
-        String playerIconPath = fromJsonToPlayerIconPath(playerStats);
+        Integer playerIcon = fromJsonToPlayerIcon(playerStats);
         Integer kills = fromJsonToKills(playerStats);
         Integer deaths = fromJsonToDeaths(playerStats);
         Integer assists = fromJsonToAssists(playerStats);
@@ -104,7 +104,7 @@ public record PlayerStats(
 
         return new PlayerStats(
                 riotId,
-                playerIconPath,
+                playerIcon,
                 kills,
                 deaths,
                 assists,
@@ -143,12 +143,12 @@ public record PlayerStats(
         return new RiotId(playerName, playerTag);
     }
 
-    private static String fromJsonToPlayerIconPath(JsonNode json) {
-        JsonNode playerIconNameNode = json.findValue("playerIconName");
-        if  (playerIconNameNode != null) {
-            return playerIconNameNode.asText();
+    private static Integer fromJsonToPlayerIcon(JsonNode json) {
+        JsonNode playerIconNode = json.findValue("playerIcon");
+        if  (playerIconNode == null) {
+            return 0;
         }
-        return EntryPoint.getConfig().defaultPlayerIcon();
+        return playerIconNode.asInt();
     }
 
     private static Integer fromJsonToKills(JsonNode json) {
