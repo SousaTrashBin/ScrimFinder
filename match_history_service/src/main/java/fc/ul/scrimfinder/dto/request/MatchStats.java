@@ -43,15 +43,13 @@ public record MatchStats(
         TimeInterval timeInterval,
 
         @QueryParam("teams")
-        @Valid
-        List<TeamStats> teams,
+        List<@Valid TeamStats> teams,
 
         @QueryParam("queueId")
         @Positive(message = "The queue ID must be positive")
         Long queueId,
 
         @QueryParam("players")
-        @Valid
-        List<PlayerStats> players
+        List<@Valid PlayerStats> players
 ) {
 }
