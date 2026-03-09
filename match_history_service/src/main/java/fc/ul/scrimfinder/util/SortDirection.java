@@ -9,10 +9,19 @@ import lombok.RequiredArgsConstructor;
 @Getter
 public enum SortDirection {
     @JsonProperty(value = "asc")
-    ASC(""),
+    ASC("asc"),
 
     @JsonProperty(value = "desc")
-    DESC("-");
+    DESC("desc");
 
     final String direction;
+
+    public static SortDirection fromDirectionName(String name) {
+        for (SortDirection sd : values()) {
+            if (sd.direction.equalsIgnoreCase(name)) {
+                return sd;
+            }
+        }
+        return null;
+    }
 }
