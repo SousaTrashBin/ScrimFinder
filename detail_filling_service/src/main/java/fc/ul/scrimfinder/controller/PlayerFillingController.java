@@ -35,7 +35,7 @@ public class PlayerFillingController {
             @APIResponse(responseCode = "404", description = "Player not found",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
-    public Response getPlayerById(@PathParam("playerId") @Pattern(regexp = "^\\.+#\\.+$") String playerId) {
+    public Response getPlayerById(@PathParam("playerId") @Pattern(regexp = "^.+#.+$") String playerId) {
         PlayerDto player = playerFillingService.getPlayerById(playerId);
         return Response.ok(player).build();
     }
