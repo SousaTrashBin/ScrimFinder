@@ -1,12 +1,12 @@
 package fc.ul.scrimfinder.dto.request;
 
-import fc.ul.scrimfinder.util.TeamColor;
+import fc.ul.scrimfinder.util.TeamSide;
 import jakarta.validation.constraints.Min;
 import jakarta.ws.rs.QueryParam;
 
 public record TeamStats(
-        @QueryParam("color")
-        TeamColor color,
+        @QueryParam("side")
+        TeamSide side,
 
         @QueryParam("teamKills")
         @Min(value = 0, message = "A team can only have more than or equal to 0 kills")
