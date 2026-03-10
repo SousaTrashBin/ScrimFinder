@@ -1,0 +1,317 @@
+---
+openapi: 3.1.0
+info:
+  title: Detail Filling
+  version: 0.0.1
+tags:
+- name: Match Filling
+  description: Operations for retrieving match details from Riot's API
+- name: Player Filling
+  description: Operations for retrieving player details from Riot's API
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+    LeagueEntryDto:
+      type: object
+      properties:
+        leagueId:
+          type: string
+        puuid:
+          type: string
+        queueType:
+          type: string
+        tier:
+          type: string
+        rank:
+          type: string
+        leaguePoints:
+          type: integer
+          format: int32
+        wins:
+          type: integer
+          format: int32
+        losses:
+          type: integer
+          format: int32
+        hotStreak:
+          type: boolean
+        veteran:
+          type: boolean
+        freshBlood:
+          type: boolean
+        inactive:
+          type: boolean
+        miniSeries:
+          $ref: "#/components/schemas/MiniSeriesDto"
+    LocalDateTime:
+      type: string
+      format: date-time
+      examples:
+      - 2022-03-10T12:15:50
+    MatchDto:
+      type: object
+      required:
+      - riotMatchId
+      properties:
+        riotMatchId:
+          type: string
+          pattern: \S
+        matchStats:
+          $ref: "#/components/schemas/MatchStatsDto"
+    MatchStatsDto:
+      type: object
+      properties:
+        ranks:
+          type: array
+          items:
+            type: string
+        champions:
+          type: array
+          items:
+            type: string
+        matchTripleKills:
+          type: integer
+          format: int32
+        matchQuadKills:
+          type: integer
+          format: int32
+        matchPentaKills:
+          type: integer
+          format: int32
+        patchInterval:
+          $ref: "#/components/schemas/PatchInterval"
+        timeInterval:
+          $ref: "#/components/schemas/TimeInterval"
+        teams:
+          type: array
+          items:
+            $ref: "#/components/schemas/TeamStats"
+        queueId:
+          type: integer
+          format: int64
+        players:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlayerStats"
+    MiniSeriesDto:
+      type: object
+      properties:
+        losses:
+          type: integer
+          format: int32
+        progress:
+          type: string
+        target:
+          type: integer
+          format: int32
+        wins:
+          type: integer
+          format: int32
+    PatchInterval:
+      type: object
+      properties:
+        sincePatch:
+          type: string
+        untilPatch:
+          type: string
+    PlayerDto:
+      type: object
+      properties:
+        entries:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/LeagueEntryDto"
+    PlayerStats:
+      type: object
+      properties:
+        riotId:
+          $ref: "#/components/schemas/RiotId"
+        playerIcon:
+          type: integer
+          format: int32
+        kills:
+          type: integer
+          format: int32
+        deaths:
+          type: integer
+          format: int32
+        assists:
+          type: integer
+          format: int32
+        healing:
+          type: integer
+          format: int32
+        damageToPlayers:
+          type: integer
+          format: int32
+        wards:
+          type: integer
+          format: int32
+        gold:
+          type: integer
+          format: int32
+        role:
+          $ref: "#/components/schemas/Role"
+        champion:
+          type: string
+        csPerMinute:
+          type: number
+          format: double
+        killedMinions:
+          type: integer
+          format: int32
+        tripleKills:
+          type: integer
+          format: int32
+        quadKills:
+          type: integer
+          format: int32
+        pentaKills:
+          type: integer
+          format: int32
+    RiotId:
+      type: object
+      properties:
+        playerName:
+          type: string
+        playerTag:
+          type: string
+    Role:
+      type: string
+      enum:
+      - TOP
+      - JUNGLE
+      - MID
+      - BOTTOM
+      - SUPPORT
+    TeamSide:
+      type: string
+      enum:
+      - BLUE
+      - RED
+    TeamStats:
+      type: object
+      properties:
+        side:
+          $ref: "#/components/schemas/TeamSide"
+        teamKills:
+          type: integer
+          format: int32
+        teamDeaths:
+          type: integer
+          format: int32
+        teamAssists:
+          type: integer
+          format: int32
+        teamHealing:
+          type: integer
+          format: int32
+    TimeInterval:
+      type: object
+      properties:
+        start:
+          $ref: "#/components/schemas/LocalDateTime"
+        end:
+          $ref: "#/components/schemas/LocalDateTime"
+paths:
+  /api/v1/external/matches/{matchId}:
+    get:
+      summary: Get simplified match information by Riot ID
+      tags:
+      - Match Filling
+      parameters:
+      - name: matchId
+        in: path
+        required: true
+        schema:
+          type: integer
+          exclusiveMinimum: 0
+          format: int64
+      responses:
+        "200":
+          description: Successfully retrieved the match details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchDto"
+        "400":
+          description: Invalid match ID provided
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Match not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/external/matches/{matchId}/raw:
+    get:
+      summary: Get complete match information by Riot ID
+      tags:
+      - Match Filling
+      parameters:
+      - name: matchId
+        in: path
+        required: true
+        schema:
+          type: integer
+          exclusiveMinimum: 0
+          format: int64
+      responses:
+        "200":
+          description: Successfully retrieved the match details
+          content:
+            application/json:
+              schema: {}
+        "400":
+          description: Invalid match ID provided
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Match not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/external/players/{playerId}:
+    get:
+      summary: Get complete player information by player name and tag
+      tags:
+      - Player Filling
+      parameters:
+      - name: playerId
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: ^.+#.+$
+      responses:
+        "200":
+          description: Successfully retrieved the player details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlayerDto"
+        "400":
+          description: Invalid player ID provided
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Player not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"

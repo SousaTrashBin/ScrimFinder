@@ -1,0 +1,462 @@
+---
+openapi: 3.1.0
+info:
+  title: Match History
+  version: 0.0.1
+tags:
+- name: Match History
+  description: Operations for retrieving and managing League of Legends match history
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+    LocalDateTime:
+      type: string
+      format: date-time
+      examples:
+      - 2022-03-10T12:15:50
+    MatchAddDto:
+      type: object
+      required:
+      - riotMatchId
+      properties:
+        riotMatchId:
+          type: string
+          pattern: \S
+        matchStats:
+          $ref: "#/components/schemas/MatchStats"
+    MatchDto:
+      type: object
+      properties:
+        matchId:
+          type: integer
+          format: int64
+        match:
+          $ref: "#/components/schemas/MatchAddDto"
+    MatchStats:
+      type: object
+      properties:
+        ranks:
+          type: array
+          items:
+            type: string
+        champions:
+          type: array
+          items:
+            type: string
+        matchTripleKills:
+          type: integer
+          format: int32
+          minimum: 0
+        matchQuadKills:
+          type: integer
+          format: int32
+          minimum: 0
+        matchPentaKills:
+          type: integer
+          format: int32
+          minimum: 0
+        patchInterval:
+          $ref: "#/components/schemas/PatchInterval"
+        timeInterval:
+          $ref: "#/components/schemas/TimeInterval"
+        teams:
+          type: array
+          items:
+            $ref: "#/components/schemas/TeamStats"
+        queueId:
+          type: integer
+          exclusiveMinimum: 0
+          format: int64
+        players:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlayerStats"
+    PaginatedResponseDto:
+      type: object
+      properties:
+        data:
+          type: array
+          items: {}
+        currentPage:
+          type: integer
+          format: int32
+        totalPages:
+          type: integer
+          format: int32
+        totalElements:
+          type: integer
+          format: int64
+    PatchInterval:
+      type: object
+      properties:
+        sincePatch:
+          type: string
+        untilPatch:
+          type: string
+    PlayerStats:
+      type: object
+      properties:
+        riotId:
+          $ref: "#/components/schemas/RiotId"
+        playerIcon:
+          type: integer
+          format: int32
+          minimum: 0
+        kills:
+          type: integer
+          format: int32
+          minimum: 0
+        deaths:
+          type: integer
+          format: int32
+          minimum: 0
+        assists:
+          type: integer
+          format: int32
+          minimum: 0
+        healing:
+          type: integer
+          format: int32
+          minimum: 0
+        damageToPlayers:
+          type: integer
+          format: int32
+          minimum: 0
+        wards:
+          type: integer
+          format: int32
+          minimum: 0
+        gold:
+          type: integer
+          format: int32
+          minimum: 0
+        role:
+          $ref: "#/components/schemas/Role"
+        champion:
+          type: string
+        csPerMinute:
+          type: number
+          format: double
+          minimum: 0
+        killedMinions:
+          type: integer
+          format: int32
+          minimum: 0
+        tripleKills:
+          type: integer
+          format: int32
+          minimum: 0
+        quadKills:
+          type: integer
+          format: int32
+          minimum: 0
+        pentaKills:
+          type: integer
+          format: int32
+          minimum: 0
+    RiotId:
+      type: object
+      required:
+      - playerName
+      - playerTag
+      properties:
+        playerName:
+          type: string
+          pattern: \S
+        playerTag:
+          type: string
+          pattern: \S
+    Role:
+      type: string
+      enum:
+      - top
+      - jungle
+      - mid
+      - bottom
+      - support
+    SortColumn:
+      type: string
+      enum:
+      - rank
+      - champion
+      - matchTripleKills
+      - matchQuadKills
+      - matchPentaKills
+      - patchStart
+      - patchEnd
+      - timeStart
+      - timeEnd
+      - queueId
+    SortDirection:
+      type: string
+      enum:
+      - asc
+      - desc
+    SortParam:
+      type: object
+      properties:
+        column:
+          $ref: "#/components/schemas/SortColumn"
+        direction:
+          $ref: "#/components/schemas/SortDirection"
+    TeamSide:
+      type: string
+      enum:
+      - blue
+      - red
+    TeamStats:
+      type: object
+      properties:
+        side:
+          $ref: "#/components/schemas/TeamSide"
+        teamKills:
+          type: integer
+          format: int32
+          minimum: 0
+        teamDeaths:
+          type: integer
+          format: int32
+          minimum: 0
+        teamAssists:
+          type: integer
+          format: int32
+          minimum: 0
+        teamHealing:
+          type: integer
+          format: int32
+          minimum: 0
+    TimeInterval:
+      type: object
+      properties:
+        start:
+          $ref: "#/components/schemas/LocalDateTime"
+        end:
+          $ref: "#/components/schemas/LocalDateTime"
+paths:
+  /api/v1/history/matches:
+    get:
+      summary: Get paginated match history with filters and sorting
+      tags:
+      - Match History
+      parameters:
+      - name: champions
+        in: query
+        schema:
+          type: array
+          items:
+            type: string
+      - name: matchPentaKills
+        in: query
+        schema:
+          type: integer
+          format: int32
+          minimum: 0
+      - name: matchQuadKills
+        in: query
+        schema:
+          type: integer
+          format: int32
+          minimum: 0
+      - name: matchTripleKills
+        in: query
+        schema:
+          type: integer
+          format: int32
+          minimum: 0
+      - name: page
+        in: query
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - name: players
+        in: query
+        schema:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlayerStats"
+      - name: queueId
+        in: query
+        schema:
+          type: integer
+          exclusiveMinimum: 0
+          format: int64
+      - name: ranks
+        in: query
+        schema:
+          type: array
+          items:
+            type: string
+      - name: since
+        in: query
+        schema:
+          $ref: "#/components/schemas/LocalDateTime"
+      - name: sincePatch
+        in: query
+        schema:
+          type: string
+      - name: size
+        in: query
+        schema:
+          type: integer
+          format: int32
+          default: 20
+          maximum: 100
+          minimum: 0
+      - name: sort
+        in: query
+        schema:
+          type: array
+          items:
+            $ref: "#/components/schemas/SortParam"
+      - name: teams
+        in: query
+        schema:
+          type: array
+          items:
+            $ref: "#/components/schemas/TeamStats"
+      - name: until
+        in: query
+        schema:
+          $ref: "#/components/schemas/LocalDateTime"
+      - name: untilPatch
+        in: query
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Successfully retrieved filtered matches
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedResponseDto"
+        "400":
+          description: Invalid query or pagination parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: Add a finished match to history with the given properties (Internal)
+      tags:
+      - Match History
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatchAddDto"
+        required: true
+      responses:
+        "201":
+          description: Match history successfully created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchDto"
+        "400":
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/history/matches/{matchId}:
+    get:
+      summary: Get simplified match information by ID
+      tags:
+      - Match History
+      parameters:
+      - name: matchId
+        in: path
+        required: true
+        schema:
+          type: integer
+          exclusiveMinimum: 0
+          format: int64
+      responses:
+        "200":
+          description: Successfully retrieved the match details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchDto"
+        "400":
+          description: Invalid match ID provided
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Match not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      summary: Delete a match from history (Internal)
+      tags:
+      - Match History
+      parameters:
+      - name: matchId
+        in: path
+        required: true
+        schema:
+          type: integer
+          exclusiveMinimum: 0
+          format: int64
+      responses:
+        "200":
+          description: Match history successfully deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchDto"
+        "400":
+          description: Invalid match ID provided
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Match not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/history/matches/{riotMatchId}:
+    post:
+      summary: Add a finished match to history based on the corresponding match in
+        Riot's API
+      tags:
+      - Match History
+      parameters:
+      - name: riotMatchId
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: \S
+      responses:
+        "201":
+          description: Match history successfully created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchDto"
+        "400":
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Match not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
