@@ -1,6 +1,6 @@
 package fc.ul.scrimfinder.controller;
 
-import fc.ul.scrimfinder.dto.response.PlayerDto;
+import fc.ul.scrimfinder.dto.response.player.PlayerDto;
 import fc.ul.scrimfinder.service.PlayerFillingService;
 import fc.ul.scrimfinder.util.ErrorResponse;
 import jakarta.inject.Inject;

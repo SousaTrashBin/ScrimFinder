@@ -1,7 +1,7 @@
 package fc.ul.scrimfinder.service;
 
-import fc.ul.scrimfinder.dto.response.MatchDto;
-import fc.ul.scrimfinder.dto.response.PlayerDto;
+import fc.ul.scrimfinder.dto.response.match.MatchDto;
+import fc.ul.scrimfinder.dto.response.player.PlayerDto;
 import fc.ul.scrimfinder.exception.ExternalServiceUnavailableException;
 
 public interface RiotAdapterService {

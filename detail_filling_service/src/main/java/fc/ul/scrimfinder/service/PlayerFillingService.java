@@ -1,6 +1,6 @@
 package fc.ul.scrimfinder.service;
 
-import fc.ul.scrimfinder.dto.response.PlayerDto;
+import fc.ul.scrimfinder.dto.response.player.PlayerDto;
 import fc.ul.scrimfinder.exception.ExternalServiceUnavailableException;
 import fc.ul.scrimfinder.exception.PlayerNotFoundException;
 
