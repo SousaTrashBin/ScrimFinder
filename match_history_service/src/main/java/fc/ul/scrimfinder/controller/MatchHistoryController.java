@@ -80,4 +80,20 @@ public class MatchHistoryController {
         MatchSimplifiedDto addedMatch = matchHistoryService.addMatch(match);
         return Response.status(Response.Status.CREATED).entity(addedMatch).build();
     }
+
+    @DELETE
+    @Path("/{matchId}")
+    @Operation(summary = "Delete a match from history (Internal)")
+    @APIResponses(value = {
+            @APIResponse(responseCode = "200", description = "Match history successfully deleted",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = MatchSimplifiedDto.class))),
+            @APIResponse(responseCode = "400", description = "Invalid match ID provided",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @APIResponse(responseCode = "404", description = "Match not found",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    public Response delMatchById(@PathParam("matchId") @Positive Long matchId) {
+        MatchSimplifiedDto deletedMatch = matchHistoryService.delMatchById(matchId);
+        return Response.ok(deletedMatch).build();
+    }
 }

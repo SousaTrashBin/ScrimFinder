@@ -1,13 +1,11 @@
 package fc.ul.scrimfinder.dto.request;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.NotBlank;
 
 public record MatchAddDto(
-        @NotNull(message = "The Riot ID of the match is required")
-        @Positive(message = "The Riot ID of the match must be positive")
-        Long riotMatchId,
+        @NotBlank(message = "The Riot ID of the match is required")
+        String riotMatchId,
 
         @Valid
         MatchStats matchStats

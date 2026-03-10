@@ -27,4 +27,8 @@ public interface MatchHistoryService {
             MatchAlreadyExistsException,
             InvalidIntervalException,
             InvalidTeamsException;
+
+    MatchSimplifiedDto delMatchById(Long matchId) throws
+            MatchNotFoundException,
+            ExternalServiceUnavailableException;
 }
