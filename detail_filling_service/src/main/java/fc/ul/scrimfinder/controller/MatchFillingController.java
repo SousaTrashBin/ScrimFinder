@@ -41,7 +41,7 @@ public class MatchFillingController {
     }
 
     @GET
-    @Path("/raw/{matchId}")
+    @Path("/{matchId}/raw")
     @Operation(summary = "Get complete match information by Riot ID")
     @APIResponses(value = {
             @APIResponse(responseCode = "200", description = "Successfully retrieved the match details"),
