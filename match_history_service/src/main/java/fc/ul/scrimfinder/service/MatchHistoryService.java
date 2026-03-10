@@ -3,7 +3,7 @@ package fc.ul.scrimfinder.service;
 import fc.ul.scrimfinder.dto.request.MatchAddDto;
 import fc.ul.scrimfinder.dto.request.MatchStats;
 import fc.ul.scrimfinder.dto.request.SortParam;
-import fc.ul.scrimfinder.dto.response.MatchFullDto;
+import fc.ul.scrimfinder.dto.response.matchfull.MatchFullDto;
 import fc.ul.scrimfinder.dto.response.MatchSimplifiedDto;
 import fc.ul.scrimfinder.dto.response.PaginatedResponseDto;
 import fc.ul.scrimfinder.exception.*;

@@ -2,7 +2,7 @@ package fc.ul.scrimfinder.mapper;
 
 import fc.ul.scrimfinder.domain.Match;
 import fc.ul.scrimfinder.dto.request.MatchAddDto;
-import fc.ul.scrimfinder.dto.response.MatchFullDto;
+import fc.ul.scrimfinder.dto.response.matchfull.MatchFullDto;
 import fc.ul.scrimfinder.dto.response.MatchSimplifiedDto;
 import org.mapstruct.Mapper;
 

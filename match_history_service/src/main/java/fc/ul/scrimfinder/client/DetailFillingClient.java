@@ -1,6 +1,6 @@
 package fc.ul.scrimfinder.client;
 
-import fc.ul.scrimfinder.dto.response.MatchFullDto;
+import fc.ul.scrimfinder.dto.response.matchfull.MatchFullDto;
 import jakarta.validation.constraints.Positive;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
