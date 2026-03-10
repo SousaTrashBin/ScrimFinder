@@ -6,4 +6,6 @@ import fc.ul.scrimfinder.exception.MatchNotFoundException;
 
 public interface MatchFillingService {
     MatchDto getMatchById(Long matchId) throws MatchNotFoundException, ExternalServiceUnavailableException;
+
+    String getRawMatchById(Long matchId) throws MatchNotFoundException, ExternalServiceUnavailableException;
 }

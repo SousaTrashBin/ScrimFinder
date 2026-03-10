@@ -1,7 +1,13 @@
 package fc.ul.scrimfinder.dto.response.match;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+
 public record MatchDto(
-        MetadataDto metadata,
-        InfoDto info
+        @NotBlank(message = "The Riot ID of the match is required")
+        String riotMatchId,
+
+        @Valid
+        MatchStatsDto matchStats
 ) {
 }

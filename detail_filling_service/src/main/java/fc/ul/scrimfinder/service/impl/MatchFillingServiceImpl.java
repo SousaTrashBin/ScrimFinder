@@ -16,4 +16,9 @@ public class MatchFillingServiceImpl implements MatchFillingService {
     public MatchDto getMatchById(Long matchId) {
         return null;
     }
+
+    @Override
+    public String getRawMatchById(Long matchId) {
+        return "";
+    }
 }

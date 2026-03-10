@@ -1,6 +1,5 @@
 package fc.ul.scrimfinder.client;
 
-import fc.ul.scrimfinder.dto.response.match.MatchDto;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -15,5 +14,5 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 public interface RiotMatchServiceClient {
     @GET
     @Path("/{matchId}")
-    MatchDto getMatch(@PathParam("matchId") @NotNull String matchId);
+    String getMatch(@PathParam("matchId") @NotNull String matchId);
 }

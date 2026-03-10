@@ -26,7 +26,7 @@ public class MatchFillingController {
 
     @GET
     @Path("/{matchId}")
-    @Operation(summary = "Get complete match information by Riot ID")
+    @Operation(summary = "Get simplified match information by Riot ID")
     @APIResponses(value = {
             @APIResponse(responseCode = "200", description = "Successfully retrieved the match details",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = MatchDto.class))),
@@ -37,6 +37,21 @@ public class MatchFillingController {
     })
     public Response getMatchById(@PathParam("matchId") @Positive Long matchId) {
         MatchDto match = matchFillingService.getMatchById(matchId);
+        return Response.ok(match).build();
+    }
+
+    @GET
+    @Path("/raw/{matchId}")
+    @Operation(summary = "Get complete match information by Riot ID")
+    @APIResponses(value = {
+            @APIResponse(responseCode = "200", description = "Successfully retrieved the match details"),
+            @APIResponse(responseCode = "400", description = "Invalid match ID provided",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @APIResponse(responseCode = "404", description = "Match not found",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    public Response getRawMatchById(@PathParam("matchId") @Positive Long matchId) {
+        String match = matchFillingService.getRawMatchById(matchId);
         return Response.ok(match).build();
     }
 }
