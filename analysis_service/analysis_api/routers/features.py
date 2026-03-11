@@ -17,7 +17,7 @@ def extract_features(body:FeatureExtractRequest):
         if row is None: raise HTTPException(404,f"Game '{body.game_id}' not found.")
         game_id,raw=body.game_id,row["raw_json"]
     elif body.raw_data:
-        from routers.games import _derive_id
+        from analysis_api.routers.games import _derive_id
         game_id,raw=_derive_id(body.raw_data),body.raw_data
     else:
         raise HTTPException(422,"Provide either game_id or raw_data.")

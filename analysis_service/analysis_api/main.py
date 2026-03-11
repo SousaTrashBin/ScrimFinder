@@ -36,7 +36,7 @@ def root():
 def health(): return {"status":"ok"}
 
 @app.exception_handler(404)
-async def not_found(req,exc): return JSONResponse(404,{"code":404,"message":str(exc.detail)})
+async def not_found(req,exc): return JSONResponse(status_code=404, content={"code":404,"message":str(exc.detail)})
 
 @app.exception_handler(500)
-async def server_error(req,exc): return JSONResponse(500,{"code":500,"message":"Internal server error."})
+async def server_error(req,exc): return JSONResponse(status_code=500, content={"code":500,"message":"Internal server error."})
