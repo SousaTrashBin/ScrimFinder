@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 DB_NAME = "league_data.db"
-DATA_DIR = "."
+DATA_DIR = ""
 
 
 def create_tables(cursor):

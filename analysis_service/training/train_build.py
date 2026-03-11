@@ -11,9 +11,9 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, roc_auc_score
 
-from model_registry.db import register_model, activate_model
-from training.runner import TrainingJob
-from training.data_loader import load_build_data
+#from model_registry.db import register_model, activate_model
+from runner import TrainingJob
+from data_loader import load_build_data
 
 MODELS_DIR = os.environ.get("MODELS_DIR", os.path.join(os.path.dirname(__file__), "..", "models"))
 

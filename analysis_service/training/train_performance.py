@@ -13,9 +13,9 @@ from sklearn.metrics import accuracy_score, f1_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from model_registry.db import register_model, activate_model
-from training.runner import TrainingJob
-from training.data_loader import load_performance_data
+#from model_registry.db import register_model, activate_model
+from runner import TrainingJob
+from data_loader import load_performance_data
 
 MODELS_DIR = os.environ.get("MODELS_DIR", os.path.join(os.path.dirname(__file__), "..", "models"))
 

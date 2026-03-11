@@ -29,7 +29,7 @@ bin/
 ### Mac OS ###
 .DS_Store
 
-.idea/
+../.idea/
 
 ScrimFinder.iml
 
@@ -69,4 +69,4 @@ ENV/
 # Ignore local database files and logs
 *.db
 *.log
-analysis_service/models/
+analysis_api/models/
