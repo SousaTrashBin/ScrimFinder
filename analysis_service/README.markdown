@@ -9,29 +9,35 @@ Unified ML platform for League of Legends match analysis.
 
 ```
 analysis_service/
-├── api/
+├── analysis_api/
 │   ├── main.py                   ← Single FastAPI app, port 8000
-│   └── routers/
-│       ├── games.py              ← /games
-│       ├── features.py           ← /features
-│       ├── datasets.py           ← /datasets
-│       ├── training.py           ← /training/jobs
-│       ├── models.py             ← /models
-│       └── analysis.py          ← /analysis
-├── core/
-│   ├── config.py                 ← All env vars
-│   ├── db.py                     ← SQLite schema + CRUD (platform.db)
-│   └── schemas.py                ← All Pydantic models
-├── registry/
-│   └── client.py                 ← Model loader with hot-reload
-├── training/
-│   └── train_draft.py            ← Draft model trainer (shim)
-├── ingestion/                    ← TODO: feature_extractor.py
-├── datasets/                     ← TODO: builder.py
+│   ├── routers/
+│   │   ├── games.py              ← /games
+│   │   ├── features.py           ← /features
+│   │   ├── datasets.py           ← /datasets
+│   │   ├── training.py           ← /training/jobs
+│   │   ├── models.py             ← /models
+│   │   └── analysis.py          ← /analysis
+│   ├── core/
+│   │   ├── config.py             ← All env vars
+│   │   ├── db.py                 ← SQLite schema + CRUD (platform.db)
+│   │   └── schemas.py            ← All Pydantic models
+│   ├── registry/
+│   │   └── client.py             ← Model loader with hot-reload
+│   ├── training/
+│   │   ├── train_draft.py        ← Draft model trainer
+│   │   ├── train_build.py        ← Build model trainer
+│   │   └── train_performance.py  ← Performance model trainer
+│   ├── ingestion/                ← TODO: feature_extractor.py
+│   ├── datasets/                 ← TODO: builder.py
+│   └── services/
+│       └── champion/
+│           └── queries.py        ← Champion SQL queries (EUW DB)
 ├── tests/
 │   ├── conftest.py
-│   └── test_api.py               ← 60+ pytest tests
+│   └── test_api.py               ← 80 pytest tests
 ├── docker-compose.yml
+├── Dockerfile
 ├── requirements.txt
 └── pytest.ini
 ```
@@ -41,19 +47,45 @@ analysis_service/
 ## Running
 
 ```powershell
-# Start
-cd analysis_service
+# From analysis_service\
 docker compose up --build
 
-# API docs
-# http://localhost:8000/docs      ← Swagger UI
-# http://localhost:8000/redoc     ← ReDoc
+# API docs (browser)
+# http://localhost:8000/docs        ← Swagger UI (interactive)
+# http://localhost:8000/redoc       ← ReDoc (read-only)
 # http://localhost:8000/openapi.json
+```
 
-# Run tests (from analysis_service/)
-pytest tests/test_api.py -v              # all tests except slow
-pytest tests/test_api.py -v -m "not slow"   # skip training tests
-pytest tests/test_api.py -v -k "games"  # only game tests
+---
+
+## Running Tests
+
+Tests run inside the Docker container, not on the host machine.
+
+```powershell
+# Run all fast tests (recommended)
+docker exec scrimfinder_api pytest tests/test_api.py -v -m "not slow"
+
+# Run everything including slow training tests (~10 min)
+docker exec scrimfinder_api pytest tests/test_api.py -v
+
+# Run a specific test class
+docker exec scrimfinder_api pytest tests/test_api.py -v -k "games"
+docker exec scrimfinder_api pytest tests/test_api.py -v -k "analysis"
+
+# Run a single test
+docker exec scrimfinder_api pytest tests/test_api.py::TestGames::test_ingest -v
+```
+
+---
+
+## Getting the OpenAPI YAML
+
+```powershell
+# From anywhere on the host (container must be running)
+curl.exe http://localhost:8000/openapi.json -o openapi.json
+pip install pyyaml
+python -c "import json,yaml; open('openapi.yaml','w').write(yaml.dump(json.load(open('openapi.json')),sort_keys=False,allow_unicode=True))"
 ```
 
 ---
@@ -62,12 +94,12 @@ pytest tests/test_api.py -v -k "games"  # only game tests
 
 ### Pipeline order
 ```
-POST /games              →  1. Ingest raw match JSON
-POST /features/extract   →  2. Extract feature vectors
-POST /datasets/build     →  3. Curate a training dataset
-POST /training/jobs      →  4. Train a model on that dataset
-POST /training/jobs/{id}/deploy  → 5. Activate the model
-POST /analysis/*         →  6. Serve predictions
+POST /games                      →  1. Ingest raw match JSON
+POST /features/extract           →  2. Extract feature vectors
+POST /datasets/build             →  3. Curate a training dataset
+POST /training/jobs              →  4. Train a model on that dataset
+POST /training/jobs/{id}/deploy  →  5. Activate the model
+POST /analysis/*                 →  6. Serve predictions
 ```
 
 ### Games  `/games`
@@ -86,8 +118,7 @@ POST /analysis/*         →  6. Serve predictions
 | GET  | `/features/{game_id}` | Retrieve cached feature vectors |
 | DELETE | `/features/{game_id}` | Delete cached features |
 
-> **Status:** Extraction returns correct schema with empty vectors.  
-> Implement `ingestion/feature_extractor.py` to fill this in.
+> **Status:** Returns correct schema with empty vectors until `ingestion/feature_extractor.py` is implemented.
 
 ### Datasets  `/datasets`
 | Method | Path | Description |
@@ -99,8 +130,7 @@ POST /analysis/*         →  6. Serve predictions
 | GET  | `/datasets/{id}` | Get dataset metadata |
 | DELETE | `/datasets/{id}` | Delete dataset (guards active jobs) |
 
-> **Status:** Builder marks dataset `ready` immediately with `row_count=0`.  
-> Implement `datasets/builder.py` to materialise real `.npz` files.
+> **Status:** Builder marks dataset `ready` immediately with `row_count=0` until `datasets/builder.py` is implemented.
 
 ### Training  `/training/jobs`
 | Method | Path | Description |
@@ -116,10 +146,12 @@ POST /analysis/*         →  6. Serve predictions
 {
   "concern": "draft",
   "algorithm": "auto",
-  "dataset_id": "ds_abc123",      ← preferred: use a built dataset
-  "sample": 0.05                  ← fallback: inline filter (5% of EUW DB)
+  "dataset_id": "ds_abc123",
+  "sample": 0.05
 }
 ```
+
+`dataset_id` is preferred (fast, reproducible). If omitted, the job loads directly from the EUW SQLite DB using `sample`/`limit`/`match_type` filters.
 
 **Algorithm options:** `auto` | `logistic` | `gbm` | `random_forest` | `lightgbm`
 
@@ -163,16 +195,16 @@ training_jobs   -- persistent job records (survive restarts)
 |-----------|--------|-------|
 | `core/db.py` | ✅ Full | All CRUD, WAL mode, FK constraints |
 | `core/schemas.py` | ✅ Full | All request/response types |
-| `api/routers/games.py` | ✅ Full | Ingest, list, fetch, delete |
-| `api/routers/features.py` | ⚠️ Schema only | Returns empty vectors |
-| `api/routers/datasets.py` | ⚠️ Schema only | Builder marks ready immediately |
-| `api/routers/training.py` | ✅ Full | Job lifecycle, DB-persisted |
-| `api/routers/models.py` | ✅ Full | List, activate, deactivate, delete |
-| `api/routers/analysis.py` | ⚠️ Partial | Draft/build/champion hit real logic; player/game are stubs |
+| `routers/games.py` | ✅ Full | Ingest, list, fetch, delete |
+| `routers/features.py` | ⚠️ Schema only | Returns empty vectors |
+| `routers/datasets.py` | ⚠️ Schema only | Builder marks ready immediately |
+| `routers/training.py` | ✅ Full | Job lifecycle, DB-persisted |
+| `routers/models.py` | ✅ Full | List, activate, deactivate, delete |
+| `routers/analysis.py` | ⚠️ Partial | Draft/build/champion use real logic; player/game are stubs |
 | `registry/client.py` | ✅ Full | Hot-reload watcher |
 | `ingestion/feature_extractor.py` | ❌ TODO | Define feature schema first |
 | `datasets/builder.py` | ❌ TODO | Needs feature_extractor first |
-| `training/trainer.py` | ❌ TODO | Dispatch to algorithm-specific trainers |
+| `training/trainer.py` | ❌ TODO | Unified trainer dispatcher |
 | `training/algorithms.py` | ❌ TODO | LightGBM, LogisticRegression options |
 
 ---
@@ -180,45 +212,39 @@ training_jobs   -- persistent job records (survive restarts)
 ## What to Build Next (in order)
 
 ### 1. `ingestion/feature_extractor.py`
-This is the most important missing piece. It takes a raw match JSON and produces feature vectors for each concern:
+Takes a raw match JSON and produces feature vectors for each concern:
 
 ```python
 def extract(raw: dict, concerns: list[str]) -> dict[str, tuple[list, list]]:
     """
     Returns {concern: (feature_vector, feature_names)}
-    
-    Draft features:   [champ_id_blue_0..4, champ_id_red_0..4]  (10 ints → multi-hot encoded)
-    Build features:   [champion_id, position_id, item_0..5 multi-hot, rune_0..3 multi-hot]
-    Performance:      [kills, deaths, assists, gold, cs, dmg_champs, vision, kda, kp, duration]
+
+    Draft features:   10 champion IDs as multi-hot (blue team + red team)
+    Build features:   champion_id + position + items (multi-hot) + runes (multi-hot)
+    Performance:      kills, deaths, assists, gold, cs, dmg_champs, vision, kda, kp, duration
     """
 ```
 
-The key question: **what format is your raw game JSON?** Riot API format vs your internal DB format will change the field names. Check what `SAMPLE_GAME` looks like from your Riot integration.
-
 ### 2. `datasets/builder.py`
-Once features exist:
+Once features exist, materialise them into `.npz` files for fast training:
+
 ```python
 def build(dataset_id: str, concern: str, filters: dict) -> tuple[str, int, int]:
-    """Query features table with filters, materialise to .npz, return (path, game_count, row_count)"""
+    """Query features table → .npz file. Returns (file_path, game_count, row_count)."""
 ```
 
 ### 3. `training/trainer.py` + `training/algorithms.py`
-Replace the legacy `train_draft.py` shim with a proper dispatcher that:
-- Loads dataset from `.npz` (fast — no SQL during training)
-- Picks algorithm based on concern + user choice
-- Tracks hyperparams in the DB
+Replace the `train_*.py` shims with a proper dispatcher that loads `.npz` directly instead of querying SQLite during training.
 
-### 4. Fix `/analysis/player` and `/analysis/game`
-These return stubs. They need:
-- `query_player_stats(summoner_id, last_n)` — SQL against LEAGUE_DB
-- Performance model loaded via `RegistryClient`
+### 4. Wire up `/analysis/player` and `/analysis/game`
+Both return stubs. They need `query_player_stats(summoner_id, last_n)` against LEAGUE_DB and a loaded performance model via `RegistryClient`.
 
 ---
 
 ## Tests
 
 ```
-tests/test_api.py  —  60+ tests, 7 test classes
+tests/test_api.py  —  80 tests, 8 test classes
 
 TestSystem        — root, health, OpenAPI schema, docs
 TestGames         — ingest, batch, fetch, list, delete, pagination
@@ -230,12 +256,8 @@ TestAnalysis      — draft, build, player, game, champion
 TestIntegration   — full pipeline flows end-to-end
 
 Markers:
-  @pytest.mark.slow          training tests (minutes) — excluded by default
-  @pytest.mark.requires_db   needs LEAGUE_DB
+  @pytest.mark.slow        training tests (minutes) — excluded by -m "not slow"
+  @pytest.mark.requires_db needs LEAGUE_DB configured
 ```
 
-Run fast tests only:
-```bash
-pytest -m "not slow"          # ~5 seconds
-pytest -m "not slow and not requires_db"   # no DB needed at all
-```
+Current status: **79/79 fast tests passing.**
