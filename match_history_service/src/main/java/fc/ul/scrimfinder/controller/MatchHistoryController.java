@@ -52,7 +52,7 @@ public class MatchHistoryController {
 
     @GET
     @Operation(summary = "Get paginated match history with filters and sorting")
-    @APIResponses(value= {
+    @APIResponses(value = {
             @APIResponse(responseCode = "200", description = "Successfully retrieved filtered matches",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = PaginatedResponseDto.class))),
             @APIResponse(responseCode = "400", description = "Invalid query or pagination parameters",
@@ -63,7 +63,7 @@ public class MatchHistoryController {
             @QueryParam("size") @DefaultValue("20") @Min(0) @Max(100) int size,
             @BeanParam @Valid MatchStats filterParams,
             @QueryParam("sort") List<SortParam> sortParams
-            ) {
+    ) {
         PaginatedResponseDto<MatchDto> matches = matchHistoryService.getMatches(page, size, filterParams, sortParams);
         return Response.ok(matches).build();
     }

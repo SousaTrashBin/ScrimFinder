@@ -1,6 +1,5 @@
 package fc.ul.scrimfinder.util;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.ws.rs.QueryParam;
 
 public record PatchInterval(

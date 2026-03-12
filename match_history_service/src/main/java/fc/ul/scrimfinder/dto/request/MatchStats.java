@@ -1,12 +1,7 @@
 package fc.ul.scrimfinder.dto.request;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import fc.ul.scrimfinder.domain.Team;
 import fc.ul.scrimfinder.util.PatchInterval;
 import fc.ul.scrimfinder.util.TimeInterval;
-import io.quarkus.hibernate.orm.JsonFormat;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;

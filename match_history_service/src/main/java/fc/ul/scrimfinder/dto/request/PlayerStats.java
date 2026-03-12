@@ -145,7 +145,7 @@ public record PlayerStats(
 
     private static Integer fromJsonToPlayerIcon(JsonNode json) {
         JsonNode playerIconNode = json.findValue("playerIcon");
-        if  (playerIconNode == null) {
+        if (playerIconNode == null) {
             return 0;
         }
         return playerIconNode.asInt();

@@ -1,7 +1,6 @@
 package fc.ul.scrimfinder.util;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.ws.rs.QueryParam;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
