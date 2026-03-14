@@ -47,6 +47,23 @@
 * Lobby lifecycle control, including match acceptance/rejection and automatic lobby dissolution on failure;
 * Coordination of match states from initial discovery to finalization and result reporting;
 
+> **Training - Rodrigo Neto**
+
+* Ingestion of raw match data in batches with automatic deduplication and metadata storage;
+* Extraction and versioning of structured feature vectors for different analytical models;
+* Creation and management of curated, optimized training datasets with configurable filtering;
+* Asynchronous execution of ML training jobs for draft, build, and performance models;
+* Real-time monitoring of training progress and lifecycle management of active jobs;
+* Maintenance of a versioned model registry with performance metricst;
+
+> **Data Analysis - Rodrigo Neto**
+
+* Win probability prediction for team compositions;
+* Identification of team synergies, counter-matchups, and win conditions;
+* Evaluation of item build effectiveness and possibly suggestion of alternatives;
+* Automated benchmarking of player performance metrics against global/rank-tier averages;
+* Global champion performance tracking including win, pick, and ban rate analytics;
+
 ## Application Architecture Description
 
 > **Ranking Service - Diogo Sousa**
