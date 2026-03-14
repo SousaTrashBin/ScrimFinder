@@ -1,6 +1,6 @@
 package fc.ul.scrimfinder.client;
 
-import fc.ul.scrimfinder.dto.request.MatchAddDto;
+import fc.ul.scrimfinder.dto.request.MatchAddDTO;
 import jakarta.validation.constraints.Positive;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -15,5 +15,5 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 public interface DetailFillingClient {
     @GET
     @Path("/matches/{matchId}")
-    MatchAddDto getMatchById(@PathParam("matchId") @Positive Long matchId);
+    MatchAddDTO getMatchById(@PathParam("matchId") @Positive Long matchId);
 }
