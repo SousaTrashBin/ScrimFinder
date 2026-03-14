@@ -1,6 +1,6 @@
 package fc.ul.scrimfinder.controller;
 
-import fc.ul.scrimfinder.dto.response.match.MatchDto;
+import fc.ul.scrimfinder.dto.response.match.MatchDTO;
 import fc.ul.scrimfinder.service.MatchFillingService;
 import fc.ul.scrimfinder.util.ErrorResponse;
 import jakarta.inject.Inject;
@@ -29,14 +29,14 @@ public class MatchFillingController {
     @Operation(summary = "Get simplified match information by Riot ID")
     @APIResponses(value = {
             @APIResponse(responseCode = "200", description = "Successfully retrieved the match details",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = MatchDto.class))),
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = MatchDTO.class))),
             @APIResponse(responseCode = "400", description = "Invalid match ID provided",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
             @APIResponse(responseCode = "404", description = "Match not found",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
-    public Response getMatchById(@PathParam("matchId") @Positive Long matchId) {
-        MatchDto match = matchFillingService.getMatchById(matchId);
+    public Response getFilledMatch(@PathParam("matchId") @Positive Long matchId) {
+        MatchDTO match = matchFillingService.getFilledMatch(matchId);
         return Response.ok(match).build();
     }
 
@@ -50,8 +50,8 @@ public class MatchFillingController {
             @APIResponse(responseCode = "404", description = "Match not found",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
-    public Response getRawMatchById(@PathParam("matchId") @Positive Long matchId) {
-        String match = matchFillingService.getRawMatchById(matchId);
+    public Response getRawMatchData(@PathParam("matchId") @Positive Long matchId) {
+        String match = matchFillingService.getRawMatchData(matchId);
         return Response.ok(match).build();
     }
 }
