@@ -1,0 +1,86 @@
+package fc.ul.scrimfinder.dto.request;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import fc.ul.scrimfinder.exception.InvalidTeamsException;
+import fc.ul.scrimfinder.util.TeamSide;
+import jakarta.validation.constraints.Min;
+import jakarta.ws.rs.QueryParam;
+
+public record TeamStats(
+        @QueryParam("side")
+        TeamSide side,
+
+        @QueryParam("teamKills")
+        @Min(value = 0, message = "A team can only have more than or equal to 0 kills")
+        Integer teamKills,
+
+        @QueryParam("teamDeaths")
+        @Min(value = 0, message = "A team can only have more than or equal to 0 deaths")
+        Integer teamDeaths,
+
+        @QueryParam("teamAssists")
+        @Min(value = 0, message = "A team can only have more than or equal to 0 assists")
+        Integer teamAssists,
+
+        @QueryParam("teamHealing")
+        @Min(value = 0, message = "A team can only have more than or equal to 0 healing")
+        Integer teamHealing
+) {
+    public static TeamStats valueOf(String value) {
+        if (value == null || value.isBlank()) return null;
+
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode teamStats;
+        try {
+            teamStats = mapper.readTree(value);
+        } catch (Exception x) {
+            throw new IllegalArgumentException("Invalid team object format: " + value);
+        }
+
+        TeamSide teamSide = fromJsonToTeamSide(teamStats);
+        Integer teamKills = fromJsonToTeamKills(teamStats);
+        Integer teamDeaths = fromJsonToTeamDeaths(teamStats);
+        Integer teamAssists = fromJsonToTeamAssists(teamStats);
+        Integer teamHealing = fromJsonToTeamHealing(teamStats);
+
+        return new TeamStats(
+                teamSide,
+                teamKills,
+                teamDeaths,
+                teamAssists,
+                teamHealing
+        );
+    }
+
+    private static TeamSide fromJsonToTeamSide(JsonNode json) {
+        JsonNode teamSideNode = json.findValue("teamSide");
+        if (teamSideNode == null) return null;
+        String teamSideName = teamSideNode.asText();
+        TeamSide teamSide = TeamSide.fromTeamSideName(teamSideName);
+        if (teamSide == null) {
+            throw new InvalidTeamsException("Invalid team side: " + teamSideName);
+        }
+        return teamSide;
+    }
+
+    private static Integer fromJsonToTeamKills(JsonNode json) {
+        JsonNode teamKillsNode = json.findValue("teamKills");
+        return teamKillsNode == null ? null : teamKillsNode.asInt();
+    }
+
+    private static Integer fromJsonToTeamDeaths(JsonNode json) {
+        JsonNode teamDeathsNode = json.findValue("teamDeaths");
+        return teamDeathsNode == null ? null : teamDeathsNode.asInt();
+    }
+
+    private static Integer fromJsonToTeamAssists(JsonNode json) {
+        JsonNode teamAssistsNode = json.findValue("teamAssists");
+        return teamAssistsNode == null ? null : teamAssistsNode.asInt();
+    }
+
+    private static Integer fromJsonToTeamHealing(JsonNode json) {
+        JsonNode teamHealingNode = json.findValue("teamHealing");
+        return teamHealingNode == null ? null : teamHealingNode.asInt();
+    }
+}
