@@ -54,7 +54,7 @@
 * Creation and management of curated, optimized training datasets with configurable filtering;
 * Asynchronous execution of ML training jobs for draft, build, and performance models;
 * Real-time monitoring of training progress and lifecycle management of active jobs;
-* Maintenance of a versioned model registry with performance metricst;
+* Maintenance of a versioned model registry with performance metrics;
 
 > **Data Analysis - Rodrigo Neto**
 
