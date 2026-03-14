@@ -1,6 +1,6 @@
 package fc.ul.scrimfinder.dto.response.player;
 
-public record MiniSeriesDto(
+public record MiniSeriesDTO(
         Integer losses,
         String progress,
         Integer target,

@@ -5,7 +5,7 @@ import fc.ul.scrimfinder.util.TimeInterval;
 
 import java.util.List;
 
-public record MatchStatsDto(
+public record MatchStatsDTO(
         List<String> ranks,
         List<String> champions,
         Integer matchTripleKills,

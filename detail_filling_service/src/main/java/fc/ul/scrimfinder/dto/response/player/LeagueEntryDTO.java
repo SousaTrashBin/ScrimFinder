@@ -1,6 +1,6 @@
 package fc.ul.scrimfinder.dto.response.player;
 
-public record LeagueEntryDto(
+public record LeagueEntryDTO(
         String leagueId,
         String puuid,
         String queueType,
@@ -13,6 +13,6 @@ public record LeagueEntryDto(
         Boolean veteran,
         Boolean freshBlood,
         Boolean inactive,
-        MiniSeriesDto miniSeries
+        MiniSeriesDTO miniSeries
 ) {
 }

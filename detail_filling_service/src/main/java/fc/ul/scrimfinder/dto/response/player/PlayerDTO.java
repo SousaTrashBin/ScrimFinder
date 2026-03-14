@@ -2,7 +2,7 @@ package fc.ul.scrimfinder.dto.response.player;
 
 import java.util.Set;
 
-public record PlayerDto(
-        Set<LeagueEntryDto> entries
+public record PlayerDTO(
+        Set<LeagueEntryDTO> entries
 ) {
 }

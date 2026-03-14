@@ -1,6 +1,6 @@
 package fc.ul.scrimfinder.controller;
 
-import fc.ul.scrimfinder.dto.response.player.PlayerDto;
+import fc.ul.scrimfinder.dto.response.player.PlayerDTO;
 import fc.ul.scrimfinder.service.PlayerFillingService;
 import fc.ul.scrimfinder.util.ErrorResponse;
 import jakarta.inject.Inject;
@@ -29,14 +29,14 @@ public class PlayerFillingController {
     @Operation(summary = "Get complete player information by player name and tag")
     @APIResponses(value = {
             @APIResponse(responseCode = "200", description = "Successfully retrieved the player details",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = PlayerDto.class))),
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = PlayerDTO.class))),
             @APIResponse(responseCode = "400", description = "Invalid player ID provided",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
             @APIResponse(responseCode = "404", description = "Player not found",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
-    public Response getPlayerById(@PathParam("playerId") @Pattern(regexp = "^.+#.+$") String playerId) {
-        PlayerDto player = playerFillingService.getPlayerById(playerId);
+    public Response getFilledPlayer(@PathParam("playerId") @Pattern(regexp = "^.+#.+$") String playerId) {
+        PlayerDTO player = playerFillingService.getFilledPlayer(playerId);
         return Response.ok(player).build();
     }
 }
