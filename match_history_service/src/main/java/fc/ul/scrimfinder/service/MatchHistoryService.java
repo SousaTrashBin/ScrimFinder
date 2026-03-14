@@ -1,20 +1,20 @@
 package fc.ul.scrimfinder.service;
 
-import fc.ul.scrimfinder.dto.request.MatchAddDto;
+import fc.ul.scrimfinder.dto.request.MatchAddDTO;
 import fc.ul.scrimfinder.dto.request.MatchStats;
 import fc.ul.scrimfinder.dto.request.SortParam;
-import fc.ul.scrimfinder.dto.response.MatchDto;
-import fc.ul.scrimfinder.dto.response.PaginatedResponseDto;
+import fc.ul.scrimfinder.dto.response.MatchDTO;
+import fc.ul.scrimfinder.dto.response.PaginatedResponseDTO;
 import fc.ul.scrimfinder.exception.*;
 
 import java.util.List;
 
 public interface MatchHistoryService {
-    MatchDto getMatchById(Long matchId) throws
+    MatchDTO getMatchById(Long matchId) throws
             MatchNotFoundException,
             ExternalServiceUnavailableException;
 
-    PaginatedResponseDto<MatchDto> getMatches(int page, int size, MatchStats filterParams, List<SortParam> sortParams) throws
+    PaginatedResponseDTO<MatchDTO> getMatches(int page, int size, MatchStats filterParams, List<SortParam> sortParams) throws
             PlayerNotFoundException,
             ChampionNotFoundException,
             RankNotFoundException,
@@ -22,18 +22,18 @@ public interface MatchHistoryService {
             InvalidRoleException,
             InvalidTeamsException;
 
-    MatchDto addMatchById(String riotMatchId) throws
+    MatchDTO addMatchById(String riotMatchId) throws
             MatchAlreadyExistsException,
             MatchNotFoundException,
             InvalidIntervalException,
             InvalidTeamsException;
 
-    MatchDto addMatch(MatchAddDto matchAddDto) throws
+    MatchDTO addMatch(MatchAddDTO matchAddDto) throws
             MatchAlreadyExistsException,
             InvalidIntervalException,
             InvalidTeamsException;
 
-    MatchDto delMatchById(Long matchId) throws
+    MatchDTO deleteMatchById(Long matchId) throws
             MatchNotFoundException,
             ExternalServiceUnavailableException;
 }
