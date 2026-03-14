@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>ScrimFinder — System Tests</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root{--bg:#0d0d0d;--surface:#141414;--border:#1e1e1e;--pass:#00e676;--fail:#ff3d3d;--warn:#ffab00;--skip:#444;--text:#e0e0e0;--muted:#555;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);color:var(--text);font-family:var(--sans)}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes rowflash{0%,100%{background:transparent}50%{background:rgba(255,171,0,.04)}}
+    input{outline:none}
+    ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#2a2a2a}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useRef} = React;
+const SVCS={training:{label:"Training",port:8000,color:"#00e676"},draft:{label:"Draft",port:8001,color:"#40c4ff"},build:{label:"Build",port:8002,color:"#ff6d00"},performance:{label:"Performance",port:8003,color:"#d500f9"},champion:{label:"Champion",port:8004,color:"#ffab00"}};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function assertHas(o,k){if(!(k in o))throw new Error(`Missing '${k}' in response`)}
+function assertBetween(v,lo,hi){if(v<lo||v>hi)throw new Error(`${v} not in [${lo},${hi}]`)}
+function assertEq(a,b){if(a!==b)throw new Error(`Expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`)}
+async function pollUntilDone(base,concern,maxSec){
+  const deadline=Date.now()+maxSec*1000;
+  while(Date.now()<deadline){
+    const d=await fetch(`${base}/train/jobs`).then(r=>r.json());
+    const j=(d.jobs||[]).filter(j=>j.concern===concern).sort((a,b)=>b.createdAt.localeCompare(a.createdAt))[0];
+    if(!j)throw new Error(`No ${concern} job found`);
+    if(j.status==="COMPLETED")return{status:"COMPLETED",accuracy:j.metrics?.accuracy,version:j.modelVersion?.slice(-8)};
+    if(j.status==="FAILED")throw new Error(`FAILED: ${j.error}`);
+    if(j.status==="CANCELLED")throw new Error("Job was cancelled");
+    await sleep(3000);
+  }
+  throw new Error(`Timeout after ${maxSec}s`);
+}
+function buildTests(b){return[
+  {id:"h1",svc:"training",group:"Health",label:"Training /health",run:async()=>{const d=await fetch(`${b.training}/health`).then(r=>r.json());assertHas(d,"status");return d}},
+  {id:"h2",svc:"draft",group:"Health",label:"Draft /health",run:async()=>{const r=await fetch(`${b.draft}/health`);const d=await r.json();if(!r.ok)throw new Error(`HTTP ${r.status}`);assertHas(d,"status");return d}},
+  {id:"h3",svc:"build",group:"Health",label:"Build /health",run:async()=>{const r=await fetch(`${b.build}/health`);const d=await r.json();if(!r.ok)throw new Error(`HTTP ${r.status}`);assertHas(d,"status");return d}},
+  {id:"h4",svc:"performance",group:"Health",label:"Performance /health",run:async()=>{const r=await fetch(`${b.performance}/health`);const d=await r.json();if(!r.ok)throw new Error(`HTTP ${r.status}`);assertHas(d,"status");return d}},
+  {id:"h5",svc:"champion",group:"Health",label:"Champion /health",run:async()=>{const r=await fetch(`${b.champion}/health`);const d=await r.json();if(!r.ok)throw new Error(`HTTP ${r.status}`);assertHas(d,"status");return d}},
+  {id:"tr1",svc:"training",group:"Training",label:"Trigger draft (5% sample) — returns job",run:async()=>{const r=await fetch(`${b.training}/train/trigger?concern=draft&sample=0.05`,{method:"POST"});const d=await r.json();if(!r.ok)throw new Error(`${r.status}: ${JSON.stringify(d)}`);assertHas(d,"jobs");assertEq(d.jobs[0].concern,"draft");return{jobId:d.jobs[0].jobId.slice(0,8),status:d.jobs[0].status}}},
+  {id:"tr2",svc:"training",group:"Training",label:"Trigger build (5% sample) — returns job",run:async()=>{const r=await fetch(`${b.training}/train/trigger?concern=build&sample=0.05`,{method:"POST"});const d=await r.json();if(!r.ok)throw new Error(`${r.status}: ${JSON.stringify(d)}`);return{jobId:d.jobs[0].jobId.slice(0,8),status:d.jobs[0].status}}},
+  {id:"tr3",svc:"training",group:"Training",label:"Trigger performance (5% sample) — returns job",run:async()=>{const r=await fetch(`${b.training}/train/trigger?concern=performance&sample=0.05`,{method:"POST"});const d=await r.json();if(!r.ok)throw new Error(`${r.status}: ${JSON.stringify(d)}`);return{jobId:d.jobs[0].jobId.slice(0,8),status:d.jobs[0].status}}},
+  {id:"tr4",svc:"training",group:"Training",label:"List jobs — returns array",run:async()=>{const d=await fetch(`${b.training}/train/jobs`).then(r=>r.json());assertHas(d,"jobs");return{count:d.jobs.length}}},
+  {id:"tr5",svc:"training",group:"Training",label:"WAIT: draft completes (polls 3s, max 10min)",slow:true,run:async()=>pollUntilDone(b.training,"draft",600)},
+  {id:"tr6",svc:"training",group:"Training",label:"WAIT: build completes (polls 3s, max 10min)",slow:true,run:async()=>pollUntilDone(b.training,"build",600)},
+  {id:"tr7",svc:"training",group:"Training",label:"WAIT: performance completes (polls 3s, max 10min)",slow:true,run:async()=>pollUntilDone(b.training,"performance",600)},
+  {id:"tr8",svc:"training",group:"Training",label:"Registry: active models for all 3 concerns",run:async()=>{const d=await fetch(`${b.training}/registry/models`).then(r=>r.json());const active=d.models.filter(m=>m.is_active);const missing=["draft","build","performance"].filter(c=>!active.find(m=>m.concern===c));if(missing.length)throw new Error(`Missing active models: ${missing.join(", ")}`);return{active:active.map(m=>m.concern).join(", ")}}},
+  {id:"ca1",svc:"training",group:"Cancel",label:"Trigger → cancel within 1s → confirm CANCELLED",run:async()=>{const tr=await fetch(`${b.training}/train/trigger?concern=draft&sample=0.02`,{method:"POST"});const td=await tr.json();if(!tr.ok)throw new Error(`Trigger: ${tr.status}`);const jobId=td.jobs[0].jobId;await sleep(800);const cr=await fetch(`${b.training}/train/jobs/${jobId}/cancel`,{method:"POST"});const cd=await cr.json();if(!cr.ok)throw new Error(`Cancel: ${cr.status} — ${cd.detail}`);for(let i=0;i<20;i++){await sleep(1000);const pd=await fetch(`${b.training}/train/jobs/${jobId}`).then(r=>r.json());if(pd.status!=="RUNNING"&&pd.status!=="PENDING")return{jobId:jobId.slice(0,8),finalStatus:pd.status}}throw new Error("Still RUNNING after 20s")}},
+  {id:"ca2",svc:"training",group:"Cancel",label:"Cancel COMPLETED job → 409 Conflict",run:async()=>{const d=await fetch(`${b.training}/train/jobs`).then(r=>r.json());const done=d.jobs.find(j=>j.status==="COMPLETED");if(!done)return{skipped:"No completed job yet — run Training group first"};const r=await fetch(`${b.training}/train/jobs/${done.jobId}/cancel`,{method:"POST"});if(r.status!==409)throw new Error(`Expected 409, got ${r.status}`);return{status:409,confirmed:true}}},
+  {id:"dr1",svc:"draft",group:"Draft",label:"POST /analysis/draft — probs sum to 1.0",run:async()=>{const body={teamA:{champions:[{name:"Malphite",role:"TOP"},{name:"Amumu",role:"JUNGLE"},{name:"Orianna",role:"MID"},{name:"Jinx",role:"BOT"},{name:"Lulu",role:"SUPPORT"}]},teamB:{champions:[{name:"Fiora",role:"TOP"},{name:"Vi",role:"JUNGLE"},{name:"Zed",role:"MID"},{name:"Caitlyn",role:"BOT"},{name:"Thresh",role:"SUPPORT"}]}};const r=await fetch(`${b.draft}/analysis/draft`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw new Error(`${r.status}: ${JSON.stringify(d)}`);assertHas(d,"teamAWinProbability");const sum=d.teamAWinProbability+d.teamBWinProbability;if(Math.abs(sum-1.0)>0.02)throw new Error(`Probs sum to ${sum.toFixed(3)}, expected ~1.0`);assertBetween(d.teamAWinProbability,0,1);return{teamA:`${(d.teamAWinProbability*100).toFixed(1)}%`,teamB:`${(d.teamBWinProbability*100).toFixed(1)}%`,model:d.modelVersion}}},
+  {id:"dr2",svc:"draft",group:"Draft",label:"GET /analysis/draft/matchup",run:async()=>{const r=await fetch(`${b.draft}/analysis/draft/matchup?champion=Jinx&opponent=Caitlyn`);const d=await r.json();if(!r.ok)throw new Error(`${r.status}`);assertHas(d,"winRate");assertBetween(d.winRate,0,100);return{winRate:`${d.winRate}%`,samples:d.sampleSize}}},
+  {id:"dr3",svc:"draft",group:"Draft",label:"Malformed body → JSON error (not HTML crash)",run:async()=>{const r=await fetch(`${b.draft}/analysis/draft`,{method:"POST",headers:{"Content-Type":"application/json"},body:"{bad"});const ct=r.headers.get("content-type")||"";if(!ct.includes("json"))throw new Error(`Expected JSON, got: ${ct}`);return{status:r.status,isJson:true}}},
+  {id:"bu1",svc:"build",group:"Build",label:"POST /analysis/build — score in [0,100]",run:async()=>{const body={champion:"Jinx",role:"BOT",items:["Kraken Slayer","Runaan's Hurricane","Infinity Edge"],enemyComposition:["Malphite","Galio","Leona"]};const r=await fetch(`${b.build}/analysis/build`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw new Error(`${r.status}: ${JSON.stringify(d)}`);assertHas(d,"score");assertBetween(d.score,0,100);return{champion:d.champion,score:d.score,model:d.modelVersion}}},
+  {id:"bu2",svc:"build",group:"Build",label:"GET /analysis/build/recommend?champion=Jinx&role=BOT",run:async()=>{const r=await fetch(`${b.build}/analysis/build/recommend?champion=Jinx&role=BOT`);const d=await r.json();if(!r.ok)throw new Error(`${r.status}`);const builds=Array.isArray(d)?d:(d.builds||[d]);if(!builds.length)throw new Error("Empty recommendations");return{topBuild:builds[0]?.items?.slice(0,2).join(", "),count:builds.length}}},
+  {id:"pe1",svc:"performance",group:"Performance",label:"GET /analysis/performance/{id} — winRate in [0,1]",run:async()=>{const r=await fetch(`${b.performance}/analysis/performance/fc59850-RodrigoEUW`);const d=await r.json();if(!r.ok)throw new Error(`${r.status}: ${JSON.stringify(d)}`);assertHas(d,"winRate");assertBetween(d.winRate,0,1);return{winRate:`${(d.winRate*100).toFixed(1)}%`,matches:d.matchesAnalyzed,model:d.modelVersion}}},
+  {id:"pe2",svc:"performance",group:"Performance",label:"GET /analysis/performance/{id}/tips",run:async()=>{const r=await fetch(`${b.performance}/analysis/performance/fc59850-RodrigoEUW/tips`);const d=await r.json();if(!r.ok)throw new Error(`${r.status}`);assertHas(d,"tips");return{tipCount:d.tips?.length,firstCategory:d.tips?.[0]?.category}}},
+  {id:"ch1",svc:"champion",group:"Champion",label:"GET /analysis/champion/Jinx/winrate — in [0,100]",run:async()=>{const r=await fetch(`${b.champion}/analysis/champion/Jinx/winrate`);const d=await r.json();if(!r.ok)throw new Error(`${r.status}: ${JSON.stringify(d)}`);assertHas(d,"winRate");assertBetween(d.winRate,0,100);return{winRate:`${d.winRate.toFixed(1)}%`,totalGames:d.totalGames?.toLocaleString()}}},
+  {id:"ch2",svc:"champion",group:"Champion",label:"GET .../winrate?position=BOTTOM",run:async()=>{const r=await fetch(`${b.champion}/analysis/champion/Jinx/winrate?position=BOTTOM`);const d=await r.json();if(!r.ok)throw new Error(`${r.status}`);assertBetween(d.winRate,0,100);return{winRate:`${d.winRate.toFixed(1)}%`,games:d.totalGames}}},
+  {id:"ch3",svc:"champion",group:"Champion",label:"GET .../builds — non-empty array",run:async()=>{const r=await fetch(`${b.champion}/analysis/champion/Jinx/builds`);const d=await r.json();if(!r.ok)throw new Error(`${r.status}`);assertHas(d,"builds");return{count:d.builds?.length,topWR:d.builds?.[0]?.winRate}}},
+  {id:"ch4",svc:"champion",group:"Champion",label:"GET .../positions — positions array",run:async()=>{const r=await fetch(`${b.champion}/analysis/champion/Jinx/positions`);const d=await r.json();if(!r.ok)throw new Error(`${r.status}`);assertHas(d,"positions");return{positions:d.positions?.map(p=>p.position).join(", ")}}},
+  {id:"ch5",svc:"champion",group:"Champion",label:"GET .../matchups?position=BOTTOM",run:async()=>{const r=await fetch(`${b.champion}/analysis/champion/Jinx/matchups?position=BOTTOM`);const d=await r.json();if(!r.ok)throw new Error(`${r.status}`);assertHas(d,"matchups");return{count:d.matchups?.length,hardest:d.matchups?.[0]?.opponent}}},
+  {id:"ch6",svc:"champion",group:"Champion",label:"GET .../stats — avgKda present",run:async()=>{const r=await fetch(`${b.champion}/analysis/champion/Jinx/stats`);const d=await r.json();if(!r.ok)throw new Error(`${r.status}`);assertHas(d,"avgKda");return{avgKda:d.avgKda?.toFixed(2),avgKills:d.avgKills?.toFixed(1)}}},
+  {id:"ch7",svc:"champion",group:"Champion",label:"GET /analysis/meta/top-champions",run:async()=>{const r=await fetch(`${b.champion}/analysis/meta/top-champions`);const d=await r.json();if(!r.ok)throw new Error(`${r.status}`);assertHas(d,"champions");if(!d.champions.length)throw new Error("Empty list");return{count:d.champions.length,top1:d.champions[0]?.champion}}},
+  {id:"ch8",svc:"champion",group:"Champion",label:"GET /analysis/meta/top-champions?position=JUNGLE",run:async()=>{const r=await fetch(`${b.champion}/analysis/meta/top-champions?position=JUNGLE`);const d=await r.json();if(!r.ok)throw new Error(`${r.status}`);assertHas(d,"champions");return{count:d.champions.length,top1:d.champions[0]?.champion}}},
+  {id:"ch9",svc:"champion",group:"Champion",label:"Unknown champion → 404",run:async()=>{const r=await fetch(`${b.champion}/analysis/champion/NotAChampXYZ999/winrate`);if(r.status!==404)throw new Error(`Expected 404, got ${r.status}`);return{status:404,confirmed:true}}},
+]}
+function Spinner(){return <span style={{display:"inline-block",width:9,height:9,border:"1.5px solid #333",borderTopColor:"#999",borderRadius:"50%",animation:"spin .7s linear infinite"}}/>}
+function ResultInline({data}){if(!data)return null;const e=Object.entries(data).filter(([,v])=>v!=null);if(!e.length)return null;return <span style={{display:"inline-flex",gap:10,marginLeft:10,flexWrap:"wrap"}}>{e.map(([k,v])=><span key={k} style={{fontFamily:"var(--mono)",fontSize:10}}><span style={{color:"#3a3a3a"}}>{k}=</span><span style={{color:"#666"}}>{String(v)}</span></span>)}</span>}
+function TestRow({test,result}){const svc=SVCS[test.svc];const{status,error,ms,result:res}=result;const running=status==="running";return <div style={{borderBottom:"1px solid var(--border)",padding:"9px 20px",display:"flex",alignItems:"flex-start",gap:12,background:status==="pass"?"rgba(0,230,118,.018)":status==="fail"?"rgba(255,61,61,.03)":"transparent",animation:running?"rowflash 1.8s ease infinite":"none",transition:"background .3s"}}><div style={{width:12,flexShrink:0,paddingTop:2}}>{running?<Spinner/>:status==="pass"?<span style={{color:"var(--pass)",fontFamily:"var(--mono)",fontSize:11,fontWeight:700}}>✓</span>:status==="fail"?<span style={{color:"var(--fail)",fontFamily:"var(--mono)",fontSize:11,fontWeight:700}}>✗</span>:<span style={{color:"#2e2e2e",fontFamily:"var(--mono)",fontSize:11}}>·</span>}</div><div style={{flex:1,minWidth:0}}><div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",lineHeight:1.4}}><span style={{fontSize:13,color:status==="fail"?"var(--fail)":status==="pass"?"#bbb":running?"#888":"#444"}}>{test.label}</span>{test.slow&&running&&<span style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--warn)",padding:"2px 5px",border:"1px solid rgba(255,171,0,.3)",borderRadius:3}}>SLOW</span>}{ms!=null&&<span style={{fontFamily:"var(--mono)",fontSize:10,color:"#333"}}>{ms}ms</span>}</div>{status==="pass"&&res&&<ResultInline data={res}/>}{status==="fail"&&error&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"#d44",marginTop:3,lineHeight:1.5}}>{error}</div>}</div><div style={{flexShrink:0}}><span style={{fontFamily:"var(--mono)",fontSize:9,color:svc.color,opacity:.55,letterSpacing:"0.1em"}}>{svc.label.toUpperCase()}</span></div></div>}
+function App(){
+  const [urls,setUrls]=useState({training:"http://localhost:8000",draft:"http://localhost:8001",build:"http://localhost:8002",performance:"http://localhost:8003",champion:"http://localhost:8004"});
+  const [showUrls,setShowUrls]=useState(false);
+  const tests=buildTests(urls);
+  const [results,setResults]=useState(()=>Object.fromEntries(tests.map(t=>[t.id,{status:"idle",result:null,error:null,ms:null}])));
+  const [running,setRunning]=useState(false);
+  const [activeGroup,setActiveGroup]=useState("All");
+  const abort=useRef(false);
+  const groups=["All",...Array.from(new Set(tests.map(t=>t.group)))];
+  const setR=(id,patch)=>setResults(p=>({...p,[id]:{...p[id],...patch}}));
+  const runOne=async(test)=>{setR(test.id,{status:"running",error:null,result:null,ms:null});const t0=Date.now();try{const res=await test.run(urls);setR(test.id,{status:"pass",result:res,ms:Date.now()-t0})}catch(e){setR(test.id,{status:"fail",error:e.message,ms:Date.now()-t0})}};
+  const runTests=async(list)=>{abort.current=false;setRunning(true);list.forEach(t=>setR(t.id,{status:"idle",error:null,result:null,ms:null}));for(const t of list){if(abort.current)break;await runOne(t)}setRunning(false)};
+  const visible=activeGroup==="All"?tests:tests.filter(t=>t.group===activeGroup);
+  const pass=Object.values(results).filter(r=>r.status==="pass").length;
+  const fail=Object.values(results).filter(r=>r.status==="fail").length;
+  const runCount=Object.values(results).filter(r=>r.status==="running").length;
+  const total=tests.length;
+  const groupBadge=g=>{const gt=tests.filter(t=>t.group===g);return{p:gt.filter(t=>results[t.id]?.status==="pass").length,f:gt.filter(t=>results[t.id]?.status==="fail").length,n:gt.length}};
+  const btn=(color,bg,label,onClick,disabled)=><button onClick={onClick} disabled={disabled} style={{padding:"7px 15px",background:disabled?"transparent":bg,border:`1px solid ${disabled?"#222":color+"44"}`,borderRadius:4,color:disabled?"#2e2e2e":color,fontFamily:"var(--mono)",fontSize:10,fontWeight:600,letterSpacing:"0.1em",cursor:disabled?"not-allowed":"pointer",transition:"all .15s",whiteSpace:"nowrap"}}>{label}</button>;
+  return <div style={{height:"100vh",display:"flex",flexDirection:"column",background:"var(--bg)"}}>
+    <div style={{padding:"14px 24px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap",flexShrink:0}}>
+      <div><div style={{fontFamily:"var(--mono)",fontSize:9,color:"#333",letterSpacing:"0.2em",marginBottom:3}}>SCRIMFINDER // fc59850</div><div style={{fontFamily:"var(--mono)",fontSize:17,fontWeight:700,letterSpacing:"0.04em"}}>System Test Suite</div></div>
+      <div style={{display:"flex",gap:14,marginLeft:20,alignItems:"baseline"}}>
+        {[[pass,"var(--pass)","PASS"],[fail,"var(--fail)","FAIL"],[runCount,"var(--warn)","RUN"]].map(([n,c,l])=><div key={l} style={{display:"flex",gap:4,alignItems:"baseline"}}><span style={{fontFamily:"var(--mono)",fontSize:20,fontWeight:700,color:c,lineHeight:1}}>{n}</span><span style={{fontFamily:"var(--mono)",fontSize:9,color:"#333",letterSpacing:"0.1em"}}>{l}</span></div>)}
+        <span style={{fontFamily:"var(--mono)",fontSize:10,color:"#333"}}>{pass+fail}/{total}</span>
+      </div>
+      <div style={{flex:1,minWidth:80,height:2,background:"#1e1e1e",borderRadius:1,overflow:"hidden",display:"flex"}}><div style={{width:`${(pass/total)*100}%`,background:"var(--pass)",transition:"width .3s"}}/><div style={{width:`${(fail/total)*100}%`,background:"var(--fail)",transition:"width .3s"}}/></div>
+      <div style={{display:"flex",gap:6,marginLeft:"auto",flexWrap:"wrap"}}>
+        {btn("#555","transparent","CONFIG",()=>setShowUrls(v=>!v),false)}
+        {running?btn("var(--fail)","rgba(255,61,61,.08)","■ STOP",()=>{abort.current=true;},false):btn("var(--pass)","rgba(0,230,118,.08)","▶ RUN ALL",()=>runTests(visible),false)}
+        {btn("#444","transparent","↺",()=>{abort.current=true;setResults(Object.fromEntries(tests.map(t=>[t.id,{status:"idle",result:null,error:null,ms:null}])));setRunning(false);},false)}
+      </div>
+    </div>
+    {showUrls&&<div style={{background:"#111",borderBottom:"1px solid var(--border)",padding:"10px 24px",display:"flex",gap:14,flexWrap:"wrap",flexShrink:0}}>{Object.entries(SVCS).map(([k,s])=><div key={k} style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontFamily:"var(--mono)",fontSize:9,color:s.color,width:80,flexShrink:0}}>{s.label.toUpperCase()}</span><input value={urls[k]} onChange={e=>setUrls(u=>({...u,[k]:e.target.value}))} style={{fontFamily:"var(--mono)",fontSize:11,background:"#1a1a1a",border:"1px solid #2a2a2a",borderRadius:3,padding:"4px 8px",color:"#888",width:200}}/></div>)}</div>}
+    <div style={{flex:1,display:"flex",overflow:"hidden"}}>
+      <div style={{width:170,flexShrink:0,borderRight:"1px solid var(--border)",overflowY:"auto",padding:"6px 0"}}>
+        {groups.map(g=>{const b=g!=="All"?groupBadge(g):null;const active=activeGroup===g;return <div key={g} onClick={()=>setActiveGroup(g)} style={{padding:"8px 14px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",background:active?"rgba(255,255,255,.035)":"transparent",borderLeft:active?"2px solid #fff":"2px solid transparent"}}><span style={{fontFamily:"var(--mono)",fontSize:10,color:active?"#ddd":"#444",letterSpacing:"0.08em"}}>{g.toUpperCase()}</span>{b&&<div style={{display:"flex",gap:4}}>{b.p>0&&<span style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--pass)"}}>{b.p}</span>}{b.f>0&&<span style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--fail)"}}>{b.f}</span>}{b.p===0&&b.f===0&&<span style={{fontFamily:"var(--mono)",fontSize:9,color:"#2a2a2a"}}>{b.n}</span>}</div>}</div>})}
+        <div style={{borderTop:"1px solid var(--border)",marginTop:6,padding:"6px 0"}}>
+          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"#2e2e2e",letterSpacing:"0.12em",padding:"4px 14px 2px"}}>RUN GROUP</div>
+          {groups.filter(g=>g!=="All").map(g=><div key={g} onClick={()=>!running&&runTests(tests.filter(t=>t.group===g))} style={{padding:"5px 14px",cursor:running?"not-allowed":"pointer"}}><span style={{fontFamily:"var(--mono)",fontSize:9,color:running?"#2a2a2a":"#3a3a3a"}}>▶ {g.toUpperCase()}</span></div>)}
+        </div>
+        <div style={{borderTop:"1px solid var(--border)",marginTop:6,padding:"8px 14px"}}>
+          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"#2e2e2e",letterSpacing:"0.12em",marginBottom:6}}>PORTS</div>
+          {Object.entries(SVCS).map(([k,s])=><div key={k} style={{display:"flex",alignItems:"center",gap:5,marginBottom:4}}><div style={{width:5,height:5,borderRadius:"50%",background:s.color,flexShrink:0}}/><span style={{fontFamily:"var(--mono)",fontSize:9,color:"#333"}}>{s.label} :{s.port}</span></div>)}
+          <div style={{marginTop:10,fontFamily:"var(--mono)",fontSize:9,color:"#2e2e2e",lineHeight:1.8}}>Training tests<br/>use 5% sample<br/>(~2-5 min each).<br/><br/>Slow tests poll<br/>every 3s.</div>
+        </div>
+      </div>
+      <div style={{flex:1,overflowY:"auto"}}>{visible.map(t=><TestRow key={t.id} test={t} result={results[t.id]}/>)}</div>
+    </div>
+  </div>;
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

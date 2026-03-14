@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Training Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet"/>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#090b10;font-family:'Rajdhani',sans-serif;color:#fff}
+    @keyframes shimmer{0%{left:-80px}100%{left:110%}}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes scanline{0%{top:-2px}100%{top:100vh}}
+    input,select{outline:none}
+    input[type=range]{accent-color:#00ff9d;width:100%}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef} = React;
+
+const CONCERNS = ["draft","build","performance"];
+const META = {
+  draft:       {label:"Draft Model",       icon:"⚔️", color:"#00ff9d"},
+  build:       {label:"Build Model",        icon:"🛡️", color:"#ff6b35"},
+  performance: {label:"Performance Model",  icon:"📊", color:"#a78bfa"},
+};
+const STATUS_COLOR = {IDLE:"#444",PENDING:"#666",RUNNING:"#facc15",COMPLETED:"#00ff9d",FAILED:"#ff4d4d",CANCELLED:"#f97316"};
+
+function Bar({progress,color,status}){
+  return(
+    <div style={{position:"relative",height:6,background:"rgba(255,255,255,0.07)",borderRadius:3,overflow:"hidden"}}>
+      <div style={{position:"absolute",left:0,top:0,bottom:0,width:`${progress}%`,
+        background:status==="FAILED"?"#ff4d4d":status==="CANCELLED"?"#f97316":`linear-gradient(90deg,${color}77,${color})`,
+        borderRadius:3,transition:"width .5s cubic-bezier(.4,0,.2,1)",
+        boxShadow:status==="RUNNING"?`0 0 10px ${color}55`:"none"}}/>
+      {status==="RUNNING"&&<div style={{position:"absolute",top:0,bottom:0,width:60,
+        background:`linear-gradient(90deg,transparent,${color}55,transparent)`,
+        animation:"shimmer 1.4s infinite"}}/>}
+    </div>
+  );
+}
+
+function Card({concern,job,onTrigger,onCancel,busy,filters}){
+  const m=META[concern];
+  const status=job?.status??"IDLE";
+  const progress=job?.progress??0;
+  const stage=job?.stage??"Not started";
+  const running=status==="RUNNING"||status==="PENDING";
+  const sc=STATUS_COLOR[status]??"#888";
+
+  return(
+    <div style={{background:"rgba(255,255,255,0.03)",border:`1px solid ${running?m.color+"33":"rgba(255,255,255,0.07)"}`,
+      borderRadius:14,padding:24,transition:"border-color .4s",position:"relative",overflow:"hidden",animation:"fadeIn .4s ease both"}}>
+      {running&&<div style={{position:"absolute",top:-50,right:-50,width:130,height:130,
+        background:`radial-gradient(circle,${m.color}14 0%,transparent 70%)`,pointerEvents:"none"}}/>}
+
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18}}>
+        <div style={{display:"flex",alignItems:"center",gap:9}}>
+          <span style={{fontSize:19}}>{m.icon}</span>
+          <span style={{fontFamily:"'Space Mono',monospace",fontSize:12,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase"}}>{m.label}</span>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:6,fontFamily:"'Space Mono',monospace",fontSize:10,color:sc,letterSpacing:"0.1em"}}>
+          <div style={{width:6,height:6,borderRadius:"50%",background:sc,animation:running?"pulse 1s infinite":"none"}}/>
+          {status}
+        </div>
+      </div>
+
+      {/* Applied filters badge */}
+      {job?.filters && Object.keys(job.filters).length>0 && (
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+          {job.filters.sample&&<span style={{fontFamily:"'Space Mono',monospace",fontSize:9,padding:"2px 7px",background:"rgba(0,255,157,0.1)",border:"1px solid rgba(0,255,157,0.2)",borderRadius:4,color:"#00ff9d"}}>sample {job.filters.sample*100}%</span>}
+          {job.filters.limit&&<span style={{fontFamily:"'Space Mono',monospace",fontSize:9,padding:"2px 7px",background:"rgba(0,255,157,0.1)",border:"1px solid rgba(0,255,157,0.2)",borderRadius:4,color:"#00ff9d"}}>limit {job.filters.limit.toLocaleString()}</span>}
+          {job.filters.matchType&&<span style={{fontFamily:"'Space Mono',monospace",fontSize:9,padding:"2px 7px",background:"rgba(0,255,157,0.1)",border:"1px solid rgba(0,255,157,0.2)",borderRadius:4,color:"#00ff9d"}}>{job.filters.matchType}</span>}
+        </div>
+      )}
+
+      <div style={{marginBottom:14}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:7}}>
+          <span style={{fontFamily:"'Space Mono',monospace",fontSize:10,color:"rgba(255,255,255,0.35)",maxWidth:"78%",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{stage}</span>
+          <span style={{fontFamily:"'Space Mono',monospace",fontSize:13,fontWeight:700,color:m.color}}>{job?`${progress}%`:"—"}</span>
+        </div>
+        <Bar progress={progress} color={m.color} status={status}/>
+      </div>
+
+      {status==="COMPLETED"&&job?.metrics&&(
+        <div style={{display:"flex",gap:10,flexWrap:"wrap",marginTop:14,paddingTop:14,borderTop:"1px solid rgba(255,255,255,0.05)"}}>
+          {Object.entries(job.metrics).filter(([k])=>["accuracy","f1_weighted","roc_auc"].includes(k)).map(([k,v])=>(
+            <div key={k} style={{background:"rgba(255,255,255,0.05)",borderRadius:7,padding:"6px 11px"}}>
+              <div style={{fontFamily:"'Space Mono',monospace",fontSize:9,color:"rgba(255,255,255,0.35)",letterSpacing:"0.1em",marginBottom:2}}>{k.replace("_"," ").toUpperCase()}</div>
+              <div style={{fontFamily:"'Space Mono',monospace",fontSize:15,fontWeight:700,color:m.color}}>{(v*100).toFixed(1)}%</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {(status==="FAILED"||status==="CANCELLED")&&job?.error&&(
+        <div style={{marginTop:12,padding:"9px 12px",background:"rgba(255,77,77,0.08)",border:"1px solid rgba(255,77,77,0.2)",borderRadius:7,fontFamily:"'Space Mono',monospace",fontSize:10,color:"#ff9999"}}>{job.error}</div>
+      )}
+
+      <div style={{display:"flex",gap:8,marginTop:18}}>
+        <button onClick={()=>onTrigger(concern)} disabled={busy||running} style={{
+          flex:1,padding:"10px 0",
+          background:running?"rgba(255,255,255,0.03)":`linear-gradient(135deg,${m.color}20,${m.color}0d)`,
+          border:`1px solid ${running?"rgba(255,255,255,0.07)":m.color+"44"}`,
+          borderRadius:8,color:running?"rgba(255,255,255,0.25)":m.color,
+          fontFamily:"'Space Mono',monospace",fontSize:10,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",
+          cursor:running||busy?"not-allowed":"pointer",transition:"all .2s"}}>
+          {running?"Training…":status==="COMPLETED"?"↺  Retrain":"▶  Train"}
+        </button>
+        {running&&(
+          <button onClick={()=>onCancel(job.jobId)} style={{
+            padding:"10px 14px",background:"rgba(249,115,22,0.1)",
+            border:"1px solid rgba(249,115,22,0.3)",borderRadius:8,
+            color:"#f97316",fontFamily:"'Space Mono',monospace",fontSize:10,fontWeight:700,
+            letterSpacing:"0.08em",cursor:"pointer",transition:"all .2s",whiteSpace:"nowrap"}}>
+            ■ Stop
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FilterPanel({filters,setFilters}){
+  return(
+    <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:20,marginBottom:24}}>
+      <div style={{fontFamily:"'Space Mono',monospace",fontSize:11,fontWeight:700,letterSpacing:"0.12em",color:"rgba(255,255,255,0.5)",textTransform:"uppercase",marginBottom:16}}>Dataset Filters</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:16}}>
+
+        {/* Sample % */}
+        <div>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+            <label style={{fontFamily:"'Space Mono',monospace",fontSize:10,color:"rgba(255,255,255,0.4)"}}>SAMPLE SIZE</label>
+            <span style={{fontFamily:"'Space Mono',monospace",fontSize:10,color:"#00ff9d",fontWeight:700}}>
+              {filters.sample===1?"100% (full)":Math.round(filters.sample*100)+"%"}
+            </span>
+          </div>
+          <input type="range" min={5} max={100} step={5}
+            value={Math.round(filters.sample*100)}
+            onChange={e=>setFilters(f=>({...f,sample:parseInt(e.target.value)/100}))}/>
+          <div style={{display:"flex",justifyContent:"space-between",fontFamily:"'Space Mono',monospace",fontSize:9,color:"rgba(255,255,255,0.2)",marginTop:3}}>
+            <span>5%</span><span>50%</span><span>100%</span>
+          </div>
+        </div>
+
+        {/* Row limit */}
+        <div>
+          <label style={{fontFamily:"'Space Mono',monospace",fontSize:10,color:"rgba(255,255,255,0.4)",display:"block",marginBottom:6}}>ROW LIMIT</label>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            {[null,10000,50000,100000,500000].map(v=>(
+              <button key={v??'none'} onClick={()=>setFilters(f=>({...f,limit:v}))}
+                style={{padding:"4px 10px",borderRadius:6,fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700,
+                  background:filters.limit===v?"rgba(0,255,157,0.15)":"rgba(255,255,255,0.04)",
+                  border:`1px solid ${filters.limit===v?"rgba(0,255,157,0.4)":"rgba(255,255,255,0.1)"}`,
+                  color:filters.limit===v?"#00ff9d":"rgba(255,255,255,0.4)",cursor:"pointer"}}>
+                {v==null?"No limit":v>=1000?v/1000+"k":v}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Match type */}
+        <div>
+          <label style={{fontFamily:"'Space Mono',monospace",fontSize:10,color:"rgba(255,255,255,0.4)",display:"block",marginBottom:6}}>MATCH TYPE</label>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            {[null,"RANKED","NORMAL","ARAM"].map(v=>(
+              <button key={v??'all'} onClick={()=>setFilters(f=>({...f,matchType:v}))}
+                style={{padding:"4px 10px",borderRadius:6,fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700,
+                  background:filters.matchType===v?"rgba(0,255,157,0.15)":"rgba(255,255,255,0.04)",
+                  border:`1px solid ${filters.matchType===v?"rgba(0,255,157,0.4)":"rgba(255,255,255,0.1)"}`,
+                  color:filters.matchType===v?"#00ff9d":"rgba(255,255,255,0.4)",cursor:"pointer"}}>
+                {v??'ALL'}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Dashboard(){
+  const [jobs,setJobs]       = useState({});
+  const [apiUrl,setApiUrl]   = useState("http://localhost:8000");
+  const [ok,setOk]           = useState(null);
+  const [lastPoll,setLastPoll] = useState(null);
+  const [busy,setBusy]       = useState(false);
+  const [filters,setFilters] = useState({sample:1.0,limit:null,matchType:null});
+  const ref = useRef();
+
+  const poll = async()=>{
+    try{
+      const r=await fetch(`${apiUrl}/train/jobs`);
+      if(!r.ok)throw new Error();
+      const d=await r.json();
+      setOk(true);setLastPoll(new Date());
+      const latest={};
+      for(const j of d.jobs){
+        if(!latest[j.concern]||j.createdAt>latest[j.concern].createdAt)latest[j.concern]=j;
+      }
+      setJobs(latest);
+    }catch{setOk(false);}
+  };
+
+  useEffect(()=>{poll();ref.current=setInterval(poll,2000);return()=>clearInterval(ref.current);},[apiUrl]);
+
+  const buildParams=()=>{
+    const p=new URLSearchParams();
+    if(filters.sample<1.0)p.set("sample",filters.sample);
+    if(filters.limit)p.set("limit",filters.limit);
+    if(filters.matchType)p.set("matchType",filters.matchType);
+    return p.toString();
+  };
+
+  const triggerAll=async()=>{
+    setBusy(true);
+    const q=buildParams();
+    await fetch(`${apiUrl}/train/trigger?concern=all${q?"&"+q:""}`,{method:"POST"}).catch(()=>{});
+    setTimeout(poll,300);setBusy(false);
+  };
+
+  const triggerOne=async(c)=>{
+    setBusy(true);
+    const q=buildParams();
+    await fetch(`${apiUrl}/train/trigger?concern=${c}${q?"&"+q:""}`,{method:"POST"}).catch(()=>{});
+    setTimeout(poll,300);setBusy(false);
+  };
+
+  const cancelJob=async(jobId)=>{
+    await fetch(`${apiUrl}/train/jobs/${jobId}/cancel`,{method:"POST"}).catch(()=>{});
+    setTimeout(poll,300);
+  };
+
+  const anyRunning=Object.values(jobs).some(j=>j.status==="RUNNING"||j.status==="PENDING");
+  const allDone=CONCERNS.every(c=>jobs[c]?.status==="COMPLETED");
+
+  return(
+    <div style={{minHeight:"100vh",background:"#090b10",padding:"40px 24px",position:"relative",overflowX:"hidden"}}>
+      <div style={{position:"fixed",left:0,right:0,height:2,pointerEvents:"none",zIndex:99,
+        background:"linear-gradient(90deg,transparent,rgba(0,255,157,0.12),transparent)",
+        animation:"scanline 7s linear infinite"}}/>
+      <div style={{position:"fixed",inset:0,pointerEvents:"none",
+        backgroundImage:"linear-gradient(rgba(0,255,157,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,157,0.025) 1px,transparent 1px)",
+        backgroundSize:"40px 40px"}}/>
+
+      <div style={{maxWidth:960,margin:"0 auto"}}>
+        <div style={{marginBottom:32}}>
+          <div style={{fontFamily:"'Space Mono',monospace",fontSize:10,color:"#00ff9d",letterSpacing:"0.22em",marginBottom:8,textTransform:"uppercase"}}>ScrimFinder // Analysis Service</div>
+          <h1 style={{fontSize:"clamp(26px,5vw,42px)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.04em",lineHeight:1}}>
+            Model Training <span style={{color:"#00ff9d"}}>Dashboard</span>
+          </h1>
+          <div style={{display:"flex",alignItems:"center",gap:16,marginTop:14,flexWrap:"wrap"}}>
+            <div style={{display:"flex",alignItems:"center",gap:7,fontFamily:"'Space Mono',monospace",fontSize:11,
+              color:ok===null?"#666":ok?"#00ff9d":"#ff4d4d"}}>
+              <div style={{width:7,height:7,borderRadius:"50%",background:ok===null?"#666":ok?"#00ff9d":"#ff4d4d",animation:ok?"pulse 2s infinite":"none"}}/>
+              {ok===null?"Connecting…":ok?"Connected":"Disconnected — is Docker running?"}
+            </div>
+            {lastPoll&&<span style={{fontFamily:"'Space Mono',monospace",fontSize:10,color:"rgba(255,255,255,0.22)"}}>Last poll {lastPoll.toLocaleTimeString()}</span>}
+            <input value={apiUrl} onChange={e=>setApiUrl(e.target.value)} style={{
+              background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.09)",
+              borderRadius:6,padding:"4px 10px",color:"rgba(255,255,255,0.45)",
+              fontFamily:"'Space Mono',monospace",fontSize:11,width:220}}/>
+          </div>
+        </div>
+
+        <FilterPanel filters={filters} setFilters={setFilters}/>
+
+        <button onClick={triggerAll} disabled={busy||anyRunning} style={{
+          marginBottom:28,padding:"13px 30px",
+          background:anyRunning?"rgba(255,255,255,0.03)":"linear-gradient(135deg,rgba(0,255,157,0.18),rgba(0,255,157,0.07))",
+          border:`1px solid ${anyRunning?"rgba(255,255,255,0.07)":"rgba(0,255,157,0.38)"}`,
+          borderRadius:10,color:anyRunning?"rgba(255,255,255,0.25)":"#00ff9d",
+          fontFamily:"'Space Mono',monospace",fontSize:11,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",
+          cursor:anyRunning||busy?"not-allowed":"pointer",transition:"all .2s",
+          display:"flex",alignItems:"center",gap:10}}>
+          {anyRunning?<><span style={{animation:"pulse 1s infinite"}}>⬤</span> Training in progress…</>
+            :allDone?<>↺&nbsp;&nbsp;Retrain All Models</>
+            :<>▶▶&nbsp;&nbsp;Train All Models</>}
+        </button>
+
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:16}}>
+          {CONCERNS.map(c=><Card key={c} concern={c} job={jobs[c]??null} onTrigger={triggerOne} onCancel={cancelJob} busy={busy} filters={filters}/>)}
+        </div>
+
+        <div style={{marginTop:36,fontFamily:"'Space Mono',monospace",fontSize:10,color:"rgba(255,255,255,0.18)",textAlign:"center",letterSpacing:"0.05em"}}>
+          Polls every 2s &nbsp;·&nbsp; Cancel retains any model saved before the checkpoint
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<Dashboard/>);
+</script>
+</body>
+</html>
