@@ -41,17 +41,22 @@ Offers personalized post-game analysis. Players utilizing the API receive automa
 
 > **Match & Ranking Management**
 
-* Leaderboards
-* User Ranking
-* Match Finding
-* Create / Cancel Match
+| Use Case | Student Name |
+| --- | --- |
+| Leaderboards          | Diogo Sousa |
+| User Ranking          | Diogo Sousa |
+| Match Finding         | Diogo Sousa |
+| Create / Cancel Match | Diogo Sousa |
 
 > **Data Visualization & Analysis**
 
-* Match History
-* Advanced History Filtering / Sorting / Paging
-* Draft Analysis
-* Build Analysis
-* Player Performance Analysis
+| Use Case | Student Name |
+| --- | --- |
+| Match History                                             | Bruno Faustino |
+| Advanced History Filtering / Sorting / Paging             | Bruno Faustino |
+| Automatic Detail Filling (by interacting with RIOT's API) | Bruno Faustino |
+| Draft Analysis                                            | Rodrigo Neto |
+| Build Analysis                                            | Rodrigo Neto |
+| Player Performance Analysis                               | Rodrigo Neto |
 
 ---

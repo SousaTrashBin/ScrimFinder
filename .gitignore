@@ -59,7 +59,7 @@ venv/
 ENV/
 
 ### Machine Learning & Data ###
-# Ignore the actual trained model files (keep the code, ignore the heavy weights)
+# Ignore the actual trained model files
 *.pkl
 *.h5
 *.joblib
