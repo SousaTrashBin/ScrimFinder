@@ -1,20 +1,15 @@
 package fc.ul.scrimfinder.dto.response.match;
 
-import fc.ul.scrimfinder.util.PatchInterval;
-import fc.ul.scrimfinder.util.TimeInterval;
-
+import java.time.LocalDateTime;
 import java.util.List;
 
 public record MatchStatsDTO(
-        List<String> ranks,
-        List<String> champions,
-        Integer matchTripleKills,
-        Integer matchQuadKills,
-        Integer matchPentaKills,
-        PatchInterval patchInterval,
-        TimeInterval timeInterval,
-        List<TeamStats> teams,
+        String riotMatchId, // including match region
         Long queueId,
-        List<PlayerStats> players
+        String patch,
+        LocalDateTime gameCreation,
+        Long gameDuration,
+        List<PlayerStatsDTO> players,
+        List<TeamStatsDTO> teams
 ) {
 }

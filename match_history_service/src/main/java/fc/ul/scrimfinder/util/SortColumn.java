@@ -7,6 +7,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Getter
 public enum SortColumn {
+    @JsonProperty(value = "queueId")
+    QUEUE_ID("queueId"),
+
     @JsonProperty(value = "rank")
     RANK("rank"),
 
@@ -22,20 +25,14 @@ public enum SortColumn {
     @JsonProperty(value = "matchPentaKills")
     MATCH_PENTA_KILLS("matchPentaKills"),
 
-    @JsonProperty(value = "patchStart")
-    PATCH_START("patchStart"),
-
-    @JsonProperty(value = "patchEnd")
-    PATCH_END("patchEnd"),
+    @JsonProperty(value = "patch")
+    PATCH("patch"),
 
     @JsonProperty(value = "timeStart")
     TIME_START("timeStart"),
 
     @JsonProperty(value = "timeEnd")
-    TIME_END("timeEnd"),
-
-    @JsonProperty(value = "queueId")
-    QUEUE_ID("queueId");
+    TIME_END("timeEnd");
 
     final String column;
 

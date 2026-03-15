@@ -1,29 +1,89 @@
-package fc.ul.scrimfinder.dto.response.match;
+package fc.ul.scrimfinder.dto.request;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fc.ul.scrimfinder.util.RiotId;
-import fc.ul.scrimfinder.util.Role;
+import fc.ul.scrimfinder.exception.InvalidRoleException;
+import fc.ul.scrimfinder.exception.InvalidTeamsException;
+import fc.ul.scrimfinder.util.*;
+import io.smallrye.common.constraint.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.ws.rs.BeanParam;
+import jakarta.ws.rs.QueryParam;
 
-public record PlayerStats(
+public record PlayerStatsDTO(
+        @BeanParam
+        @NotNull
+        @Valid
         RiotId riotId,
-        Integer playerIcon,
+
+        @BeanParam
+        @NotNull
+        @Valid
+        Rank rank,
+
+        @QueryParam("kills")
+        @Min(value = 0, message = "A player can only have more than or equal to 0 kills")
         Integer kills,
+
+        @QueryParam("deaths")
+        @Min(value = 0, message = "A player can only have more than or equal to 0 deaths")
         Integer deaths,
+
+        @QueryParam("assists")
+        @Min(value = 0, message = "A player can only have more than or equal to 0 assists")
         Integer assists,
+
+        @QueryParam("healing")
+        @Min(value = 0, message = "A player can only have more than or equal to 0 healing")
         Integer healing,
+
+        @QueryParam("damageToPlayers")
+        @Min(value = 0, message = "A player can only have more than or equal to 0 damage dealt to players")
         Integer damageToPlayers,
+
+        @QueryParam("wards")
+        @Min(value = 0, message = "A player can only place more than or equal to 0 wards")
         Integer wards,
+
+        @QueryParam("gold")
+        @Min(value = 0, message = "A player can only have more than or equal to 0 gold")
         Integer gold,
+
+        @BeanParam
         Role role,
+
+        @QueryParam("champion")
         String champion,
+
+        @QueryParam("csPerMinute")
+        @Min(value = 0, message = "A player can only have more than or equal to 0 cs per minute")
         Double csPerMinute,
+
+        @QueryParam("killedMinions")
+        @Min(value = 0, message = "A player can only have more than or equal to 0 killed minions")
         Integer killedMinions,
+
+        @QueryParam("tripleKills")
+        @Min(value = 0, message = "A player can only have more than or equal to 0 triple kills")
         Integer tripleKills,
+
+        @QueryParam("quadKills")
+        @Min(value = 0, message = "A player can only have more than or equal to 0 quad kills")
         Integer quadKills,
-        Integer pentaKills
+
+        @QueryParam("pentaKills")
+        @Min(value = 0, message = "A player can only have more than or equal to 0 penta kills")
+        Integer pentaKills,
+
+        @QueryParam("side")
+        TeamSide side,
+
+        @QueryParam("won")
+        @NotNull
+        Boolean won
 ) {
-    public static PlayerStats valueOf(String value) {
+    public static PlayerStatsDTO valueOf(String value) {
         if (value == null || value.isBlank()) return null;
 
         ObjectMapper mapper = new ObjectMapper();
@@ -35,7 +95,7 @@ public record PlayerStats(
         }
 
         RiotId riotId = fromJsonToRiotId(playerStats);
-        Integer playerIcon = fromJsonToPlayerIcon(playerStats);
+        Rank rank = fromJsonToRank(playerStats);
         Integer kills = fromJsonToKills(playerStats);
         Integer deaths = fromJsonToDeaths(playerStats);
         Integer assists = fromJsonToAssists(playerStats);
@@ -50,10 +110,12 @@ public record PlayerStats(
         Integer tripleKills = fromJsonToTripleKills(playerStats);
         Integer quadKills = fromJsonToQuadKills(playerStats);
         Integer pentaKills = fromJsonToPentaKills(playerStats);
+        TeamSide teamSide = fromJsonToTeamSide(playerStats);
+        Boolean won = fromJsonToWon(playerStats);
 
-        return new PlayerStats(
+        return new PlayerStatsDTO(
                 riotId,
-                playerIcon,
+                rank,
                 kills,
                 deaths,
                 assists,
@@ -67,7 +129,9 @@ public record PlayerStats(
                 killedMinions,
                 tripleKills,
                 quadKills,
-                pentaKills
+                pentaKills,
+                teamSide,
+                won
         );
     }
 
@@ -89,15 +153,18 @@ public record PlayerStats(
         }
         String playerTag = playerTagNode.asText();
 
-        return new RiotId(playerName, playerTag);
+        JsonNode playerIconNode = riotIdNode.findValue("playerIcon");
+        Integer playerIcon = playerIconNode == null ? 0 : playerIconNode.asInt();
+
+        return new RiotId(playerName, playerTag, playerIcon);
     }
 
-    private static Integer fromJsonToPlayerIcon(JsonNode json) {
-        JsonNode playerIconNode = json.findValue("playerIcon");
-        if (playerIconNode == null) {
-            return 0;
+    private static Rank fromJsonToRank(JsonNode json) {
+        JsonNode rankNode = json.findValue("rank");
+        if (rankNode == null) {
+            throw new IllegalArgumentException("Rank is required: " + json);
         }
-        return playerIconNode.asInt();
+        return Rank.valueOf(rankNode.asText());
     }
 
     private static Integer fromJsonToKills(JsonNode json) {
@@ -139,7 +206,11 @@ public record PlayerStats(
         JsonNode roleNode = json.findValue("role");
         if (roleNode == null) return null;
         String roleName = roleNode.asText();
-        return Role.fromRoleName(roleName);
+        Role role = Role.fromRoleName(roleName);
+        if (role == null) {
+            throw new InvalidRoleException("Invalid role: " + roleName);
+        }
+        return role;
     }
 
     private static String fromJsonToChampion(JsonNode json) {
@@ -170,5 +241,21 @@ public record PlayerStats(
     private static Integer fromJsonToPentaKills(JsonNode json) {
         JsonNode pentaKillsNode = json.findValue("pentaKills");
         return pentaKillsNode == null ? null : pentaKillsNode.asInt();
+    }
+
+    private static TeamSide fromJsonToTeamSide(JsonNode json) {
+        JsonNode teamSideNode = json.findValue("teamSide");
+        if (teamSideNode == null) return null;
+        String teamSideName = teamSideNode.asText();
+        TeamSide teamSide = TeamSide.fromTeamSideName(teamSideName);
+        if (teamSide == null) {
+            throw new InvalidTeamsException("Invalid team side: " + teamSideName);
+        }
+        return teamSide;
+    }
+
+    private static Boolean fromJsonToWon(JsonNode json) {
+        JsonNode wonNode = json.findValue("won");
+        return wonNode != null && wonNode.asBoolean();
     }
 }

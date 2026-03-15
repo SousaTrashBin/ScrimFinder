@@ -1,8 +1,8 @@
 package fc.ul.scrimfinder.service.impl;
 
-import fc.ul.scrimfinder.dto.request.MatchAddDTO;
-import fc.ul.scrimfinder.dto.request.MatchStats;
-import fc.ul.scrimfinder.dto.request.SortParam;
+import fc.ul.scrimfinder.dto.request.MatchFiltersDTO;
+import fc.ul.scrimfinder.dto.request.MatchStatsDTO;
+import fc.ul.scrimfinder.dto.request.SortParamDTO;
 import fc.ul.scrimfinder.dto.response.MatchDTO;
 import fc.ul.scrimfinder.dto.response.PaginatedResponseDTO;
 import fc.ul.scrimfinder.exception.ExternalServiceUnavailableException;
@@ -30,7 +30,7 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
     }
 
     @Override
-    public PaginatedResponseDTO<MatchDTO> getMatches(int page, int size, MatchStats filterParams, List<SortParam> sortParams) {
+    public PaginatedResponseDTO<MatchDTO> getMatches(int page, int size, MatchFiltersDTO filterParams, List<SortParamDTO> sortParamDTOS) {
         // TODO
         return null;
     }
@@ -42,7 +42,7 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
     }
 
     @Override
-    public MatchDTO addMatch(MatchAddDTO matchAddDto) {
+    public MatchDTO addMatch(MatchStatsDTO matchStatsDto) {
         // TODO
         return null;
     }

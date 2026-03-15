@@ -1,8 +1,8 @@
 package fc.ul.scrimfinder.service;
 
-import fc.ul.scrimfinder.dto.request.MatchAddDTO;
-import fc.ul.scrimfinder.dto.request.MatchStats;
-import fc.ul.scrimfinder.dto.request.SortParam;
+import fc.ul.scrimfinder.dto.request.MatchFiltersDTO;
+import fc.ul.scrimfinder.dto.request.MatchStatsDTO;
+import fc.ul.scrimfinder.dto.request.SortParamDTO;
 import fc.ul.scrimfinder.dto.response.MatchDTO;
 import fc.ul.scrimfinder.dto.response.PaginatedResponseDTO;
 import fc.ul.scrimfinder.exception.*;
@@ -14,7 +14,7 @@ public interface MatchHistoryService {
             MatchNotFoundException,
             ExternalServiceUnavailableException;
 
-    PaginatedResponseDTO<MatchDTO> getMatches(int page, int size, MatchStats filterParams, List<SortParam> sortParams) throws
+    PaginatedResponseDTO<MatchDTO> getMatches(int page, int size, MatchFiltersDTO filterParams, List<SortParamDTO> sortParamDTOS) throws
             PlayerNotFoundException,
             ChampionNotFoundException,
             RankNotFoundException,
@@ -28,7 +28,7 @@ public interface MatchHistoryService {
             InvalidIntervalException,
             InvalidTeamsException;
 
-    MatchDTO addMatch(MatchAddDTO matchAddDto) throws
+    MatchDTO addMatch(MatchStatsDTO matchStatsDto) throws
             MatchAlreadyExistsException,
             InvalidIntervalException,
             InvalidTeamsException;

@@ -1,14 +1,13 @@
 package fc.ul.scrimfinder.mapper;
 
 import fc.ul.scrimfinder.domain.Match;
-import fc.ul.scrimfinder.dto.request.MatchAddDTO;
+import fc.ul.scrimfinder.dto.request.MatchStatsDTO;
 import fc.ul.scrimfinder.dto.response.MatchDTO;
 import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "cdi")
 public interface MatchMapper {
     MatchDTO matchToDto(Match match);
 
-    Match matchAddDtoToMatch(MatchAddDTO matchAddDto);
+    Match matchStatsDtoToMatch(MatchStatsDTO matchStatsDto);
 }

@@ -1,6 +1,5 @@
 package fc.ul.scrimfinder.client;
 
-import fc.ul.scrimfinder.dto.response.player.PlayerDTO;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -15,5 +14,5 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 public interface RiotPlayerServiceClient {
     @GET
     @Path("/by-puuid/{encryptedPUUID}")
-    PlayerDTO getLeagueEntriesByPUUID(@PathParam("encryptedPUUID") @NotBlank String encryptedPUUID);
+    String getLeagueEntriesByPUUID(@PathParam("encryptedPUUID") @NotBlank String encryptedPUUID);
 }

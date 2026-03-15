@@ -3,7 +3,7 @@ package fc.ul.scrimfinder.service.impl;
 import fc.ul.scrimfinder.client.RiotAccountServiceClient;
 import fc.ul.scrimfinder.client.RiotMatchServiceClient;
 import fc.ul.scrimfinder.client.RiotPlayerServiceClient;
-import fc.ul.scrimfinder.dto.response.player.AccountDTO;
+import fc.ul.scrimfinder.dto.response.match.MatchStatsDTO;
 import fc.ul.scrimfinder.dto.response.player.PlayerDTO;
 import fc.ul.scrimfinder.exception.ExternalServiceUnavailableException;
 import fc.ul.scrimfinder.service.RiotAdapterService;
@@ -27,14 +27,21 @@ public class RiotAdapterServiceImpl implements RiotAdapterService {
     RiotMatchServiceClient matchServiceClient;
 
     @Override
-    public String getMatchData(Long matchId) throws ExternalServiceUnavailableException {
+    public String getRawMatchData(Long matchId) throws ExternalServiceUnavailableException {
         return matchServiceClient.getMatch("EUW1_" + matchId);
     }
 
     @Override
+    public MatchStatsDTO getMatchData(Long matchId) throws ExternalServiceUnavailableException {
+        String match = matchServiceClient.getMatch("EUW1_" + matchId);
+        return null;
+    }
+
+    @Override
     public PlayerDTO getPlayerData(String name, String tag) throws ExternalServiceUnavailableException {
-        AccountDTO account = accountServiceClient.getByRiotId(name, tag);
-        return playerServiceClient.getLeagueEntriesByPUUID(account.puuid());
+        String account = accountServiceClient.getByRiotId(name, tag);
+        // String playerQueueStats = playerServiceClient.getLeagueEntriesByPUUID(account.puuid());
+        return null;
     }
 }
 

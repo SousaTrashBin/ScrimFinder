@@ -1,6 +1,5 @@
 package fc.ul.scrimfinder.client;
 
-import fc.ul.scrimfinder.dto.response.player.AccountDTO;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -15,5 +14,5 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 public interface RiotAccountServiceClient {
     @GET
     @Path("/by-riot-id/{gameName}/{tagLine}")
-    AccountDTO getByRiotId(@PathParam("gameName") @NotBlank String gameName, @PathParam("tagLine") @NotBlank String tagLine);
+    String getByRiotId(@PathParam("gameName") @NotBlank String gameName, @PathParam("tagLine") @NotBlank String tagLine);
 }

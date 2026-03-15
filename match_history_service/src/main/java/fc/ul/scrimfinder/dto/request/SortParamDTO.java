@@ -5,11 +5,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import fc.ul.scrimfinder.util.SortColumn;
 import fc.ul.scrimfinder.util.SortDirection;
 
-public record SortParam(
+public record SortParamDTO(
         SortColumn column,
         SortDirection direction
 ) {
-    public static SortParam valueOf(String value) {
+    public static SortParamDTO valueOf(String value) {
         if (value == null || value.isBlank()) return null;
 
         ObjectMapper mapper = new ObjectMapper();
@@ -36,6 +36,6 @@ public record SortParam(
             }
         }
 
-        return new SortParam(column, direction);
+        return new SortParamDTO(column, direction);
     }
 }

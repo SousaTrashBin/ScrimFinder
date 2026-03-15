@@ -1,17 +1,33 @@
-package fc.ul.scrimfinder.dto.response.match;
+package fc.ul.scrimfinder.dto.request;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fc.ul.scrimfinder.exception.InvalidTeamsException;
 import fc.ul.scrimfinder.util.TeamSide;
+import jakarta.validation.constraints.Min;
+import jakarta.ws.rs.QueryParam;
 
-public record TeamStats(
+public record TeamStatsDTO(
+        @QueryParam("side")
         TeamSide side,
+
+        @QueryParam("teamKills")
+        @Min(value = 0, message = "A team can only have more than or equal to 0 kills")
         Integer teamKills,
+
+        @QueryParam("teamDeaths")
+        @Min(value = 0, message = "A team can only have more than or equal to 0 deaths")
         Integer teamDeaths,
+
+        @QueryParam("teamAssists")
+        @Min(value = 0, message = "A team can only have more than or equal to 0 assists")
         Integer teamAssists,
+
+        @QueryParam("teamHealing")
+        @Min(value = 0, message = "A team can only have more than or equal to 0 healing")
         Integer teamHealing
 ) {
-    public static TeamStats valueOf(String value) {
+    public static TeamStatsDTO valueOf(String value) {
         if (value == null || value.isBlank()) return null;
 
         ObjectMapper mapper = new ObjectMapper();
@@ -28,7 +44,7 @@ public record TeamStats(
         Integer teamAssists = fromJsonToTeamAssists(teamStats);
         Integer teamHealing = fromJsonToTeamHealing(teamStats);
 
-        return new TeamStats(
+        return new TeamStatsDTO(
                 teamSide,
                 teamKills,
                 teamDeaths,
@@ -41,7 +57,11 @@ public record TeamStats(
         JsonNode teamSideNode = json.findValue("teamSide");
         if (teamSideNode == null) return null;
         String teamSideName = teamSideNode.asText();
-        return TeamSide.fromTeamSideName(teamSideName);
+        TeamSide teamSide = TeamSide.fromTeamSideName(teamSideName);
+        if (teamSide == null) {
+            throw new InvalidTeamsException("Invalid team side: " + teamSideName);
+        }
+        return teamSide;
     }
 
     private static Integer fromJsonToTeamKills(JsonNode json) {

@@ -1,8 +1,8 @@
 package fc.ul.scrimfinder.controller;
 
-import fc.ul.scrimfinder.dto.request.MatchAddDTO;
-import fc.ul.scrimfinder.dto.request.MatchStats;
-import fc.ul.scrimfinder.dto.request.SortParam;
+import fc.ul.scrimfinder.dto.request.MatchFiltersDTO;
+import fc.ul.scrimfinder.dto.request.MatchStatsDTO;
+import fc.ul.scrimfinder.dto.request.SortParamDTO;
 import fc.ul.scrimfinder.dto.response.MatchDTO;
 import fc.ul.scrimfinder.dto.response.PaginatedResponseDTO;
 import fc.ul.scrimfinder.service.MatchHistoryService;
@@ -61,10 +61,10 @@ public class MatchHistoryController {
     public Response getMatches(
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("size") @DefaultValue("20") @Min(0) @Max(100) int size,
-            @BeanParam @Valid MatchStats filterParams,
-            @QueryParam("sort") List<SortParam> sortParams
+            @BeanParam @Valid MatchFiltersDTO filterParams,
+            @QueryParam("sort") List<SortParamDTO> sortParamDTOS
     ) {
-        PaginatedResponseDTO<MatchDTO> matches = matchHistoryService.getMatches(page, size, filterParams, sortParams);
+        PaginatedResponseDTO<MatchDTO> matches = matchHistoryService.getMatches(page, size, filterParams, sortParamDTOS);
         return Response.ok(matches).build();
     }
 
@@ -92,7 +92,7 @@ public class MatchHistoryController {
             @APIResponse(responseCode = "400", description = "Invalid request payload",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
-    public Response addMatch(@Valid MatchAddDTO match) {
+    public Response addMatch(@Valid MatchStatsDTO match) {
         MatchDTO addedMatch = matchHistoryService.addMatch(match);
         return Response.status(Response.Status.CREATED).entity(addedMatch).build();
     }
