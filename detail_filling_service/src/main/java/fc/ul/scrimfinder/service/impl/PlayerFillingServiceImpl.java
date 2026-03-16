@@ -13,8 +13,7 @@ public class PlayerFillingServiceImpl implements PlayerFillingService {
     RiotAdapterService riotAdapterService;
 
     @Override
-    public PlayerDTO getFilledPlayer(String playerId) {
-        String[] nameTag = playerId.split("#");
-        return riotAdapterService.getPlayerData(nameTag[0].trim(), nameTag[1].trim());
+    public PlayerDTO getFilledPlayer(String name, String tag) {
+        return riotAdapterService.getPlayerData(name, tag);
     }
 }
