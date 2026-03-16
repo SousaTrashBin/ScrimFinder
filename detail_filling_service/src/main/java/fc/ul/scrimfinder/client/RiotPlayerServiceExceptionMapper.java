@@ -1,8 +1,9 @@
 package fc.ul.scrimfinder.client;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import fc.ul.scrimfinder.exception.ExternalServiceUnavailableException;
 import fc.ul.scrimfinder.exception.PlayerNotFoundException;
-import fc.ul.scrimfinder.util.ErrorResponse;
+import fc.ul.scrimfinder.util.RiotErrorResponse;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
@@ -11,13 +12,15 @@ public class RiotPlayerServiceExceptionMapper implements ResponseExceptionMapper
     @Override
     public RuntimeException toThrowable(Response response) {
         try {
-            ErrorResponse errorResponse = response.readEntity(ErrorResponse.class);
-            String code = errorResponse.getCode();
-            String message = errorResponse.getMessage();
+            String errorJson = response.readEntity(String.class);
+            ObjectMapper mapper = new ObjectMapper();
+            RiotErrorResponse errorResponse = mapper.readValue(errorJson, RiotErrorResponse.class);
+            Integer code = errorResponse.getHttpStatus();
+            String message = errorResponse.getImplementationDetails();
 
             return switch (code) {
-                case "404" -> new PlayerNotFoundException(message);
-                case "503" -> new ExternalServiceUnavailableException(message);
+                case 404 -> new PlayerNotFoundException(message);
+                case 503 -> new ExternalServiceUnavailableException(message);
                 default -> new RuntimeException("Remote service error: " + message);
             };
         } catch (Exception e) {

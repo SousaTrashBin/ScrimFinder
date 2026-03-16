@@ -7,7 +7,7 @@ import org.eclipse.microprofile.rest.client.annotation.RegisterProvider;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
 @Path("#league-v4/GET_getLeagueEntriesByPUUID/lol/league/v4/entries")
-@RegisterRestClient(configKey = "riot-api")
+@RegisterRestClient(configKey = "riot-match-api")
 @RegisterProvider(RiotPlayerServiceExceptionMapper.class)
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)

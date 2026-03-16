@@ -4,7 +4,7 @@ import fc.ul.scrimfinder.dto.response.match.MatchStatsDTO;
 import fc.ul.scrimfinder.service.MatchFillingService;
 import fc.ul.scrimfinder.util.ErrorResponse;
 import jakarta.inject.Inject;
-import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -35,7 +35,7 @@ public class MatchFillingController {
             @APIResponse(responseCode = "404", description = "Match not found",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
-    public Response getFilledMatch(@PathParam("matchId") @Positive Long matchId) {
+    public Response getFilledMatch(@PathParam("matchId") @NotBlank String matchId) {
         MatchStatsDTO match = matchFillingService.getFilledMatch(matchId);
         return Response.ok(match).build();
     }
@@ -48,9 +48,11 @@ public class MatchFillingController {
             @APIResponse(responseCode = "400", description = "Invalid match ID provided",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
             @APIResponse(responseCode = "404", description = "Match not found",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @APIResponse(responseCode = "409", description = "Riot API response fields different from expected",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
-    public Response getRawMatchData(@PathParam("matchId") @Positive Long matchId) {
+    public Response getRawMatchData(@PathParam("matchId") @NotBlank String matchId) {
         String match = matchFillingService.getRawMatchData(matchId);
         return Response.ok(match).build();
     }

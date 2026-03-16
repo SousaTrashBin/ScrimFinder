@@ -13,13 +13,13 @@ public class MatchFillingServiceImpl implements MatchFillingService {
     RiotAdapterService riotAdapterService;
 
     @Override
-    public MatchStatsDTO getFilledMatch(Long matchId) {
-        return null;
+    public MatchStatsDTO getFilledMatch(String matchId) {
+        return riotAdapterService.getMatchData(matchId);
     }
 
     @Override
-    public String getRawMatchData(Long matchId) {
-        return "";
+    public String getRawMatchData(String matchId) {
+        return riotAdapterService.getRawMatchData(matchId);
     }
 }
 

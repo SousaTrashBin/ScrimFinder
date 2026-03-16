@@ -31,6 +31,39 @@ public class GlobalExceptionHandler {
     }
 
     @ServerExceptionMapper
+    public RestResponse<ErrorResponse> mapException(InvalidMatchFormatException x) {
+        return RestResponse.status(
+                Response.Status.CONFLICT,
+                ErrorResponse.builder()
+                        .code("INVALID_MATCH_FORMAT")
+                        .message(x.getMessage())
+                        .build()
+        );
+    }
+
+    @ServerExceptionMapper
+    public RestResponse<ErrorResponse> mapException(InvalidPlayerFormatException x) {
+        return RestResponse.status(
+                Response.Status.CONFLICT,
+                ErrorResponse.builder()
+                        .code("INVALID_PLAYER_FORMAT")
+                        .message(x.getMessage())
+                        .build()
+        );
+    }
+
+    @ServerExceptionMapper
+    public RestResponse<ErrorResponse> mapException(InvalidTeamFormatException x) {
+        return RestResponse.status(
+                Response.Status.CONFLICT,
+                ErrorResponse.builder()
+                        .code("INVALID_TEAM_FORMAT")
+                        .message(x.getMessage())
+                        .build()
+        );
+    }
+
+    @ServerExceptionMapper
     public RestResponse<ErrorResponse> mapException(ExternalServiceUnavailableException x) {
         return RestResponse.status(
                 Response.Status.NOT_FOUND,

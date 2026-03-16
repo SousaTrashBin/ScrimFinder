@@ -4,5 +4,9 @@ import io.smallrye.config.ConfigMapping;
 
 @ConfigMapping(prefix = "config")
 public interface Config {
-    String riotApi();
+    String riotApiKey();
+
+    String riotApiRegion();
+
+    String riotApiSubregion();
 }

@@ -1,11 +1,20 @@
 package fc.ul.scrimfinder.service;
 
 import fc.ul.scrimfinder.dto.response.match.MatchStatsDTO;
-import fc.ul.scrimfinder.exception.ExternalServiceUnavailableException;
-import fc.ul.scrimfinder.exception.MatchNotFoundException;
+import fc.ul.scrimfinder.exception.*;
 
 public interface MatchFillingService {
-    MatchStatsDTO getFilledMatch(Long matchId) throws MatchNotFoundException, ExternalServiceUnavailableException;
+    MatchStatsDTO getFilledMatch(String matchId) throws
+            MatchNotFoundException,
+            InvalidMatchFormatException,
+            InvalidPlayerFormatException,
+            InvalidTeamFormatException,
+            ExternalServiceUnavailableException;
 
-    String getRawMatchData(Long matchId) throws MatchNotFoundException, ExternalServiceUnavailableException;
+    String getRawMatchData(String matchId) throws
+            MatchNotFoundException,
+            InvalidMatchFormatException,
+            InvalidPlayerFormatException,
+            InvalidTeamFormatException,
+            ExternalServiceUnavailableException;
 }

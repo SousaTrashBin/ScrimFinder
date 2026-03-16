@@ -17,7 +17,6 @@ public record PlayerStatsDTO(
         Integer gold,
         Role role,
         String champion,
-        Double csPerMinute,
         Integer killedMinions,
         Integer tripleKills,
         Integer quadKills,

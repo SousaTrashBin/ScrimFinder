@@ -7,7 +7,7 @@ import org.eclipse.microprofile.rest.client.annotation.RegisterProvider;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
 @Path("#account-v1/GET_getByRiotId/riot/account/v1/accounts")
-@RegisterRestClient(configKey = "riot-api")
+@RegisterRestClient(configKey = "riot-match-api")
 @RegisterProvider(RiotAccountServiceExceptionMapper.class)
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)

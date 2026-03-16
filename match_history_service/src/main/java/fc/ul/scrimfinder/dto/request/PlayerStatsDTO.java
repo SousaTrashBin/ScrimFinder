@@ -56,10 +56,6 @@ public record PlayerStatsDTO(
         @QueryParam("champion")
         String champion,
 
-        @QueryParam("csPerMinute")
-        @Min(value = 0, message = "A player can only have more than or equal to 0 cs per minute")
-        Double csPerMinute,
-
         @QueryParam("killedMinions")
         @Min(value = 0, message = "A player can only have more than or equal to 0 killed minions")
         Integer killedMinions,
@@ -105,7 +101,6 @@ public record PlayerStatsDTO(
         Integer gold = fromJsonToGold(playerStats);
         Role role = fromJsonToRole(playerStats);
         String champion = fromJsonToChampion(playerStats);
-        Double csPerMinute = fromJsonToCsPerMinute(playerStats);
         Integer killedMinions = fromJsonToKilledMinions(playerStats);
         Integer tripleKills = fromJsonToTripleKills(playerStats);
         Integer quadKills = fromJsonToQuadKills(playerStats);
@@ -125,7 +120,6 @@ public record PlayerStatsDTO(
                 gold,
                 role,
                 champion,
-                csPerMinute,
                 killedMinions,
                 tripleKills,
                 quadKills,
@@ -216,11 +210,6 @@ public record PlayerStatsDTO(
     private static String fromJsonToChampion(JsonNode json) {
         JsonNode championNode = json.findValue("champion");
         return championNode == null ? null : championNode.asText();
-    }
-
-    private static Double fromJsonToCsPerMinute(JsonNode json) {
-        JsonNode csPerMinuteNode = json.findValue("csPerMinute");
-        return csPerMinuteNode == null ? null : csPerMinuteNode.asDouble();
     }
 
     private static Integer fromJsonToKilledMinions(JsonNode json) {
