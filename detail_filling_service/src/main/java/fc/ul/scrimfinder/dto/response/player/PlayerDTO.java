@@ -3,10 +3,8 @@ package fc.ul.scrimfinder.dto.response.player;
 import java.util.Set;
 
 public record PlayerDTO(
-        String puuid,
-        String name,
-        String tag,
-        Integer playerIcon,
+        AccountDTO account,
+        SummonerDTO summoner,
         Set<PlayerQueueStatsDTO> queues
 ) {
 }

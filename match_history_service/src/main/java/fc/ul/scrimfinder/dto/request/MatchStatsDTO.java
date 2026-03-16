@@ -13,8 +13,8 @@ public record MatchStatsDTO(
         @NotBlank(message = "The Riot ID of the match is required")
         String riotMatchId,
 
-        @Positive(message = "The queue ID must be positive")
-        Long queueId,
+        @NotBlank(message = "The queue ID is required")
+        String queueId,
 
         @Pattern(regexp = "\\d+\\.\\d+", message = "Match patch must have the form X.X with X being any number")
         String patch,

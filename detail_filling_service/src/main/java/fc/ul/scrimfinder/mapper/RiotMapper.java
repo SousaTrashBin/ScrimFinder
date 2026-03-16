@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import fc.ul.scrimfinder.dto.response.match.MatchStatsDTO;
 import fc.ul.scrimfinder.dto.response.match.PlayerStatsDTO;
 import fc.ul.scrimfinder.dto.response.match.TeamStatsDTO;
+import fc.ul.scrimfinder.dto.response.player.AccountDTO;
+import fc.ul.scrimfinder.dto.response.player.PlayerQueueStatsDTO;
+import fc.ul.scrimfinder.dto.response.player.SummonerDTO;
 import fc.ul.scrimfinder.exception.InvalidMatchFormatException;
 import fc.ul.scrimfinder.exception.InvalidPlayerFormatException;
 import fc.ul.scrimfinder.exception.InvalidTeamFormatException;
@@ -13,6 +16,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.StreamSupport;
 
 public class RiotMapper {
@@ -215,6 +219,119 @@ public class RiotMapper {
                 teamDeaths,
                 teamAssists,
                 teamHealing
+        );
+    }
+
+    public static AccountDTO toAccountDTO(JsonNode account) {
+        JsonNodeFinder accountNodeFinder = new JsonNodeFinder(account);
+
+        String puuid = accountNodeFinder
+                .jsonGetOrThrow("puuid", InvalidPlayerFormatException.class)
+                .jsonNode().asText();
+
+        String name = accountNodeFinder
+                .jsonGetOrThrow("gameName", InvalidPlayerFormatException.class)
+                .jsonNode().asText();
+
+        String tag = accountNodeFinder
+                .jsonGetOrThrow("tagLine", InvalidPlayerFormatException.class)
+                .jsonNode().asText();
+
+        return new AccountDTO(
+                puuid,
+                name,
+                tag
+        );
+    }
+
+    public static SummonerDTO toSummonerDTO(JsonNode summoner) {
+        JsonNodeFinder summonerNodeFinder = new JsonNodeFinder(summoner);
+
+        Integer icon = summonerNodeFinder
+                .jsonGetOrThrow("profileIconId", InvalidPlayerFormatException.class)
+                .jsonNode().asInt();
+
+        Long level = summonerNodeFinder
+                .jsonGetOrThrow("summonerLevel", InvalidPlayerFormatException.class)
+                .jsonNode().asLong();
+
+        return new SummonerDTO(
+                icon,
+                level
+        );
+    }
+
+    public static PlayerQueueStatsDTO toPlayerQueueStatsDTO(JsonNode queue) {
+        JsonNodeFinder queueFinder = new JsonNodeFinder(queue);
+
+        String queueId = queueFinder
+                .jsonGetOrThrow("leagueId", InvalidPlayerFormatException.class)
+                .jsonNode().asText();
+
+        String queueType = queueFinder
+                .jsonGetOrThrow("queueType", InvalidPlayerFormatException.class)
+                .jsonNode().asText();
+
+        Rank rank = toRank(queue);
+
+        Integer wins = queueFinder
+                .jsonGetOrThrow("wins", InvalidPlayerFormatException.class)
+                .jsonNode().asInt();
+
+        Integer losses = queueFinder
+                .jsonGetOrThrow("losses", InvalidPlayerFormatException.class)
+                .jsonNode().asInt();
+
+        Boolean hotStreak = queueFinder
+                .jsonGetOrThrow("hotStreak", InvalidPlayerFormatException.class)
+                .jsonNode().asBoolean();
+
+        Boolean veteran = queueFinder
+                .jsonGetOrThrow("veteran", InvalidPlayerFormatException.class)
+                .jsonNode().asBoolean();
+
+        Boolean freshBlood = queueFinder
+                .jsonGetOrThrow("freshBlood", InvalidPlayerFormatException.class)
+                .jsonNode().asBoolean();
+
+        Boolean inactive = queueFinder
+                .jsonGetOrThrow("inactive", InvalidPlayerFormatException.class)
+                .jsonNode().asBoolean();
+
+        return new PlayerQueueStatsDTO(
+                queueId,
+                queueType,
+                rank,
+                wins,
+                losses,
+                hotStreak,
+                veteran,
+                freshBlood,
+                inactive
+        );
+    }
+
+    public static Rank toRank(JsonNode queue) {
+        JsonNodeFinder queueFinder = new JsonNodeFinder(queue);
+
+        Tier tier = Tier.fromTierName(queueFinder
+                .jsonGetOrThrow("tier", InvalidPlayerFormatException.class)
+                .jsonNode().asText()
+        );
+
+        Integer division = Objects.requireNonNull(Division.fromDivisionName(queueFinder
+                .jsonGetOrThrow("rank", InvalidPlayerFormatException.class)
+                .jsonNode().asText()
+        )).getDivisionInt();
+
+        Integer lps = queueFinder
+                .jsonGetOrThrow("leaguePoints", InvalidPlayerFormatException.class)
+                .jsonNode().asInt();
+
+        return new Rank(
+                tier,
+                division,
+                lps
         );
     }
 }
