@@ -1,7 +1,6 @@
 package fc.ul.scrimfinder.service.impl;
 
 import fc.ul.scrimfinder.dto.request.MatchFiltersDTO;
-import fc.ul.scrimfinder.dto.request.MatchStatsDTO;
 import fc.ul.scrimfinder.dto.request.SortParamDTO;
 import fc.ul.scrimfinder.dto.response.MatchDTO;
 import fc.ul.scrimfinder.dto.response.PaginatedResponseDTO;
@@ -10,6 +9,7 @@ import fc.ul.scrimfinder.exception.MatchNotFoundException;
 import fc.ul.scrimfinder.mapper.MatchMapper;
 import fc.ul.scrimfinder.repository.MatchHistoryRepository;
 import fc.ul.scrimfinder.service.MatchHistoryService;
+import fc.ul.scrimfinder.util.PlayerMMRDelta;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -36,13 +36,7 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
     }
 
     @Override
-    public MatchDTO addMatchById(String riotMatchId) {
-        // TODO
-        return null;
-    }
-
-    @Override
-    public MatchDTO addMatch(MatchStatsDTO matchStatsDto) {
+    public MatchDTO addMatchById(String riotMatchId, String queueId, List<PlayerMMRDelta> mmrDeltas) {
         // TODO
         return null;
     }

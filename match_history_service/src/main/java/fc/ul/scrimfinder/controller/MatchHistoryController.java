@@ -1,20 +1,19 @@
 package fc.ul.scrimfinder.controller;
 
 import fc.ul.scrimfinder.dto.request.MatchFiltersDTO;
-import fc.ul.scrimfinder.dto.request.MatchStatsDTO;
 import fc.ul.scrimfinder.dto.request.SortParamDTO;
 import fc.ul.scrimfinder.dto.response.MatchDTO;
 import fc.ul.scrimfinder.dto.response.PaginatedResponseDTO;
 import fc.ul.scrimfinder.service.MatchHistoryService;
 import fc.ul.scrimfinder.util.ErrorResponse;
+import fc.ul.scrimfinder.util.PlayerMMRDelta;
 import jakarta.inject.Inject;
+import jakarta.persistence.Cacheable;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.*;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
@@ -23,7 +22,9 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Path("/matches")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -69,7 +70,7 @@ public class MatchHistoryController {
     }
 
     @POST
-    @Path("/{riotMatchId}")
+    @Path("/{riotMatchId}/{queueId}")
     @Operation(summary = "Add a finished match to history based on the corresponding match in Riot's API")
     @APIResponses(value = {
             @APIResponse(responseCode = "201", description = "Match history successfully created",
@@ -79,21 +80,12 @@ public class MatchHistoryController {
             @APIResponse(responseCode = "404", description = "Match not found",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
-    public Response addMatchById(@PathParam("riotMatchId") @NotBlank String riotMatchId) {
-        MatchDTO addedMatch = matchHistoryService.addMatchById(riotMatchId);
-        return Response.status(Response.Status.CREATED).entity(addedMatch).build();
-    }
-
-    @POST
-    @Operation(summary = "Add a finished match to history with the given properties (Internal)")
-    @APIResponses(value = {
-            @APIResponse(responseCode = "201", description = "Match history successfully created",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = MatchDTO.class))),
-            @APIResponse(responseCode = "400", description = "Invalid request payload",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
-    })
-    public Response addMatch(@Valid MatchStatsDTO match) {
-        MatchDTO addedMatch = matchHistoryService.addMatch(match);
+    public Response addMatchById(
+            @PathParam("riotMatchId") @NotBlank String riotMatchId,
+            @QueryParam("queueId") String queueId,
+            @Size(min = 10, max = 10, message = "All 10 players need a mmr delta") List<PlayerMMRDelta> mmrDeltas
+    ) {
+        MatchDTO addedMatch = matchHistoryService.addMatchById(riotMatchId, queueId, mmrDeltas);
         return Response.status(Response.Status.CREATED).entity(addedMatch).build();
     }
 

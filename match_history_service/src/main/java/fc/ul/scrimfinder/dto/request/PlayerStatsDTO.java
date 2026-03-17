@@ -60,6 +60,10 @@ public record PlayerStatsDTO(
         @Min(value = 0, message = "A player can only have more than or equal to 0 killed minions")
         Integer killedMinions,
 
+        @QueryParam("csPerMinute")
+        @Min(value = 0, message = "A player can only have more than or equal to 0 cs per minute")
+        Double csPerMinute,
+
         @QueryParam("tripleKills")
         @Min(value = 0, message = "A player can only have more than or equal to 0 triple kills")
         Integer tripleKills,
@@ -77,7 +81,10 @@ public record PlayerStatsDTO(
 
         @QueryParam("won")
         @NotNull
-        Boolean won
+        Boolean won,
+
+        @QueryParam("mmrDelta")
+        Integer mmrDelta
 ) {
     public static PlayerStatsDTO valueOf(String value) {
         if (value == null || value.isBlank()) return null;
@@ -102,11 +109,13 @@ public record PlayerStatsDTO(
         Role role = fromJsonToRole(playerStats);
         String champion = fromJsonToChampion(playerStats);
         Integer killedMinions = fromJsonToKilledMinions(playerStats);
+        Double csPerMinute = fromJsonToCsPerMinute(playerStats);
         Integer tripleKills = fromJsonToTripleKills(playerStats);
         Integer quadKills = fromJsonToQuadKills(playerStats);
         Integer pentaKills = fromJsonToPentaKills(playerStats);
         TeamSide teamSide = fromJsonToTeamSide(playerStats);
         Boolean won = fromJsonToWon(playerStats);
+        Integer mmrDelta = fromJsonToMmrDelta(playerStats);
 
         return new PlayerStatsDTO(
                 riotId,
@@ -121,11 +130,13 @@ public record PlayerStatsDTO(
                 role,
                 champion,
                 killedMinions,
+                csPerMinute,
                 tripleKills,
                 quadKills,
                 pentaKills,
                 teamSide,
-                won
+                won,
+                mmrDelta
         );
     }
 
@@ -217,6 +228,11 @@ public record PlayerStatsDTO(
         return killedMinionsNode == null ? null : killedMinionsNode.asInt();
     }
 
+    private static Double fromJsonToCsPerMinute(JsonNode json) {
+        JsonNode csPerMinuteNode = json.findValue("csPerMinute");
+        return csPerMinuteNode == null ? null : csPerMinuteNode.asDouble();
+    }
+
     private static Integer fromJsonToTripleKills(JsonNode json) {
         JsonNode tripleKillsNode = json.findValue("tripleKills");
         return tripleKillsNode == null ? null : tripleKillsNode.asInt();
@@ -246,5 +262,10 @@ public record PlayerStatsDTO(
     private static Boolean fromJsonToWon(JsonNode json) {
         JsonNode wonNode = json.findValue("won");
         return wonNode != null && wonNode.asBoolean();
+    }
+
+    private static Integer fromJsonToMmrDelta(JsonNode json) {
+        JsonNode mmrDeltaNode = json.findValue("mmrDelta");
+        return mmrDeltaNode == null ? null : mmrDeltaNode.asInt();
     }
 }

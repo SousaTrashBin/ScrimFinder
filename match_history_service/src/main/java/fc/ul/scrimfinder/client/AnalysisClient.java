@@ -1,6 +1,6 @@
 package fc.ul.scrimfinder.client;
 
-import fc.ul.scrimfinder.dto.request.MatchStatsDTO;
+import fc.ul.scrimfinder.dto.response.MatchDTO;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -15,5 +15,5 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 public interface AnalysisClient {
     // TODO
     @POST
-    MatchStatsDTO createMatch(@BeanParam @Valid MatchStatsDTO match);
+    MatchDTO createMatch(@BeanParam @Valid MatchDTO match);
 }
