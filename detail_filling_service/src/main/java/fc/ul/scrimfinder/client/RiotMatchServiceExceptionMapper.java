@@ -3,7 +3,7 @@ package fc.ul.scrimfinder.client;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fc.ul.scrimfinder.exception.ExternalServiceUnavailableException;
 import fc.ul.scrimfinder.exception.MatchNotFoundException;
-import fc.ul.scrimfinder.util.RiotErrorResponse;
+import fc.ul.scrimfinder.util.RiotMatchErrorResponse;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
@@ -15,7 +15,7 @@ public class RiotMatchServiceExceptionMapper implements ResponseExceptionMapper<
         try {
             String errorJson = response.readEntity(String.class);
             ObjectMapper mapper = new ObjectMapper();
-            RiotErrorResponse errorResponse = mapper.readValue(errorJson, RiotErrorResponse.class);
+            RiotMatchErrorResponse errorResponse = mapper.readValue(errorJson, RiotMatchErrorResponse.class);
             Integer code = errorResponse.getHttpStatus();
             String message = errorResponse.getImplementationDetails();
 

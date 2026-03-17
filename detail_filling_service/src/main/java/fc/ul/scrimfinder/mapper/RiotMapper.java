@@ -264,10 +264,6 @@ public class RiotMapper {
     public static PlayerQueueStatsDTO toPlayerQueueStatsDTO(JsonNode queue) {
         JsonNodeFinder queueFinder = new JsonNodeFinder(queue);
 
-        String queueId = queueFinder
-                .jsonGetOrThrow("leagueId", InvalidPlayerFormatException.class)
-                .jsonNode().asText();
-
         String queueType = queueFinder
                 .jsonGetOrThrow("queueType", InvalidPlayerFormatException.class)
                 .jsonNode().asText();
@@ -286,28 +282,12 @@ public class RiotMapper {
                 .jsonGetOrThrow("hotStreak", InvalidPlayerFormatException.class)
                 .jsonNode().asBoolean();
 
-        Boolean veteran = queueFinder
-                .jsonGetOrThrow("veteran", InvalidPlayerFormatException.class)
-                .jsonNode().asBoolean();
-
-        Boolean freshBlood = queueFinder
-                .jsonGetOrThrow("freshBlood", InvalidPlayerFormatException.class)
-                .jsonNode().asBoolean();
-
-        Boolean inactive = queueFinder
-                .jsonGetOrThrow("inactive", InvalidPlayerFormatException.class)
-                .jsonNode().asBoolean();
-
         return new PlayerQueueStatsDTO(
-                queueId,
                 queueType,
                 rank,
                 wins,
                 losses,
-                hotStreak,
-                veteran,
-                freshBlood,
-                inactive
+                hotStreak
         );
     }
 
