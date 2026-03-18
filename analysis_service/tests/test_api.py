@@ -26,8 +26,8 @@ GAME = {"matchId":"EUW1_TEST_001","gameVersion":"14.10.1","gameType":"RANKED","g
         "participants":[{"puuid":f"p{i}","championId":10+i,"teamId":100 if i<5 else 200,"win":i<5,"kills":5,"deaths":3,"assists":7} for i in range(10)]}
 GAME2 = {"matchId":"EUW1_TEST_002","gameVersion":"14.10.1","gameType":"NORMAL","gameDuration":2100,"participants":[]}
 
-DRAFT = {"team_blue":{"champions":[{"name":"Malphite","role":"TOP"},{"name":"Amumu","role":"JUNGLE"},{"name":"Orianna","role":"MID"},{"name":"Jinx","role":"BOT"},{"name":"Lulu","role":"SUPPORT"}]},
-         "team_red": {"champions":[{"name":"Fiora","role":"TOP"},{"name":"Vi","role":"JUNGLE"},{"name":"Zed","role":"MID"},{"name":"Caitlyn","role":"BOT"},{"name":"Thresh","role":"SUPPORT"}]}}
+DRAFT = {"team_blue":{"champion":[{"name":"Malphite","role":"TOP"},{"name":"Amumu","role":"JUNGLE"},{"name":"Orianna","role":"MID"},{"name":"Jinx","role":"BOT"},{"name":"Lulu","role":"SUPPORT"}]},
+         "team_red": {"champion":[{"name":"Fiora","role":"TOP"},{"name":"Vi","role":"JUNGLE"},{"name":"Zed","role":"MID"},{"name":"Caitlyn","role":"BOT"},{"name":"Thresh","role":"SUPPORT"}]}}
 
 # ══════════════════════════════════════════════════════════════
 class TestSystem:
@@ -210,7 +210,7 @@ class TestAnalysis:
         d=client.post("/analysis/draft",json=DRAFT).json()
         for f in ["blue_win_probability","red_win_probability","blue_synergies","red_synergies","win_conditions","tips"]: assert f in d
     def test_draft_invalid_role(self):
-        bad={**DRAFT,"team_blue":{"champions":[{"name":"X","role":"INVALID"}]}}
+        bad={**DRAFT,"team_blue":{"champion":[{"name":"X","role":"INVALID"}]}}
         assert client.post("/analysis/draft",json=bad).status_code==422
     def test_draft_missing_team(self):
         assert client.post("/analysis/draft",json={"team_blue":DRAFT["team_blue"]}).status_code==422
