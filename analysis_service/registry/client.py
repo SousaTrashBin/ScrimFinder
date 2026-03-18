@@ -1,76 +1,60 @@
-"""
-registry/client.py
-Loads and caches model artifacts from disk.
-
-Keeps a cache of loaded .pkl files so analysis endpoints don't
-reload from disk on every request. Cache is invalidated when a new
-model is activated (checked every MODEL_RELOAD_INTERVAL seconds).
-"""
-
-import pickle
-import threading
-import time
+﻿import os, pickle, threading
 from typing import Optional
-from analysis_api.core.config import cfg
-from core import db
+from analysis_service.core.config import cfg
+from analysis_service.core import db
 
-
-class _ModelCache:
-    def __init__(self):
-        self._cache: dict[str, tuple[int, object]] = {}  # concern → (model_id, artifact)
+class RegistryClient:
+    def __init__(self, concern: str):
+        self._concern = concern
+        self._artifact = None
+        self._version: Optional[str] = None
         self._lock = threading.Lock()
-        self._last_check: float = 0.0
+        self._stop = threading.Event()
+        self._load()
+        self._start_watcher()
 
-    def get(self, concern: str, model_id: int = None) -> Optional[object]:
-        """Return artifact for concern (or specific model_id), loading from disk if needed."""
-        self._maybe_refresh()
+    def get_model(self) -> dict:
         with self._lock:
-            if model_id is not None:
-                # Load specific model by ID (bypasses concern cache)
-                return self._load_by_id(model_id)
-            entry = self._cache.get(concern)
-            return entry[1] if entry else None
+            if self._artifact is None:
+                raise RuntimeError(
+                    f"No active model for concern='{self._concern}'. "
+                    "Train one via the Training Service (POST /training/jobs).")
+            return self._artifact
 
-    def _maybe_refresh(self) -> None:
-        now = time.time()
-        if now - self._last_check < cfg.MODEL_RELOAD_INTERVAL:
-            return
-        self._last_check = now
-        for concern in ("draft", "build", "performance", "champion"):
-            row = db.get_active_model(concern)
-            if row is None:
-                with self._lock:
-                    self._cache.pop(concern, None)
-                continue
-            with self._lock:
-                cached = self._cache.get(concern)
-                if cached and cached[0] == row["id"]:
-                    continue  # Already loaded
-            artifact = self._load_from_path(row["file_path"])
-            if artifact is not None:
-                with self._lock:
-                    self._cache[concern] = (row["id"], artifact)
+    def current_version(self) -> Optional[str]:
+        with self._lock: return self._version
 
-    def _load_by_id(self, model_id: int) -> Optional[object]:
-        row = db.get_model(model_id)
-        if row is None:
-            return None
-        return self._load_from_path(row["file_path"])
+    def is_ready(self) -> bool:
+        with self._lock: return self._artifact is not None
 
-    @staticmethod
-    def _load_from_path(path: str) -> Optional[object]:
+    def _load(self):
+        row = db.get_active_model(self._concern)
+        if not row: return
+        path = row.get("file_path")
+        if not path or not os.path.exists(path): return
         try:
-            with open(path, "rb") as f:
-                return pickle.load(f)
+            with open(path, "rb") as f: art = pickle.load(f)
+            with self._lock:
+                self._artifact = art
+                self._version = row["version"]
         except Exception as e:
-            print(f"[registry] Failed to load model from {path}: {e}")
-            return None
+            print(f"[RegistryClient:{self._concern}] Load failed: {e}")
 
+    def _start_watcher(self):
+        def loop():
+            while not self._stop.wait(timeout=cfg.MODEL_RELOAD_INTERVAL):
+                row = db.get_active_model(self._concern)
+                if row and row.get("version") != self._version:
+                    self._load()
+        threading.Thread(target=loop, daemon=True, name=f"watcher-{self._concern}").start()
 
-_cache = _ModelCache()
+    def stop(self): self._stop.set()
 
+_clients: dict = {}
+_lock = threading.Lock()
 
-def get_loaded_model(concern: str, model_id: int = None) -> Optional[object]:
-    """Public API — returns the loaded artifact dict or None."""
-    db.init_db()  # Ensure tables exist before querying
-    return _cache.get(concern, model_id=model_id)
+def get_client(concern: str) -> RegistryClient:
+    with _lock:
+        if concern not in _clients:
+            _clients[concern] = RegistryClient(concern)
+        return _clients[concern]

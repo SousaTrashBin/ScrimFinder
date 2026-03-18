@@ -1,22 +1,16 @@
-"""
-core/config.py
-All environment variable resolution and path configuration.
-Import `cfg` anywhere — never read os.environ directly in other modules.
-"""
-import os
+﻿import os
 from pathlib import Path
 
-_BASE = Path(__file__).parent.parent  # analysis_service/
+_HERE = Path(__file__).resolve().parent.parent
 
 class _Config:
-    LEAGUE_DB: str = os.environ.get("LEAGUE_DB", str(_BASE.parent / "dataset" / "league_data.db"))
-    REGISTRY_DB: str = os.environ.get("REGISTRY_DB", str(_BASE / "data" / "registry.db"))
-    MODELS_DIR: str = os.environ.get("MODELS_DIR", str(_BASE / "data" / "models"))
-    DATASETS_DIR: str = os.environ.get("DATASETS_DIR", str(_BASE / "data" / "datasets"))
-    MODEL_RELOAD_INTERVAL: int = int(os.environ.get("MODEL_RELOAD_INTERVAL", "600"))
+    PLATFORM_DB:  str = os.environ.get("PLATFORM_DB",  str(_HERE / "data" / "platform.db"))
+    MODELS_DIR:   str = os.environ.get("MODELS_DIR",   str(_HERE / "data" / "models"))
+    LEAGUE_DB:    str = os.environ.get("LEAGUE_DB",    str(_HERE.parent.parent / "dataset" / "league_data.db"))
+    MODEL_RELOAD_INTERVAL: int = int(os.environ.get("MODEL_RELOAD_INTERVAL", 60))
 
-    @property
-    def registry_db_dir(self) -> str:
-        return str(Path(self.REGISTRY_DB).parent)
+    def ensure_dirs(self):
+        for d in [self.MODELS_DIR]:
+            Path(d).mkdir(parents=True, exist_ok=True)
 
 cfg = _Config()
