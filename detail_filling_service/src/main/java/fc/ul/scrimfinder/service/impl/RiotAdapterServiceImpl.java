@@ -46,18 +46,25 @@ public class RiotAdapterServiceImpl implements RiotAdapterService {
     ClientUrlPrefixProvider clientUrlPrefixProvider;
 
     @Override
-    public String getRawMatchData(String matchId, Subregion subregion) {
+    public String getRawMatchData(String matchId) {
+        String[] idParts = matchId.split("_");
+        if (idParts.length != 2) {
+            throw new InvalidMatchFormatException("Invalid match id format. It should be SUBREGION_ID but got: " + matchId);
+        }
+        Subregion subregion = Subregion.fromSubregionName(idParts[0]);
+        if (subregion == null) {
+            throw new InvalidMatchFormatException("Invalid match id. No subregion found for: " + idParts[0]);
+        }
         String region = subregion.toRegion().getRegionName();
-        String subregionName = subregion.getSubRegionName().toUpperCase();
         clientUrlPrefixProvider.setPrefix(region);
-        return matchServiceClient.getMatch(String.format("%s_%s", subregionName, matchId));
+        return matchServiceClient.getMatch(matchId);
     }
 
     @Override
-    public MatchStatsDTO getMatchData(String matchId, Subregion subregion) {
+    public MatchStatsDTO getMatchData(String matchId) {
         return RiotMapper.toMatchStatsDTO(
                 Objects.requireNonNull(new JsonNodeFinder(null)
-                                .fromStringOrThrow(getRawMatchData(matchId, subregion), InvalidMatchFormatException.class))
+                                .fromStringOrThrow(getRawMatchData(matchId), InvalidMatchFormatException.class))
                         .jsonNode()
         );
     }
