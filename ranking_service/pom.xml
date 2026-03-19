@@ -70,6 +70,11 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-junit5-mockito</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
             <scope>test</scope>
@@ -93,6 +98,10 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-rest-jackson</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-grpc</artifactId>
         </dependency>
     </dependencies>
 
@@ -159,6 +168,26 @@
                         <maven.home>${maven.home}</maven.home>
                     </systemPropertyVariables>
                 </configuration>
+            </plugin>
+            <plugin> 
+                <groupId>org.apache.maven.plugins</groupId> 
+                <artifactId>maven-checkstyle-plugin</artifactId> 
+                <version>3.6.0</version> 
+                <configuration> 
+                    <consoleOutput>true</consoleOutput>
+                    <failsOnError>false</failsOnError> 
+                    <failOnViolation>false</failOnViolation> 
+                    <linkXRef>false</linkXRef> 
+                </configuration> 
+                <executions> 
+                    <execution> 
+                        <id>validate</id> 
+                        <phase>validate</phase> 
+                        <goals> 
+                            <goal>check</goal> 
+                        </goals> 
+                    </execution> 
+                </executions> 
             </plugin>
         </plugins>
     </build>
