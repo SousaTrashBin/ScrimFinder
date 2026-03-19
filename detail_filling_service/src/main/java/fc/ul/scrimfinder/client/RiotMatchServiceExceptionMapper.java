@@ -3,6 +3,7 @@ package fc.ul.scrimfinder.client;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fc.ul.scrimfinder.exception.ExternalServiceUnavailableException;
 import fc.ul.scrimfinder.exception.MatchNotFoundException;
+import fc.ul.scrimfinder.exception.UnauthorizedException;
 import fc.ul.scrimfinder.util.RiotMatchErrorResponse;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
@@ -20,6 +21,7 @@ public class RiotMatchServiceExceptionMapper implements ResponseExceptionMapper<
             String message = errorResponse.getImplementationDetails();
 
             return switch (code) {
+                case 401 -> new UnauthorizedException(message);
                 case 404 -> new MatchNotFoundException(message);
                 case 503 -> new ExternalServiceUnavailableException(message);
                 default -> new RuntimeException("Remote service error: " + message);

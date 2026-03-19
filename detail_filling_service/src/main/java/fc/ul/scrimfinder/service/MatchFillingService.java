@@ -10,6 +10,7 @@ public interface MatchFillingService {
             InvalidMatchFormatException,
             InvalidPlayerFormatException,
             InvalidTeamFormatException,
+            UnauthorizedException,
             ExternalServiceUnavailableException;
 
     String getRawMatchData(String matchId, Subregion subregion) throws
@@ -17,5 +18,6 @@ public interface MatchFillingService {
             InvalidMatchFormatException,
             InvalidPlayerFormatException,
             InvalidTeamFormatException,
+            UnauthorizedException,
             ExternalServiceUnavailableException;
 }

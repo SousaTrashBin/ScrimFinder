@@ -11,6 +11,7 @@ public interface RiotAdapterService {
             InvalidMatchFormatException,
             InvalidPlayerFormatException,
             InvalidTeamFormatException,
+            UnauthorizedException,
             ExternalServiceUnavailableException;
 
     MatchStatsDTO getMatchData(String matchId, Subregion subregion) throws
@@ -18,7 +19,12 @@ public interface RiotAdapterService {
             InvalidMatchFormatException,
             InvalidPlayerFormatException,
             InvalidTeamFormatException,
+            UnauthorizedException,
             ExternalServiceUnavailableException;
 
-    PlayerDTO getPlayerData(String name, String tag) throws ExternalServiceUnavailableException;
+    PlayerDTO getPlayerData(String name, String tag) throws
+            PlayerNotFoundException,
+            InvalidPlayerFormatException,
+            UnauthorizedException,
+            ExternalServiceUnavailableException;
 }

@@ -2,6 +2,7 @@ package fc.ul.scrimfinder.client;
 
 import fc.ul.scrimfinder.exception.ExternalServiceUnavailableException;
 import fc.ul.scrimfinder.exception.PlayerNotFoundException;
+import fc.ul.scrimfinder.exception.UnauthorizedException;
 import fc.ul.scrimfinder.util.JsonNodeFinder;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
@@ -27,6 +28,7 @@ public class RiotPlayerServiceExceptionMapper implements ResponseExceptionMapper
                     .jsonNode().asText();
 
             return switch (code) {
+                case 401 -> new UnauthorizedException(message);
                 case 400, 404 -> new PlayerNotFoundException(message);
                 case 503 -> new ExternalServiceUnavailableException(message);
                 default -> new RuntimeException("Remote service error: " + message);
