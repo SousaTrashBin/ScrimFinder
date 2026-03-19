@@ -113,11 +113,9 @@ public class PlayerRankingServiceImpl implements PlayerRankingService {
                 .subscribe()
                 .with(
                         response -> {
-                            if (!response.getSuccess()) {
-                            }
+                            if (!response.getSuccess()) {}
                         },
-                        failure -> {
-                        });
+                        failure -> {});
 
         return results;
     }

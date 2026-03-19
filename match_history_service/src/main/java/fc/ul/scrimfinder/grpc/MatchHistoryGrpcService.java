@@ -1,6 +1,5 @@
 package fc.ul.scrimfinder.grpc;
 
-import fc.ul.scrimfinder.service.MatchHistoryService;
 import io.quarkus.grpc.GrpcService;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
@@ -10,7 +9,7 @@ import java.util.stream.Collectors;
 @GrpcService
 public class MatchHistoryGrpcService implements MatchHistoryService {
 
-    @Inject MatchHistoryService matchHistoryService;
+    @Inject fc.ul.scrimfinder.service.MatchHistoryService matchHistoryService;
 
     @Override
     public Uni<SaveMatchMMRGainsResponse> saveMatchMMRGains(SaveMatchMMRGainsRequest request) {
