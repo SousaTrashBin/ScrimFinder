@@ -93,9 +93,6 @@ public class RiotMapper {
 
         RiotId riotId = new RiotId(playerName, playerTag, playerIcon);
 
-        // TODO
-        Rank rank = new Rank(Tier.BRONZE, 1, 0);
-
         Integer kills = playerNodeFinder
                 .jsonGetOrThrow("kills", InvalidPlayerFormatException.class)
                 .jsonNode().asInt();
@@ -165,7 +162,6 @@ public class RiotMapper {
 
         return new PlayerStatsDTO(
                 riotId,
-                rank,
                 kills,
                 deaths,
                 assists,

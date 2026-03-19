@@ -1,13 +1,11 @@
 package fc.ul.scrimfinder.dto.response.match;
 
-import fc.ul.scrimfinder.util.Rank;
 import fc.ul.scrimfinder.util.RiotId;
 import fc.ul.scrimfinder.util.Role;
 import fc.ul.scrimfinder.util.TeamSide;
 
 public record PlayerStatsDTO(
         RiotId riotId,
-        Rank rank,
         Integer kills,
         Integer deaths,
         Integer assists,
