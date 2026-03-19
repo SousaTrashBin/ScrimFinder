@@ -7,13 +7,8 @@ import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.openapi.annotations.OpenAPIDefinition;
 import org.eclipse.microprofile.openapi.annotations.info.Info;
 
-@OpenAPIDefinition(
-        info = @Info(
-                title = "Match History",
-                version = "0.0.1"
-        )
-)
-@ApplicationPath("/api/v1/history")
+@OpenAPIDefinition(info = @Info(title = "Match History Service", version = "0.0.1"))
+@ApplicationPath("/")
 public class EntryPoint extends Application {
     public static Config getConfig() {
         SmallRyeConfig c = ConfigProvider.getConfig().unwrap(SmallRyeConfig.class);

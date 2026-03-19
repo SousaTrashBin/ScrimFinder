@@ -12,13 +12,9 @@ public class ReadinessRiotApiCheck implements HealthCheck {
     @Override
     public HealthCheckResponse call() {
         if (isRiotApiAvailable()) {
-            return HealthCheckResponse.named("RiotApiAvailabilityCheck")
-                    .up()
-                    .build();
+            return HealthCheckResponse.named("RiotApiAvailabilityCheck").up().build();
         }
-        return HealthCheckResponse.named("RiotApiAvailabilityCheck")
-                .down()
-                .build();
+        return HealthCheckResponse.named("RiotApiAvailabilityCheck").down().build();
     }
 
     private boolean isRiotApiAvailable() {

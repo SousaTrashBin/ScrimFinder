@@ -21,8 +21,7 @@ public record PlayerStats(
         Integer killedMinions,
         Integer tripleKills,
         Integer quadKills,
-        Integer pentaKills
-) {
+        Integer pentaKills) {
     public static PlayerStats valueOf(String value) {
         if (value == null || value.isBlank()) return null;
 
@@ -67,8 +66,7 @@ public record PlayerStats(
                 killedMinions,
                 tripleKills,
                 quadKills,
-                pentaKills
-        );
+                pentaKills);
     }
 
     private static RiotId fromJsonToRiotId(JsonNode json) {

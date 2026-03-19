@@ -12,16 +12,14 @@ import fc.ul.scrimfinder.repository.MatchHistoryRepository;
 import fc.ul.scrimfinder.service.MatchHistoryService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-
 import java.util.List;
+import java.util.Map;
 
 @ApplicationScoped
 public class MatchHistoryServiceImpl implements MatchHistoryService {
-    @Inject
-    MatchHistoryRepository matchHistoryRepository;
+    @Inject MatchHistoryRepository matchHistoryRepository;
 
-    @Inject
-    MatchMapper matchMapper;
+    @Inject MatchMapper matchMapper;
 
     @Override
     public MatchDTO getMatchById(Long matchId) {
@@ -30,13 +28,14 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
     }
 
     @Override
-    public PaginatedResponseDTO<MatchDTO> getMatches(int page, int size, MatchStats filterParams, List<SortParam> sortParams) {
+    public PaginatedResponseDTO<MatchDTO> getMatches(
+            int page, int size, MatchStats filterParams, List<SortParam> sortParams) {
         // TODO
         return null;
     }
 
     @Override
-    public MatchDTO addMatchById(String riotMatchId) {
+    public MatchDTO addMatchById(String riotMatchId, Map<Long, Integer> playerMMRGains) {
         // TODO
         return null;
     }
@@ -48,7 +47,8 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
     }
 
     @Override
-    public MatchDTO deleteMatchById(Long matchId) throws MatchNotFoundException, ExternalServiceUnavailableException {
+    public MatchDTO deleteMatchById(Long matchId)
+            throws MatchNotFoundException, ExternalServiceUnavailableException {
         // TODO
         return null;
     }

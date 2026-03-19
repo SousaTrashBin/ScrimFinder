@@ -2,12 +2,11 @@ package fc.ul.scrimfinder.domain;
 
 import fc.ul.scrimfinder.util.MatchState;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
+import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @Setter

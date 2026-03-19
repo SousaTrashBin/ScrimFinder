@@ -14,17 +14,11 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 @ApplicationScoped
 public class RiotAdapterServiceImpl implements RiotAdapterService {
 
-    @Inject
-    @RestClient
-    RiotAccountServiceClient accountServiceClient;
+    @Inject @RestClient RiotAccountServiceClient accountServiceClient;
 
-    @Inject
-    @RestClient
-    RiotPlayerServiceClient playerServiceClient;
+    @Inject @RestClient RiotPlayerServiceClient playerServiceClient;
 
-    @Inject
-    @RestClient
-    RiotMatchServiceClient matchServiceClient;
+    @Inject @RestClient RiotMatchServiceClient matchServiceClient;
 
     @Override
     public String getMatchData(Long matchId) throws ExternalServiceUnavailableException {
@@ -32,9 +26,9 @@ public class RiotAdapterServiceImpl implements RiotAdapterService {
     }
 
     @Override
-    public PlayerDTO getPlayerData(String name, String tag) throws ExternalServiceUnavailableException {
+    public PlayerDTO getPlayerData(String name, String tag)
+            throws ExternalServiceUnavailableException {
         AccountDTO account = accountServiceClient.getByRiotId(name, tag);
         return playerServiceClient.getLeagueEntriesByPUUID(account.puuid());
     }
 }
-

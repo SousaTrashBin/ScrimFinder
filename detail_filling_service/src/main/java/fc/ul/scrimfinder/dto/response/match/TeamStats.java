@@ -9,8 +9,7 @@ public record TeamStats(
         Integer teamKills,
         Integer teamDeaths,
         Integer teamAssists,
-        Integer teamHealing
-) {
+        Integer teamHealing) {
     public static TeamStats valueOf(String value) {
         if (value == null || value.isBlank()) return null;
 
@@ -28,13 +27,7 @@ public record TeamStats(
         Integer teamAssists = fromJsonToTeamAssists(teamStats);
         Integer teamHealing = fromJsonToTeamHealing(teamStats);
 
-        return new TeamStats(
-                teamSide,
-                teamKills,
-                teamDeaths,
-                teamAssists,
-                teamHealing
-        );
+        return new TeamStats(teamSide, teamKills, teamDeaths, teamAssists, teamHealing);
     }
 
     private static TeamSide fromJsonToTeamSide(JsonNode json) {

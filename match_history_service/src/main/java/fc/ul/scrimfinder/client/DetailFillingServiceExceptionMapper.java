@@ -7,7 +7,8 @@ import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
 
-public class DetailFillingServiceExceptionMapper implements ResponseExceptionMapper<RuntimeException> {
+public class DetailFillingServiceExceptionMapper
+        implements ResponseExceptionMapper<RuntimeException> {
     @Override
     public RuntimeException toThrowable(Response response) {
         try {

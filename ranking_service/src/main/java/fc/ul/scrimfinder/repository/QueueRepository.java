@@ -5,5 +5,4 @@ import io.quarkus.hibernate.orm.panache.PanacheRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
-public class QueueRepository implements PanacheRepository<QueueEntity> {
-}
+public class QueueRepository implements PanacheRepository<QueueEntity> {}

@@ -7,7 +7,8 @@ import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
 
-public class RiotAccountServiceExceptionMapper implements ResponseExceptionMapper<RuntimeException> {
+public class RiotAccountServiceExceptionMapper
+        implements ResponseExceptionMapper<RuntimeException> {
     @Override
     public RuntimeException toThrowable(Response response) {
         try {

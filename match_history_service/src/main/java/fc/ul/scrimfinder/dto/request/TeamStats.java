@@ -8,25 +8,19 @@ import jakarta.validation.constraints.Min;
 import jakarta.ws.rs.QueryParam;
 
 public record TeamStats(
-        @QueryParam("side")
-        TeamSide side,
-
+        @QueryParam("side") TeamSide side,
         @QueryParam("teamKills")
-        @Min(value = 0, message = "A team can only have more than or equal to 0 kills")
-        Integer teamKills,
-
+                @Min(value = 0, message = "A team can only have more than or equal to 0 kills")
+                Integer teamKills,
         @QueryParam("teamDeaths")
-        @Min(value = 0, message = "A team can only have more than or equal to 0 deaths")
-        Integer teamDeaths,
-
+                @Min(value = 0, message = "A team can only have more than or equal to 0 deaths")
+                Integer teamDeaths,
         @QueryParam("teamAssists")
-        @Min(value = 0, message = "A team can only have more than or equal to 0 assists")
-        Integer teamAssists,
-
+                @Min(value = 0, message = "A team can only have more than or equal to 0 assists")
+                Integer teamAssists,
         @QueryParam("teamHealing")
-        @Min(value = 0, message = "A team can only have more than or equal to 0 healing")
-        Integer teamHealing
-) {
+                @Min(value = 0, message = "A team can only have more than or equal to 0 healing")
+                Integer teamHealing) {
     public static TeamStats valueOf(String value) {
         if (value == null || value.isBlank()) return null;
 
@@ -44,13 +38,7 @@ public record TeamStats(
         Integer teamAssists = fromJsonToTeamAssists(teamStats);
         Integer teamHealing = fromJsonToTeamHealing(teamStats);
 
-        return new TeamStats(
-                teamSide,
-                teamKills,
-                teamDeaths,
-                teamAssists,
-                teamHealing
-        );
+        return new TeamStats(teamSide, teamKills, teamDeaths, teamAssists, teamHealing);
     }
 
     private static TeamSide fromJsonToTeamSide(JsonNode json) {

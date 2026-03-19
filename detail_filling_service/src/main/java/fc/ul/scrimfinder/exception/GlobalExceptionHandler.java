@@ -12,22 +12,14 @@ public class GlobalExceptionHandler {
     public RestResponse<ErrorResponse> mapException(MatchNotFoundException x) {
         return RestResponse.status(
                 Response.Status.NOT_FOUND,
-                ErrorResponse.builder()
-                        .code("MATCH_NOT_FOUND")
-                        .message(x.getMessage())
-                        .build()
-        );
+                ErrorResponse.builder().code("MATCH_NOT_FOUND").message(x.getMessage()).build());
     }
 
     @ServerExceptionMapper
     public RestResponse<ErrorResponse> mapException(PlayerNotFoundException x) {
         return RestResponse.status(
                 Response.Status.NOT_FOUND,
-                ErrorResponse.builder()
-                        .code("PLAYER_NOT_FOUND")
-                        .message(x.getMessage())
-                        .build()
-        );
+                ErrorResponse.builder().code("PLAYER_NOT_FOUND").message(x.getMessage()).build());
     }
 
     @ServerExceptionMapper
@@ -37,19 +29,14 @@ public class GlobalExceptionHandler {
                 ErrorResponse.builder()
                         .code("EXTERNAL_SERVICE_UNAVAILABLE")
                         .message(x.getMessage())
-                        .build()
-        );
+                        .build());
     }
 
     @ServerExceptionMapper
     public RestResponse<ErrorResponse> mapException(WebApplicationException x) {
         return RestResponse.status(
                 Response.Status.fromStatusCode(x.getResponse().getStatus()),
-                ErrorResponse.builder()
-                        .code("WEB_APPLICATION_ERROR")
-                        .message(x.getMessage())
-                        .build()
-        );
+                ErrorResponse.builder().code("WEB_APPLICATION_ERROR").message(x.getMessage()).build());
     }
 
     @ServerExceptionMapper
@@ -59,7 +46,6 @@ public class GlobalExceptionHandler {
                 ErrorResponse.builder()
                         .code("INTERNAL_SERVER_ERROR")
                         .message("An unexpected error occurred. Please try again later.")
-                        .build()
-        );
+                        .build());
     }
 }

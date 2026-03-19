@@ -15,5 +15,7 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 public interface RiotAccountServiceClient {
     @GET
     @Path("/by-riot-id/{gameName}/{tagLine}")
-    AccountDTO getByRiotId(@PathParam("gameName") @NotBlank String gameName, @PathParam("tagLine") @NotBlank String tagLine);
+    AccountDTO getByRiotId(
+            @PathParam("gameName") @NotBlank String gameName,
+            @PathParam("tagLine") @NotBlank String tagLine);
 }

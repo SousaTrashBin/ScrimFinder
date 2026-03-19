@@ -5,7 +5,6 @@ import fc.ul.scrimfinder.domain.PlayerRanking;
 import fc.ul.scrimfinder.domain.QueueEntity;
 import io.quarkus.hibernate.orm.panache.PanacheRepository;
 import jakarta.enterprise.context.ApplicationScoped;
-
 import java.util.Optional;
 
 @ApplicationScoped

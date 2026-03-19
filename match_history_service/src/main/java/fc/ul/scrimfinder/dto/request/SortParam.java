@@ -5,10 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import fc.ul.scrimfinder.util.SortColumn;
 import fc.ul.scrimfinder.util.SortDirection;
 
-public record SortParam(
-        SortColumn column,
-        SortDirection direction
-) {
+public record SortParam(SortColumn column, SortDirection direction) {
     public static SortParam valueOf(String value) {
         if (value == null || value.isBlank()) return null;
 

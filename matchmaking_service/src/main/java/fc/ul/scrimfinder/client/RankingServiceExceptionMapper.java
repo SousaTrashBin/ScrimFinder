@@ -7,9 +7,6 @@ import fc.ul.scrimfinder.util.ErrorResponse;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-
 public class RankingServiceExceptionMapper implements ResponseExceptionMapper<RuntimeException> {
 
     @Override

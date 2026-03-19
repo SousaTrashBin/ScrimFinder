@@ -13,6 +13,4 @@ public record LeagueEntryDTO(
         Boolean veteran,
         Boolean freshBlood,
         Boolean inactive,
-        MiniSeriesDTO miniSeries
-) {
-}
+        MiniSeriesDTO miniSeries) {}
