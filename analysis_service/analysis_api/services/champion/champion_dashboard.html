@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Champion Analysis</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet"/>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#0b0a0f;font-family:'Rajdhani',sans-serif;color:#fff}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes scanline{0%{top:-2px}100%{top:100vh}}
+    input,select{outline:none;font-family:'Rajdhani',sans-serif}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState} = React;
+const ACCENT = "#facc15";
+const POSITIONS = ["","TOP","JUNGLE","MIDDLE","BOTTOM","UTILITY"];
+const TIERS = ["","IRON","BRONZE","SILVER","GOLD","PLATINUM","EMERALD","DIAMOND","MASTER","GRANDMASTER","CHALLENGER"];
+
+const TABS = ["winrate","builds","positions","matchups","stats","meta"];
+
+function WinRateBadge({value}){
+  const c=value>=53?"#00ff9d":value>=50?"#facc15":"#ff6b6b";
+  return<span style={{fontFamily:"'Space Mono',monospace",fontSize:20,fontWeight:700,color:c}}>{value?.toFixed(1)}%</span>;
+}
+
+function StatRow({label,value,highlight}){
+  return(
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+      <span style={{fontFamily:"'Space Mono',monospace",fontSize:10,color:"rgba(255,255,255,0.35)",letterSpacing:"0.08em"}}>{label}</span>
+      <span style={{fontFamily:"'Space Mono',monospace",fontSize:13,fontWeight:700,color:highlight||"#fff"}}>{value}</span>
+    </div>
+  );
+}
+
+function MiniBar({value,max,color}){
+  const pct=max>0?Math.min(value/max*100,100):0;
+  return(
+    <div style={{height:4,background:"rgba(255,255,255,0.07)",borderRadius:2,overflow:"hidden",marginTop:4}}>
+      <div style={{height:"100%",width:`${pct}%`,background:color,borderRadius:2,transition:"width .4s"}}/>
+    </div>
+  );
+}
+
+function Dashboard(){
+  const [apiUrl,setApiUrl] = useState("http://localhost:8004");
+  const [ok,setOk]         = useState(null);
+  const [champion,setChampion] = useState("Jinx");
+  const [position,setPosition] = useState("");
+  const [tier,setTier]         = useState("");
+  const [matchType,setMatchType] = useState("");
+  const [activeTab,setActiveTab] = useState("winrate");
+  const [loading,setLoading]   = useState(false);
+  const [data,setData]         = useState({});
+  const [error,setError]       = useState(null);
+  const [metaPos,setMetaPos]   = useState("");
+
+  React.useEffect(()=>{
+    fetch(`${apiUrl}/health`).then(r=>setOk(r.ok)).catch(()=>setOk(false));
+  },[apiUrl]);
+
+  const buildQs=()=>{
+    const p=new URLSearchParams();
+    if(position)p.set("position",position);
+    if(tier)p.set("tier",tier);
+    if(matchType)p.set("matchType",matchType);
+    return p.toString();
+  };
+
+  const fetchTab=async(tab)=>{
+    setActiveTab(tab);setLoading(true);setError(null);
+    const qs=buildQs();
+    const base=`${apiUrl}/analysis`;
+    try{
+      let url;
+      if(tab==="meta"){
+        const mp=new URLSearchParams();
+        if(metaPos)mp.set("position",metaPos);
+        url=`${base}/meta/top-champions?${mp.toString()}`;
+      }else{
+        url=`${base}/champion/${encodeURIComponent(champion)}/${tab}${qs?"?"+qs:""}`;
+      }
+      const r=await fetch(url);
+      const d=await r.json();
+      if(!r.ok)setError(d.detail||"Request failed");
+      else setData(prev=>({...prev,[tab]:d}));
+    }catch(e){setError(e.message);}
+    setLoading(false);
+  };
+
+  const inputStyle={background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.09)",
+    borderRadius:8,padding:"8px 12px",color:"#fff",fontSize:13,fontWeight:700,width:"100%"};
+
+  const d=data[activeTab];
+
+  return(
+    <div style={{minHeight:"100vh",background:"#0b0a0f",padding:"40px 24px",position:"relative",overflowX:"hidden"}}>
+      <div style={{position:"fixed",left:0,right:0,height:2,pointerEvents:"none",zIndex:99,
+        background:`linear-gradient(90deg,transparent,${ACCENT}44,transparent)`,animation:"scanline 7s linear infinite"}}/>
+      <div style={{position:"fixed",inset:0,pointerEvents:"none",
+        backgroundImage:`linear-gradient(${ACCENT}08 1px,transparent 1px),linear-gradient(90deg,${ACCENT}08 1px,transparent 1px)`,
+        backgroundSize:"40px 40px"}}/>
+
+      <div style={{maxWidth:900,margin:"0 auto"}}>
+        <div style={{marginBottom:28}}>
+          <div style={{fontFamily:"'Space Mono',monospace",fontSize:10,color:ACCENT,letterSpacing:"0.22em",marginBottom:8,textTransform:"uppercase"}}>ScrimFinder // Champion Analysis · Port 8004</div>
+          <h1 style={{fontSize:"clamp(26px,5vw,40px)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.04em",lineHeight:1}}>
+            Champion <span style={{color:ACCENT}}>Analytics</span>
+          </h1>
+          <div style={{display:"flex",alignItems:"center",gap:16,marginTop:12,flexWrap:"wrap"}}>
+            <div style={{display:"flex",alignItems:"center",gap:7,fontFamily:"'Space Mono',monospace",fontSize:11,
+              color:ok===null?"#666":ok?"#00ff9d":"#ff4d4d"}}>
+              <div style={{width:7,height:7,borderRadius:"50%",background:ok===null?"#666":ok?"#00ff9d":"#ff4d4d",animation:ok?"pulse 2s infinite":"none"}}/>
+              {ok===null?"Connecting…":ok?"Connected":"Disconnected"}
+            </div>
+            <input value={apiUrl} onChange={e=>setApiUrl(e.target.value)} style={{
+              background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.09)",
+              borderRadius:6,padding:"4px 10px",color:"rgba(255,255,255,0.45)",
+              fontFamily:"'Space Mono',monospace",fontSize:11,width:220}}/>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div style={{background:"rgba(255,255,255,0.02)",border:"1px solid rgba(250,204,21,0.15)",borderRadius:12,padding:18,marginBottom:20}}>
+          <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr",gap:12,alignItems:"end"}}>
+            <div>
+              <label style={{fontFamily:"'Space Mono',monospace",fontSize:9,color:"rgba(255,255,255,0.3)",letterSpacing:"0.1em",display:"block",marginBottom:5}}>CHAMPION</label>
+              <input value={champion} onChange={e=>setChampion(e.target.value)} style={inputStyle}/>
+            </div>
+            <div>
+              <label style={{fontFamily:"'Space Mono',monospace",fontSize:9,color:"rgba(255,255,255,0.3)",letterSpacing:"0.1em",display:"block",marginBottom:5}}>POSITION</label>
+              <select value={position} onChange={e=>setPosition(e.target.value)} style={{...inputStyle,cursor:"pointer"}}>
+                {POSITIONS.map(p=><option key={p} value={p}>{p||"All"}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{fontFamily:"'Space Mono',monospace",fontSize:9,color:"rgba(255,255,255,0.3)",letterSpacing:"0.1em",display:"block",marginBottom:5}}>TIER</label>
+              <select value={tier} onChange={e=>setTier(e.target.value)} style={{...inputStyle,cursor:"pointer"}}>
+                {TIERS.map(t=><option key={t} value={t}>{t||"All"}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{fontFamily:"'Space Mono',monospace",fontSize:9,color:"rgba(255,255,255,0.3)",letterSpacing:"0.1em",display:"block",marginBottom:5}}>MATCH TYPE</label>
+              <select value={matchType} onChange={e=>setMatchType(e.target.value)} style={{...inputStyle,cursor:"pointer"}}>
+                <option value="">All</option>
+                <option value="RANKED">RANKED</option>
+                <option value="NORMAL">NORMAL</option>
+                <option value="ARAM">ARAM</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div style={{display:"flex",gap:6,marginBottom:20,flexWrap:"wrap"}}>
+          {TABS.map(tab=>(
+            <button key={tab} onClick={()=>fetchTab(tab)} style={{
+              padding:"8px 16px",borderRadius:8,fontFamily:"'Space Mono',monospace",fontSize:10,fontWeight:700,
+              letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer",transition:"all .2s",
+              background:activeTab===tab?`${ACCENT}20`:"rgba(255,255,255,0.03)",
+              border:`1px solid ${activeTab===tab?ACCENT+"55":"rgba(255,255,255,0.07)"}`,
+              color:activeTab===tab?ACCENT:"rgba(255,255,255,0.4)"}}>
+              {tab==="winrate"?"Win Rate":tab==="builds"?"Builds":tab==="positions"?"Positions":tab==="matchups"?"Matchups":tab==="stats"?"Stats":"Meta Top"}
+            </button>
+          ))}
+        </div>
+
+        {error&&<div style={{marginBottom:16,padding:"12px 16px",background:"rgba(255,77,77,0.08)",border:"1px solid rgba(255,77,77,0.2)",borderRadius:8,fontFamily:"'Space Mono',monospace",fontSize:11,color:"#ff9999"}}>{error}</div>}
+        {loading&&<div style={{fontFamily:"'Space Mono',monospace",fontSize:11,color:"rgba(255,255,255,0.3)",padding:"20px 0"}}>Loading…</div>}
+
+        {!loading&&d&&(
+          <div style={{animation:"fadeIn .4s ease"}}>
+
+            {/* WIN RATE */}
+            {activeTab==="winrate"&&(
+              <div style={{background:"rgba(255,255,255,0.02)",border:"1px solid rgba(250,204,21,0.15)",borderRadius:12,padding:24}}>
+                <div style={{display:"flex",alignItems:"center",gap:20,marginBottom:20}}>
+                  <div>
+                    <div style={{fontFamily:"'Space Mono',monospace",fontSize:10,color:"rgba(255,255,255,0.3)",letterSpacing:"0.1em",marginBottom:4}}>WIN RATE</div>
+                    <WinRateBadge value={d.winRate}/>
+                  </div>
+                  <div style={{width:1,height:50,background:"rgba(255,255,255,0.08)"}}/>
+                  <div style={{display:"flex",gap:24}}>
+                    {[["WINS",d.wins,"#00ff9d"],["LOSSES",d.losses,"#ff6b6b"],["TOTAL",d.totalGames,ACCENT]].map(([l,v,c])=>(
+                      <div key={l}>
+                        <div style={{fontFamily:"'Space Mono',monospace",fontSize:9,color:"rgba(255,255,255,0.3)",marginBottom:4}}>{l}</div>
+                        <div style={{fontFamily:"'Space Mono',monospace",fontSize:15,fontWeight:700,color:c}}>{v?.toLocaleString()}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div style={{height:8,borderRadius:4,overflow:"hidden",display:"flex"}}>
+                  <div style={{width:`${d.winRate}%`,background:"#00ff9d",transition:"width .6s"}}/>
+                  <div style={{flex:1,background:"#ff6b6b"}}/>
+                </div>
+              </div>
+            )}
+
+            {/* BUILDS */}
+            {activeTab==="builds"&&(
+              <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                {d.builds?.length===0&&<div style={{fontFamily:"'Space Mono',monospace",fontSize:11,color:"rgba(255,255,255,0.3)"}}>No builds found with enough samples.</div>}
+                {d.builds?.map((b,i)=>(
+                  <div key={i} style={{background:"rgba(255,255,255,0.02)",border:"1px solid rgba(250,204,21,0.1)",borderRadius:10,padding:16}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                      <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                        {b.items.map((item,j)=>(
+                          <span key={j} style={{padding:"4px 10px",background:"rgba(250,204,21,0.1)",border:"1px solid rgba(250,204,21,0.25)",borderRadius:6,fontFamily:"'Space Mono',monospace",fontSize:10,color:ACCENT}}>{item}</span>
+                        ))}
+                      </div>
+                      <div style={{textAlign:"right",flexShrink:0,marginLeft:12}}>
+                        <WinRateBadge value={b.winRate}/>
+                        <div style={{fontFamily:"'Space Mono',monospace",fontSize:9,color:"rgba(255,255,255,0.25)",marginTop:2}}>{b.totalGames?.toLocaleString()} games</div>
+                      </div>
+                    </div>
+                    <MiniBar value={b.winRate} max={100} color="#00ff9d"/>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* POSITIONS */}
+            {activeTab==="positions"&&(
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {d.positions?.map((p,i)=>(
+                  <div key={i} style={{background:"rgba(255,255,255,0.02)",border:"1px solid rgba(250,204,21,0.1)",borderRadius:10,padding:16,display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+                    <span style={{fontFamily:"'Space Mono',monospace",fontSize:11,fontWeight:700,color:ACCENT,width:70,flexShrink:0}}>{p.position}</span>
+                    <div style={{flex:1,minWidth:120}}>
+                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                        <span style={{fontFamily:"'Space Mono',monospace",fontSize:9,color:"rgba(255,255,255,0.3)"}}>WIN RATE</span>
+                        <WinRateBadge value={p.winRate}/>
+                      </div>
+                      <MiniBar value={p.winRate} max={100} color="#00ff9d"/>
+                    </div>
+                    <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
+                      {[["Pick Rate",`${p.pickRate}%`],["Games",p.totalGames?.toLocaleString()],["Avg KDA",p.avgKda],["Avg Dmg",p.avgDamage?.toLocaleString()]].map(([l,v])=>(
+                        <div key={l}>
+                          <div style={{fontFamily:"'Space Mono',monospace",fontSize:8,color:"rgba(255,255,255,0.25)",marginBottom:2}}>{l}</div>
+                          <div style={{fontFamily:"'Space Mono',monospace",fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.7)"}}>{v}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* MATCHUPS */}
+            {activeTab==="matchups"&&(
+              <div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:10}}>
+                  {d.matchups?.map((m,i)=>(
+                    <div key={i} style={{background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:8,padding:14}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                        <span style={{fontFamily:"'Space Mono',monospace",fontSize:11,fontWeight:700,color:"#fff"}}>{m.opponent}</span>
+                        <WinRateBadge value={m.winRate}/>
+                      </div>
+                      <MiniBar value={m.winRate} max={100} color={m.winRate>=50?"#00ff9d":"#ff6b6b"}/>
+                      <div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>
+                        <span style={{fontFamily:"'Space Mono',monospace",fontSize:9,color:"rgba(255,255,255,0.25)"}}>KDA {m.avgKda}</span>
+                        <span style={{fontFamily:"'Space Mono',monospace",fontSize:9,color:"rgba(255,255,255,0.25)"}}>{m.totalGames?.toLocaleString()} games</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* STATS */}
+            {activeTab==="stats"&&(
+              <div style={{background:"rgba(255,255,255,0.02)",border:"1px solid rgba(250,204,21,0.15)",borderRadius:12,padding:20}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+                  <div style={{fontFamily:"'Space Mono',monospace",fontSize:10,color:ACCENT,fontWeight:700,letterSpacing:"0.08em"}}>{d.champion?.toUpperCase()}</div>
+                  <div style={{fontFamily:"'Space Mono',monospace",fontSize:9,color:"rgba(255,255,255,0.25)"}}>{d.totalGames?.toLocaleString()} games</div>
+                </div>
+                {[
+                  ["Avg Kills",d.avgKills?.toFixed(1),"#00ff9d"],
+                  ["Avg Deaths",d.avgDeaths?.toFixed(1),"#ff6b6b"],
+                  ["Avg Assists",d.avgAssists?.toFixed(1),"#facc15"],
+                  ["Avg KDA",d.avgKda?.toFixed(2),ACCENT],
+                  ["Avg Damage",d.avgDamage?.toLocaleString()],
+                  ["Avg Gold",d.avgGold?.toLocaleString()],
+                  ["Avg CS",d.avgCs?.toFixed(1)],
+                  ["Avg Vision",d.avgVisionScore?.toFixed(1)],
+                  ["Avg KP",`${(d.avgKp*100)?.toFixed(1)}%`],
+                ].map(([l,v,c])=><StatRow key={l} label={l} value={v} highlight={c}/>)}
+              </div>
+            )}
+
+            {/* META */}
+            {activeTab==="meta"&&(
+              <div>
+                <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:16,flexWrap:"wrap"}}>
+                  <span style={{fontFamily:"'Space Mono',monospace",fontSize:10,color:"rgba(255,255,255,0.3)"}}>FILTER POSITION:</span>
+                  {["","TOP","JUNGLE","MIDDLE","BOTTOM","UTILITY"].map(p=>(
+                    <button key={p} onClick={()=>{setMetaPos(p);fetchTab("meta");}} style={{
+                      padding:"4px 10px",borderRadius:6,fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700,
+                      background:metaPos===p?"rgba(250,204,21,0.15)":"rgba(255,255,255,0.04)",
+                      border:`1px solid ${metaPos===p?"rgba(250,204,21,0.4)":"rgba(255,255,255,0.1)"}`,
+                      color:metaPos===p?ACCENT:"rgba(255,255,255,0.4)",cursor:"pointer"}}>
+                      {p||"ALL"}
+                    </button>
+                  ))}
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  {d.champions?.map((c,i)=>(
+                    <div key={i} style={{background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:10,padding:"14px 18px",display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+                      <span style={{fontFamily:"'Space Mono',monospace",fontSize:11,color:"rgba(255,255,255,0.2)",width:20}}>#{c.rank}</span>
+                      <span style={{fontFamily:"'Space Mono',monospace",fontSize:14,fontWeight:700,color:"#fff",width:100,flexShrink:0}}>{c.champion}</span>
+                      <div style={{flex:1,minWidth:100}}>
+                        <MiniBar value={c.winRate} max={100} color="#00ff9d"/>
+                      </div>
+                      <div style={{display:"flex",gap:20,flexWrap:"wrap"}}>
+                        {[["WR",`${c.winRate}%`,"#00ff9d"],["PR",`${c.pickRate}%`,ACCENT],["KDA",c.avgKda,"rgba(255,255,255,0.6)"],["Games",c.totalGames?.toLocaleString(),"rgba(255,255,255,0.4)"]].map(([l,v,col])=>(
+                          <div key={l}>
+                            <div style={{fontFamily:"'Space Mono',monospace",fontSize:8,color:"rgba(255,255,255,0.25)",marginBottom:2}}>{l}</div>
+                            <div style={{fontFamily:"'Space Mono',monospace",fontSize:12,fontWeight:700,color:col||"#fff"}}>{v}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<Dashboard/>);
+</script>
+</body>
+</html>
