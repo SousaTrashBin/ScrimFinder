@@ -1,6 +1,8 @@
 package fc.ul.scrimfinder.domain;
 
 import jakarta.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -17,8 +19,8 @@ public class Player {
     @Column(nullable = false, unique = true)
     private String discordUsername;
 
-    @Column(name = "lol_account_puuid", unique = true)
-    private String lolAccountPPUID;
+    @OneToMany(mappedBy = "player", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<RiotAccount> riotAccounts = new ArrayList<>();
 
     @Column(nullable = false)
     private Integer soloqMMR = 1000;
@@ -26,4 +28,7 @@ public class Player {
     @Column(nullable = false)
     private Integer flexMMR = 1000;
 
+    public RiotAccount getPrimaryAccount() {
+        return riotAccounts.stream().filter(RiotAccount::isPrimary).findFirst().orElse(null);
+    }
 }
