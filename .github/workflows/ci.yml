@@ -1,0 +1,47 @@
+name: ScrimFinder CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build & test - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        service: [
+          'matchmaking_service',
+          'ranking_service',
+          'match_history_service',
+          'detail_filling_service'
+        ]
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - name: check formatting
+      run: |
+        cd ${{ matrix.service }}
+        if ! ./mvnw spotless:check; then
+          echo "::error::spotless formatting check failed for ${{ matrix.service }}!"
+          echo "to fix locally, run: cd ${{ matrix.service }} && ./mvnw spotless:apply"
+          exit 1
+        fi
+
+    - name: build and run tests
+      run: |
+        cd ${{ matrix.service }}
+        ./mvnw clean package
