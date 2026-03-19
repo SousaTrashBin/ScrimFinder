@@ -6,6 +6,7 @@ import fc.ul.scrimfinder.dto.response.match.PlayerStatsDTO;
 import fc.ul.scrimfinder.dto.response.match.TeamStatsDTO;
 import fc.ul.scrimfinder.dto.response.player.AccountDTO;
 import fc.ul.scrimfinder.dto.response.player.PlayerQueueStatsDTO;
+import fc.ul.scrimfinder.dto.response.player.RegionDTO;
 import fc.ul.scrimfinder.dto.response.player.SummonerDTO;
 import fc.ul.scrimfinder.exception.InvalidMatchFormatException;
 import fc.ul.scrimfinder.exception.InvalidPlayerFormatException;
@@ -241,6 +242,21 @@ public class RiotMapper {
                 puuid,
                 name,
                 tag
+        );
+    }
+
+    public static RegionDTO toRegionDTO(JsonNode region) {
+        JsonNodeFinder regionNodeFinder = new JsonNodeFinder(region);
+
+        String subregion = regionNodeFinder
+                .jsonGetOrThrow("region", InvalidPlayerFormatException.class)
+                .jsonNode().asText();
+
+        String regionStr = Objects.requireNonNull(Subregion.fromSubregionName(subregion)).toRegion().getRegionName();
+
+        return new RegionDTO(
+                regionStr,
+                subregion
         );
     }
 

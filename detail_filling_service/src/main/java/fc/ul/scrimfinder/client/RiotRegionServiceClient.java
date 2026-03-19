@@ -7,14 +7,13 @@ import jakarta.ws.rs.core.MediaType;
 import org.eclipse.microprofile.rest.client.annotation.RegisterProvider;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
-@RegisterRestClient(configKey = "riot-player-api")
+@RegisterRestClient(configKey = "riot-region-api")
 @ClientQueryParam(name = "api_key", value = "${config.riot-api-key}")
-@RegisterProvider(ClientUrlPrefixProvider.class)
 @RegisterProvider(RiotPlayerServiceExceptionMapper.class)
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
-public interface RiotPlayerServiceClient {
+public interface RiotRegionServiceClient {
     @GET
-    @Path("/{encryptedPUUID}")
-    String getLeagueEntriesByPUUID(@PathParam("encryptedPUUID") @NotBlank String encryptedPUUID);
+    @Path("/{puuid}")
+    String getActiveRegion(@PathParam("puuid") @NotBlank String puuid);
 }

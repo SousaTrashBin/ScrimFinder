@@ -9,6 +9,7 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
 @RegisterRestClient(configKey = "riot-match-api")
 @ClientQueryParam(name = "api_key", value = "${config.riot-api-key}")
+@RegisterProvider(ClientUrlPrefixProvider.class)
 @RegisterProvider(RiotMatchServiceExceptionMapper.class)
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)

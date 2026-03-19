@@ -1,21 +1,15 @@
 package fc.ul.scrimfinder.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import fc.ul.scrimfinder.Config;
-import fc.ul.scrimfinder.client.RiotAccountServiceClient;
-import fc.ul.scrimfinder.client.RiotMatchServiceClient;
-import fc.ul.scrimfinder.client.RiotPlayerServiceClient;
-import fc.ul.scrimfinder.client.RiotSummonerServiceClient;
+import fc.ul.scrimfinder.client.*;
 import fc.ul.scrimfinder.dto.response.match.MatchStatsDTO;
-import fc.ul.scrimfinder.dto.response.player.AccountDTO;
-import fc.ul.scrimfinder.dto.response.player.PlayerDTO;
-import fc.ul.scrimfinder.dto.response.player.PlayerQueueStatsDTO;
-import fc.ul.scrimfinder.dto.response.player.SummonerDTO;
+import fc.ul.scrimfinder.dto.response.player.*;
 import fc.ul.scrimfinder.exception.InvalidMatchFormatException;
 import fc.ul.scrimfinder.exception.InvalidPlayerFormatException;
 import fc.ul.scrimfinder.mapper.RiotMapper;
 import fc.ul.scrimfinder.service.RiotAdapterService;
 import fc.ul.scrimfinder.util.JsonNodeFinder;
+import fc.ul.scrimfinder.util.Subregion;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
@@ -42,21 +36,28 @@ public class RiotAdapterServiceImpl implements RiotAdapterService {
 
     @Inject
     @RestClient
+    RiotRegionServiceClient regionServiceClient;
+
+    @Inject
+    @RestClient
     RiotSummonerServiceClient summonerServiceClient;
 
     @Inject
-    Config config;
+    ClientUrlPrefixProvider clientUrlPrefixProvider;
 
     @Override
-    public String getRawMatchData(String matchId) {
-        return matchServiceClient.getMatch(String.format("%s_%s", config.riotApiSubregion(), matchId));
+    public String getRawMatchData(String matchId, Subregion subregion) {
+        String region = subregion.toRegion().getRegionName();
+        String subregionName = subregion.getSubRegionName().toUpperCase();
+        clientUrlPrefixProvider.setPrefix(region);
+        return matchServiceClient.getMatch(String.format("%s_%s", subregionName, matchId));
     }
 
     @Override
-    public MatchStatsDTO getMatchData(String matchId) {
+    public MatchStatsDTO getMatchData(String matchId, Subregion subregion) {
         return RiotMapper.toMatchStatsDTO(
                 Objects.requireNonNull(new JsonNodeFinder(null)
-                                .fromStringOrThrow(getRawMatchData(matchId), InvalidMatchFormatException.class))
+                                .fromStringOrThrow(getRawMatchData(matchId, subregion), InvalidMatchFormatException.class))
                         .jsonNode()
         );
     }
@@ -64,8 +65,10 @@ public class RiotAdapterServiceImpl implements RiotAdapterService {
     @Override
     public PlayerDTO getPlayerData(String name, String tag) {
         AccountDTO account = getAccountData(name, tag);
-        SummonerDTO summoner = getSummonerData(account.puuid());
+        RegionDTO region = getRegionData(account.puuid());
+        SummonerDTO summoner = getSummonerData(account.puuid(), region.subregion());
 
+        clientUrlPrefixProvider.setPrefix(region.subregion());
         String rawPlayerQueueStats = playerServiceClient.getLeagueEntriesByPUUID(account.puuid());
         JsonNode playerQueueStats = Objects.requireNonNull(new JsonNodeFinder(null)
                         .fromStringOrThrow(rawPlayerQueueStats, InvalidPlayerFormatException.class))
@@ -76,6 +79,7 @@ public class RiotAdapterServiceImpl implements RiotAdapterService {
 
         return new PlayerDTO(
                 account,
+                region,
                 summoner,
                 queues
         );
@@ -89,7 +93,16 @@ public class RiotAdapterServiceImpl implements RiotAdapterService {
         );
     }
 
-    private SummonerDTO getSummonerData(String puuid) {
+    private RegionDTO getRegionData(String puuid) {
+        String rawRegion = regionServiceClient.getActiveRegion(puuid);
+        return RiotMapper.toRegionDTO(Objects.requireNonNull(new JsonNodeFinder(null)
+                        .fromStringOrThrow(rawRegion, InvalidPlayerFormatException.class))
+                .jsonNode()
+        );
+    }
+
+    private SummonerDTO getSummonerData(String puuid, String subregion) {
+        clientUrlPrefixProvider.setPrefix(subregion);
         String rawSummoner = summonerServiceClient.getByAccessToken(puuid);
         return RiotMapper.toSummonerDTO(Objects.requireNonNull(new JsonNodeFinder(null)
                         .fromStringOrThrow(rawSummoner, InvalidPlayerFormatException.class))

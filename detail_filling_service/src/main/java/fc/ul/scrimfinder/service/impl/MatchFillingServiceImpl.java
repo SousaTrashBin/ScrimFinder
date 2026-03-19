@@ -3,6 +3,7 @@ package fc.ul.scrimfinder.service.impl;
 import fc.ul.scrimfinder.dto.response.match.MatchStatsDTO;
 import fc.ul.scrimfinder.service.MatchFillingService;
 import fc.ul.scrimfinder.service.RiotAdapterService;
+import fc.ul.scrimfinder.util.Subregion;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -13,13 +14,13 @@ public class MatchFillingServiceImpl implements MatchFillingService {
     RiotAdapterService riotAdapterService;
 
     @Override
-    public MatchStatsDTO getFilledMatch(String matchId) {
-        return riotAdapterService.getMatchData(matchId);
+    public MatchStatsDTO getFilledMatch(String matchId, Subregion subregion) {
+        return riotAdapterService.getMatchData(matchId, subregion);
     }
 
     @Override
-    public String getRawMatchData(String matchId) {
-        return riotAdapterService.getRawMatchData(matchId);
+    public String getRawMatchData(String matchId, Subregion subregion) {
+        return riotAdapterService.getRawMatchData(matchId, subregion);
     }
 }
 

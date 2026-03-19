@@ -3,8 +3,10 @@ package fc.ul.scrimfinder.controller;
 import fc.ul.scrimfinder.dto.response.match.MatchStatsDTO;
 import fc.ul.scrimfinder.service.MatchFillingService;
 import fc.ul.scrimfinder.util.ErrorResponse;
+import fc.ul.scrimfinder.util.Subregion;
 import jakarta.inject.Inject;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -25,7 +27,7 @@ public class MatchFillingController {
     MatchFillingService matchFillingService;
 
     @GET
-    @Path("/{matchId}")
+    @Path("/{matchId}/{region}")
     @Operation(summary = "Get simplified match information by Riot ID")
     @APIResponses(value = {
             @APIResponse(responseCode = "200", description = "Successfully retrieved the match details",
@@ -35,13 +37,16 @@ public class MatchFillingController {
             @APIResponse(responseCode = "404", description = "Match not found",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
-    public Response getFilledMatch(@PathParam("matchId") @NotBlank String matchId) {
-        MatchStatsDTO match = matchFillingService.getFilledMatch(matchId);
+    public Response getFilledMatch(
+            @PathParam("matchId") @NotBlank String matchId,
+            @PathParam("region") @NotNull Subregion subregion
+    ) {
+        MatchStatsDTO match = matchFillingService.getFilledMatch(matchId, subregion);
         return Response.ok(match).build();
     }
 
     @GET
-    @Path("/{matchId}/raw")
+    @Path("/{matchId}/{region}/raw")
     @Operation(summary = "Get complete match information by Riot ID")
     @APIResponses(value = {
             @APIResponse(responseCode = "200", description = "Successfully retrieved the match details"),
@@ -52,8 +57,11 @@ public class MatchFillingController {
             @APIResponse(responseCode = "409", description = "Riot API response fields different from expected",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
-    public Response getRawMatchData(@PathParam("matchId") @NotBlank String matchId) {
-        String match = matchFillingService.getRawMatchData(matchId);
+    public Response getRawMatchData(
+            @PathParam("matchId") @NotBlank String matchId,
+            @PathParam("region") @NotNull Subregion subregion
+    ) {
+        String match = matchFillingService.getRawMatchData(matchId, subregion);
         return Response.ok(match).build();
     }
 }
