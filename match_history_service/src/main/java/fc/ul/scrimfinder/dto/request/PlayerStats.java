@@ -6,74 +6,82 @@ import fc.ul.scrimfinder.exception.InvalidRoleException;
 import fc.ul.scrimfinder.util.RiotId;
 import fc.ul.scrimfinder.util.Role;
 import io.smallrye.common.constraint.NotNull;
+import jakarta.enterprise.inject.Vetoed;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.ws.rs.BeanParam;
 import jakarta.ws.rs.QueryParam;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-public record PlayerStats(
-        @BeanParam
-        @NotNull
-        @Valid
-        RiotId riotId,
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Vetoed
+public class PlayerStats {
+    @BeanParam @NotNull @Valid private RiotId riotId;
 
-        @Min(value = 0, message = "The icon ID of the player must be greater or equal to 0")
-        Integer playerIcon,
+    @Min(value = 0, message = "The icon ID of the player must be greater or equal to 0")
+    private Integer playerIcon;
 
-        @QueryParam("kills")
-        @Min(value = 0, message = "A player can only have more than or equal to 0 kills")
-        Integer kills,
+    @QueryParam("kills")
+    @Min(value = 0, message = "A player can only have more than or equal to 0 kills")
+    private Integer kills;
 
-        @QueryParam("deaths")
-        @Min(value = 0, message = "A player can only have more than or equal to 0 deaths")
-        Integer deaths,
+    @QueryParam("deaths")
+    @Min(value = 0, message = "A player can only have more than or equal to 0 deaths")
+    private Integer deaths;
 
-        @QueryParam("assists")
-        @Min(value = 0, message = "A player can only have more than or equal to 0 assists")
-        Integer assists,
+    @QueryParam("assists")
+    @Min(value = 0, message = "A player can only have more than or equal to 0 assists")
+    private Integer assists;
 
-        @QueryParam("healing")
-        @Min(value = 0, message = "A player can only have more than or equal to 0 healing")
-        Integer healing,
+    @QueryParam("healing")
+    @Min(value = 0, message = "A player can only have more than or equal to 0 healing")
+    private Integer healing;
 
-        @QueryParam("damageToPlayers")
-        @Min(value = 0, message = "A player can only have more than or equal to 0 damage dealt to players")
-        Integer damageToPlayers,
+    @QueryParam("damageToPlayers")
+    @Min(
+            value = 0,
+            message = "A player can only have more than or equal to 0 damage dealt to players")
+    private Integer damageToPlayers;
 
-        @QueryParam("wards")
-        @Min(value = 0, message = "A player can only place more than or equal to 0 wards")
-        Integer wards,
+    @QueryParam("wards")
+    @Min(value = 0, message = "A player can only place more than or equal to 0 wards")
+    private Integer wards;
 
-        @QueryParam("gold")
-        @Min(value = 0, message = "A player can only have more than or equal to 0 gold")
-        Integer gold,
+    @QueryParam("gold")
+    @Min(value = 0, message = "A player can only have more than or equal to 0 gold")
+    private Integer gold;
 
-        @BeanParam
-        Role role,
+    @BeanParam private Role role;
 
-        @QueryParam("champion")
-        String champion,
+    @QueryParam("champion")
+    private String champion;
 
-        @QueryParam("csPerMinute")
-        @Min(value = 0, message = "A player can only have more than or equal to 0 cs per minute")
-        Double csPerMinute,
+    @QueryParam("csPerMinute")
+    @Min(value = 0, message = "A player can only have more than or equal to 0 cs per minute")
+    private Double csPerMinute;
 
-        @QueryParam("killedMinions")
-        @Min(value = 0, message = "A player can only have more than or equal to 0 killed minions")
-        Integer killedMinions,
+    @QueryParam("killedMinions")
+    @Min(value = 0, message = "A player can only have more than or equal to 0 killed minions")
+    private Integer killedMinions;
 
-        @QueryParam("tripleKills")
-        @Min(value = 0, message = "A player can only have more than or equal to 0 triple kills")
-        Integer tripleKills,
+    @QueryParam("tripleKills")
+    @Min(value = 0, message = "A player can only have more than or equal to 0 triple kills")
+    private Integer tripleKills;
 
-        @QueryParam("quadKills")
-        @Min(value = 0, message = "A player can only have more than or equal to 0 quad kills")
-        Integer quadKills,
+    @QueryParam("quadKills")
+    @Min(value = 0, message = "A player can only have more than or equal to 0 quad kills")
+    private Integer quadKills;
 
-        @QueryParam("pentaKills")
-        @Min(value = 0, message = "A player can only have more than or equal to 0 penta kills")
-        Integer pentaKills
-) {
+    @QueryParam("pentaKills")
+    @Min(value = 0, message = "A player can only have more than or equal to 0 penta kills")
+    private Integer pentaKills;
+
     public static PlayerStats valueOf(String value) {
         if (value == null || value.isBlank()) return null;
 
@@ -118,8 +126,7 @@ public record PlayerStats(
                 killedMinions,
                 tripleKills,
                 quadKills,
-                pentaKills
-        );
+                pentaKills);
     }
 
     private static RiotId fromJsonToRiotId(JsonNode json) {
