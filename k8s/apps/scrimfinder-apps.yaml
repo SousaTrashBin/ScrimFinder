@@ -19,7 +19,7 @@ spec:
         - containerPort: 8080
         env:
         - name: QUARKUS_DATASOURCE_JDBC_URL
-          value: jdbc:postgresql://matchmaking-db:5432/postgres
+          value: jdbc:postgresql://matchmaking-db:5432/matchmaking
         - name: QUARKUS_DATASOURCE_USERNAME
           value: postgres
         - name: QUARKUS_DATASOURCE_PASSWORD
@@ -59,7 +59,7 @@ spec:
         - containerPort: 8080
         env:
         - name: QUARKUS_DATASOURCE_JDBC_URL
-          value: jdbc:postgresql://ranking-db:5432/postgres
+          value: jdbc:postgresql://ranking-db:5432/ranking
         - name: QUARKUS_DATASOURCE_USERNAME
           value: postgres
         - name: QUARKUS_DATASOURCE_PASSWORD
@@ -97,7 +97,7 @@ spec:
         - containerPort: 8080
         env:
         - name: QUARKUS_DATASOURCE_JDBC_URL
-          value: jdbc:postgresql://history-db:5432/postgres
+          value: jdbc:postgresql://history-db:5432/history
         - name: QUARKUS_DATASOURCE_USERNAME
           value: postgres
         - name: QUARKUS_DATASOURCE_PASSWORD
