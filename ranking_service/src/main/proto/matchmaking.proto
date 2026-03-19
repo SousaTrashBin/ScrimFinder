@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package fc.ul.scrimfinder;
+
+option java_multiple_files = true;
+option java_package = "fc.ul.scrimfinder.grpc";
+option java_outer_classname = "MatchmakingProto";
+
+service RankingService {
+  rpc ReportMatchResults (MatchResultRequest) returns (MatchResultResponse);
+}
+
+message MatchResultRequest {
+  string gameId = 1;
+  int64 queueId = 2;
+  map<int64, PlayerDelta> playerDeltas = 3;
+}
+
+message PlayerDelta {
+  int32 winDelta = 1;
+  int32 lossDelta = 2;
+}
+
+message MatchResultResponse {
+  bool success = 1;
+  string message = 2;
+}
