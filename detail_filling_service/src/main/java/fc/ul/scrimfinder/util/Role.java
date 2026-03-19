@@ -8,9 +8,9 @@ import lombok.RequiredArgsConstructor;
 public enum Role {
     TOP("top"),
     JUNGLE("jungle"),
-    MID("mid"),
+    MIDDLE("middle"),
     BOTTOM("bottom"),
-    SUPPORT("support");
+    UTILITY("utility");
 
     final String roleName;
 

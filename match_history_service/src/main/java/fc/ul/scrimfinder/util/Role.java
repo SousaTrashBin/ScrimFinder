@@ -13,14 +13,14 @@ public enum Role {
     @JsonProperty(value = "jungle")
     JUNGLE("jungle"),
 
-    @JsonProperty(value = "mid")
-    MID("mid"),
+    @JsonProperty(value = "middle")
+    MIDDLE("middle"),
 
     @JsonProperty(value = "bottom")
     BOTTOM("bottom"),
 
-    @JsonProperty(value = "support")
-    SUPPORT("support");
+    @JsonProperty(value = "utility")
+    UTILITY("utility");
 
     final String roleName;
 
