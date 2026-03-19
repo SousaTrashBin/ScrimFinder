@@ -6,6 +6,7 @@ SERVICES=("matchmaking_service" "ranking_service" "match_history_service" "detai
 for service in "${SERVICES[@]}"; do
     echo "building $service..."
     cd "$service" || exit
+    ./mvnw spotless:apply
     ./mvnw package -DskipTests
     cd ..
 done
