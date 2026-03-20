@@ -48,7 +48,7 @@ public class RiotAdapterServiceImpl implements RiotAdapterService {
     @Override
     public String getRawMatchData(String matchId) {
         String[] idParts = matchId.split("_");
-        if (idParts.length != 2) {
+        if (idParts.length < 2) {
             throw new InvalidMatchFormatException("Invalid match id format. It should be SUBREGION_ID but got: " + matchId);
         }
         Subregion subregion = Subregion.fromSubregionName(idParts[0]);
