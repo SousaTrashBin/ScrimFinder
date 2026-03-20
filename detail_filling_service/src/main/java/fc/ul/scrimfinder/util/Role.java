@@ -8,9 +8,9 @@ import lombok.RequiredArgsConstructor;
 public enum Role {
     TOP("top"),
     JUNGLE("jungle"),
-    MIDDLE("middle"),
+    MID("mid"),
     BOTTOM("bottom"),
-    UTILITY("utility");
+    SUPPORT("support");
 
     final String roleName;
 
@@ -20,6 +20,10 @@ public enum Role {
                 return r;
             }
         }
-        return null;
+        return switch (name.toUpperCase()) {
+            case "MIDDLE" -> MID;
+            case "UTILITY" -> SUPPORT;
+            default -> null;
+        };
     }
 }
