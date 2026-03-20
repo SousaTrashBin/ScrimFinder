@@ -10,8 +10,6 @@ import org.eclipse.microprofile.health.Liveness;
 public class LivenessCheck implements HealthCheck {
     @Override
     public HealthCheckResponse call() {
-        return HealthCheckResponse.named("LivenessCheck")
-                .up()
-                .build();
+        return HealthCheckResponse.named("LivenessCheck").up().build();
     }
 }

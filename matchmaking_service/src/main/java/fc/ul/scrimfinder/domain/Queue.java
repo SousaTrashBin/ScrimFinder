@@ -1,6 +1,7 @@
 package fc.ul.scrimfinder.domain;
 
 import fc.ul.scrimfinder.util.MatchmakingMode;
+import fc.ul.scrimfinder.util.Region;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,14 +12,16 @@ import lombok.Setter;
 @Table(name = "queue")
 public class Queue {
 
-    @Id
-    private Long id;
+    @Id private Long id;
 
     @Column(nullable = false)
     private String name;
 
-    @Column
-    private String namespace;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = true)
+    private Region region;
+
+    @Column private String namespace;
 
     @Column(nullable = false)
     private int requiredPlayers = 10;

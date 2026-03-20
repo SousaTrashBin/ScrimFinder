@@ -7,6 +7,7 @@ import fc.ul.scrimfinder.mapper.QueueMapper;
 import fc.ul.scrimfinder.repository.QueueRepository;
 import fc.ul.scrimfinder.service.QueueService;
 import fc.ul.scrimfinder.util.MatchmakingMode;
+import fc.ul.scrimfinder.util.Region;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -14,15 +15,21 @@ import jakarta.transaction.Transactional;
 @ApplicationScoped
 public class QueueServiceImpl implements QueueService {
 
-    @Inject
-    QueueRepository queueRepository;
+    @Inject QueueRepository queueRepository;
 
-    @Inject
-    QueueMapper queueMapper;
+    @Inject QueueMapper queueMapper;
 
     @Override
     @Transactional
-    public QueueDTO createQueue(Long id, String name, String namespace, int requiredPlayers, boolean isRoleQueue, MatchmakingMode mode, int mmrWindow) {
+    public QueueDTO createQueue(
+            Long id,
+            String name,
+            String namespace,
+            int requiredPlayers,
+            boolean isRoleQueue,
+            MatchmakingMode mode,
+            int mmrWindow,
+            Region region) {
         Queue queue = new Queue();
         queue.setId(id);
         queue.setName(name);
@@ -31,14 +38,17 @@ public class QueueServiceImpl implements QueueService {
         queue.setRoleQueue(isRoleQueue);
         queue.setMode(mode != null ? mode : MatchmakingMode.NORMAL);
         queue.setMmrWindow(mmrWindow);
+        queue.setRegion(region);
         queueRepository.persist(queue);
         return queueMapper.toDTO(queue);
     }
 
     @Override
     public QueueDTO getQueue(Long id) {
-        Queue queue = queueRepository.findByIdOptional(id)
-                .orElseThrow(() -> new QueueNotFoundException("Queue not found: " + id));
+        Queue queue =
+                queueRepository
+                        .findByIdOptional(id)
+                        .orElseThrow(() -> new QueueNotFoundException("Queue not found: " + id));
         return queueMapper.toDTO(queue);
     }
 }

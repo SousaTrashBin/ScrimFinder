@@ -17,23 +17,42 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 @Path("/players")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
-@Tag(name = "Player Management", description = "Operations for managing players and linking accounts")
+@Tag(
+        name = "Player Management",
+        description = "Operations for managing players and linking accounts")
 public class PlayerController {
 
-    @Inject
-    PlayerService playerService;
+    @Inject PlayerService playerService;
 
     @POST
     @Path("/{id}")
-    @Operation(summary = "Create a new player and register in Ranking Service", description = "Atomic operation: rolls back local creation if remote registration fails.")
-    @APIResponses(value = {
-            @APIResponse(responseCode = "201", description = "Player successfully created",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = PlayerDTO.class))),
-            @APIResponse(responseCode = "409", description = "Player or Username already exists",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
-            @APIResponse(responseCode = "500", description = "Remote service registration failed",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
-    })
+    @Operation(
+            summary = "Create a new player and register in Ranking Service",
+            description = "Atomic operation: rolls back local creation if remote registration fails.")
+    @APIResponses(
+            value = {
+                @APIResponse(
+                        responseCode = "201",
+                        description = "Player successfully created",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = PlayerDTO.class))),
+                @APIResponse(
+                        responseCode = "409",
+                        description = "Player or Username already exists",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = ErrorResponse.class))),
+                @APIResponse(
+                        responseCode = "500",
+                        description = "Remote service registration failed",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = ErrorResponse.class)))
+            })
     public Response createPlayer(@PathParam("id") Long id, @QueryParam("username") String username) {
         PlayerDTO player = playerService.createPlayer(id, username);
         return Response.status(Response.Status.CREATED).entity(player).build();
@@ -42,12 +61,23 @@ public class PlayerController {
     @GET
     @Path("/{id}")
     @Operation(summary = "Get player details")
-    @APIResponses(value = {
-            @APIResponse(responseCode = "200", description = "Player found",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = PlayerDTO.class))),
-            @APIResponse(responseCode = "404", description = "Player not found",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
-    })
+    @APIResponses(
+            value = {
+                @APIResponse(
+                        responseCode = "200",
+                        description = "Player found",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = PlayerDTO.class))),
+                @APIResponse(
+                        responseCode = "404",
+                        description = "Player not found",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = ErrorResponse.class)))
+            })
     public Response getPlayer(@PathParam("id") Long id) {
         PlayerDTO player = playerService.getPlayer(id);
         return Response.ok(player).build();

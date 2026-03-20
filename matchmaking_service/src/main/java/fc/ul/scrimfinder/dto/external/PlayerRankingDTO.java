@@ -1,5 +1,6 @@
 package fc.ul.scrimfinder.dto.external;
 
+import fc.ul.scrimfinder.util.Region;
 import java.util.UUID;
 
 public record PlayerRankingDTO(
@@ -7,9 +8,8 @@ public record PlayerRankingDTO(
         Long playerId,
         String username,
         String lolAccountPPUID,
+        Region region,
         Long queueId,
         int mmr,
         int wins,
-        int losses
-) {
-}
+        int losses) {}

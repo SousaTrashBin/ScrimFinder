@@ -27,5 +27,4 @@ public class QueueEntity {
 
     @Column(nullable = false)
     private boolean active = true;
-
 }

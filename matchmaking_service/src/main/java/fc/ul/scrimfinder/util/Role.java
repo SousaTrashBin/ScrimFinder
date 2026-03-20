@@ -4,7 +4,7 @@ public enum Role {
     TOP,
     JUNGLE,
     MID,
-    BOT,
-    SUPP,
+    BOTTOM,
+    SUPPORT,
     NONE
 }

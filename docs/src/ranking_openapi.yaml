@@ -1,0 +1,515 @@
+---
+openapi: 3.1.0
+tags:
+- name: Leaderboard
+  description: Global and queue-specific leaderboard operations
+- name: Player Management
+  description: Operations for managing player profiles and external account links
+- name: Player Ranking
+  description: Operations for player MMR and ranking history
+- name: Queue Management
+  description: Operations for managing MMR-based queues and rules
+components:
+  schemas:
+    CreatePlayerRequest:
+      type: object
+      properties:
+        queueId:
+          type:
+          - integer
+          - "null"
+          format: int64
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+    MMRRuleType:
+      type: string
+      enum:
+      - FLEX_RANK
+      - SOLOQ_RANK
+      - NONE
+    MatchResultRequest:
+      type: object
+      required:
+      - gameId
+      - queueId
+      - playerDeltas
+      properties:
+        gameId:
+          type: string
+          pattern: \S
+        queueId:
+          type: integer
+          format: int64
+        playerDeltas:
+          type: object
+          minProperties: 1
+          additionalProperties:
+            $ref: "#/components/schemas/PlayerDelta"
+    PaginatedResponseDTO:
+      type: object
+      properties:
+        data:
+          type: array
+          items: {}
+        currentPage:
+          type: integer
+          format: int32
+        totalPages:
+          type: integer
+          format: int32
+        totalElements:
+          type: integer
+          format: int64
+    PlayerDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        discordUsername:
+          type: string
+        lolAccountPPUID:
+          type: string
+        soloqMMR:
+          type: integer
+          format: int32
+        flexMMR:
+          type: integer
+          format: int32
+    PlayerDelta:
+      type: object
+      properties:
+        winDelta:
+          type: integer
+          format: int32
+        lossDelta:
+          type: integer
+          format: int32
+    PlayerRankingDTO:
+      type: object
+      properties:
+        publicId:
+          $ref: "#/components/schemas/UUID"
+        playerId:
+          type: integer
+          format: int64
+        username:
+          type: string
+        lolAccountPPUID:
+          type: string
+        queueId:
+          type: integer
+          format: int64
+        mmr:
+          type: integer
+          format: int32
+        wins:
+          type: integer
+          format: int32
+        losses:
+          type: integer
+          format: int32
+    QueueDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        mmrRuleType:
+          $ref: "#/components/schemas/MMRRuleType"
+        initialMMR:
+          type: integer
+          format: int32
+        active:
+          type: boolean
+    UUID:
+      type: string
+      format: uuid
+      pattern: "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
+    UpdateQueueRequest:
+      type: object
+      properties:
+        name:
+          type:
+          - string
+          - "null"
+        mmrRuleType:
+          $ref: "#/components/schemas/MMRRuleType"
+        initialMMR:
+          type:
+          - integer
+          - "null"
+          format: int32
+        active:
+          type:
+          - boolean
+          - "null"
+paths:
+  /api/v1/ranking/leaderboards:
+    get:
+      summary: Get queue leaderboard with pagination
+      tags:
+      - Leaderboard
+      parameters:
+      - name: page
+        in: query
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - name: queueId
+        in: query
+        schema:
+          type: integer
+          format: int64
+        required: false
+      - name: size
+        in: query
+        schema:
+          type: integer
+          format: int32
+          default: 20
+          maximum: 100
+          minimum: 0
+      responses:
+        "200":
+          description: Successfully retrieved the leaderboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedResponseDTO"
+        "400":
+          description: Invalid pagination parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Queue not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/ranking/players:
+    post:
+      summary: Register a new player in the system (Internal)
+      tags:
+      - Player Management
+      parameters:
+      - name: id
+        in: query
+        schema:
+          type: integer
+          format: int64
+        required: true
+      - name: username
+        in: query
+        schema:
+          type: string
+          pattern: \S
+        required: true
+      responses:
+        "201":
+          description: Player successfully created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlayerDTO"
+        "409":
+          description: Username already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/ranking/players/matches/results:
+    post:
+      summary: Process match results and update player rankings (Internal)
+      description: Batch update MMR for all participants after a match completion.
+      tags:
+      - Player Ranking
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatchResultRequest"
+        required: true
+      responses:
+        "200":
+          description: Match results processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: One or more players or queue not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/ranking/players/{playerId}/link-lol-account:
+    put:
+      summary: Link a League of Legends account ID to a player
+      tags:
+      - Player Management
+      parameters:
+      - name: playerId
+        in: path
+        required: true
+        schema:
+          type: integer
+          exclusiveMinimum: 0
+          format: int64
+      - name: lolAccountId
+        in: query
+        schema:
+          type: string
+          pattern: \S
+        required: true
+      responses:
+        "200":
+          description: Account successfully linked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlayerDTO"
+        "400":
+          description: Invalid League of Legends account ID or already linked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Player not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/ranking/players/{playerId}/mmr:
+    post:
+      summary: Initialize player MMR for a specific queue (Internal)
+      tags:
+      - Player Ranking
+      parameters:
+      - name: playerId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePlayerRequest"
+        required: true
+      responses:
+        "201":
+          description: Initial MMR successfully created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlayerRankingDTO"
+        "400":
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Player or Queue not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: MMR already exists for this player in this queue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/ranking/players/{playerId}/queue:
+    get:
+      summary: Get ranking information for a player
+      description: "Returns a single ranking if queueId is provided, or a list of\
+        \ all rankings if omitted."
+      tags:
+      - Player Ranking
+      parameters:
+      - name: playerId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: queueId
+        in: query
+        schema:
+          type: integer
+          format: int64
+        required: false
+      responses:
+        "200":
+          description: Successfully retrieved player ranking(s)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlayerRankingDTO"
+        "404":
+          description: Player or Queue not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/ranking/players/{playerId}/sync-mmr:
+    post:
+      summary: Manually fetch and sync the player's MMR from the external LoL service
+      tags:
+      - Player Management
+      parameters:
+      - name: playerId
+        in: path
+        required: true
+        schema:
+          type: integer
+          exclusiveMinimum: 0
+          format: int64
+      responses:
+        "200":
+          description: MMR successfully synced
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlayerRankingDTO"
+        "400":
+          description: League of Legends account not linked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Player not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/ranking/queue/{queueId}:
+    put:
+      summary: Update an existing queue's configuration
+      tags:
+      - Queue Management
+      parameters:
+      - name: queueId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateQueueRequest"
+        required: true
+      responses:
+        "200":
+          description: Queue configuration successfully updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueueDTO"
+        "400":
+          description: Invalid update payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Queue not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      summary: Delete a specific queue
+      tags:
+      - Queue Management
+      parameters:
+      - name: queueId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "204":
+          description: Queue successfully deleted
+        "404":
+          description: Queue not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: Create a new queue configuration (Internal)
+      description: Initializes a queue with specific MMR rules and base values.
+      tags:
+      - Queue Management
+      parameters:
+      - name: queueId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: initialMMR
+        in: query
+        schema:
+          type: integer
+          exclusiveMinimum: 0
+          format: int32
+          default: 1000
+      - name: name
+        in: query
+        schema:
+          type: string
+      - name: rule
+        in: query
+        schema:
+          allOf:
+          - $ref: "#/components/schemas/MMRRuleType"
+          - default: NONE
+      responses:
+        "201":
+          description: Queue successfully created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueueDTO"
+        "400":
+          description: Invalid initial MMR parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Queue with this ID already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+info:
+  title: ranking_service API
+  version: 0.0.1

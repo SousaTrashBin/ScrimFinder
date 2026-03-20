@@ -10,9 +10,8 @@ import fc.ul.scrimfinder.util.PlayerMMRDelta;
 import java.util.List;
 
 public interface MatchHistoryService {
-    MatchDTO getMatchById(Long matchId) throws
-            MatchNotFoundException,
-            ExternalServiceUnavailableException;
+    MatchDTO getMatchById(Long matchId)
+            throws MatchNotFoundException, ExternalServiceUnavailableException;
 
     PaginatedResponseDTO<MatchDTO> getMatches(int page, int size, MatchFiltersDTO filterParams, List<SortParamDTO> sortParamDTOS) throws
             PlayerNotFoundException,

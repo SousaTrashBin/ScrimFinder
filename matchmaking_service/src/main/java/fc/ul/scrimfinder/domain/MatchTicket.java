@@ -1,12 +1,12 @@
 package fc.ul.scrimfinder.domain;
 
+import fc.ul.scrimfinder.util.Region;
 import fc.ul.scrimfinder.util.Role;
 import fc.ul.scrimfinder.util.TicketStatus;
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -28,6 +28,10 @@ public class MatchTicket {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    private Region region;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private Role role = Role.NONE;
 
     @Enumerated(EnumType.STRING)
@@ -37,8 +41,7 @@ public class MatchTicket {
     @Column(nullable = false)
     private int mmr;
 
-    @Column
-    private Integer team;
+    @Column private Integer team;
 
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();

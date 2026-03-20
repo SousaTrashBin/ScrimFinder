@@ -12,55 +12,35 @@ public class GlobalExceptionHandler {
     public RestResponse<ErrorResponse> mapException(PlayerNotFoundException x) {
         return RestResponse.status(
                 Response.Status.NOT_FOUND,
-                ErrorResponse.builder()
-                        .code("PLAYER_NOT_FOUND")
-                        .message(x.getMessage())
-                        .build()
-        );
+                ErrorResponse.builder().code("PLAYER_NOT_FOUND").message(x.getMessage()).build());
     }
 
     @ServerExceptionMapper
     public RestResponse<ErrorResponse> mapException(QueueNotFoundException x) {
         return RestResponse.status(
                 Response.Status.NOT_FOUND,
-                ErrorResponse.builder()
-                        .code("QUEUE_NOT_FOUND")
-                        .message(x.getMessage())
-                        .build()
-        );
+                ErrorResponse.builder().code("QUEUE_NOT_FOUND").message(x.getMessage()).build());
     }
 
     @ServerExceptionMapper
     public RestResponse<ErrorResponse> mapException(TicketNotFoundException x) {
         return RestResponse.status(
                 Response.Status.NOT_FOUND,
-                ErrorResponse.builder()
-                        .code("TICKET_NOT_FOUND")
-                        .message(x.getMessage())
-                        .build()
-        );
+                ErrorResponse.builder().code("TICKET_NOT_FOUND").message(x.getMessage()).build());
     }
 
     @ServerExceptionMapper
     public RestResponse<ErrorResponse> mapException(LeagueAccountNotLinkedException x) {
         return RestResponse.status(
                 Response.Status.BAD_REQUEST,
-                ErrorResponse.builder()
-                        .code("LEAGUE_ACCOUNT_NOT_LINKED")
-                        .message(x.getMessage())
-                        .build()
-        );
+                ErrorResponse.builder().code("LEAGUE_ACCOUNT_NOT_LINKED").message(x.getMessage()).build());
     }
 
     @ServerExceptionMapper
     public RestResponse<ErrorResponse> mapException(WebApplicationException x) {
         return RestResponse.status(
                 Response.Status.fromStatusCode(x.getResponse().getStatus()),
-                ErrorResponse.builder()
-                        .code("REMOTE_SERVICE_ERROR")
-                        .message(x.getMessage())
-                        .build()
-        );
+                ErrorResponse.builder().code("REMOTE_SERVICE_ERROR").message(x.getMessage()).build());
     }
 
     @ServerExceptionMapper
@@ -70,7 +50,6 @@ public class GlobalExceptionHandler {
                 ErrorResponse.builder()
                         .code("INTERNAL_SERVER_ERROR")
                         .message("An unexpected error occurred. Please try again later.")
-                        .build()
-        );
+                        .build());
     }
 }

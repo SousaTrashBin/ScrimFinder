@@ -9,8 +9,7 @@ import jakarta.inject.Inject;
 @ApplicationScoped
 public class PlayerFillingServiceImpl implements PlayerFillingService {
 
-    @Inject
-    RiotAdapterService riotAdapterService;
+    @Inject RiotAdapterService riotAdapterService;
 
     @Override
     public PlayerDTO getFilledPlayer(String name, String tag) {

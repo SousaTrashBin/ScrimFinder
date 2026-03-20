@@ -1,15 +1,14 @@
 package fc.ul.scrimfinder.domain;
 
 import jakarta.persistence.*;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.UUID;
-
 @Entity
-@Table(name = "player_ranking", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"player_id", "queue_id"})
-})
+@Table(
+        name = "player_ranking",
+        uniqueConstraints = {@UniqueConstraint(columnNames = {"player_id", "queue_id"})})
 @Getter
 @Setter
 public class PlayerRanking {

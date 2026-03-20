@@ -7,7 +7,7 @@ import jakarta.ws.rs.core.MediaType;
 import org.eclipse.microprofile.rest.client.annotation.RegisterProvider;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
-@Path("/api/v1/external")
+@Path("/api/v1/riot")
 @RegisterRestClient(configKey = "detail-filling-api")
 @RegisterProvider(DetailFillingServiceExceptionMapper.class)
 @Consumes(MediaType.APPLICATION_JSON)

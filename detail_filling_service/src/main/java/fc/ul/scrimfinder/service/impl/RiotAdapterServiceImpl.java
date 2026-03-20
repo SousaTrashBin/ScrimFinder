@@ -22,17 +22,11 @@ import java.util.stream.StreamSupport;
 @ApplicationScoped
 public class RiotAdapterServiceImpl implements RiotAdapterService {
 
-    @Inject
-    @RestClient
-    RiotAccountServiceClient accountServiceClient;
+    @Inject @RestClient RiotAccountServiceClient accountServiceClient;
 
-    @Inject
-    @RestClient
-    RiotPlayerServiceClient playerServiceClient;
+    @Inject @RestClient RiotPlayerServiceClient playerServiceClient;
 
-    @Inject
-    @RestClient
-    RiotMatchServiceClient matchServiceClient;
+    @Inject @RestClient RiotMatchServiceClient matchServiceClient;
 
     @Inject
     @RestClient
@@ -117,4 +111,3 @@ public class RiotAdapterServiceImpl implements RiotAdapterService {
         );
     }
 }
-

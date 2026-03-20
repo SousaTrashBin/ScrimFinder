@@ -22,7 +22,7 @@ public record TeamStatsDTO(
         @QueryParam("teamAssists")
         @Min(value = 0, message = "A team can only have more than or equal to 0 assists")
         Integer teamAssists,
-
+        
         @QueryParam("teamHealing")
         @Min(value = 0, message = "A team can only have more than or equal to 0 healing")
         Integer teamHealing

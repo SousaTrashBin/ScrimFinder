@@ -12,16 +12,14 @@ import fc.ul.scrimfinder.service.MatchHistoryService;
 import fc.ul.scrimfinder.util.PlayerMMRDelta;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-
 import java.util.List;
+import java.util.Map;
 
 @ApplicationScoped
 public class MatchHistoryServiceImpl implements MatchHistoryService {
-    @Inject
-    MatchHistoryRepository matchHistoryRepository;
+    @Inject MatchHistoryRepository matchHistoryRepository;
 
-    @Inject
-    MatchMapper matchMapper;
+    @Inject MatchMapper matchMapper;
 
     @Override
     public MatchDTO getMatchById(Long matchId) {
@@ -36,13 +34,14 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
     }
 
     @Override
-    public MatchDTO addMatchById(String riotMatchId, String queueId, List<PlayerMMRDelta> mmrDeltas) {
+    public MatchDTO addMatchById(String riotMatchId, Map<Long, Integer> playerMMRGains) {
         // TODO
         return null;
     }
 
     @Override
-    public MatchDTO deleteMatchById(Long matchId) throws MatchNotFoundException, ExternalServiceUnavailableException {
+    public MatchDTO deleteMatchById(Long matchId)
+            throws MatchNotFoundException, ExternalServiceUnavailableException {
         // TODO
         return null;
     }

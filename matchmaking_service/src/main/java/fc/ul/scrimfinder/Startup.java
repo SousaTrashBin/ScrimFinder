@@ -12,8 +12,7 @@ import jakarta.transaction.Transactional;
 @ApplicationScoped
 public class Startup {
 
-    @Inject
-    QueueRepository queueRepository;
+    @Inject QueueRepository queueRepository;
 
     @Transactional
     void onStart(@Observes StartupEvent ev) {

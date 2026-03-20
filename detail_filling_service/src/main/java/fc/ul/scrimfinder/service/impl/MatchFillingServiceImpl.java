@@ -9,8 +9,7 @@ import jakarta.inject.Inject;
 @ApplicationScoped
 public class MatchFillingServiceImpl implements MatchFillingService {
 
-    @Inject
-    RiotAdapterService riotAdapterService;
+    @Inject RiotAdapterService riotAdapterService;
 
     @Override
     public MatchStatsDTO getFilledMatch(String matchId) {
@@ -22,4 +21,3 @@ public class MatchFillingServiceImpl implements MatchFillingService {
         return riotAdapterService.getRawMatchData(matchId);
     }
 }
-

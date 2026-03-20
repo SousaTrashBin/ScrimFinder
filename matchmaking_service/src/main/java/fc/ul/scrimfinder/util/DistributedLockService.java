@@ -5,7 +5,6 @@ import io.quarkus.redis.datasource.keys.KeyCommands;
 import io.quarkus.redis.datasource.value.ValueCommands;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-
 import java.time.Duration;
 
 @ApplicationScoped
@@ -21,7 +20,8 @@ public class DistributedLockService {
     }
 
     public boolean acquireLock(String lockKey, Duration timeout) {
-        return valueCommands.setnx(lockKey, "locked") && keyCommands.pexpire(lockKey, timeout.toMillis());
+        return valueCommands.setnx(lockKey, "locked")
+                && keyCommands.pexpire(lockKey, timeout.toMillis());
     }
 
     public void releaseLock(String lockKey) {

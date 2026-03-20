@@ -13,8 +13,7 @@ import lombok.Setter;
 @Table(name = "player")
 public class Player {
 
-    @Id
-    private Long id;
+    @Id private Long id;
 
     @Column(nullable = false, unique = true)
     private String username;
