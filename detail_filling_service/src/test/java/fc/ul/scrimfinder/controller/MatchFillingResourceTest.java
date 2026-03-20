@@ -8,6 +8,7 @@ import fc.ul.scrimfinder.client.RiotMatchServiceClient;
 import fc.ul.scrimfinder.dto.response.match.MatchStatsDTO;
 import fc.ul.scrimfinder.dto.response.match.PlayerStatsDTO;
 import fc.ul.scrimfinder.dto.response.match.TeamStatsDTO;
+import fc.ul.scrimfinder.redis.RedisService;
 import fc.ul.scrimfinder.util.RiotId;
 import fc.ul.scrimfinder.util.Role;
 import fc.ul.scrimfinder.util.TeamSide;
@@ -24,10 +25,12 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -39,6 +42,9 @@ public class MatchFillingResourceTest {
     @RestClient
     RiotMatchServiceClient riotMatchServiceClient;
 
+    @InjectMock
+    RedisService redisService;
+
     @Test
     @Order(1)
     public void testGetMatchRawEndpoint() {
@@ -47,6 +53,7 @@ public class MatchFillingResourceTest {
         final String matchId = "EUW1_" + UUID.randomUUID();
 
         when(riotMatchServiceClient.getMatch(anyString())).thenReturn("");
+        when(redisService.get(anyString(), any())).thenReturn(Optional.empty());
 
         given().when().get(String.format("%s/%s/raw", path, matchId)).then().statusCode(200);
     }
@@ -176,6 +183,7 @@ public class MatchFillingResourceTest {
                         teamStatsDTOList);
 
         when(riotMatchServiceClient.getMatch(anyString())).thenReturn(matchRiotDTO);
+        when(redisService.get(anyString(), any())).thenReturn(Optional.empty());
 
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());

@@ -7,6 +7,7 @@ import fc.ul.scrimfinder.client.RiotPlayerServiceClient;
 import fc.ul.scrimfinder.client.RiotRegionServiceClient;
 import fc.ul.scrimfinder.client.RiotSummonerServiceClient;
 import fc.ul.scrimfinder.dto.response.player.*;
+import fc.ul.scrimfinder.redis.RedisService;
 import fc.ul.scrimfinder.util.Rank;
 import fc.ul.scrimfinder.util.Tier;
 import io.quarkus.test.InjectMock;
@@ -18,11 +19,13 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -45,6 +48,9 @@ public class PlayerFillingResourceTest {
     @InjectMock
     @RestClient
     RiotPlayerServiceClient riotPlayerServiceClient;
+
+    @InjectMock
+    RedisService redisService;
 
     @Test
     @Order(1)
@@ -101,6 +107,7 @@ public class PlayerFillingResourceTest {
         when(riotSummonerServiceClient.getByAccessToken(anyString())).thenReturn(summonerRiotDTO);
         when(riotPlayerServiceClient.getLeagueEntriesByPUUID(anyString()))
                 .thenReturn(playerQueueStatsRiotDTO);
+        when(redisService.get(anyString(), any())).thenReturn(Optional.empty());
 
         given()
                 .when()
