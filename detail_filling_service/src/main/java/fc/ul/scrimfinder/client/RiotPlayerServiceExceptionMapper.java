@@ -15,17 +15,17 @@ public class RiotPlayerServiceExceptionMapper implements ResponseExceptionMapper
     @Override
     public RuntimeException toThrowable(Response response) {
         try {
-            JsonNodeFinder statusNode = Objects.requireNonNull(new JsonNodeFinder(null)
-                            .fromStringOrThrow(response.readEntity(String.class), RuntimeException.class))
-                    .jsonGetOrThrow("status", RuntimeException.class);
+            JsonNodeFinder statusNode =
+                    Objects.requireNonNull(
+                                    new JsonNodeFinder(null)
+                                            .fromStringOrThrow(response.readEntity(String.class), RuntimeException.class))
+                            .jsonGetOrThrow("status", RuntimeException.class);
 
-            int code = statusNode
-                    .jsonGetOrThrow("status_code", RuntimeException.class)
-                    .jsonNode().asInt();
+            int code =
+                    statusNode.jsonGetOrThrow("status_code", RuntimeException.class).jsonNode().asInt();
 
-            String message = statusNode
-                    .jsonGetOrThrow("message", RuntimeException.class)
-                    .jsonNode().asText();
+            String message =
+                    statusNode.jsonGetOrThrow("message", RuntimeException.class).jsonNode().asText();
 
             return switch (code) {
                 case 401 -> new UnauthorizedException(message);

@@ -15,9 +15,9 @@ public class ClientUrlPrefixProvider implements ClientRequestFilter {
 
     @Override
     public void filter(ClientRequestContext requestContext) {
-        requestContext.setUri(UriBuilder
-                .fromUri(String.format("https://%s.%s", prefix, requestContext.getUri().toString()))
-                .build()
-        );
+        requestContext.setUri(
+                UriBuilder.fromUri(
+                                String.format("https://%s.%s", prefix, requestContext.getUri().toString()))
+                        .build());
     }
 }

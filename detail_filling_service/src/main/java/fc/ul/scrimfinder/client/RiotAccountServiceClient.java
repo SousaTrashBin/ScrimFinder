@@ -14,8 +14,8 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 @Produces(MediaType.APPLICATION_JSON)
 public interface RiotAccountServiceClient {
     @GET
-    @Path("/by-riot-id/{gameName}/{tagLine}")
-    AccountDTO getByRiotId(
+    @Path("/{gameName}/{tagLine}")
+    String getByRiotId(
             @PathParam("gameName") @NotBlank String gameName,
             @PathParam("tagLine") @NotBlank String tagLine);
 }

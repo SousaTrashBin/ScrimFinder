@@ -1,7 +1,7 @@
 package fc.ul.scrimfinder.util;
 
-import jakarta.validation.constraints.Min;
 import jakarta.enterprise.inject.Vetoed;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.ws.rs.QueryParam;
 import lombok.AllArgsConstructor;
@@ -21,8 +21,8 @@ public class RiotId {
 
     @QueryParam("playerTag")
     @NotBlank(message = "The player tag cannot be empty")
-    private String playerTag,
+    private String playerTag;
 
     @Min(value = 0, message = "The icon ID of the player must be greater or equal to 0")
-    private Integer playerIcon
+    private Integer playerIcon;
 }

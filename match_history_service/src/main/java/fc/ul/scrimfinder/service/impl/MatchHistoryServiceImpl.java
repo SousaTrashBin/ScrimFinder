@@ -9,7 +9,6 @@ import fc.ul.scrimfinder.exception.MatchNotFoundException;
 import fc.ul.scrimfinder.mapper.MatchMapper;
 import fc.ul.scrimfinder.repository.MatchHistoryRepository;
 import fc.ul.scrimfinder.service.MatchHistoryService;
-import fc.ul.scrimfinder.util.PlayerMMRDelta;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.util.List;
@@ -28,7 +27,8 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
     }
 
     @Override
-    public PaginatedResponseDTO<MatchDTO> getMatches(int page, int size, MatchFiltersDTO filterParams, List<SortParamDTO> sortParamDTOS) {
+    public PaginatedResponseDTO<MatchDTO> getMatches(
+            int page, int size, MatchFiltersDTO filterParams, List<SortParamDTO> sortParamDTOS) {
         // TODO
         return null;
     }

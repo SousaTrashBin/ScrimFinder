@@ -3,10 +3,7 @@ package fc.ul.scrimfinder.util;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public record PlayerMMRDelta(
-        String puuid,
-        Integer delta
-) {
+public record PlayerMMRDelta(String puuid, Integer delta) {
     public static PlayerMMRDelta valueOf(String value) {
         if (value == null || value.isBlank()) return null;
 
@@ -21,10 +18,7 @@ public record PlayerMMRDelta(
         String puuid = fromJsonToPuuid(playerMMRDeltaNode);
         Integer delta = fromJsonToDelta(playerMMRDeltaNode);
 
-        return new PlayerMMRDelta(
-                puuid,
-                delta
-        );
+        return new PlayerMMRDelta(puuid, delta);
     }
 
     private static String fromJsonToPuuid(JsonNode json) {

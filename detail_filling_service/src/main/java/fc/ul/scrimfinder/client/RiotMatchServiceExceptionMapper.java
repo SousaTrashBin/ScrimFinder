@@ -16,7 +16,8 @@ public class RiotMatchServiceExceptionMapper implements ResponseExceptionMapper<
         try {
             String errorJson = response.readEntity(String.class);
             ObjectMapper mapper = new ObjectMapper();
-            RiotMatchErrorResponse errorResponse = mapper.readValue(errorJson, RiotMatchErrorResponse.class);
+            RiotMatchErrorResponse errorResponse =
+                    mapper.readValue(errorJson, RiotMatchErrorResponse.class);
             Integer code = errorResponse.getHttpStatus();
             String message = errorResponse.getImplementationDetails();
 

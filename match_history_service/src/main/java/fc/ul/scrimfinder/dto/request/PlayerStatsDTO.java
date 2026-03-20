@@ -16,22 +16,19 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-public record PlayerStatsDTO(
-        @BeanParam
-        @NotNull
-        @Valid
-        RiotId riotId,
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Vetoed
+public class PlayerStatsDTO {
+    @BeanParam @Valid private RiotId riotId;
 
-        @BeanParam
-        @NotNull
-        @Valid
-        Rank rank,
+    @BeanParam @Valid private Rank rank;
 
-    @QueryParam("kills")
     @Min(value = 0, message = "A player can only have more than or equal to 0 kills")
     private Integer kills;
 
-    @QueryParam("deaths")
     @Min(value = 0, message = "A player can only have more than or equal to 0 deaths")
     private Integer deaths;
 
@@ -83,15 +80,15 @@ public record PlayerStatsDTO(
     private Integer pentaKills;
 
     @QueryParam("side")
-    private TeamSide side,
+    private TeamSide side;
 
     @QueryParam("won")
     @NotNull
-    private Boolean won,
+    private Boolean won;
 
     @QueryParam("mmrDelta")
-    private Integer mmrDelta
-) {
+    private Integer mmrDelta;
+
     public static PlayerStatsDTO valueOf(String value) {
         if (value == null || value.isBlank()) return null;
 
@@ -142,8 +139,7 @@ public record PlayerStatsDTO(
                 pentaKills,
                 teamSide,
                 won,
-                mmrDelta
-        );
+                mmrDelta);
     }
 
     private static RiotId fromJsonToRiotId(JsonNode json) {

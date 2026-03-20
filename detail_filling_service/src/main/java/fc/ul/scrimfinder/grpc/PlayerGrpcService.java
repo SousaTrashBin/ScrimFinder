@@ -1,14 +1,14 @@
 package fc.ul.scrimfinder.grpc;
 
 import fc.ul.scrimfinder.client.RiotAccountServiceClient;
-import fc.ul.scrimfinder.dto.response.player.AccountDTO;
 import fc.ul.scrimfinder.dto.response.player.PlayerDTO;
 import fc.ul.scrimfinder.service.RiotAdapterService;
 import io.quarkus.grpc.GrpcService;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
-import java.util.stream.Collectors;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
+
+import java.util.stream.Collectors;
 
 @GrpcService
 public class PlayerGrpcService implements ExternalPlayerFillingService {
@@ -22,26 +22,30 @@ public class PlayerGrpcService implements ExternalPlayerFillingService {
         return Uni.createFrom()
                 .item(
                         () -> {
-                            AccountDTO account =
-                                    accountServiceClient.getByRiotId(request.getGameName(), request.getTagLine());
                             PlayerDTO player =
                                     riotAdapterService.getPlayerData(request.getGameName(), request.getTagLine());
 
                             return PlayerResponse.newBuilder()
-                                    .setPuuid(account.puuid())
-                                    .setGameName(account.gameName())
-                                    .setTagLine(account.tagLine())
+                                    .setPuuid(player.account().puuid())
+                                    .setGameName(player.account().name())
+                                    .setTagLine(player.account().tag())
                                     .addAllEntries(
-                                            player.entries().stream()
+                                            player.queues().stream()
                                                     .map(
                                                             entry ->
                                                                     LeagueEntry.newBuilder()
                                                                             .setQueueType(
                                                                                     entry.queueType() != null ? entry.queueType() : "")
-                                                                            .setTier(entry.tier() != null ? entry.tier() : "")
-                                                                            .setRank(entry.rank() != null ? entry.rank() : "")
+                                                                            .setTier(
+                                                                                    entry.rank().tier() != null
+                                                                                            ? entry.rank().tier().getTier()
+                                                                                            : "")
+                                                                            .setRank(
+                                                                                    entry.rank().division() != null
+                                                                                            ? entry.rank().division().toString()
+                                                                                            : "")
                                                                             .setLeaguePoints(
-                                                                                    entry.leaguePoints() != null ? entry.leaguePoints() : 0)
+                                                                                    entry.rank().lps() != null ? entry.rank().lps() : 0)
                                                                             .setWins(entry.wins() != null ? entry.wins() : 0)
                                                                             .setLosses(entry.losses() != null ? entry.losses() : 0)
                                                                             .build())

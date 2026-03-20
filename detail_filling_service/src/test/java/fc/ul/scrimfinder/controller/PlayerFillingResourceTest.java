@@ -49,82 +49,62 @@ public class PlayerFillingResourceTest {
     @Test
     @Order(1)
     public void testGetPlayerFillEndpoint() throws JsonProcessingException {
-        final String path = "/api/v1/external/players";
+        final String path = "/players";
 
         final String puuid = UUID.randomUUID().toString();
 
-        final String accountRiotDTO = Json.createObjectBuilder()
-                .add("puuid", puuid)
-                .add("gameName", "kung")
-                .add("tagLine", "foo")
-                .build()
-                .toString();
+        final String accountRiotDTO =
+                Json.createObjectBuilder()
+                        .add("puuid", puuid)
+                        .add("gameName", "kung")
+                        .add("tagLine", "foo")
+                        .build()
+                        .toString();
 
-        final String regionRiotDTO = Json.createObjectBuilder()
-                .add("region", "euw1")
-                .build()
-                .toString();
+        final String regionRiotDTO =
+                Json.createObjectBuilder().add("region", "euw1").build().toString();
 
-        final String summonerRiotDTO = Json.createObjectBuilder()
-                .add("profileIconId", 1)
-                .add("summonerLevel", 10L)
-                .build()
-                .toString();
+        final String summonerRiotDTO =
+                Json.createObjectBuilder()
+                        .add("profileIconId", 1)
+                        .add("summonerLevel", 10L)
+                        .build()
+                        .toString();
 
-        final String playerQueueStatsRiotDTO = Set.of(Json.createObjectBuilder()
-                .add("queueType", "RANKED_FOO")
-                .add("tier", "emerald")
-                .add("rank", "I")
-                .add("leaguePoints", 5L)
-                .add("wins", 0)
-                .add("losses", 30)
-                .add("hotStreak", false)
-                .build()
-                .toString()
-        ).toString();
+        final String playerQueueStatsRiotDTO =
+                Set.of(
+                                Json.createObjectBuilder()
+                                        .add("queueType", "RANKED_FOO")
+                                        .add("tier", "emerald")
+                                        .add("rank", "I")
+                                        .add("leaguePoints", 5L)
+                                        .add("wins", 0)
+                                        .add("losses", 30)
+                                        .add("hotStreak", false)
+                                        .build()
+                                        .toString())
+                        .toString();
 
-        final AccountDTO accountDTO = new AccountDTO(
-                puuid,
-                "kung",
-                "foo"
-        );
+        final AccountDTO accountDTO = new AccountDTO(puuid, "kung", "foo");
 
-        final RegionDTO regionDTO = new RegionDTO(
-                "europe",
-                "euw1"
-        );
+        final RegionDTO regionDTO = new RegionDTO("europe", "euw1");
 
-        final SummonerDTO summonerDTO = new SummonerDTO(
-                1,
-                10L
-        );
+        final SummonerDTO summonerDTO = new SummonerDTO(1, 10L);
 
-        final PlayerQueueStatsDTO queueDTO = new PlayerQueueStatsDTO(
-                "RANKED_FOO",
-                new Rank(Tier.EMERALD, 1, 5),
-                0,
-                30,
-                false
-        );
+        final PlayerQueueStatsDTO queueDTO =
+                new PlayerQueueStatsDTO("RANKED_FOO", new Rank(Tier.EMERALD, 1, 5), 0, 30, false);
 
-        final PlayerDTO playerDTO = new PlayerDTO(
-                accountDTO,
-                regionDTO,
-                summonerDTO,
-                Set.of(queueDTO)
-        );
+        final PlayerDTO playerDTO = new PlayerDTO(accountDTO, regionDTO, summonerDTO, Set.of(queueDTO));
 
-        when(riotAccountServiceClient.getByRiotId(anyString(), anyString()))
-                .thenReturn(accountRiotDTO);
-        when(riotRegionServiceClient.getActiveRegion(anyString()))
-                .thenReturn(regionRiotDTO);
-        when(riotSummonerServiceClient.getByAccessToken(anyString()))
-                .thenReturn(summonerRiotDTO);
+        when(riotAccountServiceClient.getByRiotId(anyString(), anyString())).thenReturn(accountRiotDTO);
+        when(riotRegionServiceClient.getActiveRegion(anyString())).thenReturn(regionRiotDTO);
+        when(riotSummonerServiceClient.getByAccessToken(anyString())).thenReturn(summonerRiotDTO);
         when(riotPlayerServiceClient.getLeagueEntriesByPUUID(anyString()))
                 .thenReturn(playerQueueStatsRiotDTO);
 
         given()
-                .when().get(String.format("%s/%s/%s", path, accountDTO.name(), accountDTO.tag()))
+                .when()
+                .get(String.format("%s/%s/%s", path, accountDTO.name(), accountDTO.tag()))
                 .then()
                 .statusCode(200)
                 .body(is(new ObjectMapper().writeValueAsString(playerDTO)));

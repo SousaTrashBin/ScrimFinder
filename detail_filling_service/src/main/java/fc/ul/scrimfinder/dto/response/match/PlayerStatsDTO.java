@@ -20,6 +20,5 @@ public record PlayerStatsDTO(
         Integer quadKills,
         Integer pentaKills,
         TeamSide side,
-        Boolean won
-) {
+        Boolean won) {
 }

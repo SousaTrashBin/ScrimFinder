@@ -8,19 +8,14 @@ import jakarta.validation.constraints.Min;
 import jakarta.ws.rs.QueryParam;
 
 public record Rank(
-        @QueryParam("tier")
-        @NotNull
-        Tier tier,
-
+        @QueryParam("tier") @NotNull Tier tier,
         @QueryParam("division")
-        @Min(value = 1, message = "The division must be between 1 and 4")
-        @Max(value = 4, message = "The division must be between 1 and 4")
-        Integer division,
-
+                @Min(value = 1, message = "The division must be between 1 and 4")
+                @Max(value = 4, message = "The division must be between 1 and 4")
+                Integer division,
         @QueryParam("lps")
-        @Min(value = 0, message = "The league points must be greater than or equal to 0")
-        Integer lps
-) {
+                @Min(value = 0, message = "The league points must be greater than or equal to 0")
+                Integer lps) {
     public static Rank valueOf(String value) {
         if (value == null || value.isBlank()) return null;
 
@@ -36,7 +31,7 @@ public record Rank(
         if (tierNode == null) {
             throw new IllegalArgumentException("Rank tier is required: " + value);
         }
-        Tier tier =  Tier.fromTierName(tierNode.asText());
+        Tier tier = Tier.fromTierName(tierNode.asText());
         if (tier == null) {
             throw new IllegalArgumentException("Invalid tier name: " + value);
         }

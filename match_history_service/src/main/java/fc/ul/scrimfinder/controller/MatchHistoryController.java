@@ -6,26 +6,20 @@ import fc.ul.scrimfinder.dto.response.MatchDTO;
 import fc.ul.scrimfinder.dto.response.PaginatedResponseDTO;
 import fc.ul.scrimfinder.service.MatchHistoryService;
 import fc.ul.scrimfinder.util.ErrorResponse;
-import fc.ul.scrimfinder.util.PlayerMMRDelta;
 import jakarta.inject.Inject;
-import jakarta.persistence.Cacheable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
+import java.util.Map;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 @Path("/matches")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -92,9 +86,9 @@ public class MatchHistoryController {
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("size") @DefaultValue("20") @Min(0) @Max(100) int size,
             @BeanParam @Valid MatchFiltersDTO filterParams,
-            @QueryParam("sort") List<SortParamDTO> sortParamDTOS
-    ) {
-        PaginatedResponseDTO<MatchDTO> matches = matchHistoryService.getMatches(page, size, filterParams, sortParamDTOS);
+            @QueryParam("sort") List<SortParamDTO> sortParamDTOS) {
+        PaginatedResponseDTO<MatchDTO> matches =
+                matchHistoryService.getMatches(page, size, filterParams, sortParamDTOS);
         return Response.ok(matches).build();
     }
 
@@ -127,8 +121,7 @@ public class MatchHistoryController {
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     public Response addMatchById(
-            @PathParam("riotMatchId") @NotBlank String riotMatchId,
-            Map<Long, Integer> playerMMRGains) {
+            @PathParam("riotMatchId") @NotBlank String riotMatchId, Map<Long, Integer> playerMMRGains) {
         MatchDTO addedMatch = matchHistoryService.addMatchById(riotMatchId, playerMMRGains);
         return Response.status(Response.Status.CREATED).entity(addedMatch).build();
     }
