@@ -1,11 +1,10 @@
 package fc.ul.scrimfinder.domain;
 
 import jakarta.persistence.*;
+import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.SoftDelete;
-
-import java.util.List;
 
 @Entity
 @Getter

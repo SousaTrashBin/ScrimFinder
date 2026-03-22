@@ -2,7 +2,6 @@ package fc.ul.scrimfinder.dto.request;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fc.ul.scrimfinder.exception.InvalidRoleException;
 import fc.ul.scrimfinder.exception.InvalidTeamsException;
 import fc.ul.scrimfinder.util.Champion;
 import fc.ul.scrimfinder.util.RiotId;
@@ -204,11 +203,7 @@ public class PlayerStatsDTO {
         JsonNode roleNode = json.findValue("role");
         if (roleNode == null) return null;
         String roleName = roleNode.asText();
-        Role role = Role.fromRoleName(roleName);
-        if (role == null) {
-            throw new InvalidRoleException("Invalid role: " + roleName);
-        }
-        return role;
+        return Role.fromRoleName(roleName);
     }
 
     private static Champion fromJsonToChampion(JsonNode json) {

@@ -14,19 +14,10 @@ public interface MatchHistoryService {
 
     PaginatedResponseDTO<MatchDTO> getMatches(
             int page, int size, MatchFiltersDTO filterParams, List<SortParamDTO> sortParamDTOS)
-            throws PlayerNotFoundException,
-                    ChampionNotFoundException,
-                    RankNotFoundException,
-                    InvalidIntervalException,
-                    InvalidRoleException,
-                    InvalidTeamsException;
+            throws InvalidIntervalException, InvalidTeamsException;
 
     MatchDTO addMatchById(String riotMatchId, Map<Long, Integer> mmrDeltas)
-            throws MatchAlreadyExistsException,
-                    MatchNotFoundException,
-                    InvalidIntervalException,
-                    InvalidTeamsException;
+            throws MatchAlreadyExistsException, MatchNotFoundException;
 
-    MatchDTO deleteMatchById(Long matchId)
-            throws MatchNotFoundException, ExternalServiceUnavailableException;
+    MatchDTO deleteMatchById(Long matchId) throws MatchNotFoundException;
 }

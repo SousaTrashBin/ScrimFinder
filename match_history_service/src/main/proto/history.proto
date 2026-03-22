@@ -4,9 +4,9 @@ package fc.ul.scrimfinder.grpc;
 
 option java_multiple_files = true;
 option java_package = "fc.ul.scrimfinder.grpc";
-option java_outer_classname = "HistoryProto";
+option java_outer_classname = "MatchHistoryProto";
 
-service HistoryService {
+service MatchHistoryService {
   rpc SaveMatchMMRGains (SaveMatchMMRGainsRequest) returns (SaveMatchMMRGainsResponse) {}
 }
 

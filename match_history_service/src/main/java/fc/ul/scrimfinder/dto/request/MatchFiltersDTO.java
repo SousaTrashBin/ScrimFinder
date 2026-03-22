@@ -6,7 +6,6 @@ import fc.ul.scrimfinder.util.TimeInterval;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.BeanParam;
 import jakarta.ws.rs.QueryParam;
-
 import java.util.List;
 
 public record MatchFiltersDTO(

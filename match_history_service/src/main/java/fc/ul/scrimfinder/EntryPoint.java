@@ -7,5 +7,4 @@ import org.eclipse.microprofile.openapi.annotations.info.Info;
 
 @OpenAPIDefinition(info = @Info(title = "Match History Service", version = "0.0.1"))
 @ApplicationPath("/")
-public class EntryPoint extends Application {
-}
+public class EntryPoint extends Application {}

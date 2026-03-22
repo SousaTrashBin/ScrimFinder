@@ -2,7 +2,6 @@ package fc.ul.scrimfinder.dto.response;
 
 import fc.ul.scrimfinder.dto.request.PlayerStatsDTO;
 import fc.ul.scrimfinder.dto.request.TeamStatsDTO;
-
 import java.time.LocalDateTime;
 import java.util.List;
 

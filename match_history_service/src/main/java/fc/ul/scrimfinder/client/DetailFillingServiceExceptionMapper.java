@@ -1,7 +1,7 @@
 package fc.ul.scrimfinder.client;
 
+import fc.ul.scrimfinder.exception.ExternalServiceUnavailableException;
 import fc.ul.scrimfinder.exception.MatchNotFoundException;
-import fc.ul.scrimfinder.exception.PlayerNotFoundException;
 import fc.ul.scrimfinder.util.ErrorResponse;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
@@ -18,7 +18,7 @@ public class DetailFillingServiceExceptionMapper
 
             return switch (code) {
                 case "MATCH_NOT_FOUND" -> new MatchNotFoundException(message);
-                case "PLAYER_NOT_FOUND" -> new PlayerNotFoundException(message);
+                case "EXTERNAL_SERVICE_UNAVAILABLE" -> new ExternalServiceUnavailableException(message);
                 default -> new RuntimeException("Remote service error: " + message);
             };
         } catch (Exception e) {

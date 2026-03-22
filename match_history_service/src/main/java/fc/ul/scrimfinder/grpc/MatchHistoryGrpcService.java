@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @GrpcService
-public class MatchHistoryGrpcService implements HistoryService {
+public class MatchHistoryGrpcService implements MatchHistoryService {
 
     @Inject fc.ul.scrimfinder.service.MatchHistoryService matchHistoryService;
 

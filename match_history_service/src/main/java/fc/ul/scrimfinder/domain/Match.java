@@ -1,12 +1,11 @@
 package fc.ul.scrimfinder.domain;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
+import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.SoftDelete;
-
-import java.time.LocalDateTime;
-import java.util.List;
 
 @Entity
 @Getter
@@ -39,19 +38,19 @@ public class Match {
 
     @Embedded
     @AttributeOverrides({
-            @AttributeOverride(name = "teamKills", column = @Column(name = "blue_team_kills")),
-            @AttributeOverride(name = "teamDeaths", column = @Column(name = "blue_team_deaths")),
-            @AttributeOverride(name = "teamAssists", column = @Column(name = "blue_team_assists")),
-            @AttributeOverride(name = "teamHealing", column = @Column(name = "blue_team_healing")),
+        @AttributeOverride(name = "teamKills", column = @Column(name = "blue_team_kills")),
+        @AttributeOverride(name = "teamDeaths", column = @Column(name = "blue_team_deaths")),
+        @AttributeOverride(name = "teamAssists", column = @Column(name = "blue_team_assists")),
+        @AttributeOverride(name = "teamHealing", column = @Column(name = "blue_team_healing")),
     })
     private TeamMatchStats blue;
 
     @Embedded
     @AttributeOverrides({
-            @AttributeOverride(name = "teamKills", column = @Column(name = "red_team_kills")),
-            @AttributeOverride(name = "teamDeaths", column = @Column(name = "red_team_deaths")),
-            @AttributeOverride(name = "teamAssists", column = @Column(name = "red_team_assists")),
-            @AttributeOverride(name = "teamHealing", column = @Column(name = "red_team_healing")),
+        @AttributeOverride(name = "teamKills", column = @Column(name = "red_team_kills")),
+        @AttributeOverride(name = "teamDeaths", column = @Column(name = "red_team_deaths")),
+        @AttributeOverride(name = "teamAssists", column = @Column(name = "red_team_assists")),
+        @AttributeOverride(name = "teamHealing", column = @Column(name = "red_team_healing")),
     })
     private TeamMatchStats red;
 }

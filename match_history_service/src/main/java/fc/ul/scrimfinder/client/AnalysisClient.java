@@ -7,8 +7,7 @@ import jakarta.ws.rs.core.MediaType;
 import org.eclipse.microprofile.rest.client.annotation.RegisterProvider;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
-@Path("/api/v1/analysis")
-@RegisterRestClient(configKey = "analysis-api")
+@RegisterRestClient(configKey = "analysis-service")
 @RegisterProvider(AnalysisServiceExceptionMapper.class)
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
