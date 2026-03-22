@@ -1,26 +1,31 @@
 package fc.ul.scrimfinder.domain;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.SoftDelete;
+
+import java.util.List;
 
 @Entity
 @Getter
 @Setter
+@SoftDelete
+@Table(
+        name = "player",
+        uniqueConstraints = {@UniqueConstraint(columnNames = {"name", "tag"})})
 public class Player {
     @Id
-    @Column(nullable = false)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @Column(name = "id", unique = true, nullable = false, updatable = false)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(nullable = false)
+    @Column(name = "tag", nullable = false)
     private String tag;
 
-    private Double cs;
-
-    // TODO
+    @OneToMany(mappedBy = "player", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private List<PlayerMatchStats> playerMatchStats;
 }

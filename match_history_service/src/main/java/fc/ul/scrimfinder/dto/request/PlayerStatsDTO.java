@@ -4,7 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fc.ul.scrimfinder.exception.InvalidRoleException;
 import fc.ul.scrimfinder.exception.InvalidTeamsException;
-import fc.ul.scrimfinder.util.*;
+import fc.ul.scrimfinder.util.Champion;
+import fc.ul.scrimfinder.util.RiotId;
+import fc.ul.scrimfinder.util.Role;
+import fc.ul.scrimfinder.util.TeamSide;
 import io.smallrye.common.constraint.NotNull;
 import jakarta.enterprise.inject.Vetoed;
 import jakarta.validation.Valid;
@@ -23,8 +26,6 @@ import lombok.Setter;
 @Vetoed
 public class PlayerStatsDTO {
     @BeanParam @Valid private RiotId riotId;
-
-    @BeanParam @Valid private Rank rank;
 
     @Min(value = 0, message = "A player can only have more than or equal to 0 kills")
     private Integer kills;
@@ -57,7 +58,7 @@ public class PlayerStatsDTO {
     @BeanParam private Role role;
 
     @QueryParam("champion")
-    private String champion;
+    private Champion champion;
 
     @QueryParam("csPerMinute")
     @Min(value = 0, message = "A player can only have more than or equal to 0 cs per minute")
@@ -101,7 +102,6 @@ public class PlayerStatsDTO {
         }
 
         RiotId riotId = fromJsonToRiotId(playerStats);
-        Rank rank = fromJsonToRank(playerStats);
         Integer kills = fromJsonToKills(playerStats);
         Integer deaths = fromJsonToDeaths(playerStats);
         Integer assists = fromJsonToAssists(playerStats);
@@ -110,7 +110,7 @@ public class PlayerStatsDTO {
         Integer wards = fromJsonToWards(playerStats);
         Integer gold = fromJsonToGold(playerStats);
         Role role = fromJsonToRole(playerStats);
-        String champion = fromJsonToChampion(playerStats);
+        Champion champion = fromJsonToChampion(playerStats);
         Double csPerMinute = fromJsonToCsPerMinute(playerStats);
         Integer killedMinions = fromJsonToKilledMinions(playerStats);
         Integer tripleKills = fromJsonToTripleKills(playerStats);
@@ -122,7 +122,6 @@ public class PlayerStatsDTO {
 
         return new PlayerStatsDTO(
                 riotId,
-                rank,
                 kills,
                 deaths,
                 assists,
@@ -164,14 +163,6 @@ public class PlayerStatsDTO {
         Integer playerIcon = playerIconNode == null ? 0 : playerIconNode.asInt();
 
         return new RiotId(playerName, playerTag, playerIcon);
-    }
-
-    private static Rank fromJsonToRank(JsonNode json) {
-        JsonNode rankNode = json.findValue("rank");
-        if (rankNode == null) {
-            throw new IllegalArgumentException("Rank is required: " + json);
-        }
-        return Rank.valueOf(rankNode.asText());
     }
 
     private static Integer fromJsonToKills(JsonNode json) {
@@ -220,9 +211,9 @@ public class PlayerStatsDTO {
         return role;
     }
 
-    private static String fromJsonToChampion(JsonNode json) {
+    private static Champion fromJsonToChampion(JsonNode json) {
         JsonNode championNode = json.findValue("champion");
-        return championNode == null ? null : championNode.asText();
+        return championNode == null ? null : Champion.fromChampionName(championNode.asText());
     }
 
     private static Integer fromJsonToKilledMinions(JsonNode json) {
