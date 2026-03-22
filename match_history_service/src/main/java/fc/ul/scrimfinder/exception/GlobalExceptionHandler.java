@@ -37,6 +37,13 @@ public class GlobalExceptionHandler {
     }
 
     @ServerExceptionMapper
+    public RestResponse<ErrorResponse> mapException(InvalidExternalJsonFormatException x) {
+        return RestResponse.status(
+                Response.Status.NOT_FOUND,
+                ErrorResponse.builder().code("EXTERNAL_JSON_INVALID").message(x.getMessage()).build());
+    }
+
+    @ServerExceptionMapper
     public RestResponse<ErrorResponse> mapException(ExternalServiceUnavailableException x) {
         return RestResponse.status(
                 Response.Status.NOT_FOUND,

@@ -9,8 +9,10 @@ import java.util.List;
 import java.util.Map;
 
 public interface MatchHistoryService {
-    MatchDTO getMatchById(Long matchId)
-            throws MatchNotFoundException, ExternalServiceUnavailableException;
+    MatchDTO getMatchById(String riotMatchId)
+            throws MatchNotFoundException,
+                    InvalidExternalJsonFormatException,
+                    ExternalServiceUnavailableException;
 
     PaginatedResponseDTO<MatchDTO> getMatches(
             int page, int size, MatchFiltersDTO filterParams, List<SortParamDTO> sortParamDTOS)
@@ -19,5 +21,5 @@ public interface MatchHistoryService {
     MatchDTO addMatchById(String riotMatchId, Map<Long, Integer> mmrDeltas)
             throws MatchAlreadyExistsException, MatchNotFoundException;
 
-    MatchDTO deleteMatchById(Long matchId) throws MatchNotFoundException;
+    MatchDTO deleteMatchById(String riotMatchId) throws MatchNotFoundException;
 }

@@ -78,6 +78,6 @@ public class PlayerMatchStats {
     @Column(name = "won", nullable = false)
     private Boolean won;
 
-    @Column(name = "mmr_delta", nullable = false)
+    @Column(name = "mmr_delta", nullable = true)
     private Integer mmrDelta;
 }

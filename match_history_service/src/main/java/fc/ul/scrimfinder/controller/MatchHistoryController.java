@@ -32,7 +32,7 @@ public class MatchHistoryController {
     @Inject MatchHistoryService matchHistoryService;
 
     @GET
-    @Path("/{matchId}")
+    @Path("/{riotMatchId}")
     @Operation(summary = "Get simplified match information by ID")
     @APIResponses(
             value = {
@@ -58,8 +58,8 @@ public class MatchHistoryController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    public Response getMatchById(@PathParam("matchId") @Positive Long matchId) {
-        MatchDTO match = matchHistoryService.getMatchById(matchId);
+    public Response getMatchById(@PathParam("riotMatchId") @NotBlank String riotMatchId) {
+        MatchDTO match = matchHistoryService.getMatchById(riotMatchId);
         return Response.ok(match).build();
     }
 
@@ -127,7 +127,7 @@ public class MatchHistoryController {
     }
 
     @DELETE
-    @Path("/{matchId}")
+    @Path("/{riotMatchId}")
     @Operation(summary = "Delete a match from history (Internal)")
     @APIResponses(
             value = {
@@ -153,8 +153,8 @@ public class MatchHistoryController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    public Response deleteMatchById(@PathParam("matchId") @Positive Long matchId) {
-        MatchDTO deletedMatch = matchHistoryService.deleteMatchById(matchId);
+    public Response deleteMatchById(@PathParam("riotMatchId") @NotBlank String riotMatchId) {
+        MatchDTO deletedMatch = matchHistoryService.deleteMatchById(riotMatchId);
         return Response.ok(deletedMatch).build();
     }
 }
