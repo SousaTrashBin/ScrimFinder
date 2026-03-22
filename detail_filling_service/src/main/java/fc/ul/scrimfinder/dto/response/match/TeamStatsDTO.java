@@ -7,5 +7,4 @@ public record TeamStatsDTO(
         Integer teamKills,
         Integer teamDeaths,
         Integer teamAssists,
-        Integer teamHealing) {
-}
+        Integer teamHealing) {}

@@ -12,8 +12,7 @@ public class PlayerFillingServiceImpl implements PlayerFillingService {
 
     @Inject RiotAdapterService riotAdapterService;
 
-    @Inject
-    RedisService redisService;
+    @Inject RedisService redisService;
 
     @Override
     public PlayerDTO getFilledPlayer(String name, String tag) {

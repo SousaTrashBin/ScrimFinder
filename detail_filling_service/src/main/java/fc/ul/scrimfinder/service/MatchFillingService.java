@@ -6,17 +6,17 @@ import fc.ul.scrimfinder.exception.*;
 public interface MatchFillingService {
     MatchStatsDTO getFilledMatch(String matchId)
             throws MatchNotFoundException,
-            InvalidMatchFormatException,
-            InvalidPlayerFormatException,
-            InvalidTeamFormatException,
-            UnauthorizedException,
-            ExternalServiceUnavailableException;
+                    InvalidMatchFormatException,
+                    InvalidPlayerFormatException,
+                    InvalidTeamFormatException,
+                    UnauthorizedException,
+                    ExternalServiceUnavailableException;
 
     String getRawMatchData(String matchId)
             throws MatchNotFoundException,
-            InvalidMatchFormatException,
-            InvalidPlayerFormatException,
-            InvalidTeamFormatException,
-            UnauthorizedException,
-            ExternalServiceUnavailableException;
+                    InvalidMatchFormatException,
+                    InvalidPlayerFormatException,
+                    InvalidTeamFormatException,
+                    UnauthorizedException,
+                    ExternalServiceUnavailableException;
 }

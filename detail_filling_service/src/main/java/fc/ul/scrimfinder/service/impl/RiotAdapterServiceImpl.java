@@ -12,12 +12,11 @@ import fc.ul.scrimfinder.util.JsonNodeFinder;
 import fc.ul.scrimfinder.util.Subregion;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
-
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 @ApplicationScoped
 public class RiotAdapterServiceImpl implements RiotAdapterService {
@@ -28,16 +27,11 @@ public class RiotAdapterServiceImpl implements RiotAdapterService {
 
     @Inject @RestClient RiotMatchServiceClient matchServiceClient;
 
-    @Inject
-    @RestClient
-    RiotRegionServiceClient regionServiceClient;
+    @Inject @RestClient RiotRegionServiceClient regionServiceClient;
 
-    @Inject
-    @RestClient
-    RiotSummonerServiceClient summonerServiceClient;
+    @Inject @RestClient RiotSummonerServiceClient summonerServiceClient;
 
-    @Inject
-    ClientUrlPrefixProvider clientUrlPrefixProvider;
+    @Inject ClientUrlPrefixProvider clientUrlPrefixProvider;
 
     @Override
     public String getRawMatchData(String matchId) {

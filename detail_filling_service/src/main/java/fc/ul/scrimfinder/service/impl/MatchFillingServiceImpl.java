@@ -12,8 +12,7 @@ public class MatchFillingServiceImpl implements MatchFillingService {
 
     @Inject RiotAdapterService riotAdapterService;
 
-    @Inject
-    RedisService redisService;
+    @Inject RedisService redisService;
 
     @Override
     public MatchStatsDTO getFilledMatch(String matchId) {

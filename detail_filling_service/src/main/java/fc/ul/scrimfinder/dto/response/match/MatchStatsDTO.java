@@ -10,5 +10,4 @@ public record MatchStatsDTO(
         LocalDateTime gameCreation,
         Long gameDuration,
         List<PlayerStatsDTO> players,
-        List<TeamStatsDTO> teams) {
-}
+        List<TeamStatsDTO> teams) {}

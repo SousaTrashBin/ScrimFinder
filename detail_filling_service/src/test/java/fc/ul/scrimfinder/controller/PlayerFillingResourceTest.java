@@ -1,5 +1,11 @@
 package fc.ul.scrimfinder.controller;
 
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fc.ul.scrimfinder.client.RiotAccountServiceClient;
@@ -13,44 +19,28 @@ import fc.ul.scrimfinder.util.Tier;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.json.Json;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
-
 @QuarkusTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class PlayerFillingResourceTest {
 
-    @InjectMock
-    @RestClient
-    RiotAccountServiceClient riotAccountServiceClient;
+    @InjectMock @RestClient RiotAccountServiceClient riotAccountServiceClient;
 
-    @InjectMock
-    @RestClient
-    RiotRegionServiceClient riotRegionServiceClient;
+    @InjectMock @RestClient RiotRegionServiceClient riotRegionServiceClient;
 
-    @InjectMock
-    @RestClient
-    RiotSummonerServiceClient riotSummonerServiceClient;
+    @InjectMock @RestClient RiotSummonerServiceClient riotSummonerServiceClient;
 
-    @InjectMock
-    @RestClient
-    RiotPlayerServiceClient riotPlayerServiceClient;
+    @InjectMock @RestClient RiotPlayerServiceClient riotPlayerServiceClient;
 
-    @InjectMock
-    RedisService redisService;
+    @InjectMock RedisService redisService;
 
     @Test
     @Order(1)

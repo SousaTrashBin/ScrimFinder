@@ -7,23 +7,23 @@ import fc.ul.scrimfinder.exception.*;
 public interface RiotAdapterService {
     String getRawMatchData(String matchId)
             throws MatchNotFoundException,
-            InvalidMatchFormatException,
-            InvalidPlayerFormatException,
-            InvalidTeamFormatException,
-            UnauthorizedException,
-            ExternalServiceUnavailableException;
+                    InvalidMatchFormatException,
+                    InvalidPlayerFormatException,
+                    InvalidTeamFormatException,
+                    UnauthorizedException,
+                    ExternalServiceUnavailableException;
 
     MatchStatsDTO getMatchData(String matchId)
             throws MatchNotFoundException,
-            InvalidMatchFormatException,
-            InvalidPlayerFormatException,
-            InvalidTeamFormatException,
-            UnauthorizedException,
-            ExternalServiceUnavailableException;
+                    InvalidMatchFormatException,
+                    InvalidPlayerFormatException,
+                    InvalidTeamFormatException,
+                    UnauthorizedException,
+                    ExternalServiceUnavailableException;
 
     PlayerDTO getPlayerData(String name, String tag)
             throws PlayerNotFoundException,
-            InvalidPlayerFormatException,
-            UnauthorizedException,
-            ExternalServiceUnavailableException;
+                    InvalidPlayerFormatException,
+                    UnauthorizedException,
+                    ExternalServiceUnavailableException;
 }

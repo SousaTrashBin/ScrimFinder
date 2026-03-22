@@ -9,7 +9,7 @@ import fc.ul.scrimfinder.exception.UnauthorizedException;
 public interface PlayerFillingService {
     PlayerDTO getFilledPlayer(String name, String tag)
             throws PlayerNotFoundException,
-            InvalidPlayerFormatException,
-            UnauthorizedException,
-            ExternalServiceUnavailableException;
+                    InvalidPlayerFormatException,
+                    UnauthorizedException,
+                    ExternalServiceUnavailableException;
 }

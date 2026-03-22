@@ -54,14 +54,14 @@ public class PlayerFillingController {
             })
     public Response getFilledPlayer(
             @PathParam("name")
-            @Size(
-                    min = 3,
-                    max = 16,
-                    message = "The player name must have between 3 and 16 characters")
-            String name,
+                    @Size(
+                            min = 3,
+                            max = 16,
+                            message = "The player name must have between 3 and 16 characters")
+                    String name,
             @PathParam("tag")
-            @Size(min = 3, max = 5, message = "The player tag must have between 3 and 5 characters")
-            String tag) {
+                    @Size(min = 3, max = 5, message = "The player tag must have between 3 and 5 characters")
+                    String tag) {
         PlayerDTO player = playerFillingService.getFilledPlayer(name, tag);
         return Response.ok(player).build();
     }

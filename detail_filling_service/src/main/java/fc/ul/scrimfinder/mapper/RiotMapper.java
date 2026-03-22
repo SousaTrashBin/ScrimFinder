@@ -12,7 +12,6 @@ import fc.ul.scrimfinder.exception.InvalidMatchFormatException;
 import fc.ul.scrimfinder.exception.InvalidPlayerFormatException;
 import fc.ul.scrimfinder.exception.InvalidTeamFormatException;
 import fc.ul.scrimfinder.util.*;
-
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -193,8 +192,9 @@ public class RiotMapper {
                 switch (teamId) {
                     case 100 -> TeamSide.BLUE;
                     case 200 -> TeamSide.RED;
-                    default -> throw new InvalidPlayerFormatException(
-                            "Invalid team id from Riot response. Should be 100 or 200. Got: " + teamId);
+                    default ->
+                            throw new InvalidPlayerFormatException(
+                                    "Invalid team id from Riot response. Should be 100 or 200. Got: " + teamId);
                 };
 
         Boolean won =
@@ -234,8 +234,9 @@ public class RiotMapper {
                 switch (teamId) {
                     case 100 -> TeamSide.BLUE;
                     case 200 -> TeamSide.RED;
-                    default -> throw new InvalidTeamFormatException(
-                            "Invalid team id from Riot response. Should be 100 or 200. Got: " + teamId);
+                    default ->
+                            throw new InvalidTeamFormatException(
+                                    "Invalid team id from Riot response. Should be 100 or 200. Got: " + teamId);
                 };
 
         List<PlayerStatsDTO> teamPlayers =

@@ -6,9 +6,8 @@ import fc.ul.scrimfinder.service.RiotAdapterService;
 import io.quarkus.grpc.GrpcService;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
-
 import java.util.stream.Collectors;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 @GrpcService
 public class PlayerGrpcService implements ExternalPlayerFillingService {

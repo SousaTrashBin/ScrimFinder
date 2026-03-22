@@ -6,9 +6,8 @@ import fc.ul.scrimfinder.exception.UnauthorizedException;
 import fc.ul.scrimfinder.util.JsonNodeFinder;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
-import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
-
 import java.util.Objects;
+import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
 
 public class RiotPlayerServiceExceptionMapper implements ResponseExceptionMapper<RuntimeException> {
 

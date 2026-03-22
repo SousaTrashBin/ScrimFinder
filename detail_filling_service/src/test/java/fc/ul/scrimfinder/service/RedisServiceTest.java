@@ -1,5 +1,10 @@
 package fc.ul.scrimfinder.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.AssertionsKt.assertNotNull;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -12,38 +17,28 @@ import fc.ul.scrimfinder.util.*;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
-
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.AssertionsKt.assertNotNull;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 
 @QuarkusTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class RedisServiceTest {
 
-    @Inject
-    MatchFillingService matchFillingService;
+    @Inject MatchFillingService matchFillingService;
 
-    @Inject
-    PlayerFillingService playerFillingService;
+    @Inject PlayerFillingService playerFillingService;
 
-    @Inject
-    RedisService redisService;
+    @Inject RedisService redisService;
 
-    @InjectMock
-    RiotAdapterService riotAdapterService;
+    @InjectMock RiotAdapterService riotAdapterService;
 
     @Test
     @Order(1)

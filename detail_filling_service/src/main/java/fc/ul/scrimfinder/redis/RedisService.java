@@ -9,19 +9,16 @@ import io.quarkus.redis.datasource.keys.KeyCommands;
 import io.quarkus.redis.datasource.value.ValueCommands;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.jboss.logging.Logger;
-
 import java.util.List;
 import java.util.Optional;
+import org.jboss.logging.Logger;
 
 @ApplicationScoped
 public class RedisService {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    @Inject
-    Config config;
-    @Inject
-    Logger logger;
+    @Inject Config config;
+    @Inject Logger logger;
     private KeyCommands<String> keyCommands;
     private ValueCommands<String, String> valueCommands;
 
