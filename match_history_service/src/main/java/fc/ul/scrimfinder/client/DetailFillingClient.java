@@ -12,6 +12,11 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 @Produces(MediaType.APPLICATION_JSON)
 public interface DetailFillingClient {
     @GET
-    @Path("/{matchId}")
+    @Path("matches/{matchId}")
     String getFilledMatch(@PathParam("matchId") @NotBlank String matchId);
+
+    @GET
+    @Path("players/{name}/{tag}")
+    String getFilledPlayer(
+            @PathParam("name") @NotBlank String name, @PathParam("tag") @NotBlank String tag);
 }

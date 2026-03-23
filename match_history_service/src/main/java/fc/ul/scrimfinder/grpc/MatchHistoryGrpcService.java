@@ -13,7 +13,7 @@ public class MatchHistoryGrpcService implements MatchHistoryService {
 
     @Override
     public Uni<SaveMatchMMRGainsResponse> saveMatchMMRGains(SaveMatchMMRGainsRequest request) {
-        Map<Long, Integer> mmrGains =
+        Map<String, Integer> mmrGains =
                 request.getPlayerMMRGainsMap().entrySet().stream()
                         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 

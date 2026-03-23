@@ -44,19 +44,26 @@ public class MatchHistoryController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = MatchDTO.class))),
                 @APIResponse(
-                        responseCode = "400",
-                        description = "Invalid match ID provided",
-                        content =
-                                @Content(
-                                        mediaType = "application/json",
-                                        schema = @Schema(implementation = ErrorResponse.class))),
-                @APIResponse(
                         responseCode = "404",
                         description = "Match not found",
                         content =
                                 @Content(
                                         mediaType = "application/json",
-                                        schema = @Schema(implementation = ErrorResponse.class)))
+                                        schema = @Schema(implementation = ErrorResponse.class))),
+                @APIResponse(
+                        responseCode = "500",
+                        description = "Internal error in communicating with other services",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = ErrorResponse.class))),
+                @APIResponse(
+                        responseCode = "503",
+                        description = "Some of the needed servers cannot process requests",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = ErrorResponse.class))),
             })
     public Response getMatchById(@PathParam("riotMatchId") @NotBlank String riotMatchId) {
         MatchDTO match = matchHistoryService.getMatchById(riotMatchId);
@@ -107,21 +114,24 @@ public class MatchHistoryController {
                                         schema = @Schema(implementation = MatchDTO.class))),
                 @APIResponse(
                         responseCode = "400",
-                        description = "Invalid request payload",
+                        description = "Match already exists in the history",
                         content =
                                 @Content(
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class))),
                 @APIResponse(
                         responseCode = "404",
-                        description = "Match not found",
+                        description =
+                                "Match not found or player not found in the match for the provided MMR delta",
                         content =
                                 @Content(
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     public Response addMatchById(
-            @PathParam("riotMatchId") @NotBlank String riotMatchId, Map<Long, Integer> playerMMRGains) {
+            @PathParam("riotMatchId") @NotBlank String riotMatchId,
+            @Size(min = 10, max = 10, message = "The match must have 10 players")
+                    Map<String, Integer> playerMMRGains) {
         MatchDTO addedMatch = matchHistoryService.addMatchById(riotMatchId, playerMMRGains);
         return Response.status(Response.Status.CREATED).entity(addedMatch).build();
     }

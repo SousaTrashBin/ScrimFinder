@@ -80,4 +80,16 @@ public class PlayerMatchStats {
 
     @Column(name = "mmr_delta", nullable = true)
     private Integer mmrDelta;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof PlayerMatchStats)) return false;
+        return id != null && id.equals(((PlayerMatchStats) o).getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }

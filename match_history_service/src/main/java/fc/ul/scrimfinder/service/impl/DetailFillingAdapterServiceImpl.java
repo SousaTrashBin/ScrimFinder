@@ -25,6 +25,16 @@ public class DetailFillingAdapterServiceImpl implements DetailFillingAdapterServ
         return mapToMatchFromDetailFilling(detailFillingClient.getFilledMatch(riotMatchId));
     }
 
+    @Override
+    public String getPlayerPuuid(String name, String tag) {
+        return mapToPlayerPuuidFromDetailFilling(detailFillingClient.getFilledPlayer(name, tag));
+    }
+
+    @Override
+    public Integer getPlayerIcon(String name, String tag) {
+        return mapToPlayerIconFromDetailFilling(detailFillingClient.getFilledPlayer(name, tag));
+    }
+
     private MatchDTO mapToMatchFromDetailFilling(String json) {
         JsonNodeFinder matchFinder =
                 Objects.requireNonNull(
@@ -258,5 +268,25 @@ public class DetailFillingAdapterServiceImpl implements DetailFillingAdapterServ
                         .asInt();
 
         return new TeamStatsDTO(side, teamKills, teamDeaths, teamAssists, teamHealing);
+    }
+
+    private String mapToPlayerPuuidFromDetailFilling(String json) {
+        return Objects.requireNonNull(
+                        new JsonNodeFinder(null)
+                                .fromStringOrThrow(json, InvalidExternalJsonFormatException.class))
+                .jsonGetOrThrow("account", InvalidExternalJsonFormatException.class)
+                .jsonGetOrThrow("puuid", InvalidExternalJsonFormatException.class)
+                .jsonNode()
+                .asText();
+    }
+
+    private Integer mapToPlayerIconFromDetailFilling(String json) {
+        return Objects.requireNonNull(
+                        new JsonNodeFinder(null)
+                                .fromStringOrThrow(json, InvalidExternalJsonFormatException.class))
+                .jsonGetOrThrow("summoner", InvalidExternalJsonFormatException.class)
+                .jsonGetOrThrow("icon", InvalidExternalJsonFormatException.class)
+                .jsonNode()
+                .asInt();
     }
 }

@@ -50,6 +50,27 @@ public class PlayerFillingController {
                         content =
                                 @Content(
                                         mediaType = "application/json",
+                                        schema = @Schema(implementation = ErrorResponse.class))),
+                @APIResponse(
+                        responseCode = "500",
+                        description = "Internal error communication with Riot - unexpected response format",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = ErrorResponse.class))),
+                @APIResponse(
+                        responseCode = "503",
+                        description = "Riot service unavailable",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = ErrorResponse.class))),
+                @APIResponse(
+                        responseCode = "511",
+                        description = "The server has an invalid/expired API key with Riot",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     public Response getFilledPlayer(

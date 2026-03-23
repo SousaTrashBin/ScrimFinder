@@ -1,6 +1,7 @@
 package fc.ul.scrimfinder.domain;
 
 import jakarta.persistence.*;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
@@ -25,6 +26,20 @@ public class Player {
     @Column(name = "tag", nullable = false)
     private String tag;
 
-    @OneToMany(mappedBy = "player", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private List<PlayerMatchStats> playerMatchStats;
+    @OneToMany(
+            mappedBy = "player",
+            fetch = FetchType.LAZY,
+            cascade = CascadeType.REMOVE,
+            orphanRemoval = true)
+    private List<PlayerMatchStats> playerMatchStats = new ArrayList<>();
+
+    public void addPlayerMatchStat(PlayerMatchStats playerMatchStat) {
+        playerMatchStats.add(playerMatchStat);
+        playerMatchStat.setPlayer(this);
+    }
+
+    public void removePlayerMatchStat(PlayerMatchStats playerMatchStat) {
+        playerMatchStats.remove(playerMatchStat);
+        playerMatchStat.setPlayer(null);
+    }
 }

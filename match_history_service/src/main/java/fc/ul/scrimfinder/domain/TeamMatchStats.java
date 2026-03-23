@@ -1,5 +1,6 @@
 package fc.ul.scrimfinder.domain;
 
+import fc.ul.scrimfinder.util.TeamSide;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import lombok.Getter;
@@ -11,6 +12,9 @@ import org.hibernate.annotations.SoftDelete;
 @Setter
 @SoftDelete
 public class TeamMatchStats {
+    @Column(name = "side", nullable = false)
+    private TeamSide side;
+
     @Column(name = "team_kills", nullable = false)
     private Integer teamKills;
 

@@ -2,6 +2,7 @@ package fc.ul.scrimfinder.domain;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
@@ -33,11 +34,16 @@ public class Match {
     @Column(name = "game_duration", nullable = false)
     private Long gameDuration;
 
-    @OneToMany(mappedBy = "match", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-    private List<PlayerMatchStats> playerMatchStats;
+    @OneToMany(
+            mappedBy = "match",
+            fetch = FetchType.EAGER,
+            cascade = CascadeType.ALL,
+            orphanRemoval = true)
+    private List<PlayerMatchStats> playerMatchStats = new ArrayList<>();
 
     @Embedded
     @AttributeOverrides({
+        @AttributeOverride(name = "side", column = @Column(name = "blue_team_side")),
         @AttributeOverride(name = "teamKills", column = @Column(name = "blue_team_kills")),
         @AttributeOverride(name = "teamDeaths", column = @Column(name = "blue_team_deaths")),
         @AttributeOverride(name = "teamAssists", column = @Column(name = "blue_team_assists")),
@@ -47,10 +53,21 @@ public class Match {
 
     @Embedded
     @AttributeOverrides({
+        @AttributeOverride(name = "side", column = @Column(name = "red_team_side")),
         @AttributeOverride(name = "teamKills", column = @Column(name = "red_team_kills")),
         @AttributeOverride(name = "teamDeaths", column = @Column(name = "red_team_deaths")),
         @AttributeOverride(name = "teamAssists", column = @Column(name = "red_team_assists")),
         @AttributeOverride(name = "teamHealing", column = @Column(name = "red_team_healing")),
     })
     private TeamMatchStats red;
+
+    public void addPlayerMatchStat(PlayerMatchStats playerMatchStat) {
+        playerMatchStats.add(playerMatchStat);
+        playerMatchStat.setMatch(this);
+    }
+
+    public void removePlayerMatchStat(PlayerMatchStats playerMatchStat) {
+        playerMatchStats.remove(playerMatchStat);
+        playerMatchStat.setMatch(null);
+    }
 }

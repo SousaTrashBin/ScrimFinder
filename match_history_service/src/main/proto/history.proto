@@ -12,7 +12,7 @@ service MatchHistoryService {
 
 message SaveMatchMMRGainsRequest {
   string gameId = 1;
-  map<int64, int32> playerMMRGains = 2;
+  map<string, int32> playerMMRGains = 2;
 }
 
 message SaveMatchMMRGainsResponse {

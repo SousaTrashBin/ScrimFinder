@@ -18,8 +18,11 @@ public interface MatchHistoryService {
             int page, int size, MatchFiltersDTO filterParams, List<SortParamDTO> sortParamDTOS)
             throws InvalidIntervalException, InvalidTeamsException;
 
-    MatchDTO addMatchById(String riotMatchId, Map<Long, Integer> mmrDeltas)
-            throws MatchAlreadyExistsException, MatchNotFoundException;
+    MatchDTO addMatchById(String riotMatchId, Map<String, Integer> mmrDeltas)
+            throws MatchAlreadyExistsException,
+                    MatchNotFoundException,
+                    NotEnoughMMRDeltasException,
+                    PlayerNotFoundException;
 
     MatchDTO deleteMatchById(String riotMatchId) throws MatchNotFoundException;
 }
