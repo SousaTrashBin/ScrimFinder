@@ -11,4 +11,8 @@ public class MatchHistoryRepository implements PanacheRepository<Match> {
     public Optional<Match> findByRiotMatchId(String riotMatchId) {
         return find("riotMatchId", riotMatchId).firstResultOptional();
     }
+
+    public boolean deleteByRiotMatchId(String riotMatchId) {
+        return delete("riotMatchId", riotMatchId) > 0;
+    }
 }

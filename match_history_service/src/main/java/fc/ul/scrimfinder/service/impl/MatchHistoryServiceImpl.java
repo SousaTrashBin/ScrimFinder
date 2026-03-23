@@ -97,10 +97,14 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
                             player.setName(name);
                             player.setTag(tag);
 
+                            Optional<Player> maybePlayer = playerRepository.findByNameAndTag(name, tag);
+                            if (maybePlayer.isPresent()) {
+                                player = maybePlayer.get();
+                            }
                             player.addPlayerMatchStat(playerMatchStats);
-                            match.addPlayerMatchStat(playerMatchStats);
-
                             playerRepository.persist(player);
+
+                            match.addPlayerMatchStat(playerMatchStats);
                         });
 
         matchHistoryRepository.persist(match); // cascade to all player stats as well
@@ -112,9 +116,11 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
     }
 
     @Override
-    public MatchDTO deleteMatchById(String riotMatchId)
-            throws MatchNotFoundException, ExternalServiceUnavailableException {
-        // TODO
-        return null;
+    public MatchDTO deleteMatchById(String riotMatchId) {
+        MatchDTO matchDTO = getMatchById(riotMatchId);
+        if (!matchHistoryRepository.deleteByRiotMatchId(riotMatchId)) {
+            throw new RuntimeException("Failed to delete match from history");
+        }
+        return matchDTO;
     }
 }

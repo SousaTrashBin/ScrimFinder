@@ -19,7 +19,7 @@ public class Match {
     @Column(name = "id", unique = true, nullable = false, updatable = false)
     private Long id;
 
-    @Column(name = "riot_match_id", unique = true, nullable = false)
+    @Column(name = "riot_match_id", nullable = false)
     private String riotMatchId;
 
     @Column(name = "queue_id", nullable = false)
