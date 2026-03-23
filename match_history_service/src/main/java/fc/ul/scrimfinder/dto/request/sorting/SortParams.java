@@ -1,12 +1,12 @@
-package fc.ul.scrimfinder.dto.request;
+package fc.ul.scrimfinder.dto.request.sorting;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fc.ul.scrimfinder.util.SortColumn;
 import fc.ul.scrimfinder.util.SortDirection;
 
-public record SortParamDTO(SortColumn column, SortDirection direction) {
-    public static SortParamDTO valueOf(String value) {
+public record SortParams(SortColumn column, SortDirection direction) {
+    public static SortParams valueOf(String value) {
         if (value == null || value.isBlank()) return null;
 
         ObjectMapper mapper = new ObjectMapper();
@@ -33,6 +33,6 @@ public record SortParamDTO(SortColumn column, SortDirection direction) {
             }
         }
 
-        return new SortParamDTO(column, direction);
+        return new SortParams(column, direction);
     }
 }

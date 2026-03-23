@@ -3,8 +3,8 @@ package fc.ul.scrimfinder.service.impl;
 import fc.ul.scrimfinder.domain.Match;
 import fc.ul.scrimfinder.domain.Player;
 import fc.ul.scrimfinder.domain.PlayerMatchStats;
-import fc.ul.scrimfinder.dto.request.MatchFiltersDTO;
-import fc.ul.scrimfinder.dto.request.SortParamDTO;
+import fc.ul.scrimfinder.dto.request.filtering.MatchFilters;
+import fc.ul.scrimfinder.dto.request.sorting.SortParams;
 import fc.ul.scrimfinder.dto.response.MatchDTO;
 import fc.ul.scrimfinder.dto.response.PaginatedResponseDTO;
 import fc.ul.scrimfinder.exception.*;
@@ -53,7 +53,7 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
 
     @Override
     public PaginatedResponseDTO<MatchDTO> getMatches(
-            int page, int size, MatchFiltersDTO filterParams, List<SortParamDTO> sortParamDTOS) {
+            int page, int size, MatchFilters filterParams, List<SortParams> sortParams) {
         // TODO
         return null;
     }

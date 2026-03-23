@@ -7,12 +7,7 @@ import fc.ul.scrimfinder.util.Champion;
 import fc.ul.scrimfinder.util.RiotId;
 import fc.ul.scrimfinder.util.Role;
 import fc.ul.scrimfinder.util.TeamSide;
-import io.smallrye.common.constraint.NotNull;
 import jakarta.enterprise.inject.Vetoed;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.Min;
-import jakarta.ws.rs.BeanParam;
-import jakarta.ws.rs.QueryParam;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -24,69 +19,23 @@ import lombok.Setter;
 @Setter
 @Vetoed
 public class PlayerStatsDTO {
-    @BeanParam @Valid private RiotId riotId;
-
-    @Min(value = 0, message = "A player can only have more than or equal to 0 kills")
+    private RiotId riotId;
     private Integer kills;
-
-    @Min(value = 0, message = "A player can only have more than or equal to 0 deaths")
     private Integer deaths;
-
-    @QueryParam("assists")
-    @Min(value = 0, message = "A player can only have more than or equal to 0 assists")
     private Integer assists;
-
-    @QueryParam("healing")
-    @Min(value = 0, message = "A player can only have more than or equal to 0 healing")
     private Integer healing;
-
-    @QueryParam("damageToPlayers")
-    @Min(
-            value = 0,
-            message = "A player can only have more than or equal to 0 damage dealt to players")
     private Integer damageToPlayers;
-
-    @QueryParam("wards")
-    @Min(value = 0, message = "A player can only place more than or equal to 0 wards")
     private Integer wards;
-
-    @QueryParam("gold")
-    @Min(value = 0, message = "A player can only have more than or equal to 0 gold")
     private Integer gold;
-
-    @BeanParam private Role role;
-
-    @QueryParam("champion")
+    private Role role;
     private Champion champion;
-
-    @QueryParam("csPerMinute")
-    @Min(value = 0, message = "A player can only have more than or equal to 0 cs per minute")
     private Double csPerMinute;
-
-    @QueryParam("killedMinions")
-    @Min(value = 0, message = "A player can only have more than or equal to 0 killed minions")
     private Integer killedMinions;
-
-    @QueryParam("tripleKills")
-    @Min(value = 0, message = "A player can only have more than or equal to 0 triple kills")
     private Integer tripleKills;
-
-    @QueryParam("quadKills")
-    @Min(value = 0, message = "A player can only have more than or equal to 0 quad kills")
     private Integer quadKills;
-
-    @QueryParam("pentaKills")
-    @Min(value = 0, message = "A player can only have more than or equal to 0 penta kills")
     private Integer pentaKills;
-
-    @QueryParam("side")
     private TeamSide side;
-
-    @QueryParam("won")
-    @NotNull
     private Boolean won;
-
-    @QueryParam("mmrDelta")
     private Integer mmrDelta;
 
     public static PlayerStatsDTO valueOf(String value) {

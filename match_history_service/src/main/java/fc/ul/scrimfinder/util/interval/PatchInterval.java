@@ -1,6 +1,5 @@
-package fc.ul.scrimfinder.util;
+package fc.ul.scrimfinder.util.interval;
 
-import jakarta.enterprise.inject.Vetoed;
 import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.QueryParam;
 import lombok.AllArgsConstructor;
@@ -12,17 +11,16 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Vetoed
 public class PatchInterval {
     @QueryParam("sincePatch")
     @Pattern(
             regexp = "\\d+\\.\\d+",
             message = "Match patch must have the form X.X with X being any number")
-    private String sincePatch;
+    private String min;
 
     @QueryParam("untilPatch")
     @Pattern(
             regexp = "\\d+\\.\\d+",
             message = "Match patch must have the form X.X with X being any number")
-    private String untilPatch;
+    private String max;
 }

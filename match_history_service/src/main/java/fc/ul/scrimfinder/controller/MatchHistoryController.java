@@ -1,7 +1,7 @@
 package fc.ul.scrimfinder.controller;
 
-import fc.ul.scrimfinder.dto.request.MatchFiltersDTO;
-import fc.ul.scrimfinder.dto.request.SortParamDTO;
+import fc.ul.scrimfinder.dto.request.filtering.MatchFilters;
+import fc.ul.scrimfinder.dto.request.sorting.SortParams;
 import fc.ul.scrimfinder.dto.response.MatchDTO;
 import fc.ul.scrimfinder.dto.response.PaginatedResponseDTO;
 import fc.ul.scrimfinder.service.MatchHistoryService;
@@ -92,10 +92,10 @@ public class MatchHistoryController {
     public Response getMatches(
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("size") @DefaultValue("20") @Min(0) @Max(100) int size,
-            @BeanParam @Valid MatchFiltersDTO filterParams,
-            @QueryParam("sort") List<SortParamDTO> sortParamDTOS) {
+            @BeanParam @Valid MatchFilters filterParams,
+            @QueryParam("sort") List<SortParams> sortParams) {
         PaginatedResponseDTO<MatchDTO> matches =
-                matchHistoryService.getMatches(page, size, filterParams, sortParamDTOS);
+                matchHistoryService.getMatches(page, size, filterParams, sortParams);
         return Response.ok(matches).build();
     }
 

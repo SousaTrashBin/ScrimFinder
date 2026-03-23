@@ -1,7 +1,7 @@
 package fc.ul.scrimfinder.service;
 
-import fc.ul.scrimfinder.dto.request.MatchFiltersDTO;
-import fc.ul.scrimfinder.dto.request.SortParamDTO;
+import fc.ul.scrimfinder.dto.request.filtering.MatchFilters;
+import fc.ul.scrimfinder.dto.request.sorting.SortParams;
 import fc.ul.scrimfinder.dto.response.MatchDTO;
 import fc.ul.scrimfinder.dto.response.PaginatedResponseDTO;
 import fc.ul.scrimfinder.exception.*;
@@ -15,7 +15,7 @@ public interface MatchHistoryService {
                     ExternalServiceUnavailableException;
 
     PaginatedResponseDTO<MatchDTO> getMatches(
-            int page, int size, MatchFiltersDTO filterParams, List<SortParamDTO> sortParamDTOS)
+            int page, int size, MatchFilters filterParams, List<SortParams> sortParams)
             throws InvalidIntervalException, InvalidTeamsException;
 
     MatchDTO addMatchById(String riotMatchId, Map<String, Integer> mmrDeltas)

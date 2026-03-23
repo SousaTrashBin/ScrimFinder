@@ -4,23 +4,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fc.ul.scrimfinder.exception.InvalidTeamsException;
 import fc.ul.scrimfinder.util.TeamSide;
-import jakarta.validation.constraints.Min;
-import jakarta.ws.rs.QueryParam;
 
 public record TeamStatsDTO(
-        @QueryParam("side") TeamSide side,
-        @QueryParam("teamKills")
-                @Min(value = 0, message = "A team can only have more than or equal to 0 kills")
-                Integer teamKills,
-        @QueryParam("teamDeaths")
-                @Min(value = 0, message = "A team can only have more than or equal to 0 deaths")
-                Integer teamDeaths,
-        @QueryParam("teamAssists")
-                @Min(value = 0, message = "A team can only have more than or equal to 0 assists")
-                Integer teamAssists,
-        @QueryParam("teamHealing")
-                @Min(value = 0, message = "A team can only have more than or equal to 0 healing")
-                Integer teamHealing) {
+        TeamSide side,
+        Integer teamKills,
+        Integer teamDeaths,
+        Integer teamAssists,
+        Integer teamHealing) {
+
     public static TeamStatsDTO valueOf(String value) {
         if (value == null || value.isBlank()) return null;
 
