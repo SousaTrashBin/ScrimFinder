@@ -42,8 +42,8 @@ public class TeamFilters {
             throw new IllegalArgumentException("Invalid team object format: " + value);
         }
 
-        TeamSide teamSide =
-                fromJsonToField(teamStats, "teamSide", node -> TeamSide.fromTeamSideName(node.asText()));
+        TeamSide side =
+                fromJsonToField(teamStats, "side", node -> TeamSide.fromTeamSideName(node.asText()));
         NumberInterval teamKills = fromJsonToField(teamStats, "teamKills", TeamFilters::getMinMaxInt);
         NumberInterval teamDeaths = fromJsonToField(teamStats, "teamDeaths", TeamFilters::getMinMaxInt);
         NumberInterval teamAssists =
@@ -51,7 +51,7 @@ public class TeamFilters {
         NumberInterval teamHealing =
                 fromJsonToField(teamStats, "teamHealing", TeamFilters::getMinMaxInt);
 
-        return new TeamFilters(teamSide, teamKills, teamDeaths, teamAssists, teamHealing);
+        return new TeamFilters(side, teamKills, teamDeaths, teamAssists, teamHealing);
     }
 
     private static <T> T fromJsonToField(JsonNode json, String field, Function<JsonNode, T> toField) {

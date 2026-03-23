@@ -15,6 +15,7 @@ import fc.ul.scrimfinder.repository.PlayerMatchStatsRepository;
 import fc.ul.scrimfinder.repository.PlayerRepository;
 import fc.ul.scrimfinder.service.AnalysisAdapterService;
 import fc.ul.scrimfinder.service.DetailFillingAdapterService;
+import fc.ul.scrimfinder.service.MatchFilterSorterService;
 import fc.ul.scrimfinder.service.MatchHistoryService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -27,6 +28,8 @@ import org.jboss.logging.Logger;
 @ApplicationScoped
 @Transactional
 public class MatchHistoryServiceImpl implements MatchHistoryService {
+    @Inject MatchFilterSorterService matchFilterSorterService;
+
     @Inject DetailFillingAdapterService detailFillingAdapterService;
 
     @Inject AnalysisAdapterService analysisAdapterService;
@@ -54,8 +57,7 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
     @Override
     public PaginatedResponseDTO<MatchDTO> getMatches(
             int page, int size, MatchFilters filterParams, List<SortParams> sortParams) {
-        // TODO
-        return null;
+        return matchFilterSorterService.filterSortMatches(page, size, filterParams, sortParams);
     }
 
     @Override

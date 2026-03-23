@@ -23,10 +23,24 @@ public class GlobalExceptionHandler {
     }
 
     @ServerExceptionMapper
+    public RestResponse<ErrorResponse> mapException(InvalidPaginationParametersException x) {
+        return RestResponse.status(
+                Response.Status.BAD_REQUEST,
+                ErrorResponse.builder().code("PAGINATION_INVALID").message(x.getMessage()).build());
+    }
+
+    @ServerExceptionMapper
     public RestResponse<ErrorResponse> mapException(InvalidIntervalException x) {
         return RestResponse.status(
                 Response.Status.BAD_REQUEST,
                 ErrorResponse.builder().code("INTERVAL_INVALID").message(x.getMessage()).build());
+    }
+
+    @ServerExceptionMapper
+    public RestResponse<ErrorResponse> mapException(InvalidPlayersException x) {
+        return RestResponse.status(
+                Response.Status.BAD_REQUEST,
+                ErrorResponse.builder().code("PLAYERS_INVALID").message(x.getMessage()).build());
     }
 
     @ServerExceptionMapper
