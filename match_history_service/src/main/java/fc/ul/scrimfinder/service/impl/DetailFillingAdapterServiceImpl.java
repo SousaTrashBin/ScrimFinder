@@ -10,7 +10,6 @@ import fc.ul.scrimfinder.service.DetailFillingAdapterService;
 import fc.ul.scrimfinder.util.*;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.StreamSupport;
@@ -59,12 +58,11 @@ public class DetailFillingAdapterServiceImpl implements DetailFillingAdapterServ
                         .jsonNode()
                         .asText();
 
-        LocalDateTime gameCreation =
-                LocalDateTime.parse(
-                        matchFinder
-                                .jsonGetOrThrow("gameCreation", InvalidExternalJsonFormatException.class)
-                                .jsonNode()
-                                .asText());
+        Long gameCreation =
+                matchFinder
+                        .jsonGetOrThrow("gameCreation", InvalidExternalJsonFormatException.class)
+                        .jsonNode()
+                        .asLong();
 
         Long gameDuration =
                 matchFinder

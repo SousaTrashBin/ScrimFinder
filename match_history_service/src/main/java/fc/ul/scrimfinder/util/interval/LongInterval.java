@@ -1,7 +1,6 @@
 package fc.ul.scrimfinder.util.interval;
 
 import jakarta.ws.rs.QueryParam;
-import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -11,10 +10,10 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class TimeInterval {
-    @QueryParam("since")
-    private LocalDateTime min;
+public class LongInterval implements Interval<Long> {
+    @QueryParam("min")
+    private Long min;
 
-    @QueryParam("until")
-    private LocalDateTime max;
+    @QueryParam("max")
+    private Long max;
 }

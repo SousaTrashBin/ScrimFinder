@@ -3,7 +3,7 @@ package fc.ul.scrimfinder.dto.request.filtering;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fc.ul.scrimfinder.util.TeamSide;
-import fc.ul.scrimfinder.util.interval.NumberInterval;
+import fc.ul.scrimfinder.util.interval.IntegerInterval;
 import jakarta.ws.rs.QueryParam;
 import java.util.function.Function;
 import lombok.AllArgsConstructor;
@@ -20,16 +20,16 @@ public class TeamFilters {
     private TeamSide side;
 
     @QueryParam("teamKills")
-    private NumberInterval teamKills;
+    private IntegerInterval teamKills;
 
     @QueryParam("teamDeaths")
-    private NumberInterval teamDeaths;
+    private IntegerInterval teamDeaths;
 
     @QueryParam("teamAssists")
-    private NumberInterval teamAssists;
+    private IntegerInterval teamAssists;
 
     @QueryParam("teamHealing")
-    private NumberInterval teamHealing;
+    private IntegerInterval teamHealing;
 
     public static TeamFilters valueOf(String value) {
         if (value == null || value.isBlank()) return null;
@@ -44,11 +44,12 @@ public class TeamFilters {
 
         TeamSide side =
                 fromJsonToField(teamStats, "side", node -> TeamSide.fromTeamSideName(node.asText()));
-        NumberInterval teamKills = fromJsonToField(teamStats, "teamKills", TeamFilters::getMinMaxInt);
-        NumberInterval teamDeaths = fromJsonToField(teamStats, "teamDeaths", TeamFilters::getMinMaxInt);
-        NumberInterval teamAssists =
+        IntegerInterval teamKills = fromJsonToField(teamStats, "teamKills", TeamFilters::getMinMaxInt);
+        IntegerInterval teamDeaths =
+                fromJsonToField(teamStats, "teamDeaths", TeamFilters::getMinMaxInt);
+        IntegerInterval teamAssists =
                 fromJsonToField(teamStats, "teamAssists", TeamFilters::getMinMaxInt);
-        NumberInterval teamHealing =
+        IntegerInterval teamHealing =
                 fromJsonToField(teamStats, "teamHealing", TeamFilters::getMinMaxInt);
 
         return new TeamFilters(side, teamKills, teamDeaths, teamAssists, teamHealing);
@@ -59,8 +60,8 @@ public class TeamFilters {
         return targetNode == null ? null : toField.apply(targetNode);
     }
 
-    private static NumberInterval getMinMaxInt(JsonNode json) {
-        return new NumberInterval(
+    private static IntegerInterval getMinMaxInt(JsonNode json) {
+        return new IntegerInterval(
                 fromJsonToField(json, "min", JsonNode::asInt),
                 fromJsonToField(json, "max", JsonNode::asInt));
     }

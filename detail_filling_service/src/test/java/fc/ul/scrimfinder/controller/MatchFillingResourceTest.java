@@ -21,9 +21,6 @@ import fc.ul.scrimfinder.util.TeamSide;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.json.Json;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -170,13 +167,7 @@ public class MatchFillingResourceTest {
 
         final MatchStatsDTO matchStatsDTO =
                 new MatchStatsDTO(
-                        matchId,
-                        1L,
-                        "15.5",
-                        LocalDateTime.ofInstant(Instant.ofEpochMilli(100000L), ZoneId.systemDefault()),
-                        1000L,
-                        playerStatsDTOList,
-                        teamStatsDTOList);
+                        matchId, 1L, "15.5", 100000L, 1000L, playerStatsDTOList, teamStatsDTOList);
 
         when(riotMatchServiceClient.getMatch(anyString())).thenReturn(matchRiotDTO);
         when(redisService.get(anyString(), any())).thenReturn(Optional.empty());

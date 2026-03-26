@@ -17,9 +17,6 @@ import fc.ul.scrimfinder.util.*;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -100,13 +97,7 @@ public class RedisServiceTest {
 
         final MatchStatsDTO matchStatsDTO =
                 new MatchStatsDTO(
-                        matchId,
-                        1L,
-                        "15.5",
-                        LocalDateTime.ofInstant(Instant.ofEpochMilli(100000L), ZoneId.systemDefault()),
-                        1000L,
-                        playerStatsDTOList,
-                        teamStatsDTOList);
+                        matchId, 1L, "15.5", 100000L, 1000L, playerStatsDTOList, teamStatsDTOList);
 
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());

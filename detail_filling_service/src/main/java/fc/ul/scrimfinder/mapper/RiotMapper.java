@@ -12,9 +12,6 @@ import fc.ul.scrimfinder.exception.InvalidMatchFormatException;
 import fc.ul.scrimfinder.exception.InvalidPlayerFormatException;
 import fc.ul.scrimfinder.exception.InvalidTeamFormatException;
 import fc.ul.scrimfinder.util.*;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.StreamSupport;
@@ -49,13 +46,11 @@ public class RiotMapper {
         }
         String patch = String.format("%s.%s", gameVersionElements[0], gameVersionElements[1]);
 
-        long gameCreationMillis =
+        Long gameCreation =
                 jsonNodeFinder
                         .jsonGetOrThrow("gameStartTimestamp", InvalidMatchFormatException.class)
                         .jsonNode()
                         .asLong();
-        LocalDateTime gameCreation =
-                LocalDateTime.ofInstant(Instant.ofEpochMilli(gameCreationMillis), ZoneId.systemDefault());
 
         Long gameDuration =
                 jsonNodeFinder

@@ -1,8 +1,8 @@
 package fc.ul.scrimfinder.dto.request.filtering;
 
 import fc.ul.scrimfinder.util.Champion;
+import fc.ul.scrimfinder.util.interval.LongInterval;
 import fc.ul.scrimfinder.util.interval.PatchInterval;
-import fc.ul.scrimfinder.util.interval.TimeInterval;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 import jakarta.ws.rs.BeanParam;
@@ -23,7 +23,7 @@ public class MatchFilters {
     private List<Champion> champions;
 
     @BeanParam @Valid private PatchInterval patch;
-    @BeanParam @Valid private TimeInterval time;
+    @BeanParam @Valid private LongInterval time;
 
     @QueryParam("players")
     @Size(max = 10, message = "There can be no more than 10 players in a match")

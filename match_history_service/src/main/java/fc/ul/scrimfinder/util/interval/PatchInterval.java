@@ -11,7 +11,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class PatchInterval {
+public class PatchInterval implements Interval<String> {
     @QueryParam("sincePatch")
     @Pattern(
             regexp = "\\d+\\.\\d+",

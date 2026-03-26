@@ -1,7 +1,6 @@
 package fc.ul.scrimfinder.domain;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Getter;
@@ -29,7 +28,7 @@ public class Match {
     private String patch;
 
     @Column(name = "game_creation", nullable = false)
-    private LocalDateTime gameCreation;
+    private Long gameCreation;
 
     @Column(name = "game_duration", nullable = false)
     private Long gameDuration;

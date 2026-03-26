@@ -7,9 +7,8 @@ import fc.ul.scrimfinder.exception.InvalidIntervalException;
 import fc.ul.scrimfinder.exception.InvalidPaginationParametersException;
 import fc.ul.scrimfinder.exception.InvalidPlayersException;
 import fc.ul.scrimfinder.exception.InvalidTeamsException;
-import fc.ul.scrimfinder.util.interval.NumberInterval;
+import fc.ul.scrimfinder.util.interval.Interval;
 import fc.ul.scrimfinder.util.interval.PatchInterval;
-import fc.ul.scrimfinder.util.interval.TimeInterval;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
@@ -19,7 +18,7 @@ public class FilterValidator {
     public static void validateInput(int page, int size, MatchFilters filterParams) {
         validatePagination(page, size);
         validatePatch(filterParams.getPatch());
-        validateTime(filterParams.getTime());
+        validateInterval(filterParams.getTime(), "time");
         validatePlayers(filterParams.getPlayers());
         validateTeams(filterParams.getTeams());
     }
@@ -51,18 +50,6 @@ public class FilterValidator {
                                 "The minimum patch (%s) must be older than the maximum patch (%s)",
                                 patch.getMin(), patch.getMax()));
             }
-        }
-    }
-
-    private static void validateTime(TimeInterval time) {
-        if (time == null || time.getMin() == null || time.getMax() == null) {
-            return;
-        }
-        if (time.getMin().isAfter(time.getMax())) {
-            throw new InvalidIntervalException(
-                    String.format(
-                            "The minimum time (%s) must be older than the maximum time (%s)",
-                            time.getMin(), time.getMax()));
         }
     }
 
@@ -110,7 +97,7 @@ public class FilterValidator {
                 });
     }
 
-    private static void validateInterval(NumberInterval interval, String name) {
+    private static void validateInterval(Interval<?> interval, String name) {
         if (interval == null || interval.getMin() == null || interval.getMax() == null) {
             return;
         }

@@ -10,10 +10,10 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class NumberInterval {
+public class DoubleInterval implements Interval<Double> {
     @QueryParam("min")
-    private Number min;
+    private Double min;
 
     @QueryParam("max")
-    private Number max;
+    private Double max;
 }
