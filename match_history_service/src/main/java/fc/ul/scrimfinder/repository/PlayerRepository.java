@@ -11,9 +11,13 @@ import java.util.Optional;
 public class PlayerRepository implements PanacheRepository<Player> {
 
     public void persistIfNotExists(Player player) {
-        if (findByNameAndTag(player.getName(), player.getTag()).isEmpty()) {
+        if (findByPuuid(player.getPuuid()).isEmpty()) {
             persist(player);
         }
+    }
+
+    public Optional<Player> findByPuuid(String puuid) {
+        return find("puuid = ?1", puuid).firstResultOptional();
     }
 
     public Optional<Player> findByNameAndTag(String name, String tag) {

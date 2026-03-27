@@ -110,6 +110,14 @@ public class MatchHistoryRepository implements PanacheRepository<Match> {
             Map<String, Object> parameters) {
         withPrefixAnd =
                 addEqualCondition(
+                        "puuid" + suffix,
+                        playerFilters.getPuuid(),
+                        "p.puuid",
+                        withPrefixAnd,
+                        queryBuilder,
+                        parameters);
+        withPrefixAnd =
+                addEqualCondition(
                         "playerName" + suffix,
                         playerFilters.getPlayerName(),
                         "p.name",

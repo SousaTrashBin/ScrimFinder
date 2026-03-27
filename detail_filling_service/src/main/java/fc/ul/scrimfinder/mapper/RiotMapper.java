@@ -79,6 +79,12 @@ public class RiotMapper {
     public static PlayerStatsDTO toPlayerStatsDTO(JsonNode player) {
         JsonNodeFinder playerNodeFinder = new JsonNodeFinder(player);
 
+        String puuid =
+                playerNodeFinder
+                        .jsonGetOrThrow("puuid", InvalidPlayerFormatException.class)
+                        .jsonNode()
+                        .asText();
+
         String playerName =
                 playerNodeFinder
                         .jsonGetOrThrow("riotIdGameName", InvalidPlayerFormatException.class)
@@ -97,7 +103,7 @@ public class RiotMapper {
                         .jsonNode()
                         .asInt();
 
-        RiotId riotId = new RiotId(playerName, playerTag, playerIcon);
+        RiotId riotId = new RiotId(puuid, playerName, playerTag, playerIcon);
 
         Integer kills =
                 playerNodeFinder

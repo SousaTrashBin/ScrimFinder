@@ -94,6 +94,12 @@ public class DetailFillingAdapterServiceImpl implements DetailFillingAdapterServ
         JsonNodeFinder riotIdNodeFinder =
                 playerNodeFinder.jsonGetOrThrow("riotId", InvalidExternalJsonFormatException.class);
 
+        String puuid =
+                riotIdNodeFinder
+                        .jsonGetOrThrow("puuid", InvalidExternalJsonFormatException.class)
+                        .jsonNode()
+                        .asText();
+
         String playerName =
                 riotIdNodeFinder
                         .jsonGetOrThrow("playerName", InvalidExternalJsonFormatException.class)
@@ -112,7 +118,7 @@ public class DetailFillingAdapterServiceImpl implements DetailFillingAdapterServ
                         .jsonNode()
                         .asInt();
 
-        RiotId riotId = new RiotId(playerName, playerTag, playerIcon);
+        RiotId riotId = new RiotId(puuid, playerName, playerTag, playerIcon);
 
         Integer kills =
                 playerNodeFinder

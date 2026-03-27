@@ -78,9 +78,9 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
                 .players()
                 .forEach(
                         playerStatsDTO -> {
+                            String puuid = playerStatsDTO.getRiotId().getPuuid();
                             String name = playerStatsDTO.getRiotId().getPlayerName();
                             String tag = playerStatsDTO.getRiotId().getPlayerTag();
-                            String puuid = detailFillingAdapterService.getPlayerPuuid(name, tag);
                             playerStatsDTO.setMmrDelta(playerMMRGains.getOrDefault(puuid, null));
 
                             if (playerStatsDTO.getMmrDelta() == null) {
@@ -93,10 +93,11 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
                                     playerMatchStatsMapper.dtoToPlayerMatchStats(playerStatsDTO);
 
                             Player player = new Player();
+                            player.setPuuid(puuid);
                             player.setName(name);
                             player.setTag(tag);
 
-                            Optional<Player> maybePlayer = playerRepository.findByNameAndTag(name, tag);
+                            Optional<Player> maybePlayer = playerRepository.findByPuuid(puuid);
                             if (maybePlayer.isPresent()) {
                                 player = maybePlayer.get();
                             }

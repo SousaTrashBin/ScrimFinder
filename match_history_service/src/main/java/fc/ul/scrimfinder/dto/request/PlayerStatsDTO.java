@@ -95,6 +95,12 @@ public class PlayerStatsDTO {
             throw new IllegalArgumentException("Riot ID is required: " + json);
         }
 
+        JsonNode puuidNode = riotIdNode.findValue("puuid");
+        if (puuidNode == null) {
+            throw new IllegalArgumentException("Puuid is required: " + json);
+        }
+        String puuid = puuidNode.asText();
+
         JsonNode playerNameNode = riotIdNode.findValue("playerName");
         if (playerNameNode == null) {
             throw new IllegalArgumentException("Player name is required: " + json);
@@ -110,7 +116,7 @@ public class PlayerStatsDTO {
         JsonNode playerIconNode = riotIdNode.findValue("playerIcon");
         Integer playerIcon = playerIconNode == null ? 0 : playerIconNode.asInt();
 
-        return new RiotId(playerName, playerTag, playerIcon);
+        return new RiotId(puuid, playerName, playerTag, playerIcon);
     }
 
     private static Integer fromJsonToKills(JsonNode json) {

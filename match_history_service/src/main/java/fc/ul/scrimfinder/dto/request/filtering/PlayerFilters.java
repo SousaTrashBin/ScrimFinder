@@ -18,6 +18,7 @@ import lombok.*;
 @Getter
 @Setter
 public class PlayerFilters {
+    private String puuid;
     private String playerName;
     private String playerTag;
     private IntegerInterval kills;
@@ -49,6 +50,7 @@ public class PlayerFilters {
             throw new IllegalArgumentException("Invalid player object format: " + value);
         }
 
+        String puuid = fromJsonToField(playerFilters, "puuid", JsonNode::asText);
         String playerName = fromJsonToField(playerFilters, "playerName", JsonNode::asText);
         String playerTag = fromJsonToField(playerFilters, "playerTag", JsonNode::asText);
         IntegerInterval kills = fromJsonToField(playerFilters, "kills", PlayerFilters::getMinMaxInt);
@@ -88,6 +90,7 @@ public class PlayerFilters {
                 fromJsonToField(playerFilters, "mmrDelta", PlayerFilters::getMinMaxInt);
 
         return new PlayerFilters(
+                puuid,
                 playerName,
                 playerTag,
                 kills,

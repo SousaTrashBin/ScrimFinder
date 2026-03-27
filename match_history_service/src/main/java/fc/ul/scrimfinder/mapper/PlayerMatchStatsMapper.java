@@ -39,6 +39,7 @@ public abstract class PlayerMatchStatsMapper {
 
     RiotId buildRiotId(Player player) {
         return new RiotId(
+                player.getPuuid(),
                 player.getName(),
                 player.getTag(),
                 detailFillingAdapterService.getPlayerIcon(player.getName(), player.getTag()));

@@ -20,6 +20,9 @@ public class Player {
     @Column(name = "id", unique = true, nullable = false, updatable = false)
     private Long id;
 
+    @Column(name = "puuid", unique = true, nullable = false, updatable = false, length = 78)
+    private String puuid;
+
     @Column(name = "name", nullable = false, length = 16)
     private String name;
 

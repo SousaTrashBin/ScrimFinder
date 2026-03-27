@@ -73,6 +73,7 @@ public class MatchFillingResourceTest {
                                                 Json.createArrayBuilder()
                                                         .add(
                                                                 Json.createObjectBuilder()
+                                                                        .add("puuid", "puuid1")
                                                                         .add("riotIdGameName", "kung")
                                                                         .add("riotIdTagline", "foo")
                                                                         .add("profileIcon", 1L)
@@ -94,6 +95,7 @@ public class MatchFillingResourceTest {
                                                                         .build())
                                                         .add(
                                                                 Json.createObjectBuilder()
+                                                                        .add("puuid", "puuid2")
                                                                         .add("riotIdGameName", "TaiLung")
                                                                         .add("riotIdTagline", "nofoo")
                                                                         .add("profileIcon", 2L)
@@ -126,7 +128,7 @@ public class MatchFillingResourceTest {
         final List<PlayerStatsDTO> playerStatsDTOList =
                 List.of(
                         new PlayerStatsDTO(
-                                new RiotId("kung", "foo", 1),
+                                new RiotId("puuid1", "kung", "foo", 1),
                                 27,
                                 30,
                                 5,
@@ -143,7 +145,7 @@ public class MatchFillingResourceTest {
                                 TeamSide.BLUE,
                                 true),
                         new PlayerStatsDTO(
-                                new RiotId("TaiLung", "nofoo", 2),
+                                new RiotId("puuid2", "TaiLung", "nofoo", 2),
                                 5,
                                 30,
                                 5,
