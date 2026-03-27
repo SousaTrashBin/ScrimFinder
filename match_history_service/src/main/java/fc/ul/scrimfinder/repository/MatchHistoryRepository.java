@@ -7,19 +7,17 @@ import fc.ul.scrimfinder.dto.request.filtering.TeamFilters;
 import fc.ul.scrimfinder.dto.request.sorting.SortParams;
 import fc.ul.scrimfinder.dto.response.PaginatedResponseDTO;
 import fc.ul.scrimfinder.util.Champion;
+import fc.ul.scrimfinder.util.SortColumn;
+import fc.ul.scrimfinder.util.SortDirection;
 import fc.ul.scrimfinder.util.TeamSide;
 import fc.ul.scrimfinder.util.interval.Interval;
 import io.quarkus.hibernate.orm.panache.PanacheRepository;
 import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import java.util.*;
-import org.jboss.logging.Logger;
 
 @ApplicationScoped
 public class MatchHistoryRepository implements PanacheRepository<Match> {
-
-    @Inject Logger logger;
 
     public Optional<Match> findByRiotMatchId(String riotMatchId) {
         return find("riotMatchId", riotMatchId).firstResultOptional();
@@ -29,8 +27,7 @@ public class MatchHistoryRepository implements PanacheRepository<Match> {
         return delete("riotMatchId", riotMatchId) > 0;
     }
 
-    public PaginatedResponseDTO<Match> search(
-            int page, int size, MatchFilters filterParams, List<SortParams> sortParams) {
+    public PaginatedResponseDTO<Match> search(int page, int size, MatchFilters filterParams) {
         StringBuilder queryBuilder = new StringBuilder();
         Map<String, Object> parameters = new HashMap<>();
 
@@ -38,23 +35,37 @@ public class MatchHistoryRepository implements PanacheRepository<Match> {
             return paginatedResult(page, size, queryBuilder, parameters);
         }
 
-        addEqualCondition(
-                "queueId", filterParams.getQueueId(), "queueId", true, queryBuilder, parameters);
-        addChampionsCondition(filterParams.getChampions(), queryBuilder, parameters);
-        addIntervalCondition("patch", filterParams.getPatch(), "patch", true, queryBuilder, parameters);
-        addTimeCondition(
-                "time",
-                filterParams.getTime(),
-                "gameCreation",
-                "gameCreation + gameDuration",
-                queryBuilder,
-                parameters);
+        boolean withPrefixAnd = false;
+
+        withPrefixAnd =
+                addEqualCondition(
+                        "queueId",
+                        filterParams.getQueueId(),
+                        "queueId",
+                        withPrefixAnd,
+                        queryBuilder,
+                        parameters);
+        withPrefixAnd =
+                addChampionsCondition(filterParams.getChampions(), withPrefixAnd, queryBuilder, parameters);
+        withPrefixAnd =
+                addIntervalCondition(
+                        "patch", filterParams.getPatch(), "patch", withPrefixAnd, queryBuilder, parameters);
+        withPrefixAnd =
+                addTimeCondition(
+                        "time",
+                        filterParams.getTime(),
+                        "gameCreation",
+                        "gameCreation + gameDuration",
+                        withPrefixAnd,
+                        queryBuilder,
+                        parameters);
 
         int currPlayerFilter = 0;
         List<PlayerFilters> playerFilters = filterParams.getPlayers();
         if (!(playerFilters == null || playerFilters.isEmpty())) {
             for (PlayerFilters pf : playerFilters) {
-                queryBuilder.append("AND ").append(Clause.playerMatchStatsJoinClause());
+                withPrefixAnd = appendAndIfNeeded(withPrefixAnd, queryBuilder);
+                queryBuilder.append(Clause.playerMatchStatsJoinClause());
                 addPlayerFilterConditions(
                         pf, String.valueOf(currPlayerFilter), false, queryBuilder, parameters);
                 currPlayerFilter++;
@@ -67,7 +78,8 @@ public class MatchHistoryRepository implements PanacheRepository<Match> {
         if (teamFilters != null) {
             for (TeamFilters tf : teamFilters) {
                 if (tf.getTeamSide() == null) {
-                    queryBuilder.append("AND (");
+                    withPrefixAnd = appendAndIfNeeded(withPrefixAnd, queryBuilder);
+                    queryBuilder.append("(");
                     addTeamFilterConditions(
                             tf, "blue.", String.valueOf(currTeamFilter), false, queryBuilder, parameters);
                     queryBuilder.append("OR ");
@@ -76,14 +88,16 @@ public class MatchHistoryRepository implements PanacheRepository<Match> {
                     queryBuilder.append(")");
                 } else if (tf.getTeamSide().equals(TeamSide.BLUE)) {
                     addTeamFilterConditions(
-                            tf, "blue.", String.valueOf(currTeamFilter), true, queryBuilder, parameters);
+                            tf, "blue.", String.valueOf(currTeamFilter), withPrefixAnd, queryBuilder, parameters);
                 } else if (tf.getTeamSide().equals(TeamSide.RED)) {
                     addTeamFilterConditions(
-                            tf, "red.", String.valueOf(currTeamFilter), true, queryBuilder, parameters);
+                            tf, "red.", String.valueOf(currTeamFilter), withPrefixAnd, queryBuilder, parameters);
                 }
                 currTeamFilter++;
             }
         }
+
+        sortResult(filterParams.getSortParams(), queryBuilder);
 
         return paginatedResult(page, size, queryBuilder, parameters);
     }
@@ -232,7 +246,12 @@ public class MatchHistoryRepository implements PanacheRepository<Match> {
                         parameters);
         withPrefixAnd =
                 addEqualCondition(
-                        "won" + suffix, playerFilters.getWon(), "pm.won", withPrefixAnd, queryBuilder, parameters);
+                        "won" + suffix,
+                        playerFilters.getWon(),
+                        "pm.won",
+                        withPrefixAnd,
+                        queryBuilder,
+                        parameters);
         withPrefixAnd =
                 addIntervalCondition(
                         "mmrDelta" + suffix,
@@ -294,42 +313,45 @@ public class MatchHistoryRepository implements PanacheRepository<Match> {
         if (value == null) {
             return withPrefixAnd;
         }
-        if (withPrefixAnd) {
-            queryBuilder.append("AND ");
-        } else {
-            withPrefixAnd = true;
-        }
+        withPrefixAnd = appendAndIfNeeded(withPrefixAnd, queryBuilder);
         queryBuilder.append(Clause.equalClause(field, paramName)).append(" ");
         parameters.put(paramName, value);
         return withPrefixAnd;
     }
 
-    private void addChampionsCondition(
-            Object value, StringBuilder queryBuilder, Map<String, Object> parameters) {
+    private boolean addChampionsCondition(
+            Object value,
+            boolean withPrefixAnd,
+            StringBuilder queryBuilder,
+            Map<String, Object> parameters) {
         if (!(value instanceof List && !((List<?>) value).isEmpty())) {
-            return;
+            return withPrefixAnd;
         }
         for (Champion champion : (List<Champion>) value) {
             String championName = champion.name();
-            queryBuilder.append("AND ").append(Clause.championClause(championName)).append(" ");
+            withPrefixAnd = appendAndIfNeeded(withPrefixAnd, queryBuilder);
+            queryBuilder.append(Clause.championClause(championName)).append(" ");
             parameters.put(championName, champion);
         }
+        return withPrefixAnd;
     }
 
-    private void addTimeCondition(
+    private boolean addTimeCondition(
             String paramName,
             Interval<?> interval,
             String fieldStart,
             String fieldEnd,
+            boolean withPrefixAnd,
             StringBuilder queryBuilder,
             Map<String, Object> parameters) {
         if (interval == null) {
-            return;
+            return withPrefixAnd;
         }
         if (interval.getMin() != null) {
             String minParamName = paramName + "min";
+            withPrefixAnd = appendAndIfNeeded(withPrefixAnd, queryBuilder);
             queryBuilder
-                    .append("AND (")
+                    .append("(")
                     .append(Clause.minClause(minParamName, fieldEnd))
                     .append(" OR ")
                     .append(Clause.betweenClause(minParamName, fieldStart, fieldEnd))
@@ -338,14 +360,16 @@ public class MatchHistoryRepository implements PanacheRepository<Match> {
         }
         if (interval.getMax() != null) {
             String maxParamName = paramName + "max";
+            withPrefixAnd = appendAndIfNeeded(withPrefixAnd, queryBuilder);
             queryBuilder
-                    .append("AND (")
+                    .append("(")
                     .append(Clause.maxClause(fieldStart, maxParamName))
                     .append(" OR ")
                     .append(Clause.betweenClause(maxParamName, fieldStart, fieldEnd))
                     .append(") ");
             parameters.put(maxParamName, interval.getMax());
         }
+        return withPrefixAnd;
     }
 
     private boolean addIntervalCondition(
@@ -359,21 +383,13 @@ public class MatchHistoryRepository implements PanacheRepository<Match> {
             return withPrefixAnd;
         }
         if (interval.getMin() != null) {
-            if (withPrefixAnd) {
-                queryBuilder.append("AND ");
-            } else {
-                withPrefixAnd = true;
-            }
+            withPrefixAnd = appendAndIfNeeded(withPrefixAnd, queryBuilder);
             String minParamName = paramName + "min";
             queryBuilder.append(Clause.minClause(minParamName, field)).append(" ");
             parameters.put(minParamName, interval.getMin());
         }
         if (interval.getMax() != null) {
-            if (withPrefixAnd) {
-                queryBuilder.append("AND ");
-            } else {
-                withPrefixAnd = true;
-            }
+            withPrefixAnd = appendAndIfNeeded(withPrefixAnd, queryBuilder);
             String maxParamName = paramName + "max";
             queryBuilder.append(Clause.maxClause(field, maxParamName)).append(" ");
             parameters.put(maxParamName, interval.getMax());
@@ -391,20 +407,49 @@ public class MatchHistoryRepository implements PanacheRepository<Match> {
         if (!(value instanceof Collection && !((Collection<?>) value).isEmpty())) {
             return withPrefixAnd;
         }
-        if (withPrefixAnd) {
-            queryBuilder.append("AND ");
-        } else {
-            withPrefixAnd = true;
-        }
+        withPrefixAnd = appendAndIfNeeded(withPrefixAnd, queryBuilder);
         queryBuilder.append(Clause.inCollectionClause(field, paramName)).append(" ");
         parameters.put(paramName, value);
         return withPrefixAnd;
     }
 
+    private boolean appendAndIfNeeded(boolean withPrefixAnd, StringBuilder queryBuilder) {
+        if (withPrefixAnd) {
+            queryBuilder.append("AND ");
+        } else {
+            withPrefixAnd = true;
+        }
+        return withPrefixAnd;
+    }
+
+    private void sortResult(List<SortParams> sortParams, StringBuilder queryBuilder) {
+        if (sortParams == null || sortParams.isEmpty()) {
+            return;
+        }
+        SortParams[] sortParamsArray = sortParams.toArray(new SortParams[0]);
+        queryBuilder.append(Clause.orderByClause());
+        addSortingColumn(sortParamsArray[0], queryBuilder);
+        for (int i = 1; i < sortParamsArray.length; i++) {
+            queryBuilder.append(", ");
+            addSortingColumn(sortParamsArray[i], queryBuilder);
+        }
+    }
+
+    private void addSortingColumn(SortParams sortParam, StringBuilder queryBuilder) {
+        if (sortParam == null || sortParam.column() == null) {
+            return;
+        }
+        SortColumn column = sortParam.column();
+        SortDirection direction = sortParam.direction();
+        if (direction == null) {
+            direction = SortDirection.ASC;
+        }
+        queryBuilder.append(Clause.sortClause(column.getFieldName(), direction.getDirection()));
+    }
+
     private PaginatedResponseDTO<Match> paginatedResult(
             int page, int size, StringBuilder queryBuilder, Map<String, Object> parameters) {
-        String conditions = queryBuilder.isEmpty() ? "1=1" : queryBuilder.substring(4);
-        logger.warn(conditions);
+        String conditions = queryBuilder.isEmpty() ? "1=1" : queryBuilder.toString();
 
         long totalElements = find(conditions, parameters).count();
         int totalPages = (int) Math.ceil((double) totalElements / size);

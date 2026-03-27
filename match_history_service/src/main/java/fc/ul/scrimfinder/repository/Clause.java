@@ -31,4 +31,12 @@ public class Clause {
     static String playerMatchStatsJoinClause() {
         return "id IN (SELECT pm.match.id FROM PlayerMatchStats pm JOIN pm.match m2 JOIN pm.player p WHERE ";
     }
+
+    static String orderByClause() {
+        return "ORDER BY ";
+    }
+
+    static String sortClause(String column, String direction) {
+        return String.format("%s %s", column, direction);
+    }
 }

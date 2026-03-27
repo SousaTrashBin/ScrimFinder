@@ -1237,3 +1237,85 @@ GET {{baseUrl}}/matches?page=1&size=5
 # @name Paging of all 6 matches - page 2, size 5 (no match)
 
 GET {{baseUrl}}/matches?page=2&size=5
+
+###
+# @name Sort all by time asc
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "sortParams": [
+        {
+            "column": "TIME",
+            "direction": "ASC"
+        }
+    ]
+}
+
+###
+# @name Sort all by patch desc
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "sortParams": [
+        {
+            "column": "PATCH",
+            "direction": "DESC"
+        }
+    ]
+}
+
+###
+# @name Sort all by patch desc, then blue team kills asc, then red healing (asc)
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "sortParams": [
+        {
+            "column": "PATCH",
+            "direction": "DESC"
+        },
+        {
+            "column": "BLUE_KILLS",
+            "direction": "ASC"
+        },
+        {
+            "column": "RED_HEALING"
+        }
+    ]
+}
+
+###
+# @name Filter by matches since patch 16.6 where someone played as KARTHUS; Sort all by patch desc, then blue team kills asc, then red healing desc; Get first 2 results
+# (champions is inside players just to make this more complex since using the champions field outside match would also work)
+
+GET {{baseUrl}}/matches?page=0&size=2
+
+{
+    "patch": {
+        "min": 16.6
+    },
+    "players": [
+        {
+            "champions": [
+                "KARTHUS"
+            ]
+        }
+    ],
+    "sortParams": [
+        {
+            "column": "PATCH",
+            "direction": "DESC"
+        },
+        {
+            "column": "BLUE_KILLS",
+            "direction": "ASC"
+        },
+        {
+            "column": "RED_HEALING",
+            "direction": "DESC"
+        }
+    ]
+}

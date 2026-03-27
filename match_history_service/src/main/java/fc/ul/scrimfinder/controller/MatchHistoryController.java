@@ -1,7 +1,6 @@
 package fc.ul.scrimfinder.controller;
 
 import fc.ul.scrimfinder.dto.request.filtering.MatchFilters;
-import fc.ul.scrimfinder.dto.request.sorting.SortParams;
 import fc.ul.scrimfinder.dto.response.MatchDTO;
 import fc.ul.scrimfinder.dto.response.PaginatedResponseDTO;
 import fc.ul.scrimfinder.service.MatchHistoryService;
@@ -12,7 +11,6 @@ import jakarta.validation.constraints.*;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import java.util.List;
 import java.util.Map;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
@@ -92,10 +90,9 @@ public class MatchHistoryController {
     public Response getMatches(
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("size") @DefaultValue("20") @Min(1) @Max(100) int size,
-            @Valid MatchFilters filterParams,
-            @QueryParam("sort") List<SortParams> sortParams) {
+            @Valid MatchFilters filterParams) {
         PaginatedResponseDTO<MatchDTO> matches =
-                matchHistoryService.getMatches(page, size, filterParams, sortParams);
+                matchHistoryService.getMatches(page, size, filterParams);
         return Response.ok(matches).build();
     }
 

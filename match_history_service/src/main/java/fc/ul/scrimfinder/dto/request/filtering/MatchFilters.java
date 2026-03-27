@@ -1,5 +1,6 @@
 package fc.ul.scrimfinder.dto.request.filtering;
 
+import fc.ul.scrimfinder.dto.request.sorting.SortParams;
 import fc.ul.scrimfinder.util.Champion;
 import fc.ul.scrimfinder.util.interval.LongInterval;
 import fc.ul.scrimfinder.util.interval.PatchInterval;
@@ -21,4 +22,5 @@ public class MatchFilters {
     @Valid private LongInterval time;
     private List<@Valid PlayerFilters> players;
     private List<@Valid TeamFilters> teams;
+    private List<@Valid SortParams> sortParams;
 }
