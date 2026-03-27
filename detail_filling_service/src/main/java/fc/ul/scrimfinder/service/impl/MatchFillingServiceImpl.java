@@ -1,5 +1,6 @@
 package fc.ul.scrimfinder.service.impl;
 
+import fc.ul.scrimfinder.Config;
 import fc.ul.scrimfinder.dto.response.match.MatchStatsDTO;
 import fc.ul.scrimfinder.redis.RedisService;
 import fc.ul.scrimfinder.service.MatchFillingService;
@@ -14,6 +15,8 @@ public class MatchFillingServiceImpl implements MatchFillingService {
 
     @Inject RedisService redisService;
 
+    @Inject Config config;
+
     @Override
     public MatchStatsDTO getFilledMatch(String matchId) {
         return redisService
@@ -21,7 +24,7 @@ public class MatchFillingServiceImpl implements MatchFillingService {
                 .orElseGet(
                         () -> {
                             MatchStatsDTO match = riotAdapterService.getMatchData(matchId);
-                            redisService.set(matchId, match);
+                            redisService.set(matchId, match, config.redisCacheMatchKeyTtl());
                             return match;
                         });
     }
@@ -33,7 +36,7 @@ public class MatchFillingServiceImpl implements MatchFillingService {
                 .orElseGet(
                         () -> {
                             String match = riotAdapterService.getRawMatchData(matchId);
-                            redisService.set(matchId + "raw", match);
+                            redisService.set(matchId + "raw", match, config.redisCacheMatchKeyTtl());
                             return match;
                         });
     }

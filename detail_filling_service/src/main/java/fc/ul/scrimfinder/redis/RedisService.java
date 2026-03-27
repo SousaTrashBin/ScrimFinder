@@ -3,7 +3,6 @@ package fc.ul.scrimfinder.redis;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import fc.ul.scrimfinder.Config;
 import io.quarkus.redis.datasource.RedisDataSource;
 import io.quarkus.redis.datasource.keys.KeyCommands;
 import io.quarkus.redis.datasource.value.ValueCommands;
@@ -17,7 +16,6 @@ import org.jboss.logging.Logger;
 public class RedisService {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    @Inject Config config;
     @Inject Logger logger;
     private KeyCommands<String> keyCommands;
     private ValueCommands<String, String> valueCommands;
@@ -42,9 +40,9 @@ public class RedisService {
         return Optional.empty();
     }
 
-    public <T> void set(String key, T value) {
+    public <T> void set(String key, T value, Long ttlInSeconds) {
         try {
-            valueCommands.setex(key, config.redisCacheKeyTtl(), MAPPER.writeValueAsString(value));
+            valueCommands.setex(key, ttlInSeconds, MAPPER.writeValueAsString(value));
         } catch (Exception x) {
             logger.warn("Unable to cache value due to unexpected format. Key: " + key);
         }

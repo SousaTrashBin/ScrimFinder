@@ -1,5 +1,6 @@
 package fc.ul.scrimfinder.service.impl;
 
+import fc.ul.scrimfinder.Config;
 import fc.ul.scrimfinder.dto.response.player.PlayerDTO;
 import fc.ul.scrimfinder.redis.RedisService;
 import fc.ul.scrimfinder.service.PlayerFillingService;
@@ -14,6 +15,8 @@ public class PlayerFillingServiceImpl implements PlayerFillingService {
 
     @Inject RedisService redisService;
 
+    @Inject Config config;
+
     @Override
     public PlayerDTO getFilledPlayer(String name, String tag) {
         String playerRedisKey = String.format("%s#%s", name, tag);
@@ -22,7 +25,7 @@ public class PlayerFillingServiceImpl implements PlayerFillingService {
                 .orElseGet(
                         () -> {
                             PlayerDTO player = riotAdapterService.getPlayerData(name, tag);
-                            redisService.set(playerRedisKey, player);
+                            redisService.set(playerRedisKey, player, config.redisCachePlayerKeyTtl());
                             return player;
                         });
     }

@@ -6,5 +6,7 @@ import io.smallrye.config.ConfigMapping;
 public interface Config {
     String riotApiKey();
 
-    Long redisCacheKeyTtl();
+    Long redisCacheMatchKeyTtl();
+
+    Long redisCachePlayerKeyTtl();
 }
