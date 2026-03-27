@@ -1,0 +1,1239 @@
+@baseUrl = http://localhost:13300/api/v1/history
+
+@matchId1 = EUW1_7779779801
+@matchId2 = EUW1_7798917216
+@matchId3 = EUW1_7794855675
+@matchId4 = EUW1_7799338678
+@matchId5 = EUW1_7793513696
+@matchId6 = EUW1_7797556115
+
+###
+# @name POST new match 1
+
+POST {{baseUrl}}/matches/{{matchId1}}
+Accept: application/json
+Content-Type: application/json
+
+{
+    "iAN9q56BKIho6iQhsu-PriU3Rbb74rVqxKzODj6Wgc7D1usxgavMFszJNRY42m6PT_QuEZJBANY48Q": 1,
+    "N9zxsfUy4YpTwaLhmPiDz7p8UWhSpbZ29gp_hO7SWuKkOHRp-Xv-y2ndPSTLcpoAtlsdrmOTLkN37w": 2,
+    "-hSICyvezYaKeUn7PTpx_sQyJ9LMd-Iy_Vd1b4Kd2gHyZA-iIjYJUzSbqO-3PBKqEfxwbtq359kRRA": 3,
+    "PjjQmNQMnNeYTw7sRzUn9TetxzJNjl6oMQIsSoYTxsH6pEtXPhbmIXrCzNDacrX7rM0xuyjf21vHPQ": 4,
+    "JhZRJwRDI54TIyBKZRAWg-M0G2nD94hREr41yEiMWeyn1uhKlzOxiMwg5uAX-Thh3HVTyxIUik8G8g": 5,
+    "3HX8rUcLhtXTxEqau81_a2GSHiu4QIXNnz4fmbjtKFb5LaUHXO5JKywCBD-hGh1QKS9pXuHXM8z_Xg": -1,
+    "HC30r4a0InZda3BFDNSMtGfSLdBgHhd4TpypUakJWMAuKDc1KJFs1rKgLEQ4ZYxlIT47A4Gurna6TA": -2,
+    "Z-zaiPM3Mr-hchiG4EYWCZWsswQljO8MRv9T7qWUJd97mE118wImcUerW-N_39Zwof5yjRlY2zHqyQ": -3,
+    "HsNHWkClaNLYjltBCQYa5mJ_UA9Nzm_QwWXbJBFN0kVsJIL5NV57eEgDmzGvie4v02FVRcZ20dZ4Ig": -4,
+    "69SHi68G5IHp3HnB8GahSVsh_UfAh0qu1FwKnV2WaRd-qQ5gcwOcHZ1aXfPasS51Q9Iv63S-QM9a7w": -5
+}
+
+###
+# @name GET match 1
+
+GET {{baseUrl}}/matches/{{matchId1}}
+Accept: application/json
+Content-Type: application/json
+
+###
+# @name Filter empty
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+###
+# @name Filter by queueId = 420
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "queueId": 420
+}
+
+###
+# @name Filter by queueId = 421 (no match)
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "queueId": 421
+}
+
+###
+# @name Filter by time >= 10000
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "time": {
+        "min": 10000
+    }
+}
+
+### Above match is between 1773524078235 and 1773524079597 (inclusive)
+# @name Filter by time >= 1773524078335
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "queueId": 420,
+    "time": {
+        "min": 1773524078335
+    }
+}
+
+### Above match is between 1773524078235 and 1773524079597 (inclusive)
+# @name Filter by time >= 1873524078235 (no match)
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "queueId": 420,
+    "time": {
+        "min": 1873524078235
+    }
+}
+
+### Above match is between 1773524078235 and 1773524079597 (inclusive)
+# @name Filter by time <= 1873524078235
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "queueId": 420,
+    "time": {
+        "max": 1873524078235
+    }
+}
+
+### Above match is between 1773524078235 and 1773524079597 (inclusive)
+# @name Filter by time <= 1673524078235 (no match)
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "queueId": 420,
+    "time": {
+        "max": 1673524078235
+    }
+}
+
+### Above match is between 1773524078235 and 1773524079597 (inclusive)
+# @name Filter by time = 1773524078235
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "queueId": 420,
+    "time": {
+        "min": 1773524078235,
+        "max": 1773524078235
+    }
+}
+
+### Above match is between 1773524078235 and 1773524079597 (inclusive)
+# @name Filter by time = 1773524079597
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "queueId": 420,
+    "time": {
+        "min": 1773524079597,
+        "max": 1773524079597
+    }
+}
+
+### Above match is between 1773524078235 and 1773524079597 (inclusive)
+# @name Filter by time = 1773524079598 (no match)
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "queueId": 420,
+    "time": {
+        "min": 1773524079598,
+        "max": 1773524079598
+    }
+}
+
+### Above match has champions: GNAR, VAYNE, ORIANNA, ASHE, SERAPHINE, JAYCE, QIYANA, AHRI, SENNA AND BLITZCRANK
+# @name Filter by matches with champion GNAR
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "queueId": 420,
+    "time": {
+        "min": 1773524079597,
+        "max": 1773524079597
+    },
+    "champions": [
+        "GNAR"
+    ]
+}
+
+### Above match has champions: GNAR, VAYNE, ORIANNA, ASHE, SERAPHINE, JAYCE, QIYANA, AHRI, SENNA AND BLITZCRANK
+# @name Filter by matches with champion JINX (no match)
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "queueId": 420,
+    "time": {
+        "min": 1773524079597,
+        "max": 1773524079597
+    },
+    "champions": [
+        "JINX"
+    ]
+}
+
+### Above match has champions: GNAR, VAYNE, ORIANNA, ASHE, SERAPHINE, JAYCE, QIYANA, AHRI, SENNA AND BLITZCRANK
+# @name Filter by matches with champions GNAR and JINX (no match)
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "queueId": 420,
+    "time": {
+        "min": 1773524079597,
+        "max": 1773524079597
+    },
+    "champions": [
+        "GNAR",
+        "JINX"
+    ]
+}
+
+### Above match has champions: GNAR, VAYNE, ORIANNA, ASHE, SERAPHINE, JAYCE, QIYANA, AHRI, SENNA AND BLITZCRANK
+# @name Filter by matches with champion ASHE and BLITZCRANK
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "queueId": 420,
+    "time": {
+        "min": 1773524079597,
+        "max": 1773524079597
+    },
+    "champions": [
+        "ASHE",
+        "BLITZCRANK"
+    ]
+}
+
+### Above match was made in patch 16.5
+# @name Filter by matches made since patch 16.0
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "patch": {
+        "min": "16.0"
+    }
+}
+
+### Above match was made in patch 16.5
+# @name Filter by matches made since patch 16.6 (no match)
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "patch": {
+        "min": "16.6"
+    }
+}
+
+### Above match was made in patch 16.5
+# @name Filter by matches made until patch 16.4 (no match)
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "patch": {
+        "max": "16.4"
+    }
+}
+
+### Above match was made in patch 16.5
+# @name Filter by matches made until patch 16.5
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "patch": {
+        "max": "16.5"
+    }
+}
+
+### Above match was made in patch 16.5
+# @name Filter by matches made since patch 16.5.1 (no match)
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "patch": {
+        "min": "16.5.1"
+    }
+}
+
+### Above match was made in patch 16.5
+# @name Filter by matches made between patches 16 and 16.3 (no match)
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "patch": {
+        "min": "16",
+        "max": "16.3"
+    }
+}
+
+### Above match was made in patch 16.5
+# @name Filter by matches made between patches 16 and 17.8
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "patch": {
+        "min": "16",
+        "max": "17.8"
+    }
+}
+
+###
+# @name Filter by matches with some player having more than 5 kills
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "players": [
+        {
+            "kills": {
+                "min": 5
+            }
+        }
+    ]
+}
+
+### Above match has players: Maynter, Fentasm, SlayderW, KISS OF DEATH, Last dance, baby kiin, J1HUIV, Yoriich1, KC NEXT ADKING, berebooo
+# @name Filter by matches with player KISS OF DEATH
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "players": [
+        {
+            "playerName": "KISS OF DEATH"
+        }
+    ]
+}
+
+###
+# @name Filter by matches with player Maynter having role TOP
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "players": [
+        {
+            "playerName": "Maynter",
+            "role": "TOP"
+        }
+    ]
+}
+
+###
+# @name Filter by matches with player Last dance having role SUPPORT on the blue team with less than 5000 healing and player berebooo winning with a single kill and more than 8000 gold
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "players": [
+        {
+            "playerName": "Last dance",
+            "role": "SUPPORT",
+            "teamSide": "BLUE",
+            "healing": {
+                "max": 5000
+            }
+        },
+        {
+            "playerName": "berebooo",
+            "won": true,
+            "kills": {
+                "min": 1,
+                "max": 1
+            },
+            "gold": {
+                "min": 8000
+            }
+        }
+    ]
+}
+
+###
+# @name Filter by matches where someone played as champion ASHE and player Fentasm played as one of the following champions: VAYNE, DIANA or JAX
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "champions": [
+        "ASHE"
+    ],
+    "players": [
+        {
+            "playerName": "Fentasm",
+            "champions": [
+                "VAYNE",
+                "DIANA",
+                "JAX"
+            ]
+        }
+    ]
+}
+
+### Above match has team blue with 13 kills and team red with 35 kills
+# @name Filter by matches where some team had at least 20 kills
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "teams": [
+        {
+            "teamKills": {
+                "min": 20
+            }
+        }
+    ]
+}
+
+### Above match has team blue with 13 kills and team red with 35 kills
+# @name Filter by matches where some team had at least 20 kills and team blue had at most 15 kills and between 30 and 40 deaths
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "teams": [
+        {
+            "teamKills": {
+                "min": 20
+            }
+        },
+        {
+            "teamSide": "BLUE",
+            "teamKills": {
+                "max": 15
+            },
+            "teamDeaths": {
+                "min": 30,
+                "max": 40
+            }
+        }
+    ]
+}
+
+###
+# @name Filter by matches that have a player on the blue team and a player that won on the red team
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "players": [
+        {
+            "playerName": "Maynter",
+            "teamSide": "BLUE",
+            "won": false
+        },
+        {
+            "playerName": "baby kiin",
+            "teamSide": "RED",
+            "won": true
+        }
+    ]
+}
+
+###
+# @name Filter by everything from above match
+
+GET {{baseUrl}}/matches?page=0&size=20
+
+{
+    "queueId": 420,
+    "patch": {
+        "min": "16.5",
+        "max": "16.5"
+    },
+    "time": {
+        "min": 1773524078235,
+        "max": 1773524079597
+    },
+    "champions": [
+        "GNAR",
+        "VAYNE",
+        "ORIANNA",
+        "ASHE",
+        "SERAPHINE",
+        "JAYCE",
+        "QIYANA",
+        "AHRI",
+        "SENNA",
+        "BLITZCRANK"
+    ],
+    "players": [
+        {
+            "playerName": "Maynter",
+            "playerTag": "EUW",
+            "kills": {
+                "min": 1,
+                "max": 1
+            },
+            "deaths": {
+                "min": 5,
+                "max": 5
+            },
+            "assists": {
+                "min": 1,
+                "max": 1
+            },
+            "healing": {
+                "min": 3776,
+                "max": 3776
+            },
+            "damageToPlayers": {
+                "min": 64721,
+                "max": 64721
+            },
+            "wards": {
+                "min": 7,
+                "max": 7
+            },
+            "gold": {
+                "min": 6451,
+                "max": 6451
+            },
+            "role": "TOP",
+            "champions": [
+                "GNAR"
+            ],
+            "csPerMinute": {
+                "min": 8340.0,
+                "max": 8340.0
+            },
+            "killedMinions": {
+                "min": 139,
+                "max": 139
+            },
+            "tripleKills": {
+                "min": 0,
+                "max": 0
+            },
+            "quadKills": {
+                "min": 0,
+                "max": 0
+            },
+            "pentaKills": {
+                "min": 0,
+                "max": 0
+            },
+            "teamSide": "BLUE",
+            "won": false
+        },
+        {
+            "playerName": "Fentasm",
+            "playerTag": "FENT",
+            "kills": {
+                "min": 1,
+                "max": 1
+            },
+            "deaths": {
+                "min": 7,
+                "max": 7
+            },
+            "assists": {
+                "min": 4,
+                "max": 4
+            },
+            "healing": {
+                "min": 5874,
+                "max": 5874
+            },
+            "damageToPlayers": {
+                "min": 142137,
+                "max": 142137
+            },
+            "wards": {
+                "min": 4,
+                "max": 4
+            },
+            "gold": {
+                "min": 8100,
+                "max": 8100
+            },
+            "role": "JUNGLE",
+            "champions": [
+                "VAYNE"
+            ],
+            "csPerMinute": {
+                "min": 1980.0,
+                "max": 1980.0
+            },
+            "killedMinions": {
+                "min": 33,
+                "max": 33
+            },
+            "tripleKills": {
+                "min": 0,
+                "max": 0
+            },
+            "quadKills": {
+                "min": 0,
+                "max": 0
+            },
+            "pentaKills": {
+                "min": 0,
+                "max": 0
+            },
+            "teamSide": "BLUE",
+            "won": false
+        },
+        {
+            "playerName": "SlayderW",
+            "playerTag": "EUWW",
+            "kills": {
+                "min": 4,
+                "max": 4
+            },
+            "deaths": {
+                "min": 5,
+                "max": 5
+            },
+            "assists": {
+                "min": 2,
+                "max": 2
+            },
+            "healing": {
+                "min": 759,
+                "max": 759
+            },
+            "damageToPlayers": {
+                "min": 122557,
+                "max": 122557
+            },
+            "wards": {
+                "min": 5,
+                "max": 5
+            },
+            "gold": {
+                "min": 9823,
+                "max": 9823
+            },
+            "role": "MID",
+            "champions": [
+                "ORIANNA"
+            ],
+            "csPerMinute": {
+                "min": 12660.0,
+                "max": 12660.0
+            },
+            "killedMinions": {
+                "min": 211,
+                "max": 211
+            },
+            "tripleKills": {
+                "min": 0,
+                "max": 0
+            },
+            "quadKills": {
+                "min": 0,
+                "max": 0
+            },
+            "pentaKills": {
+                "min": 0,
+                "max": 0
+            },
+            "teamSide": "BLUE",
+            "won": false
+        },
+        {
+            "playerName": "KISS OF DEATH",
+            "playerTag": "YEN",
+            "kills": {
+                "min": 6,
+                "max": 6
+            },
+            "deaths": {
+                "min": 9,
+                "max": 9
+            },
+            "assists": {
+                "min": 4,
+                "max": 4
+            },
+            "healing": {
+                "min": 1315,
+                "max": 1315
+            },
+            "damageToPlayers": {
+                "min": 69636,
+                "max": 69636
+            },
+            "wards": {
+                "min": 7,
+                "max": 7
+            },
+            "gold": {
+                "min": 9597,
+                "max": 9597
+            },
+            "role": "BOTTOM",
+            "champions": [
+                "ASHE"
+            ],
+            "csPerMinute": {
+                "min": 8760.0,
+                "max": 8760.0
+            },
+            "killedMinions": {
+                "min": 146,
+                "max": 146
+            },
+            "tripleKills": {
+                "min": 0,
+                "max": 0
+            },
+            "quadKills": {
+                "min": 0,
+                "max": 0
+            },
+            "pentaKills": {
+                "min": 0,
+                "max": 0
+            },
+            "teamSide": "BLUE",
+            "won": false
+        },
+        {
+            "playerName": "Last dance",
+            "playerTag": "Hexom",
+            "kills": {
+                "min": 1,
+                "max": 1
+            },
+            "deaths": {
+                "min": 9,
+                "max": 9
+            },
+            "assists": {
+                "min": 8,
+                "max": 8
+            },
+            "healing": {
+                "min": 4690,
+                "max": 4690
+            },
+            "damageToPlayers": {
+                "min": 23399,
+                "max": 23399
+            },
+            "wards": {
+                "min": 24,
+                "max": 24
+            },
+            "gold": {
+                "min": 6350,
+                "max": 6350
+            },
+            "role": "SUPPORT",
+            "champions": [
+                "SERAPHINE"
+            ],
+            "csPerMinute": {
+                "min": 1740.0,
+                "max": 1740.0
+            },
+            "killedMinions": {
+                "min": 29,
+                "max": 29
+            },
+            "tripleKills": {
+                "min": 0,
+                "max": 0
+            },
+            "quadKills": {
+                "min": 0,
+                "max": 0
+            },
+            "pentaKills": {
+                "min": 0,
+                "max": 0
+            },
+            "teamSide": "BLUE",
+            "won": false
+        },
+        {
+            "playerName": "baby kiin",
+            "playerTag": "keem",
+            "kills": {
+                "min": 5,
+                "max": 5
+            },
+            "deaths": {
+                "min": 3,
+                "max": 3
+            },
+            "assists": {
+                "min": 5,
+                "max": 5
+            },
+            "healing": {
+                "min": 2833,
+                "max": 2833
+            },
+            "damageToPlayers": {
+                "min": 144290,
+                "max": 144290
+            },
+            "wards": {
+                "min": 10,
+                "max": 10
+            },
+            "gold": {
+                "min": 11484,
+                "max": 11484
+            },
+            "role": "TOP",
+            "champions": [
+                "JAYCE"
+            ],
+            "csPerMinute": {
+                "min": 11460.0,
+                "max": 11460.0
+            },
+            "killedMinions": {
+                "min": 191,
+                "max": 191
+            },
+            "tripleKills": {
+                "min": 0,
+                "max": 0
+            },
+            "quadKills": {
+                "min": 0,
+                "max": 0
+            },
+            "pentaKills": {
+                "min": 0,
+                "max": 0
+            },
+            "teamSide": "RED",
+            "won": true
+        },
+        {
+            "playerName": "J1HUIV",
+            "playerTag": "000",
+            "kills": {
+                "min": 11,
+                "max": 11
+            },
+            "deaths": {
+                "min": 1,
+                "max": 1
+            },
+            "assists": {
+                "min": 6,
+                "max": 6
+            },
+            "healing": {
+                "min": 9874,
+                "max": 9874
+            },
+            "damageToPlayers": {
+                "min": 295508,
+                "max": 295508
+            },
+            "wards": {
+                "min": 4,
+                "max": 4
+            },
+            "gold": {
+                "min": 13424,
+                "max": 13424
+            },
+            "role": "JUNGLE",
+            "champions": [
+                "QIYANA"
+            ],
+            "csPerMinute": {
+                "min": 2340.0,
+                "max": 2340.0
+            },
+            "killedMinions": {
+                "min": 39,
+                "max": 39
+            },
+            "tripleKills": {
+                "min": 1,
+                "max": 1
+            },
+            "quadKills": {
+                "min": 0,
+                "max": 0
+            },
+            "pentaKills": {
+                "min": 0,
+                "max": 0
+            },
+            "teamSide": "RED",
+            "won": true
+        },
+        {
+            "playerName": "Yoriichı",
+            "playerTag": "EUW",
+            "kills": {
+                "min": 5,
+                "max": 5
+            },
+            "deaths": {
+                "min": 1,
+                "max": 1
+            },
+            "assists": {
+                "min": 5,
+                "max": 5
+            },
+            "healing": {
+                "min": 6144,
+                "max": 6144
+            },
+            "damageToPlayers": {
+                "min": 140039,
+                "max": 140039
+            },
+            "wards": {
+                "min": 5,
+                "max": 5
+            },
+            "gold": {
+                "min": 10871,
+                "max": 10871
+            },
+            "role": "MID",
+            "champions": [
+                "AHRI"
+            ],
+            "csPerMinute": {
+                "min": 13260.0,
+                "max": 13260.0
+            },
+            "killedMinions": {
+                "min": 221,
+                "max": 221
+            },
+            "tripleKills": {
+                "min": 0,
+                "max": 0
+            },
+            "quadKills": {
+                "min": 0,
+                "max": 0
+            },
+            "pentaKills": {
+                "min": 0,
+                "max": 0
+            },
+            "teamSide": "RED",
+            "won": true
+        },
+        {
+            "playerName": "KC NEXT ADKING",
+            "playerTag": "EUW",
+            "kills": {
+                "min": 13,
+                "max": 13
+            },
+            "deaths": {
+                "min": 3,
+                "max": 3
+            },
+            "assists": {
+                "min": 12,
+                "max": 12
+            },
+            "healing": {
+                "min": 12959,
+                "max": 12959
+            },
+            "damageToPlayers": {
+                "min": 110972,
+                "max": 110972
+            },
+            "wards": {
+                "min": 10,
+                "max": 10
+            },
+            "gold": {
+                "min": 13924,
+                "max": 13924
+            },
+            "role": "BOTTOM",
+            "champions": [
+                "SENNA"
+            ],
+            "csPerMinute": {
+                "min": 9900.0,
+                "max": 9900.0
+            },
+            "killedMinions": {
+                "min": 165,
+                "max": 165
+            },
+            "tripleKills": {
+                "min": 0,
+                "max": 0
+            },
+            "quadKills": {
+                "min": 0,
+                "max": 0
+            },
+            "pentaKills": {
+                "min": 0,
+                "max": 0
+            },
+            "teamSide": "RED",
+            "won": true
+        },
+        {
+            "playerName": "berebooo",
+            "playerTag": "TR1",
+            "kills": {
+                "min": 1,
+                "max": 1
+            },
+            "deaths": {
+                "min": 6,
+                "max": 6
+            },
+            "assists": {
+                "min": 26,
+                "max": 26
+            },
+            "healing": {
+                "min": 3544,
+                "max": 3544
+            },
+            "damageToPlayers": {
+                "min": 15953,
+                "max": 15953
+            },
+            "wards": {
+                "min": 33,
+                "max": 33
+            },
+            "gold": {
+                "min": 8253,
+                "max": 8253
+            },
+            "role": "SUPPORT",
+            "champions": [
+                "BLITZCRANK"
+            ],
+            "csPerMinute": {
+                "min": 900.0,
+                "max": 900.0
+            },
+            "killedMinions": {
+                "min": 15,
+                "max": 15
+            },
+            "tripleKills": {
+                "min": 0,
+                "max": 0
+            },
+            "quadKills": {
+                "min": 0,
+                "max": 0
+            },
+            "pentaKills": {
+                "min": 0,
+                "max": 0
+            },
+            "teamSide": "RED",
+            "won": true
+        }
+    ],
+    "teams": [
+        {
+            "teamSide": "BLUE",
+            "teamKills": {
+                "min": 13,
+                "max": 13
+            },
+            "teamDeaths": {
+                "min": 35,
+                "max": 35
+            },
+            "teamAssists": {
+                "min": 19,
+                "max": 19
+            },
+            "teamHealing": {
+                "min": 16414,
+                "max": 16414
+            }
+        },
+        {
+            "teamSide": "RED",
+            "teamKills": {
+                "min": 35,
+                "max": 35
+            },
+            "teamDeaths": {
+                "min": 14,
+                "max": 14
+            },
+            "teamAssists": {
+                "min": 54,
+                "max": 54
+            },
+            "teamHealing": {
+                "min": 35354,
+                "max": 35354
+            }
+        }
+    ]
+}
+
+###
+# @name POST new match 2
+
+POST {{baseUrl}}/matches/{{matchId2}}
+Accept: application/json
+Content-Type: application/json
+
+{
+    "qLKmXt-7kJcxjyuBHAG_kaX4oyqLlIzKM52wRZYZeOR8ioWVB7yeBLXsv-3jkOLyetTOCn9AYV6Plg": 1,
+    "3D9KTyeDknwrTeLyeG_z_CpBp8rFgSbOFRmG4XxsogD5kUt6wo-Z52J8EPI2LnHHeE5jEIbEhPgEuw": 2,
+    "sNf4IaxhWHXx5ry-0OY5ZU_hVuJjIb2qcvE0JLkoJAZ5tJocrG9dwRYz_UytSWV8jLFFMuBEozQFYA": 3,
+    "EOx7Xb6ACLnxRCQT1oYkGXyLuhAKyyoNTRC8k-4ueBd0-5sTJiOhJSextq7FbCkSM0MKpLDrNgwxmA": 4,
+    "s8Pe2gmcphA5XDLhzKj6thGPw29vL4uMi_JCSzSDCQx6PXAd9QX-hEHKvaJQkYXyR8AFvR9EHYqjDA": 5,
+    "E4x17m9SFFna0NI1gu8r3o2p2di5J1ypNhnqwPD8o_p717Og5YoroKgfpu7auLNdUvA_8j76uKXvRg": -1,
+    "wKqLxqfs02s-eyf2-7lHLXFQ0vygnfX04kfmb_qk5_ga01wbGOegpbMmGLxGWe4O7YFoOAay1uAQ6g": -2,
+    "bUsFbi2DbPYdl5YozY8s-A6weUurvY-ag9eyF_7D_VwtFR67NlgPsmWy54iBMdjFyIZyCmTK02xbug": -3,
+    "fPFXQaxMOgpmx0fX0IX3HsNukfixpJ7lULYNkyOWiY4-sccHY2fiheGi8wpt7J0hzNPyvmXy52Ng5g": -4,
+    "0gmyYcNLq-iLtVhUxUKWm387-TZ9Hn2aPgOLWiPTf24QuLE8qDNFXwxZAVT-3Z9Z0asrWbYpR05nlQ": -5
+}
+
+###
+# @name POST new match 3
+
+POST {{baseUrl}}/matches/{{matchId3}}
+Accept: application/json
+Content-Type: application/json
+
+{
+    "inpL_hjUI3AgB11UJOmtpjPBu7M7DYcDH15GFmt3QHot5z7qxNA3w6mff025U-hWVN8vnVuPVfix1Q": 1,
+    "WlUNGpdB8DS7COH_-dhtd4PtdzlmNxd2YXiGAMQpNGqIXIOOAarf3oRotPwnqwTCFiXTndcv0UyMsA": 2,
+    "vQy0xi36NO2-NKAKePhga7Qv3Mdw4JSxIDS0rO3jQhN3s9N3J9g44ZmNFsHYu0P14m5FnQbHw2i2ZQ": 3,
+    "rYjXRU0ld2Zr5Bb8IjPjxUXV7JP3SNh4zyw8PKKmbR7UxugSxfPNxXpdSKtSCDoX354bt3wlxACJaQ": 4,
+    "7Ce04hb54JnfWW8DaZo5z2MAiV6ETO7A8PSnjg4qMWgfL5Ptohh8n2f9hvRMEilXuWlkRoM11egl6Q": 5,
+    "QvhSJI1A4JPrRhJPzjGQtSoKoE32tJQZqR1W08LcrmfXDtLMSTFUca8IxGhm4Q95cMsYegMx4AsU2w": -1,
+    "YobC1FZNQHmJ_DOlCpwZc9dRMhS8Js-m_k1FzJ8LX2MhFoIbi3ETcA0SFWtaF21l0WnnJEbMAeGQJw": -2,
+    "vQ8Vi3FOMp2mlC1B2BM7bhFOEmpqjxgayRr8D_WZcRDKKTWlhBrE0JF18CMuLHDMzb86KZW7OukRvw": -3,
+    "jKj0u-l6ALPB1NaKdAZVaNhYbt6u4VksRnTwptKPTqtqniUmXSslFlRUSMTQOK4E3OF-Ys9BD5cQlw": -4,
+    "NWFPPu17jFomWX46YUmOEdVQ9Z5crrg7fYi-1kou5ALwJN3iazycnfCB_Li4WSSD9k6YXIlo9jBDtA": -5
+}
+
+###
+# @name POST new match 4
+
+POST {{baseUrl}}/matches/{{matchId4}}
+Accept: application/json
+Content-Type: application/json
+
+{
+    "OAci6-ANAB0jebuSSLO19vlQqyHwfOJIjuF-Orz-hrXY7HnJo4D-wlunHgQd3noZpq7FNFutiLvZGw": 1,
+    "YHHEkrUzvGTxi9T1qi_ZNlvDXXKjwKlRZruFnHLXYI5XhqV49x8upsl_L3dQbJ3JyF8gp_A8xOWQJw": 2,
+    "7RLAc_i85lYLvzNZNkunLHDF1lUTWAdrU8G33jxPg3XV5umHfpK62n66PnF4xQ6wDRDtT7HDV5zBWA": 3,
+    "5fMiWY0dl4HukN9yuqqBHIbs6092FIOFOMpzV3AF3kPoA_CC0LHetyIWEkYPd_o94GZTjXFquk7xyw": 4,
+    "OlfjwJSMGeZ2OK5twcHjBR_wRMpRoZyVu87kJJMnYnpnBzBLAWsBtxAHkOvhNM2RzpqBCf8qIOHT_w": 5,
+    "R_ycUyseCqlg2GSY0SBlgMVLQ-D52NQiBYmzAsvdI7sWM3p-lMYbfjpVHQGiMSvRRRQZsuaSBGFEYA": -1,
+    "p0ucPDKbfdOYoFUvz_y14RXx_mn1sAX9pB3yPqrqCo32Y8aV55QL4dBN0tjfqk-m2YDHogDrZzeeSg": -2,
+    "CY4DOgbg5w1Unw2wkOi0dA23_m1sGqcKbRecN-JNZoJ6_S3idsVFabysbkkyVUQqVazyNWMxv6tPiw": -3,
+    "qiIhm5NnIkq9f1lure2uz-Yo-Skc3GTTL5QJxRPBbKLvQjYU0dmx5E5hcxmzCR2h5bVL8RV7HhAE7A": -4,
+    "7w40KZAcL6YJlpr1iSNH0UW0rI3zyir_dqB5XChCDvLl70RJ3g0s0ZVlyDateYy30mOGTPn-wn9tYg": -5
+}
+
+###
+# @name POST new match 5
+
+POST {{baseUrl}}/matches/{{matchId5}}
+Accept: application/json
+Content-Type: application/json
+
+{
+    "E4x17m9SFFna0NI1gu8r3o2p2di5J1ypNhnqwPD8o_p717Og5YoroKgfpu7auLNdUvA_8j76uKXvRg": 1,
+    "0DKRj5smxISY5dPixLC8AxFfLleLL1MIuJtgVbEYs7OUxHmILos60ia7vNIVu-pTTQQ6P1y4KXDsFg": 2,
+    "sJWCThL2q1-JQYZBAteNeRWUX1vQ8m7TB8cDc-UmzgNY6TujwmvAO_4HYMm7YlZpAST0mAL8UXsyvw": 3,
+    "dlzCt5WyAdU_jKmw7ghDpeEAC8YxuYHKRWzQ60AJiy8UB2MDHQHEttcOk2sKpwGIJS34O-AvADCk2Q": 4,
+    "gHxM3ySdQq9djpkPiFhJg65QQAAphEpJ7tLdxIiXVMhsPgYgB6Tit7brwgfz2ZbnV9GoipPwItRIMg": 5,
+    "K5sKylaXAC5apB3Jz4JYEl6Jr18fxORHHuuZwye9DaD8BVL9GuI42BjsX6UiUvdCIQVoWKpCGM44zw": -1,
+    "0AvBk19WPKom5Jnv9yuq_0q3670MNHSbhseGO5B4yCfAxrHJnfCjeHWnQZstkgKsu5FLVs0K5Kw9AQ": -2,
+    "Dw7UxkPbHAE7aLN6DvwmGpUZVt3CoJzdyTQGOK7kxF-6NWvXS-U7g23uyS6QZNwdr35yb-k8EDKv8g": -3,
+    "3BI6wyVjqj-IlDOkOnzNJqAceT6mJT0pRP7yxjXKCiIUO4ZPenIV968Uo-D16k0JQyCnuupistNpaA": -4,
+    "W2xzJ2CkTVM0JfxLS1Fyryjo2PUedeUSJOi_VhGbDJIDZbj36sHhVdeFFrRXMY5hOJLhZo0cUivOqg": -5
+}
+
+###
+# @name POST new match 6
+
+POST {{baseUrl}}/matches/{{matchId6}}
+Accept: application/json
+Content-Type: application/json
+
+{
+    "R_ycUyseCqlg2GSY0SBlgMVLQ-D52NQiBYmzAsvdI7sWM3p-lMYbfjpVHQGiMSvRRRQZsuaSBGFEYA": 1,
+    "oCpkq1bH3DsDfwCcGSnwE4mUy_-_DSegocMqawF9l4aFNw3wyJ7syTSlK7WjuMx0j801wsdu-WPdZQ": 2,
+    "OfSSVQv7FzpZRrwWE06zJkJKwdJLP6tfdQ9aRU68VK3hGewE_K2dKwIOiV-cG507TeGwL1o6GdHdUQ": 3,
+    "fCSmZzvCM76BZxQbaiXQS-kCQlxJCgMQhZ8DDKa_mWXOMsl59hAVzScvxPjBZ39oK2iOFC-3QSO_PA": 4,
+    "c8c7mdSU49HvTXq-a2eMHuwb5KICtySAxQYvvW4Qe7JduVTny_YZTOW-TDbbcHMfWe_3J4eioR0giQ": 5,
+    "QoKpbPvfsCJU0xRwX-pqMbqZUMafRDNsHizc-XwwJzR1aYafsYboaOyZ_R9CsgLzoF6fI0oXh-HZag": -1,
+    "qIT1cXFFEUuqpb-jQSZO-NuHVMkd2G8B8KEvwg-E9nYIJM-VZdq-ni4LZpmnn7TwclfHFtXySMn4WQ": -2,
+    "mAI_MNlH9lNe9hFacZlDHhmc2Ywhh6J4cpj4SLGdYM_25BcMjhm5fwXeC_0gRgXR2iU7EjLDNqXlHQ": -3,
+    "SuabM0mLks8ZoVA0HJ2jKwQrlzFhS5oh8IjnAJDTRIY72bq6gUdCaJkFaiuNDjYuQ0BchRRXZ5tvoA": -4,
+    "5WYjx2QMch7yAjdH-ngEwa0t5gPb17hWBKCHQ2J7Tc19gnaLWoIZhTtM9M7FrJC8uomRczHO16x0sA": -5
+}
+
+###
+# @name Paging of all 6 matches - page 0, size 2
+
+GET {{baseUrl}}/matches?page=0&size=2
+
+###
+# @name Paging of all 6 matches - page 1, size 2
+
+GET {{baseUrl}}/matches?page=1&size=2
+
+###
+# @name Paging of all 6 matches - page 2, size 2
+
+GET {{baseUrl}}/matches?page=2&size=2
+
+###
+# @name Paging of all 6 matches - page 3, size 2 (no match)
+
+GET {{baseUrl}}/matches?page=3&size=2
+
+###
+# @name Paging of all 6 matches - page 0, size 5
+
+GET {{baseUrl}}/matches?page=0&size=5
+
+###
+# @name Paging of all 6 matches - page 1, size 5
+
+GET {{baseUrl}}/matches?page=1&size=5
+
+###
+# @name Paging of all 6 matches - page 2, size 5 (no match)
+
+GET {{baseUrl}}/matches?page=2&size=5
