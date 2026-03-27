@@ -31,6 +31,9 @@ public class RedisService {
 
     public <T> Optional<T> get(String key, Class<T> returnType) {
         String result = valueCommands.get(key);
+        if (result == null) {
+            return Optional.empty();
+        }
         try {
             return Optional.ofNullable(MAPPER.readValue(result, returnType));
         } catch (Exception x) {
