@@ -11,6 +11,7 @@ import fc.ul.scrimfinder.util.*;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.StreamSupport;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
@@ -175,7 +176,9 @@ public class DetailFillingAdapterServiceImpl implements DetailFillingAdapterServ
                         .jsonNode()
                         .asInt();
 
-        Double csPerMinute = killedMinions / TimeConverter.millisecondsToMinutes(gameDuration);
+        Double csPerMinute =
+                Double.parseDouble(
+                        String.format(Locale.US, "%.1f", killedMinions / ((double) gameDuration / 60)));
 
         Integer tripleKills =
                 playerNodeFinder

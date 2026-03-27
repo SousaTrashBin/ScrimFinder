@@ -516,8 +516,8 @@ GET {{baseUrl}}/matches?page=0&size=20
                 "GNAR"
             ],
             "csPerMinute": {
-                "min": 8340.0,
-                "max": 8340.0
+                "min": 6.1,
+                "max": 6.1
             },
             "killedMinions": {
                 "min": 139,
@@ -574,8 +574,8 @@ GET {{baseUrl}}/matches?page=0&size=20
                 "VAYNE"
             ],
             "csPerMinute": {
-                "min": 1980.0,
-                "max": 1980.0
+                "min": 1.5,
+                "max": 1.5
             },
             "killedMinions": {
                 "min": 33,
@@ -632,8 +632,8 @@ GET {{baseUrl}}/matches?page=0&size=20
                 "ORIANNA"
             ],
             "csPerMinute": {
-                "min": 12660.0,
-                "max": 12660.0
+                "min": 9.3,
+                "max": 9.3
             },
             "killedMinions": {
                 "min": 211,
@@ -690,8 +690,8 @@ GET {{baseUrl}}/matches?page=0&size=20
                 "ASHE"
             ],
             "csPerMinute": {
-                "min": 8760.0,
-                "max": 8760.0
+                "min": 6.4,
+                "max": 6.4
             },
             "killedMinions": {
                 "min": 146,
@@ -748,8 +748,8 @@ GET {{baseUrl}}/matches?page=0&size=20
                 "SERAPHINE"
             ],
             "csPerMinute": {
-                "min": 1740.0,
-                "max": 1740.0
+                "min": 1.3,
+                "max": 1.3
             },
             "killedMinions": {
                 "min": 29,
@@ -806,8 +806,8 @@ GET {{baseUrl}}/matches?page=0&size=20
                 "JAYCE"
             ],
             "csPerMinute": {
-                "min": 11460.0,
-                "max": 11460.0
+                "min": 8.4,
+                "max": 8.4
             },
             "killedMinions": {
                 "min": 191,
@@ -864,8 +864,8 @@ GET {{baseUrl}}/matches?page=0&size=20
                 "QIYANA"
             ],
             "csPerMinute": {
-                "min": 2340.0,
-                "max": 2340.0
+                "min": 1.7,
+                "max": 1.7
             },
             "killedMinions": {
                 "min": 39,
@@ -922,8 +922,8 @@ GET {{baseUrl}}/matches?page=0&size=20
                 "AHRI"
             ],
             "csPerMinute": {
-                "min": 13260.0,
-                "max": 13260.0
+                "min": 9.7,
+                "max": 9.7
             },
             "killedMinions": {
                 "min": 221,
@@ -980,8 +980,8 @@ GET {{baseUrl}}/matches?page=0&size=20
                 "SENNA"
             ],
             "csPerMinute": {
-                "min": 9900.0,
-                "max": 9900.0
+                "min": 7.3,
+                "max": 7.3
             },
             "killedMinions": {
                 "min": 165,
@@ -1038,8 +1038,8 @@ GET {{baseUrl}}/matches?page=0&size=20
                 "BLITZCRANK"
             ],
             "csPerMinute": {
-                "min": 900.0,
-                "max": 900.0
+                "min": 0.7,
+                "max": 0.7
             },
             "killedMinions": {
                 "min": 15,
