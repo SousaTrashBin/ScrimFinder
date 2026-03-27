@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Getter
 public enum Role {
+    NONE("NONE"),
     TOP("top"),
     JUNGLE("jungle"),
     MID("mid"),
@@ -23,7 +24,7 @@ public enum Role {
         return switch (name.toUpperCase()) {
             case "MIDDLE" -> MID;
             case "UTILITY" -> SUPPORT;
-            default -> null;
+            default -> Role.NONE;
         };
     }
 }

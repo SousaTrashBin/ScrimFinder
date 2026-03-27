@@ -92,7 +92,7 @@ public class MatchHistoryController {
     public Response getMatches(
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("size") @DefaultValue("20") @Min(1) @Max(100) int size,
-            @BeanParam @Valid MatchFilters filterParams,
+            @Valid MatchFilters filterParams,
             @QueryParam("sort") List<SortParams> sortParams) {
         PaginatedResponseDTO<MatchDTO> matches =
                 matchHistoryService.getMatches(page, size, filterParams, sortParams);

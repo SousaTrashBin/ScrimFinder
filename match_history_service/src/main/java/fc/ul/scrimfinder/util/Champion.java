@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Getter
 public enum Champion {
+    NONE("NONE"),
     AATROX("AATROX"),
     AHRI("AHRI"),
     AKALI("AKALI"),
@@ -206,6 +207,6 @@ public enum Champion {
                 return c;
             }
         }
-        return null;
+        return Champion.NONE;
     }
 }

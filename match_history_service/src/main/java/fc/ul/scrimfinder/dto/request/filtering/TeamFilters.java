@@ -4,31 +4,19 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fc.ul.scrimfinder.util.TeamSide;
 import fc.ul.scrimfinder.util.interval.IntegerInterval;
-import jakarta.ws.rs.QueryParam;
 import java.util.function.Function;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 public class TeamFilters {
-    @QueryParam("side")
-    private TeamSide side;
-
-    @QueryParam("teamKills")
+    private TeamSide teamSide;
     private IntegerInterval teamKills;
-
-    @QueryParam("teamDeaths")
     private IntegerInterval teamDeaths;
-
-    @QueryParam("teamAssists")
     private IntegerInterval teamAssists;
-
-    @QueryParam("teamHealing")
     private IntegerInterval teamHealing;
 
     public static TeamFilters valueOf(String value) {
@@ -43,7 +31,7 @@ public class TeamFilters {
         }
 
         TeamSide side =
-                fromJsonToField(teamStats, "side", node -> TeamSide.fromTeamSideName(node.asText()));
+                fromJsonToField(teamStats, "teamSide", node -> TeamSide.fromTeamSideName(node.asText()));
         IntegerInterval teamKills = fromJsonToField(teamStats, "teamKills", TeamFilters::getMinMaxInt);
         IntegerInterval teamDeaths =
                 fromJsonToField(teamStats, "teamDeaths", TeamFilters::getMinMaxInt);

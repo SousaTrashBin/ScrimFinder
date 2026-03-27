@@ -7,78 +7,35 @@ import fc.ul.scrimfinder.util.Role;
 import fc.ul.scrimfinder.util.TeamSide;
 import fc.ul.scrimfinder.util.interval.DoubleInterval;
 import fc.ul.scrimfinder.util.interval.IntegerInterval;
-import jakarta.ws.rs.QueryParam;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.StreamSupport;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 public class PlayerFilters {
-    @QueryParam("playerName")
     private String playerName;
-
-    @QueryParam("playerTag")
     private String playerTag;
-
-    @QueryParam("playerIcon")
-    private Integer playerIcon;
-
-    @QueryParam("kills")
     private IntegerInterval kills;
-
-    @QueryParam("deaths")
     private IntegerInterval deaths;
-
-    @QueryParam("assists")
     private IntegerInterval assists;
-
-    @QueryParam("healing")
     private IntegerInterval healing;
-
-    @QueryParam("damageToPlayers")
     private IntegerInterval damageToPlayers;
-
-    @QueryParam("wards")
     private IntegerInterval wards;
-
-    @QueryParam("gold")
     private IntegerInterval gold;
-
-    @QueryParam("role")
     private Role role;
-
-    @QueryParam("champions")
     private List<Champion> champions;
-
-    @QueryParam("csPerMinute")
     private DoubleInterval csPerMinute;
-
-    @QueryParam("killedMinions")
     private IntegerInterval killedMinions;
-
-    @QueryParam("tripleKills")
     private IntegerInterval tripleKills;
-
-    @QueryParam("quadKills")
     private IntegerInterval quadKills;
-
-    @QueryParam("pentaKills")
     private IntegerInterval pentaKills;
-
-    @QueryParam("side")
-    private TeamSide side;
-
-    @QueryParam("won")
+    private TeamSide teamSide;
     private Boolean won;
-
-    @QueryParam("mmrDelta")
     private IntegerInterval mmrDelta;
 
     public static PlayerFilters valueOf(String value) {
@@ -94,7 +51,6 @@ public class PlayerFilters {
 
         String playerName = fromJsonToField(playerFilters, "playerName", JsonNode::asText);
         String playerTag = fromJsonToField(playerFilters, "playerTag", JsonNode::asText);
-        Integer playerIcon = fromJsonToField(playerFilters, "playerIcon", JsonNode::asInt);
         IntegerInterval kills = fromJsonToField(playerFilters, "kills", PlayerFilters::getMinMaxInt);
         IntegerInterval deaths = fromJsonToField(playerFilters, "deaths", PlayerFilters::getMinMaxInt);
         IntegerInterval assists =
@@ -134,7 +90,6 @@ public class PlayerFilters {
         return new PlayerFilters(
                 playerName,
                 playerTag,
-                playerIcon,
                 kills,
                 deaths,
                 assists,
