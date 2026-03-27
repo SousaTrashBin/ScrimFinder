@@ -49,11 +49,11 @@ public class PlayerMatchStats {
     private Integer gold;
 
     @Enumerated(EnumType.ORDINAL)
-    @Column(name = "role", nullable = false)
+    @Column(name = "role", nullable = false, length = 7)
     private Role role;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "champion", nullable = false)
+    @Column(name = "champion", nullable = false, length = 32)
     private Champion champion;
 
     @Column(name = "cs_per_minute", nullable = false)
@@ -72,7 +72,7 @@ public class PlayerMatchStats {
     private Integer pentaKills;
 
     @Enumerated(EnumType.ORDINAL)
-    @Column(name = "side", nullable = false)
+    @Column(name = "side", nullable = false, length = 1)
     private TeamSide teamSide;
 
     @Column(name = "won", nullable = false)

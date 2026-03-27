@@ -18,13 +18,13 @@ public class Match {
     @Column(name = "id", unique = true, nullable = false, updatable = false)
     private Long id;
 
-    @Column(name = "riot_match_id", nullable = false)
+    @Column(name = "riot_match_id", nullable = false, length = 30)
     private String riotMatchId;
 
     @Column(name = "queue_id", nullable = false)
     private Long queueId;
 
-    @Column(name = "patch", nullable = false)
+    @Column(name = "patch", nullable = false, length = 20)
     private String patch;
 
     @Column(name = "game_creation", nullable = false)

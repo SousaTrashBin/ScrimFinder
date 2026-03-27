@@ -20,10 +20,10 @@ public class Player {
     @Column(name = "id", unique = true, nullable = false, updatable = false)
     private Long id;
 
-    @Column(name = "name", nullable = false)
+    @Column(name = "name", nullable = false, length = 16)
     private String name;
 
-    @Column(name = "tag", nullable = false)
+    @Column(name = "tag", nullable = false, length = 5)
     private String tag;
 
     @OneToMany(

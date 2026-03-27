@@ -12,7 +12,7 @@ import org.hibernate.annotations.SoftDelete;
 @Setter
 @SoftDelete
 public class TeamMatchStats {
-    @Column(name = "side", nullable = false)
+    @Column(name = "side", nullable = false, length = 1)
     private TeamSide side;
 
     @Column(name = "team_kills", nullable = false)
