@@ -18,7 +18,8 @@ public class DetailFillingServiceExceptionMapper
 
             return switch (code) {
                 case "MATCH_NOT_FOUND" -> new MatchNotFoundException(message);
-                case "EXTERNAL_SERVICE_UNAVAILABLE" -> new ExternalServiceUnavailableException(message);
+                case "UNAUTHORIZED_ACCESS", "EXTERNAL_SERVICE_UNAVAILABLE" ->
+                        new ExternalServiceUnavailableException(message);
                 default -> new RuntimeException("Remote service error: " + message);
             };
         } catch (Exception e) {

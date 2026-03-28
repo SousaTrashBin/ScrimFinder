@@ -1,10 +1,10 @@
 package fc.ul.scrimfinder.client;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import fc.ul.scrimfinder.exception.ExternalServiceUnavailableException;
 import fc.ul.scrimfinder.exception.MatchNotFoundException;
 import fc.ul.scrimfinder.exception.UnauthorizedException;
-import fc.ul.scrimfinder.util.RiotMatchErrorResponse;
+import fc.ul.scrimfinder.util.ErrorResponse;
+import fc.ul.scrimfinder.util.RiotErrorMessageConverter;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
@@ -14,12 +14,9 @@ public class RiotMatchServiceExceptionMapper implements ResponseExceptionMapper<
     @Override
     public RuntimeException toThrowable(Response response) {
         try {
-            String errorJson = response.readEntity(String.class);
-            ObjectMapper mapper = new ObjectMapper();
-            RiotMatchErrorResponse errorResponse =
-                    mapper.readValue(errorJson, RiotMatchErrorResponse.class);
-            Integer code = errorResponse.getHttpStatus();
-            String message = errorResponse.getImplementationDetails();
+            ErrorResponse errorResponse = RiotErrorMessageConverter.convertRiotErrorMessage(response);
+            int code = Integer.parseInt(errorResponse.getCode());
+            String message = errorResponse.getMessage();
 
             return switch (code) {
                 case 401 -> new UnauthorizedException(message);

@@ -3,10 +3,10 @@ package fc.ul.scrimfinder.client;
 import fc.ul.scrimfinder.exception.ExternalServiceUnavailableException;
 import fc.ul.scrimfinder.exception.PlayerNotFoundException;
 import fc.ul.scrimfinder.exception.UnauthorizedException;
-import fc.ul.scrimfinder.util.JsonNodeFinder;
+import fc.ul.scrimfinder.util.ErrorResponse;
+import fc.ul.scrimfinder.util.RiotErrorMessageConverter;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
-import java.util.Objects;
 import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
 
 public class RiotPlayerServiceExceptionMapper implements ResponseExceptionMapper<RuntimeException> {
@@ -14,17 +14,9 @@ public class RiotPlayerServiceExceptionMapper implements ResponseExceptionMapper
     @Override
     public RuntimeException toThrowable(Response response) {
         try {
-            JsonNodeFinder statusNode =
-                    Objects.requireNonNull(
-                                    new JsonNodeFinder(null)
-                                            .fromStringOrThrow(response.readEntity(String.class), RuntimeException.class))
-                            .jsonGetOrThrow("status", RuntimeException.class);
-
-            int code =
-                    statusNode.jsonGetOrThrow("status_code", RuntimeException.class).jsonNode().asInt();
-
-            String message =
-                    statusNode.jsonGetOrThrow("message", RuntimeException.class).jsonNode().asText();
+            ErrorResponse errorResponse = RiotErrorMessageConverter.convertRiotErrorMessage(response);
+            int code = Integer.parseInt(errorResponse.getCode());
+            String message = errorResponse.getMessage();
 
             return switch (code) {
                 case 401 -> new UnauthorizedException(message);

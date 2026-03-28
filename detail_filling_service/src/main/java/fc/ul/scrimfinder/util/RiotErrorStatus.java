@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RiotPlayerErrorResponse {
+public class RiotErrorStatus {
     public Integer status_code;
     public String message;
 }
