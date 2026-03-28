@@ -64,7 +64,6 @@ public class MatchFillingResourceTest {
                         .add(
                                 "info",
                                 Json.createObjectBuilder()
-                                        .add("queueId", 1L)
                                         .add("gameVersion", "15.5.8421098.0")
                                         .add("gameStartTimestamp", 100000L)
                                         .add("gameDuration", 1000L)
@@ -170,8 +169,7 @@ public class MatchFillingResourceTest {
                         new TeamStatsDTO(TeamSide.RED, 5, 30, 5, 0));
 
         final MatchStatsDTO matchStatsDTO =
-                new MatchStatsDTO(
-                        matchId, 1L, "15.5", 100000L, 1000L, playerStatsDTOList, teamStatsDTOList);
+                new MatchStatsDTO(matchId, "15.5", 100000L, 1000L, playerStatsDTOList, teamStatsDTOList);
 
         when(riotMatchServiceClient.getMatch(anyString())).thenReturn(matchRiotDTO);
         when(redisService.get(anyString(), any())).thenReturn(Optional.empty());

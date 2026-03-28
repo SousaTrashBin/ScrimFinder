@@ -12,10 +12,12 @@ service MatchHistoryService {
 
 message SaveMatchMMRGainsRequest {
   string gameId = 1;
-  map<string, int32> playerMMRGains = 2;
+  string queueId = 2;
+  map<string, int32> playerMMRGains = 3;
 }
 
 message SaveMatchMMRGainsResponse {
   bool success = 1;
   string message = 2;
 }
+

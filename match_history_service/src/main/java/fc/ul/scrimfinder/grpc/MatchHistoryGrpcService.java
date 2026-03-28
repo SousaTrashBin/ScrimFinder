@@ -4,6 +4,7 @@ import io.quarkus.grpc.GrpcService;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @GrpcService
@@ -13,12 +14,13 @@ public class MatchHistoryGrpcService implements MatchHistoryService {
 
     @Override
     public Uni<SaveMatchMMRGainsResponse> saveMatchMMRGains(SaveMatchMMRGainsRequest request) {
+        UUID queueId = UUID.fromString(request.getQueueId());
         Map<String, Integer> mmrGains =
                 request.getPlayerMMRGainsMap().entrySet().stream()
                         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         try {
-            matchHistoryService.addMatchById(request.getGameId(), mmrGains);
+            matchHistoryService.addMatchById(request.getGameId(), queueId, mmrGains);
             return Uni.createFrom()
                     .item(
                             SaveMatchMMRGainsResponse.newBuilder()

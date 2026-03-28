@@ -5,7 +5,6 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 public record MatchStatsDTO(
         String riotMatchId, // including match region
-        Long queueId,
         String patch,
         @Schema(
                         description =

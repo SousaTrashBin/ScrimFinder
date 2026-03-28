@@ -47,12 +47,6 @@ public class DetailFillingAdapterServiceImpl implements DetailFillingAdapterServ
                         .jsonNode()
                         .asText();
 
-        Long queueId =
-                matchFinder
-                        .jsonGetOrThrow("queueId", InvalidExternalJsonFormatException.class)
-                        .jsonNode()
-                        .asLong();
-
         String patch =
                 matchFinder
                         .jsonGetOrThrow("patch", InvalidExternalJsonFormatException.class)
@@ -85,7 +79,7 @@ public class DetailFillingAdapterServiceImpl implements DetailFillingAdapterServ
                         .map(this::mapToTeamFromDetailFilling)
                         .toList();
 
-        return new MatchDTO(riotMatchId, queueId, patch, gameCreation, gameDuration, players, teams);
+        return new MatchDTO(riotMatchId, null, patch, gameCreation, gameDuration, players, teams);
     }
 
     private PlayerStatsDTO mapToPlayerFromDetailFilling(JsonNode player, Long gameDuration) {

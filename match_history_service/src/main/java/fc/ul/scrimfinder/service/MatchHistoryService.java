@@ -5,6 +5,7 @@ import fc.ul.scrimfinder.dto.response.MatchDTO;
 import fc.ul.scrimfinder.dto.response.PaginatedResponseDTO;
 import fc.ul.scrimfinder.exception.*;
 import java.util.Map;
+import java.util.UUID;
 
 public interface MatchHistoryService {
     MatchDTO getMatchById(String riotMatchId)
@@ -15,7 +16,7 @@ public interface MatchHistoryService {
     PaginatedResponseDTO<MatchDTO> getMatches(int page, int size, MatchFilters filterParams)
             throws InvalidIntervalException, InvalidTeamsException;
 
-    MatchDTO addMatchById(String riotMatchId, Map<String, Integer> mmrDeltas)
+    MatchDTO addMatchById(String riotMatchId, UUID queueId, Map<String, Integer> mmrDeltas)
             throws MatchAlreadyExistsException,
                     MatchNotFoundException,
                     NotEnoughMMRDeltasException,

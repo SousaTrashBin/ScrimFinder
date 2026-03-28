@@ -31,10 +31,10 @@ public abstract class MatchMapper {
         @Mapping(target = "playerMatchStats", source = "players"),
         @Mapping(
                 target = "blue",
-                expression = "java(getTeam(matchDTO.teams(), fc.ul.scrimfinder.util.TeamSide.BLUE))"),
+                expression = "java(getTeam(matchDTO.getTeams(), fc.ul.scrimfinder.util.TeamSide.BLUE))"),
         @Mapping(
                 target = "red",
-                expression = "java(getTeam(matchDTO.teams(), fc.ul.scrimfinder.util.TeamSide.RED))")
+                expression = "java(getTeam(matchDTO.getTeams(), fc.ul.scrimfinder.util.TeamSide.RED))")
     })
     public abstract Match dtoToMatch(MatchDTO matchDTO);
 
@@ -43,10 +43,10 @@ public abstract class MatchMapper {
         @Mapping(target = "playerMatchStats", ignore = true),
         @Mapping(
                 target = "blue",
-                expression = "java(getTeam(matchDTO.teams(), fc.ul.scrimfinder.util.TeamSide.BLUE))"),
+                expression = "java(getTeam(matchDTO.getTeams(), fc.ul.scrimfinder.util.TeamSide.BLUE))"),
         @Mapping(
                 target = "red",
-                expression = "java(getTeam(matchDTO.teams(), fc.ul.scrimfinder.util.TeamSide.RED))")
+                expression = "java(getTeam(matchDTO.getTeams(), fc.ul.scrimfinder.util.TeamSide.RED))")
     })
     public abstract Match dtoToMatchWithNoPlayerStats(MatchDTO matchDTO);
 

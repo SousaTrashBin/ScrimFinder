@@ -96,8 +96,7 @@ public class RedisServiceTest {
                         new TeamStatsDTO(TeamSide.RED, 5, 30, 5, 0));
 
         final MatchStatsDTO matchStatsDTO =
-                new MatchStatsDTO(
-                        matchId, 1L, "15.5", 100000L, 1000L, playerStatsDTOList, teamStatsDTOList);
+                new MatchStatsDTO(matchId, "15.5", 100000L, 1000L, playerStatsDTOList, teamStatsDTOList);
 
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());

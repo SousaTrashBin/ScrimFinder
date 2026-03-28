@@ -23,7 +23,7 @@ public class Match {
     private String riotMatchId;
 
     @Column(name = "queue_id", nullable = false)
-    private Long queueId;
+    private UUID queueId;
 
     @Column(name = "patch", nullable = false)
     private String patch;

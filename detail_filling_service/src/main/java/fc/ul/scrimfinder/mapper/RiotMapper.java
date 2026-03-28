@@ -28,12 +28,6 @@ public class RiotMapper {
         JsonNodeFinder jsonNodeFinder =
                 new JsonNodeFinder(match).jsonGetOrThrow("info", InvalidMatchFormatException.class);
 
-        Long queueId =
-                jsonNodeFinder
-                        .jsonGetOrThrow("queueId", InvalidMatchFormatException.class)
-                        .jsonNode()
-                        .asLong();
-
         String gameVersion =
                 jsonNodeFinder
                         .jsonGetOrThrow("gameVersion", InvalidMatchFormatException.class)
@@ -72,8 +66,7 @@ public class RiotMapper {
                         .map(team -> toTeamStatsDTO(team, players))
                         .toList();
 
-        return new MatchStatsDTO(
-                riotMatchId, queueId, patch, gameCreation, gameDuration, players, teams);
+        return new MatchStatsDTO(riotMatchId, patch, gameCreation, gameDuration, players, teams);
     }
 
     public static PlayerStatsDTO toPlayerStatsDTO(JsonNode player) {

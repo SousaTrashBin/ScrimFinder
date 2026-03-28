@@ -12,6 +12,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.util.Map;
+import java.util.UUID;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -127,9 +128,10 @@ public class MatchHistoryController {
             })
     public Response addMatchById(
             @PathParam("riotMatchId") @NotBlank String riotMatchId,
+            @QueryParam("queueId") @NotNull UUID queueId,
             @Size(min = 10, max = 10, message = "The match must have 10 players")
                     Map<String, Integer> playerMMRGains) {
-        MatchDTO addedMatch = matchHistoryService.addMatchById(riotMatchId, playerMMRGains);
+        MatchDTO addedMatch = matchHistoryService.addMatchById(riotMatchId, queueId, playerMMRGains);
         return Response.status(Response.Status.CREATED).entity(addedMatch).build();
     }
 

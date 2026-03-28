@@ -6,6 +6,7 @@ import fc.ul.scrimfinder.util.interval.LongInterval;
 import fc.ul.scrimfinder.util.interval.PatchInterval;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.UUID;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,7 +17,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class MatchFilters {
-    private Long queueId;
+    private UUID queueId;
     private List<Champion> champions;
     @Valid private PatchInterval patch;
     @Valid private LongInterval time;

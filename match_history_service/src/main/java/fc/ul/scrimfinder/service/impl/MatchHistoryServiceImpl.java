@@ -22,6 +22,7 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import org.jboss.logging.Logger;
 
 @ApplicationScoped
@@ -61,24 +62,26 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
     }
 
     @Override
-    public MatchDTO addMatchById(String riotMatchId, Map<String, Integer> playerMMRGains) {
+    public MatchDTO addMatchById(
+            String riotMatchId, UUID queueId, Map<String, Integer> playerMMRGains) {
         Optional<Match> maybeMatch = matchHistoryRepository.findByRiotMatchId(riotMatchId);
         if (maybeMatch.isPresent()) {
             throw new MatchAlreadyExistsException(
                     "A match with this Riot ID already exists in the match history");
         }
         MatchDTO matchDTO = detailFillingAdapterService.getMatch(riotMatchId);
+        matchDTO.setQueueId(queueId);
         Match match = matchMapper.dtoToMatchWithNoPlayerStats(matchDTO);
 
-        if (playerMMRGains.size() != matchDTO.players().size()) {
+        if (playerMMRGains.size() != matchDTO.getPlayers().size()) {
             throw new NotEnoughMMRDeltasException(
                     String.format(
                             "This match has %d players but only %d MMR deltas were provided",
-                            matchDTO.players().size(), playerMMRGains.size()));
+                            matchDTO.getPlayers().size(), playerMMRGains.size()));
         }
 
         matchDTO
-                .players()
+                .getPlayers()
                 .forEach(
                         playerStatsDTO -> {
                             String puuid = playerStatsDTO.getRiotId().getPuuid();
