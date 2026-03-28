@@ -4,6 +4,7 @@ import fc.ul.scrimfinder.util.Champion;
 import fc.ul.scrimfinder.util.Role;
 import fc.ul.scrimfinder.util.TeamSide;
 import jakarta.persistence.*;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.SoftDelete;
@@ -15,9 +16,9 @@ import org.hibernate.annotations.SoftDelete;
 @Table(name = "player_match_stats")
 public class PlayerMatchStats {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", unique = true, nullable = false, updatable = false)
-    private Long id;
+    private UUID id;
 
     @ManyToOne(optional = false, fetch = FetchType.EAGER)
     @JoinColumn(name = "match_id", referencedColumnName = "id", nullable = false)

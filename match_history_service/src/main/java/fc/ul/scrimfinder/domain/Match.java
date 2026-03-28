@@ -3,6 +3,7 @@ package fc.ul.scrimfinder.domain;
 import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.SoftDelete;
@@ -14,9 +15,9 @@ import org.hibernate.annotations.SoftDelete;
 @Table(name = "match")
 public class Match {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", unique = true, nullable = false, updatable = false)
-    private Long id;
+    private UUID id;
 
     @Column(name = "riot_match_id", nullable = false)
     private String riotMatchId;

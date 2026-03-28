@@ -56,7 +56,8 @@ public class PlayerFilters {
         String playerName = fromJsonToField(playerFilters, "playerName", JsonNode::asText);
         String playerTag = fromJsonToField(playerFilters, "playerTag", JsonNode::asText);
         Integer summonerIcon = fromJsonToField(playerFilters, "summonerIcon", JsonNode::asInt);
-        IntegerInterval summonerLevel = fromJsonToField(playerFilters, "summonerLevel", PlayerFilters::getMinMaxInt);
+        IntegerInterval summonerLevel =
+                fromJsonToField(playerFilters, "summonerLevel", PlayerFilters::getMinMaxInt);
         IntegerInterval kills = fromJsonToField(playerFilters, "kills", PlayerFilters::getMinMaxInt);
         IntegerInterval deaths = fromJsonToField(playerFilters, "deaths", PlayerFilters::getMinMaxInt);
         IntegerInterval assists =
