@@ -56,7 +56,7 @@ public class RedisServiceTest {
         final List<PlayerStatsDTO> playerStatsDTOList =
                 List.of(
                         new PlayerStatsDTO(
-                                new RiotId("puuid1", "kung", "foo", 1),
+                                new RiotId("puuid1", "kung", "foo", 1, 200),
                                 27,
                                 30,
                                 5,
@@ -73,7 +73,7 @@ public class RedisServiceTest {
                                 TeamSide.BLUE,
                                 true),
                         new PlayerStatsDTO(
-                                new RiotId("puuid2", "TaiLung", "nofoo", 2),
+                                new RiotId("puuid2", "TaiLung", "nofoo", 2, 100),
                                 5,
                                 30,
                                 5,

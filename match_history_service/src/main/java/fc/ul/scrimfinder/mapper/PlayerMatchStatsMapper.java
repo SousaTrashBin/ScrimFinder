@@ -17,7 +17,7 @@ public abstract class PlayerMatchStatsMapper {
     @Inject DetailFillingAdapterService detailFillingAdapterService;
 
     @Mappings({
-        @Mapping(target = "riotId", expression = "java(buildRiotId(playerMatchStats.getPlayer()))"),
+        @Mapping(target = "riotId", expression = "java(buildRiotId(playerMatchStats))"),
         @Mapping(target = "side", source = "teamSide")
     })
     public abstract PlayerStatsDTO playerMatchStatsToDTO(PlayerMatchStats playerMatchStats);
@@ -26,22 +26,28 @@ public abstract class PlayerMatchStatsMapper {
         @Mapping(target = "id", ignore = true),
         @Mapping(target = "match", ignore = true),
         @Mapping(target = "player", ignore = true),
+        @Mapping(target = "summonerIcon", source = "playerStatsDTO.riotId.summonerIcon"),
+        @Mapping(target = "summonerLevel", source = "playerStatsDTO.riotId.summonerLevel"),
         @Mapping(target = "teamSide", source = "side")
     })
     public abstract PlayerMatchStats dtoToPlayerMatchStats(PlayerStatsDTO playerStatsDTO);
 
     @Mappings({
         @Mapping(target = "id", ignore = true),
+        @Mapping(target = "summonerIcon", source = "playerStatsDTO.riotId.summonerIcon"),
+        @Mapping(target = "summonerLevel", source = "playerStatsDTO.riotId.summonerLevel"),
         @Mapping(target = "teamSide", source = "playerStatsDTO.side")
     })
     public abstract PlayerMatchStats dtoToFullPlayerMatchStats(
             PlayerStatsDTO playerStatsDTO, Match match, Player player);
 
-    RiotId buildRiotId(Player player) {
+    RiotId buildRiotId(PlayerMatchStats playerMatchStats) {
+        Player player = playerMatchStats.getPlayer();
         return new RiotId(
                 player.getPuuid(),
                 player.getName(),
                 player.getTag(),
-                detailFillingAdapterService.getPlayerIcon(player.getName(), player.getTag()));
+                playerMatchStats.getSummonerIcon(),
+                playerMatchStats.getSummonerLevel());
     }
 }

@@ -133,6 +133,22 @@ public class MatchHistoryRepository implements PanacheRepository<Match> {
                         queryBuilder,
                         parameters);
         withPrefixAnd =
+                addEqualCondition(
+                        "summonerIcon" + suffix,
+                        playerFilters.getSummonerIcon(),
+                        "pm.summonerIcon",
+                        withPrefixAnd,
+                        queryBuilder,
+                        parameters);
+        withPrefixAnd =
+                addIntervalCondition(
+                        "summonerLevel" + suffix,
+                        playerFilters.getSummonerLevel(),
+                        "pm.summonerLevel",
+                        withPrefixAnd,
+                        queryBuilder,
+                        parameters);
+        withPrefixAnd =
                 addIntervalCondition(
                         "kills" + suffix,
                         playerFilters.getKills(),

@@ -15,5 +15,6 @@ public class RiotId {
     private String puuid;
     private String playerName;
     private String playerTag;
-    private Integer playerIcon;
+    private Integer summonerIcon;
+    private Integer summonerLevel;
 }

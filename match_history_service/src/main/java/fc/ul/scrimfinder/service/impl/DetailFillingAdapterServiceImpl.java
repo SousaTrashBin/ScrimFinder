@@ -112,13 +112,19 @@ public class DetailFillingAdapterServiceImpl implements DetailFillingAdapterServ
                         .jsonNode()
                         .asText();
 
-        Integer playerIcon =
+        Integer summonerIcon =
                 riotIdNodeFinder
-                        .jsonGetOrThrow("playerIcon", InvalidExternalJsonFormatException.class)
+                        .jsonGetOrThrow("summonerIcon", InvalidExternalJsonFormatException.class)
                         .jsonNode()
                         .asInt();
 
-        RiotId riotId = new RiotId(puuid, playerName, playerTag, playerIcon);
+        Integer summonerLevel =
+                riotIdNodeFinder
+                        .jsonGetOrThrow("summonerLevel", InvalidExternalJsonFormatException.class)
+                        .jsonNode()
+                        .asInt();
+
+        RiotId riotId = new RiotId(puuid, playerName, playerTag, summonerIcon, summonerLevel);
 
         Integer kills =
                 playerNodeFinder

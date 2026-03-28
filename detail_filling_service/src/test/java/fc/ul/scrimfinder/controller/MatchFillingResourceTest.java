@@ -77,6 +77,7 @@ public class MatchFillingResourceTest {
                                                                         .add("riotIdGameName", "kung")
                                                                         .add("riotIdTagline", "foo")
                                                                         .add("profileIcon", 1L)
+                                                                        .add("summonerLevel", 200)
                                                                         .add("kills", 27)
                                                                         .add("deaths", 30)
                                                                         .add("assists", 5)
@@ -99,6 +100,7 @@ public class MatchFillingResourceTest {
                                                                         .add("riotIdGameName", "TaiLung")
                                                                         .add("riotIdTagline", "nofoo")
                                                                         .add("profileIcon", 2L)
+                                                                        .add("summonerLevel", 100)
                                                                         .add("kills", 5)
                                                                         .add("deaths", 30)
                                                                         .add("assists", 5)
@@ -128,7 +130,7 @@ public class MatchFillingResourceTest {
         final List<PlayerStatsDTO> playerStatsDTOList =
                 List.of(
                         new PlayerStatsDTO(
-                                new RiotId("puuid1", "kung", "foo", 1),
+                                new RiotId("puuid1", "kung", "foo", 1, 200),
                                 27,
                                 30,
                                 5,
@@ -145,7 +147,7 @@ public class MatchFillingResourceTest {
                                 TeamSide.BLUE,
                                 true),
                         new PlayerStatsDTO(
-                                new RiotId("puuid2", "TaiLung", "nofoo", 2),
+                                new RiotId("puuid2", "TaiLung", "nofoo", 2, 100),
                                 5,
                                 30,
                                 5,

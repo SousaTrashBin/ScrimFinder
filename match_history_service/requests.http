@@ -484,6 +484,11 @@ GET {{baseUrl}}/matches?page=0&size=20
             "puuid": "iAN9q56BKIho6iQhsu-PriU3Rbb74rVqxKzODj6Wgc7D1usxgavMFszJNRY42m6PT_QuEZJBANY48Q",
             "playerName": "Maynter",
             "playerTag": "EUW",
+            "summonerIcon": 1301,
+            "summonerLevel": {
+                "min": 787,
+                "max": 787
+            },
             "kills": {
                 "min": 1,
                 "max": 1
@@ -543,6 +548,11 @@ GET {{baseUrl}}/matches?page=0&size=20
             "puuid": "N9zxsfUy4YpTwaLhmPiDz7p8UWhSpbZ29gp_hO7SWuKkOHRp-Xv-y2ndPSTLcpoAtlsdrmOTLkN37w",
             "playerName": "Fentasm",
             "playerTag": "FENT",
+            "summonerIcon": 6278,
+            "summonerLevel": {
+                "min": 656,
+                "max": 656
+            },
             "kills": {
                 "min": 1,
                 "max": 1
@@ -602,6 +612,11 @@ GET {{baseUrl}}/matches?page=0&size=20
             "puuid": "-hSICyvezYaKeUn7PTpx_sQyJ9LMd-Iy_Vd1b4Kd2gHyZA-iIjYJUzSbqO-3PBKqEfxwbtq359kRRA",
             "playerName": "SlayderW",
             "playerTag": "EUWW",
+            "summonerIcon": 28,
+            "summonerLevel": {
+                "min": 103,
+                "max": 103
+            },
             "kills": {
                 "min": 4,
                 "max": 4
@@ -661,6 +676,11 @@ GET {{baseUrl}}/matches?page=0&size=20
             "puuid": "PjjQmNQMnNeYTw7sRzUn9TetxzJNjl6oMQIsSoYTxsH6pEtXPhbmIXrCzNDacrX7rM0xuyjf21vHPQ",
             "playerName": "KISS OF DEATH",
             "playerTag": "YEN",
+            "summonerIcon": 1455,
+            "summonerLevel": {
+                "min": 476,
+                "max": 476
+            },
             "kills": {
                 "min": 6,
                 "max": 6
@@ -720,6 +740,11 @@ GET {{baseUrl}}/matches?page=0&size=20
             "puuid": "JhZRJwRDI54TIyBKZRAWg-M0G2nD94hREr41yEiMWeyn1uhKlzOxiMwg5uAX-Thh3HVTyxIUik8G8g",
             "playerName": "Last dance",
             "playerTag": "Hexom",
+            "summonerIcon": 1637,
+            "summonerLevel": {
+                "min": 106,
+                "max": 106
+            },
             "kills": {
                 "min": 1,
                 "max": 1
@@ -779,6 +804,11 @@ GET {{baseUrl}}/matches?page=0&size=20
             "puuid": "3HX8rUcLhtXTxEqau81_a2GSHiu4QIXNnz4fmbjtKFb5LaUHXO5JKywCBD-hGh1QKS9pXuHXM8z_Xg",
             "playerName": "baby kiin",
             "playerTag": "keem",
+            "summonerIcon": 6,
+            "summonerLevel": {
+                "min": 120,
+                "max": 120
+            },
             "kills": {
                 "min": 5,
                 "max": 5
@@ -838,6 +868,11 @@ GET {{baseUrl}}/matches?page=0&size=20
             "puuid": "HC30r4a0InZda3BFDNSMtGfSLdBgHhd4TpypUakJWMAuKDc1KJFs1rKgLEQ4ZYxlIT47A4Gurna6TA",
             "playerName": "J1HUIV",
             "playerTag": "000",
+            "summonerIcon": 29,
+            "summonerLevel": {
+                "min": 445,
+                "max": 445
+            },
             "kills": {
                 "min": 11,
                 "max": 11
@@ -897,6 +932,11 @@ GET {{baseUrl}}/matches?page=0&size=20
             "puuid": "Z-zaiPM3Mr-hchiG4EYWCZWsswQljO8MRv9T7qWUJd97mE118wImcUerW-N_39Zwof5yjRlY2zHqyQ",
             "playerName": "Yoriichı",
             "playerTag": "EUW",
+            "summonerIcon": 5045,
+            "summonerLevel": {
+                "min": 210,
+                "max": 210
+            },
             "kills": {
                 "min": 5,
                 "max": 5
@@ -956,6 +996,11 @@ GET {{baseUrl}}/matches?page=0&size=20
             "puuid": "HsNHWkClaNLYjltBCQYa5mJ_UA9Nzm_QwWXbJBFN0kVsJIL5NV57eEgDmzGvie4v02FVRcZ20dZ4Ig",
             "playerName": "KC NEXT ADKING",
             "playerTag": "EUW",
+            "summonerIcon": 29,
+            "summonerLevel": {
+                "min": 727,
+                "max": 727
+            },
             "kills": {
                 "min": 13,
                 "max": 13
@@ -1015,6 +1060,11 @@ GET {{baseUrl}}/matches?page=0&size=20
             "puuid": "69SHi68G5IHp3HnB8GahSVsh_UfAh0qu1FwKnV2WaRd-qQ5gcwOcHZ1aXfPasS51Q9Iv63S-QM9a7w",
             "playerName": "berebooo",
             "playerTag": "TR1",
+            "summonerIcon": 3158,
+            "summonerLevel": {
+                "min": 346,
+                "max": 346
+            },
             "kills": {
                 "min": 1,
                 "max": 1

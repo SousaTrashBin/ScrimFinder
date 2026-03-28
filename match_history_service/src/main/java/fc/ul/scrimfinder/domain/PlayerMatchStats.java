@@ -27,6 +27,12 @@ public class PlayerMatchStats {
     @JoinColumn(name = "player_id", referencedColumnName = "id", nullable = false)
     private Player player;
 
+    @Column(name = "summonerIcon", nullable = false)
+    private Integer summonerIcon;
+
+    @Column(name = "summonerLevel", nullable = false)
+    private Integer summonerLevel;
+
     @Column(name = "kills", nullable = false)
     private Integer kills;
 

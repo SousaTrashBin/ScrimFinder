@@ -8,6 +8,7 @@ import fc.ul.scrimfinder.dto.response.MatchDTO;
 import fc.ul.scrimfinder.dto.response.PaginatedResponseDTO;
 import fc.ul.scrimfinder.exception.*;
 import fc.ul.scrimfinder.mapper.MatchMapper;
+import fc.ul.scrimfinder.mapper.PlayerMapper;
 import fc.ul.scrimfinder.mapper.PlayerMatchStatsMapper;
 import fc.ul.scrimfinder.repository.MatchHistoryRepository;
 import fc.ul.scrimfinder.repository.PlayerMatchStatsRepository;
@@ -39,6 +40,8 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
     @Inject PlayerMatchStatsRepository playerMatchStatsRepository;
 
     @Inject MatchMapper matchMapper;
+
+    @Inject PlayerMapper playerMapper;
 
     @Inject PlayerMatchStatsMapper playerMatchStatsMapper;
 
@@ -79,8 +82,6 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
                 .forEach(
                         playerStatsDTO -> {
                             String puuid = playerStatsDTO.getRiotId().getPuuid();
-                            String name = playerStatsDTO.getRiotId().getPlayerName();
-                            String tag = playerStatsDTO.getRiotId().getPlayerTag();
                             playerStatsDTO.setMmrDelta(playerMMRGains.getOrDefault(puuid, null));
 
                             if (playerStatsDTO.getMmrDelta() == null) {
@@ -92,10 +93,7 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
                             PlayerMatchStats playerMatchStats =
                                     playerMatchStatsMapper.dtoToPlayerMatchStats(playerStatsDTO);
 
-                            Player player = new Player();
-                            player.setPuuid(puuid);
-                            player.setName(name);
-                            player.setTag(tag);
+                            Player player = playerMapper.playerMatchStatsDTOToPlayer(playerStatsDTO);
 
                             Optional<Player> maybePlayer = playerRepository.findByPuuid(puuid);
                             if (maybePlayer.isPresent()) {

@@ -103,7 +103,13 @@ public class RiotMapper {
                         .jsonNode()
                         .asInt();
 
-        RiotId riotId = new RiotId(puuid, playerName, playerTag, playerIcon);
+        Integer playerLevel =
+                playerNodeFinder
+                        .jsonGetOrThrow("summonerLevel", InvalidPlayerFormatException.class)
+                        .jsonNode()
+                        .asInt();
+
+        RiotId riotId = new RiotId(puuid, playerName, playerTag, playerIcon, playerLevel);
 
         Integer kills =
                 playerNodeFinder

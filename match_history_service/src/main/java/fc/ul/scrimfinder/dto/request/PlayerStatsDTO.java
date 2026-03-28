@@ -113,10 +113,13 @@ public class PlayerStatsDTO {
         }
         String playerTag = playerTagNode.asText();
 
-        JsonNode playerIconNode = riotIdNode.findValue("playerIcon");
-        Integer playerIcon = playerIconNode == null ? 0 : playerIconNode.asInt();
+        JsonNode summonerIconNode = riotIdNode.findValue("summonerIcon");
+        Integer summonerIcon = summonerIconNode == null ? 0 : summonerIconNode.asInt();
 
-        return new RiotId(puuid, playerName, playerTag, playerIcon);
+        JsonNode summonerLevelNode = riotIdNode.findValue("summonerLevel");
+        Integer summonerLevel = summonerLevelNode == null ? 0 : summonerLevelNode.asInt();
+
+        return new RiotId(puuid, playerName, playerTag, summonerIcon, summonerLevel);
     }
 
     private static Integer fromJsonToKills(JsonNode json) {
