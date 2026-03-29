@@ -1,0 +1,26 @@
+services:
+  training:
+    build: .
+    container_name: scrimfinder_training
+    command: uvicorn training_service.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+      - "50051:50051"
+    volumes:
+      - ../ml_data:/app/data
+      - ../dataset:/app/dataset:ro
+    environment:
+      - PYTHONPATH=/app
+      - LEAGUE_DB=/app/dataset/league_data.db
+      - PLATFORM_DB=/app/data/platform.db
+      - MODELS_DIR=/app/data/models
+      - GAMES_DIR=/app/data/games
+      - DATASETS_DIR=/app/data/datasets
+      - MODEL_RELOAD_INTERVAL=60
+      - GRPC_PORT=50051
+    networks:
+      - scrimfinder_net
+
+networks:
+  scrimfinder_net:
+    external: true
