@@ -1,4 +1,3 @@
-# analysis_service/Dockerfile
 FROM python:3.11-slim
 WORKDIR /app
 COPY requirements.txt .
@@ -8,3 +7,4 @@ COPY tests/ ./tests/
 COPY pytest.ini .
 RUN find /app -type d -exec touch {}/__init__.py \;
 EXPOSE 8001
+CMD ["uvicorn", "analysis_service.main:app", "--host", "0.0.0.0", "--port", "8001"]
