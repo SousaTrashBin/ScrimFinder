@@ -6,15 +6,13 @@ Run: docker exec scrimfinder_analysis pytest tests/test_analysis.py -v
 import os
 import tempfile
 
-import pytest
-
 _TMP = tempfile.mkdtemp(prefix="analysis_test_")
 os.environ["PLATFORM_DB"] = os.path.join(_TMP, "platform.db")
 os.environ["MODELS_DIR"] = os.path.join(_TMP, "models")
 
-from fastapi.testclient import TestClient
+from fastapi.testclient import TestClient  # noqa: E402
 
-from analysis_service.main import app
+from analysis_service.main import app  # noqa: E402
 
 client = TestClient(app, raise_server_exceptions=False)
 

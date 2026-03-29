@@ -356,15 +356,9 @@ def analyze_player(body: PlayerAnalysisRequest) -> PlayerAnalysisResponse:
 
     # ── Load performance model for percentile lookup ──────────
     percentiles = {}
-    pipe = None
-    pos_le = None
-    champ_le = None
     try:
         artifact, mv = _load_artifact("performance")
-        pipe = artifact["pipeline"]
         percentiles = artifact["percentiles"]
-        pos_le = artifact["encoders"]["pos_le"]
-        champ_le = artifact["encoders"]["champ_le"]
     except HTTPException:
         pass
 
@@ -492,7 +486,6 @@ def analyze_game(body: GameAnalysisRequest) -> GameAnalysisResponse:
     for p in participants:
         puuid = p.get("puuid", "unknown")
         champ_id = p.get("championId", 0)
-        team_id = p.get("teamId", 100)
         position = p.get("position", "MIDDLE")
         win = bool(p.get("win", False))
         kills = p.get("kills", 0)
