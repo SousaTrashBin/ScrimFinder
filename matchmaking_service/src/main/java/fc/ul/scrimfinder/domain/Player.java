@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -13,7 +14,7 @@ import lombok.Setter;
 @Table(name = "player")
 public class Player {
 
-    @Id private Long id;
+    @Id private UUID id = UUID.randomUUID();
 
     @Column(nullable = false, unique = true)
     private String username;

@@ -1,9 +1,10 @@
 package fc.ul.scrimfinder.dto.response;
 
 import java.util.List;
+import java.util.UUID;
 
 public record PlayerDTO(
-        Long id,
+        UUID id,
         String discordUsername,
         List<RiotAccountDTO> riotAccounts,
         Integer soloqMMR,

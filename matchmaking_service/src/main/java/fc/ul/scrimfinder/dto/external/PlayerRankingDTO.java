@@ -5,11 +5,11 @@ import java.util.UUID;
 
 public record PlayerRankingDTO(
         UUID publicId,
-        Long playerId,
-        String username,
+        UUID playerId,
+        String discordUsername,
         String lolAccountPPUID,
         Region region,
-        Long queueId,
+        UUID queueId,
         int mmr,
         int wins,
         int losses) {}

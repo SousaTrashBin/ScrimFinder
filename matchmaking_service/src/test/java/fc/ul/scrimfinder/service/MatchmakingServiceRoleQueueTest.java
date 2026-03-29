@@ -42,7 +42,8 @@ public class MatchmakingServiceRoleQueueTest {
     @BeforeEach
     void setup() {
         when(lockService.acquireLock(anyString(), any())).thenReturn(true);
-        when(redisRepository.removeTicket(anyLong(), any(), any(), anyLong())).thenReturn(true);
+        when(redisRepository.removeTicket(any(UUID.class), any(), any(), any(UUID.class)))
+                .thenReturn(true);
     }
 
     @Test
@@ -56,20 +57,20 @@ public class MatchmakingServiceRoleQueueTest {
         }
 
         Role[] roles = {Role.TOP, Role.JUNGLE, Role.MID, Role.BOTTOM, Role.SUPPORT};
-        List<Long> ticketIds = new ArrayList<>();
+        List<UUID> ticketIds = new ArrayList<>();
 
-        Map<Role, List<Long>> currentTickets = new HashMap<>();
+        Map<Role, List<UUID>> currentTickets = new HashMap<>();
         for (Role r : roles) currentTickets.put(r, new ArrayList<>());
 
         doAnswer(
                         invocation -> {
                             Role r = invocation.getArgument(2);
-                            Long tid = invocation.getArgument(3);
+                            UUID tid = invocation.getArgument(3);
                             currentTickets.get(r).add(tid);
                             return null;
                         })
                 .when(redisRepository)
-                .addTicket(eq(queue.getId()), any(), any(), anyLong(), anyInt());
+                .addTicket(eq(queue.getId()), any(), any(), any(UUID.class), anyInt());
 
         when(redisRepository.getTickets(eq(queue.getId()), eq(Region.EUW), any(Role.class)))
                 .thenAnswer(
@@ -120,20 +121,20 @@ public class MatchmakingServiceRoleQueueTest {
         queueRepository.persist(queue);
 
         Role[] roles = {Role.TOP, Role.JUNGLE, Role.MID, Role.BOTTOM, Role.SUPPORT};
-        List<Long> ticketIds = new ArrayList<>();
+        List<UUID> ticketIds = new ArrayList<>();
 
-        Map<Role, List<Long>> currentTickets = new HashMap<>();
+        Map<Role, List<UUID>> currentTickets = new HashMap<>();
         for (Role r : roles) currentTickets.put(r, new ArrayList<>());
 
         doAnswer(
                         invocation -> {
                             Role r = invocation.getArgument(2);
-                            Long tid = invocation.getArgument(3);
+                            UUID tid = invocation.getArgument(3);
                             currentTickets.get(r).add(tid);
                             return null;
                         })
                 .when(redisRepository)
-                .addTicket(eq(queue.getId()), any(), any(), anyLong(), anyInt());
+                .addTicket(eq(queue.getId()), any(), any(), any(UUID.class), anyInt());
 
         when(redisRepository.getTickets(eq(queue.getId()), eq(Region.EUW), any(Role.class)))
                 .thenAnswer(
@@ -158,7 +159,6 @@ public class MatchmakingServiceRoleQueueTest {
 
     private Queue createRoleQueue(String name, MatchmakingMode mode) {
         Queue queue = new Queue();
-        queue.setId(UUID.randomUUID().getMostSignificantBits() & Long.MAX_VALUE);
         queue.setName(name);
         queue.setRequiredPlayers(10);
         queue.setMode(mode);
@@ -169,13 +169,12 @@ public class MatchmakingServiceRoleQueueTest {
 
     private Player createPlayer(String username) {
         Player player = new Player();
-        player.setId(UUID.randomUUID().getMostSignificantBits() & Long.MAX_VALUE);
         player.setUsername(username);
         playerRepository.persist(player);
         return player;
     }
 
-    private void mockRanking(Long playerId, Long queueId, Region region, int mmr) {
+    private void mockRanking(UUID playerId, UUID queueId, Region region, int mmr) {
         when(rankingServiceClient.getPlayerRanking(playerId, queueId))
                 .thenReturn(
                         List.of(

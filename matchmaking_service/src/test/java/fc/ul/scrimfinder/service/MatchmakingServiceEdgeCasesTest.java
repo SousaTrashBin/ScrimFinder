@@ -48,20 +48,23 @@ public class MatchmakingServiceEdgeCasesTest {
 
     @Test
     void testJoinQueuePlayerNotFound() {
+        UUID pid = UUID.randomUUID();
+        UUID qid = UUID.randomUUID();
         assertThrows(
                 PlayerNotFoundException.class,
                 () -> {
-                    matchmakingService.joinQueue(new JoinQueueRequest(999L, 1L, null));
+                    matchmakingService.joinQueue(new JoinQueueRequest(pid, qid, null));
                 });
     }
 
     @Test
     void testJoinQueueQueueNotFound() {
         Player p = createPlayer("P1");
+        UUID qid = UUID.randomUUID();
         assertThrows(
                 QueueNotFoundException.class,
                 () -> {
-                    matchmakingService.joinQueue(new JoinQueueRequest(p.getId(), 999L, null));
+                    matchmakingService.joinQueue(new JoinQueueRequest(p.getId(), qid, null));
                 });
     }
 
@@ -115,7 +118,6 @@ public class MatchmakingServiceEdgeCasesTest {
 
     private Queue createQueue(String name, int required, MatchmakingMode mode, Region region) {
         Queue queue = new Queue();
-        queue.setId(UUID.randomUUID().getMostSignificantBits() & Long.MAX_VALUE);
         queue.setName(name);
         queue.setRequiredPlayers(required);
         queue.setMode(mode);
@@ -126,13 +128,12 @@ public class MatchmakingServiceEdgeCasesTest {
 
     private Player createPlayer(String username) {
         Player player = new Player();
-        player.setId(UUID.randomUUID().getMostSignificantBits() & Long.MAX_VALUE);
         player.setUsername(username);
         playerRepository.persist(player);
         return player;
     }
 
-    private void mockRanking(Long playerId, Long queueId, Region region, int mmr) {
+    private void mockRanking(UUID playerId, UUID queueId, Region region, int mmr) {
         when(rankingServiceClient.getPlayerRanking(playerId, queueId))
                 .thenReturn(
                         List.of(

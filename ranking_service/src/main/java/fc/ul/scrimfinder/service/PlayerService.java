@@ -4,16 +4,17 @@ import fc.ul.scrimfinder.dto.response.PlayerDTO;
 import fc.ul.scrimfinder.exception.LeagueAccountNotLinkedException;
 import fc.ul.scrimfinder.exception.PlayerNotFoundException;
 import fc.ul.scrimfinder.util.Region;
+import java.util.UUID;
 
 public interface PlayerService {
 
-    PlayerDTO createPlayer(Long id, String username);
+    PlayerDTO createPlayer(UUID id, String username);
 
     PlayerDTO linkLolAccount(
-            Long playerId, String puuid, String gameName, String tagLine, Region region);
+            UUID playerId, String puuid, String gameName, String tagLine, Region region);
 
-    PlayerDTO setPrimaryAccount(Long playerId, String puuid);
+    PlayerDTO setPrimaryAccount(UUID playerId, String puuid);
 
-    PlayerDTO syncPlayerMMR(Long playerId)
+    PlayerDTO syncPlayerMMR(UUID playerId)
             throws PlayerNotFoundException, LeagueAccountNotLinkedException;
 }

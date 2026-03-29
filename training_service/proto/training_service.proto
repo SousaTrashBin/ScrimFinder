@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package scrimfinder;
+
+option java_multiple_files = true;
+option java_package = "fc.ul.scrimfinder.grpc";
+option java_outer_classname = "AnalysisProto";
+
+// ── Training Service ──────────────────────────────────────────
+// Exposed by training_service, called by:
+//   - match_history_service (ForwardMatch)
+//   - analysis_service (GetActiveModel)
+
+service TrainingService {
+
+  // Called by match_history_service after a match is saved.
+  // Training Service fetches raw JSON from detail_filling_service
+  // and stores + extracts features automatically.
+  rpc ForwardMatch (ForwardMatchRequest) returns (ForwardMatchResponse) {}
+
+  // Called by analysis_service to get the active model for a concern.
+  // Replaces the shared platform.db volume once gRPC is fully wired.
+  rpc GetActiveModel (GetActiveModelRequest) returns (GetActiveModelResponse) {}
+
+  // Called by analysis_service to check Training Service health.
+  rpc HealthCheck (HealthCheckRequest) returns (HealthCheckResponse) {}
+}
+
+// ── ForwardMatch ──────────────────────────────────────────────
+
+message ForwardMatchRequest {
+  string match_id = 1;         // Riot match ID e.g. "EUW1_7123456789"
+  string source   = 2;         // "matchmaking" | "manual" | "riot_api"
+}
+
+message ForwardMatchResponse {
+  bool   success     = 1;
+  string message     = 2;
+  string game_id     = 3;      // internal game ID stored in platform.db
+  bool   draft_ok    = 4;      // draft features extracted successfully
+  bool   build_ok    = 5;      // build features extracted successfully
+  bool   perf_ok     = 6;      // performance features extracted successfully
+}
+
+// ── GetActiveModel ────────────────────────────────────────────
+
+message GetActiveModelRequest {
+  string concern = 1;          // "draft" | "build" | "performance"
+}
+
+message GetActiveModelResponse {
+  bool   found       = 1;
+  int32  model_id    = 2;
+  string concern     = 3;
+  string algorithm   = 4;
+  string version     = 5;
+  string file_path   = 6;      // absolute path to .pkl on shared volume
+  string metrics_json = 7;     // JSON string of metrics dict
+  string activated_at = 8;
+}
+
+// ── HealthCheck ───────────────────────────────────────────────
+
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  bool   healthy          = 1;
+  string message          = 2;
+  int32  games_ingested   = 3;
+  repeated string active_models = 4;  // list of concerns with active models
+}

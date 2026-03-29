@@ -1,0 +1,23 @@
+services:
+  analysis:
+    build: .
+    container_name: scrimfinder_analysis
+    command: uvicorn analysis_service.main:app --host 0.0.0.0 --port 8001 --reload
+    ports:
+      - "8001:8001"
+    volumes:
+      - ../ml_data:/app/data
+      - ../dataset:/app/dataset:ro
+    environment:
+      - PYTHONPATH=/app
+      - LEAGUE_DB=/app/dataset/league_data.db
+      - PLATFORM_DB=/app/data/platform.db
+      - MODELS_DIR=/app/data/models
+      - MODEL_RELOAD_INTERVAL=60
+      - TRAINING_GRPC_URL=scrimfinder_training:50051
+    networks:
+      - scrimfinder_net
+
+networks:
+  scrimfinder_net:
+    external: true

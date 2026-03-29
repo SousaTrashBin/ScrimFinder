@@ -11,6 +11,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.util.Optional;
+import java.util.UUID;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -55,7 +56,7 @@ public class LeaderboardController {
     public Response getQueueLeaderboard(
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("size") @DefaultValue("20") @Min(0) @Max(100) int size,
-            @QueryParam("queueId") Optional<Long> queueId,
+            @QueryParam("queueId") Optional<UUID> queueId,
             @QueryParam("region") Optional<Region> region) {
         var leaderboard = playerRankingService.getQueueLeaderboard(page, size, queueId, region);
         return Response.ok(leaderboard).build();

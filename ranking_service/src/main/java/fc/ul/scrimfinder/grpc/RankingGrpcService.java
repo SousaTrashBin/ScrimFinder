@@ -6,6 +6,7 @@ import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @GrpcService
 public class RankingGrpcService implements RankingService {
@@ -14,21 +15,21 @@ public class RankingGrpcService implements RankingService {
 
     @Override
     public Uni<MatchResultResponse> reportMatchResults(MatchResultRequest request) {
-        Map<Long, fc.ul.scrimfinder.dto.request.MatchResultRequest.PlayerDelta> deltas =
+        Map<String, fc.ul.scrimfinder.dto.request.MatchResultRequest.PlayerDelta> deltas =
                 new HashMap<>();
         request
                 .getPlayerDeltasMap()
                 .forEach(
-                        (id, delta) -> {
+                        (puuid, delta) -> {
                             deltas.put(
-                                    id,
+                                    puuid,
                                     new fc.ul.scrimfinder.dto.request.MatchResultRequest.PlayerDelta(
                                             delta.getWinDelta(), delta.getLossDelta()));
                         });
 
         fc.ul.scrimfinder.dto.request.MatchResultRequest dtoRequest =
                 new fc.ul.scrimfinder.dto.request.MatchResultRequest(
-                        request.getGameId(), request.getQueueId(), deltas);
+                        request.getGameId(), UUID.fromString(request.getQueueId()), deltas);
 
         try {
             playerRankingService.processMatchResults(dtoRequest);

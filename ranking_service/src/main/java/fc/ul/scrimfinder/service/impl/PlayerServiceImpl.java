@@ -4,11 +4,7 @@ import fc.ul.scrimfinder.domain.Player;
 import fc.ul.scrimfinder.domain.RiotAccount;
 import fc.ul.scrimfinder.dto.response.PlayerDTO;
 import fc.ul.scrimfinder.dto.response.RankDTO;
-import fc.ul.scrimfinder.exception.ExternalAccountNotFoundException;
-import fc.ul.scrimfinder.exception.ExternalServiceUnavailableException;
-import fc.ul.scrimfinder.exception.LeagueAccountNotLinkedException;
-import fc.ul.scrimfinder.exception.PlayerAlreadyCreatedException;
-import fc.ul.scrimfinder.exception.PlayerNotFoundException;
+import fc.ul.scrimfinder.exception.*;
 import fc.ul.scrimfinder.grpc.ExternalPlayerFillingService;
 import fc.ul.scrimfinder.grpc.PlayerRequest;
 import fc.ul.scrimfinder.grpc.PlayerResponse;
@@ -22,6 +18,10 @@ import io.quarkus.grpc.GrpcClient;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.util.UUID;
+import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
+import org.eclipse.microprofile.faulttolerance.Retry;
+import org.eclipse.microprofile.faulttolerance.Timeout;
 
 @ApplicationScoped
 public class PlayerServiceImpl implements PlayerService {
@@ -38,7 +38,7 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     @Transactional
-    public PlayerDTO createPlayer(Long id, String username) {
+    public PlayerDTO createPlayer(UUID id, String username) {
         if (playerRepository.find("discordUsername", username).count() > 0) {
             throw new PlayerAlreadyCreatedException(
                     "There's already a player created with that discord username");
@@ -52,8 +52,10 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     @Transactional
+    @Retry(maxRetries = 3, delay = 500)
+    @Timeout(3000)
     public PlayerDTO linkLolAccount(
-            Long playerId, String puuid, String gameName, String tagLine, Region region) {
+            UUID playerId, String puuid, String gameName, String tagLine, Region region) {
         Player player =
                 playerRepository
                         .findByIdOptional(playerId)
@@ -93,7 +95,7 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     @Transactional
-    public PlayerDTO setPrimaryAccount(Long playerId, String puuid) {
+    public PlayerDTO setPrimaryAccount(UUID playerId, String puuid) {
         Player player =
                 playerRepository
                         .findByIdOptional(playerId)
@@ -116,7 +118,10 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     @Transactional
-    public PlayerDTO syncPlayerMMR(Long playerId)
+    @Retry(maxRetries = 2, delay = 500)
+    @Timeout(4000)
+    @CircuitBreaker(requestVolumeThreshold = 10, failureRatio = 0.5, delay = 5000)
+    public PlayerDTO syncPlayerMMR(UUID playerId)
             throws PlayerNotFoundException, LeagueAccountNotLinkedException {
         Player player =
                 playerRepository
@@ -146,7 +151,7 @@ public class PlayerServiceImpl implements PlayerService {
                             RankDTO rankDTO =
                                     new RankDTO(
                                             Tier.valueOf(entry.getTier()),
-                                            Integer.parseInt(entry.getRank()),
+                                            parseDivision(entry.getRank()),
                                             entry.getLeaguePoints());
                             if ("RANKED_SOLO_5x5".equals(entry.getQueueType())) {
                                 player.setSoloqMMR(mmrConverter.convertRankToMMR(rankDTO));
@@ -157,5 +162,19 @@ public class PlayerServiceImpl implements PlayerService {
 
         playerRepository.persist(player);
         return playerMapper.toDTO(player);
+    }
+
+    private int parseDivision(String rank) {
+        try {
+            return Integer.parseInt(rank);
+        } catch (NumberFormatException e) {
+            return switch (rank) {
+                case "I" -> 1;
+                case "II" -> 2;
+                case "III" -> 3;
+                case "IV" -> 4;
+                default -> 1;
+            };
+        }
     }
 }

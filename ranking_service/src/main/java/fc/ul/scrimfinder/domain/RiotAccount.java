@@ -2,6 +2,7 @@ package fc.ul.scrimfinder.domain;
 
 import fc.ul.scrimfinder.util.Region;
 import jakarta.persistence.*;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -11,9 +12,7 @@ import lombok.Setter;
 @Setter
 public class RiotAccount {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Id private UUID id = UUID.randomUUID();
 
     @Column(nullable = false, unique = true)
     private String puuid;

@@ -27,3 +27,13 @@ spec:
       services:
         - name: detail-filling-service
           port: 8080
+    - match: PathPrefix(`/api/v1/training`)
+      kind: Rule
+      services:
+        - name: training-service
+          port: 8000
+    - match: PathPrefix(`/api/v1/analysis`)
+      kind: Rule
+      services:
+        - name: analysis-service
+          port: 8001

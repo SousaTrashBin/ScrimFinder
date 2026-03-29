@@ -7,6 +7,7 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.util.UUID;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -53,7 +54,7 @@ public class PlayerController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    public Response createPlayer(@PathParam("id") Long id, @QueryParam("username") String username) {
+    public Response createPlayer(@PathParam("id") UUID id, @QueryParam("username") String username) {
         PlayerDTO player = playerService.createPlayer(id, username);
         return Response.status(Response.Status.CREATED).entity(player).build();
     }
@@ -78,7 +79,7 @@ public class PlayerController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    public Response getPlayer(@PathParam("id") Long id) {
+    public Response getPlayer(@PathParam("id") UUID id) {
         PlayerDTO player = playerService.getPlayer(id);
         return Response.ok(player).build();
     }

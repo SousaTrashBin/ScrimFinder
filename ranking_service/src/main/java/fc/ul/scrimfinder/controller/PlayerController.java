@@ -7,10 +7,10 @@ import fc.ul.scrimfinder.util.Region;
 import jakarta.inject.Inject;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.util.UUID;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -48,7 +48,7 @@ public class PlayerController {
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     public Response createPlayer(
-            @QueryParam("id") @NotNull Long id, @QueryParam("username") @NotBlank String username) {
+            @QueryParam("id") @NotNull UUID id, @QueryParam("username") @NotBlank String username) {
         var player = playerService.createPlayer(id, username);
         return Response.status(Response.Status.CREATED).entity(player).build();
     }
@@ -81,7 +81,7 @@ public class PlayerController {
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     public Response linkLolAccount(
-            @PathParam("playerId") @Positive Long playerId,
+            @PathParam("playerId") @NotNull UUID playerId,
             @QueryParam("puuid") @NotBlank String puuid,
             @QueryParam("gameName") @NotBlank String gameName,
             @QueryParam("tagLine") @NotBlank String tagLine,
@@ -111,7 +111,7 @@ public class PlayerController {
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     public Response setPrimaryAccount(
-            @PathParam("playerId") @Positive Long playerId, @QueryParam("puuid") @NotBlank String puuid) {
+            @PathParam("playerId") @NotNull UUID playerId, @QueryParam("puuid") @NotBlank String puuid) {
         var updatedPlayer = playerService.setPrimaryAccount(playerId, puuid);
         return Response.ok(updatedPlayer).build();
     }
@@ -143,7 +143,7 @@ public class PlayerController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    public Response syncExternalMMR(@PathParam("playerId") @Positive Long playerId) {
+    public Response syncExternalMMR(@PathParam("playerId") @NotNull UUID playerId) {
         var updatedRanking = playerService.syncPlayerMMR(playerId);
         return Response.ok(updatedRanking).build();
     }

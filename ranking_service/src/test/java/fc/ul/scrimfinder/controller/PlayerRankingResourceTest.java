@@ -22,18 +22,20 @@ public class PlayerRankingResourceTest {
 
     @Test
     void testGetPlayerRankingEndpoint() {
+        UUID rid = UUID.randomUUID();
+        UUID pid = UUID.randomUUID();
+        UUID qid = UUID.randomUUID();
         PlayerRankingDTO ranking =
-                new PlayerRankingDTO(
-                        UUID.randomUUID(), 100L, "User100", "P100", Region.EUW, 1L, 1200, 10, 5);
+                new PlayerRankingDTO(rid, pid, "User100", "P100", Region.EUW, qid, 1200, 10, 5);
 
-        when(playerRankingService.getPlayerRanking(eq(100L), any())).thenReturn(List.of(ranking));
+        when(playerRankingService.getPlayerRanking(eq(pid), any())).thenReturn(List.of(ranking));
 
         given()
                 .when()
-                .get("/players/100/queue?queueId=1")
+                .get("/players/" + pid + "/queue?queueId=" + qid)
                 .then()
                 .statusCode(200)
-                .body("playerId", is(100))
+                .body("playerId", is(pid.toString()))
                 .body("mmr", is(1200));
     }
 }

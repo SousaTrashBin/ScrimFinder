@@ -1,9 +1,10 @@
 package fc.ul.scrimfinder.dto.response;
 
+import java.util.UUID;
 import lombok.Data;
 
 @Data
 public class PlayerDTO {
-    private Long id;
+    private UUID id;
     private String username;
 }

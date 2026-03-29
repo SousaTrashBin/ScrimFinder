@@ -13,6 +13,7 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.ws.rs.core.MediaType;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
@@ -22,10 +23,13 @@ public class MatchmakingResourceTest {
 
     @Test
     void testJoinQueueEndpoint() {
+        UUID tid = UUID.randomUUID();
+        UUID pid = UUID.randomUUID();
+        UUID qid = UUID.randomUUID();
         MatchTicketDTO expectedTicket = new MatchTicketDTO();
-        expectedTicket.setId(1L);
-        expectedTicket.setPlayerId(100L);
-        expectedTicket.setQueueId(1L);
+        expectedTicket.setId(tid);
+        expectedTicket.setPlayerId(pid);
+        expectedTicket.setQueueId(qid);
         expectedTicket.setStatus(TicketStatus.IN_QUEUE);
         expectedTicket.setMmr(1200);
         expectedTicket.setCreatedAt(LocalDateTime.now());
@@ -34,28 +38,31 @@ public class MatchmakingResourceTest {
 
         given()
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new JoinQueueRequest(100L, 1L, null))
+                .body(new JoinQueueRequest(pid, qid, null))
                 .when()
                 .post("/tickets")
                 .then()
                 .statusCode(202)
-                .body("id", is(1))
-                .body("playerId", is(100))
+                .body("id", is(tid.toString()))
+                .body("playerId", is(pid.toString()))
                 .body("status", is("IN_QUEUE"));
     }
 
     @Test
     void testLeaveQueueEndpoint() {
-        given().when().delete("/tickets/1").then().statusCode(204);
+        UUID tid = UUID.randomUUID();
+        given().when().delete("/tickets/" + tid).then().statusCode(204);
     }
 
     @Test
     void testAcceptMatchEndpoint() {
+        UUID mid = UUID.randomUUID();
+        UUID pid = UUID.randomUUID();
         given()
                 .contentType(MediaType.APPLICATION_JSON)
-                .queryParam("playerId", 100L)
+                .queryParam("playerId", pid.toString())
                 .when()
-                .post("/tickets/matches/1/accept")
+                .post("/tickets/matches/" + mid + "/accept")
                 .then()
                 .statusCode(200);
     }

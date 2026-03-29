@@ -12,6 +12,7 @@ import io.quarkus.grpc.GrpcClient;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.util.UUID;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 @ApplicationScoped
@@ -29,7 +30,7 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     @Transactional
-    public PlayerDTO createPlayer(Long id, String username) {
+    public PlayerDTO createPlayer(UUID id, String username) {
         if (playerRepository.findByIdOptional(id).isPresent()) {
             throw new RuntimeException("Player with this ID already exists locally");
         }
@@ -44,7 +45,7 @@ public class PlayerServiceImpl implements PlayerService {
     }
 
     @Override
-    public PlayerDTO getPlayer(Long id) {
+    public PlayerDTO getPlayer(UUID id) {
         Player player =
                 playerRepository
                         .findByIdOptional(id)

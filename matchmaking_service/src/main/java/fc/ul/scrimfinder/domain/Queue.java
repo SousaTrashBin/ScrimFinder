@@ -3,6 +3,7 @@ package fc.ul.scrimfinder.domain;
 import fc.ul.scrimfinder.util.MatchmakingMode;
 import fc.ul.scrimfinder.util.Region;
 import jakarta.persistence.*;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,7 +13,7 @@ import lombok.Setter;
 @Table(name = "queue")
 public class Queue {
 
-    @Id private Long id;
+    @Id private UUID id = UUID.randomUUID();
 
     @Column(nullable = false)
     private String name;

@@ -3,10 +3,11 @@ package fc.ul.scrimfinder.service;
 import fc.ul.scrimfinder.dto.response.QueueDTO;
 import fc.ul.scrimfinder.util.MatchmakingMode;
 import fc.ul.scrimfinder.util.Region;
+import java.util.UUID;
 
 public interface QueueService {
     QueueDTO createQueue(
-            Long id,
+            UUID id,
             String name,
             String namespace,
             int requiredPlayers,
@@ -15,5 +16,5 @@ public interface QueueService {
             int mmrWindow,
             Region region);
 
-    QueueDTO getQueue(Long id);
+    QueueDTO getQueue(UUID id);
 }
