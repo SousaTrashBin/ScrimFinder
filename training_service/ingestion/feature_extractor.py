@@ -23,26 +23,26 @@ Feature vectors produced:
   performance: per player → {kills, deaths, assists, gold, cs, dmg, vision, kda, kp,
                               position, champion, win, duration}
 """
+
 from __future__ import annotations
 
 import json
 from typing import Any, Optional
 
-
 # ── Position mapping ──────────────────────────────────────────
 # Riot API teamPosition values → our DB position values
 _POSITION_MAP = {
-    "TOP":     "TOP",
-    "JUNGLE":  "JUNGLE",
-    "MIDDLE":  "MIDDLE",
-    "BOTTOM":  "BOTTOM",
+    "TOP": "TOP",
+    "JUNGLE": "JUNGLE",
+    "MIDDLE": "MIDDLE",
+    "BOTTOM": "BOTTOM",
     "UTILITY": "UTILITY",
     # Fallbacks for older API responses
-    "MID":     "MIDDLE",
-    "BOT":     "BOTTOM",
+    "MID": "MIDDLE",
+    "BOT": "BOTTOM",
     "SUPPORT": "UTILITY",
-    "ADC":     "BOTTOM",
-    "":        "MIDDLE",  # unknown → treat as mid
+    "ADC": "BOTTOM",
+    "": "MIDDLE",  # unknown → treat as mid
 }
 
 
@@ -91,6 +91,7 @@ def _extract_runes(participant: dict) -> list[int]:
 
 # ── Main extraction function ──────────────────────────────────
 
+
 def extract(raw: dict | str) -> dict:
     """
     Extract feature vectors from a raw Riot API v5 match JSON.
@@ -115,12 +116,12 @@ def extract(raw: dict | str) -> dict:
         raw = json.loads(raw)
 
     # ── Top-level metadata ────────────────────────────────────
-    metadata     = raw.get("metadata", {})
-    info         = raw.get("info", {})
-    match_id     = metadata.get("matchId", "unknown")
+    metadata = raw.get("metadata", {})
+    info = raw.get("info", {})
+    match_id = metadata.get("matchId", "unknown")
     game_version = info.get("gameVersion", "0.0")
-    queue_id     = info.get("queueId", 0)
-    duration     = info.get("gameDuration", 0)
+    queue_id = info.get("queueId", 0)
+    duration = info.get("gameDuration", 0)
 
     # Patch from gameVersion e.g. "14.10.123.456" → "14.10"
     parts = game_version.split(".")
@@ -129,23 +130,28 @@ def extract(raw: dict | str) -> dict:
     participants = info.get("participants", [])
     if not participants:
         return {
-            "match_id": match_id, "patch": patch, "queue_id": queue_id,
-            "duration": duration, "draft": None, "build": [], "performance": [],
+            "match_id": match_id,
+            "patch": patch,
+            "queue_id": queue_id,
+            "duration": duration,
+            "draft": None,
+            "build": [],
+            "performance": [],
         }
 
     # ── Split by team ─────────────────────────────────────────
     blue_team = [p for p in participants if p.get("teamId") == 100]
-    red_team  = [p for p in participants if p.get("teamId") == 200]
+    red_team = [p for p in participants if p.get("teamId") == 200]
 
     # ── Team kills for KP calculation ────────────────────────
     blue_kills = sum(p.get("kills", 0) for p in blue_team)
-    red_kills  = sum(p.get("kills", 0) for p in red_team)
+    red_kills = sum(p.get("kills", 0) for p in red_team)
 
     # ── Draft features ────────────────────────────────────────
     draft = _extract_draft(blue_team, red_team, match_id)
 
     # ── Per-player features ───────────────────────────────────
-    build_features       = []
+    build_features = []
     performance_features = []
 
     for p in participants:
@@ -160,12 +166,12 @@ def extract(raw: dict | str) -> dict:
             performance_features.append(perf)
 
     return {
-        "match_id":    match_id,
-        "patch":       patch,
-        "queue_id":    queue_id,
-        "duration":    duration,
-        "draft":       draft,
-        "build":       build_features,
+        "match_id": match_id,
+        "patch": patch,
+        "queue_id": queue_id,
+        "duration": duration,
+        "draft": draft,
+        "build": build_features,
         "performance": performance_features,
     }
 
@@ -180,7 +186,7 @@ def _extract_draft(blue_team: list, red_team: list, match_id: str) -> Optional[d
         return None
 
     blue_champs = [p.get("championName", "") for p in blue_team]
-    red_champs  = [p.get("championName", "") for p in red_team]
+    red_champs = [p.get("championName", "") for p in red_team]
 
     # Validate all champion names present
     if any(c == "" for c in blue_champs + red_champs):
@@ -189,11 +195,11 @@ def _extract_draft(blue_team: list, red_team: list, match_id: str) -> Optional[d
     blue_won = any(p.get("win", False) for p in blue_team)
 
     return {
-        "valid":       True,
-        "match_id":    match_id,
+        "valid": True,
+        "match_id": match_id,
         "blue_champs": blue_champs,
-        "red_champs":  red_champs,
-        "winner":      "blue" if blue_won else "red",
+        "red_champs": red_champs,
+        "winner": "blue" if blue_won else "red",
     }
 
 
@@ -204,13 +210,12 @@ def _extract_build(participant: dict, match_id: str, duration: int) -> Optional[
     """
     champion = participant.get("championName", "")
     position = _normalise_position(participant.get("teamPosition", ""))
-    win      = bool(participant.get("win", False))
+    win = bool(participant.get("win", False))
 
     # Core stats
-    gold   = participant.get("goldEarned", 0)
-    cs     = participant.get("totalMinionsKilled", 0)
-    dmg    = participant.get("totalDamageDealtToChampions",
-             participant.get("totalDamageDealt", 0))
+    gold = participant.get("goldEarned", 0)
+    cs = participant.get("totalMinionsKilled", 0)
+    dmg = participant.get("totalDamageDealtToChampions", participant.get("totalDamageDealt", 0))
 
     items = _extract_items(participant)
     runes = _extract_runes(participant)
@@ -219,68 +224,66 @@ def _extract_build(participant: dict, match_id: str, duration: int) -> Optional[
         return None
 
     return {
-        "valid":     True,
-        "match_id":  match_id,
-        "puuid":     participant.get("puuid", ""),
-        "champion":  champion,
-        "position":  position,
-        "item_ids":  items,
-        "rune_ids":  runes,
-        "gold":      gold,
-        "cs":        cs,
-        "dmg":       dmg,
-        "win":       win,
+        "valid": True,
+        "match_id": match_id,
+        "puuid": participant.get("puuid", ""),
+        "champion": champion,
+        "position": position,
+        "item_ids": items,
+        "rune_ids": runes,
+        "gold": gold,
+        "cs": cs,
+        "dmg": dmg,
+        "win": win,
     }
 
 
-def _extract_performance(participant: dict, match_id: str,
-                          duration: int, team_kills: int) -> Optional[dict]:
+def _extract_performance(participant: dict, match_id: str, duration: int, team_kills: int) -> Optional[dict]:
     """
     Performance features: the 9 stats the performance model is trained on,
     plus position and champion for benchmarking context.
     """
     champion = participant.get("championName", "")
     position = _normalise_position(participant.get("teamPosition", ""))
-    win      = bool(participant.get("win", False))
+    win = bool(participant.get("win", False))
 
-    kills   = participant.get("kills", 0)
-    deaths  = participant.get("deaths", 0)
+    kills = participant.get("kills", 0)
+    deaths = participant.get("deaths", 0)
     assists = participant.get("assists", 0)
-    gold    = participant.get("goldEarned", 0)
-    cs      = participant.get("totalMinionsKilled", 0)
-    dmg     = participant.get("totalDamageDealtToChampions",
-              participant.get("totalDamageDealt", 0))
-    vision  = participant.get("visionScore",
-              participant.get("wardsPlaced", 0))
+    gold = participant.get("goldEarned", 0)
+    cs = participant.get("totalMinionsKilled", 0)
+    dmg = participant.get("totalDamageDealtToChampions", participant.get("totalDamageDealt", 0))
+    vision = participant.get("visionScore", participant.get("wardsPlaced", 0))
 
     kda = _safe_kda(kills, deaths, assists)
-    kp  = _safe_kp(kills, assists, team_kills)
+    kp = _safe_kp(kills, assists, team_kills)
 
     if not champion:
         return None
 
     return {
-        "valid":    True,
+        "valid": True,
         "match_id": match_id,
-        "puuid":    participant.get("puuid", ""),
+        "puuid": participant.get("puuid", ""),
         "champion": champion,
         "position": position,
-        "win":      win,
+        "win": win,
         # The 9 features the performance model uses (must match data_loader order)
-        "kills":      kills,
-        "deaths":     deaths,
-        "assists":    assists,
-        "gold":       gold,
-        "cs":         cs,
+        "kills": kills,
+        "deaths": deaths,
+        "assists": assists,
+        "gold": gold,
+        "cs": cs,
         "dmg_champs": dmg,
-        "vision":     vision,
-        "kda":        kda,
-        "kp":         kp,
-        "duration":   duration,
+        "vision": vision,
+        "kda": kda,
+        "kp": kp,
+        "duration": duration,
     }
 
 
 # ── Batch extraction ──────────────────────────────────────────
+
 
 def extract_batch(raw_matches: list[dict | str]) -> list[dict]:
     """
@@ -297,6 +300,7 @@ def extract_batch(raw_matches: list[dict | str]) -> list[dict]:
 
 
 # ── Validation ────────────────────────────────────────────────
+
 
 def validate_riot_match(raw: dict) -> tuple[bool, str]:
     """
@@ -315,8 +319,7 @@ def validate_riot_match(raw: dict) -> tuple[bool, str]:
     if len(info["participants"]) != 10:
         return False, f"Expected 10 participants, got {len(info['participants'])}"
     p = info["participants"][0]
-    required = ["championName", "teamId", "teamPosition", "win",
-                "kills", "deaths", "assists", "goldEarned"]
+    required = ["championName", "teamId", "teamPosition", "win", "kills", "deaths", "assists", "goldEarned"]
     for field in required:
         if field not in p:
             return False, f"Participant missing required field '{field}'"
@@ -328,6 +331,7 @@ def validate_riot_match(raw: dict) -> tuple[bool, str]:
 # for use with the trained sklearn models. Called by the ingestion
 # router and the datasets builder.
 
+
 def to_draft_vector(draft_features: dict, mlb, champion_id_map: dict) -> Optional[Any]:
     """
     Convert draft features to a numpy array using a fitted MLB.
@@ -335,14 +339,13 @@ def to_draft_vector(draft_features: dict, mlb, champion_id_map: dict) -> Optiona
     """
     try:
         import numpy as np
-        blue_ids = [champion_id_map[c] for c in draft_features["blue_champs"]
-                    if c in champion_id_map]
-        red_ids  = [champion_id_map[c] for c in draft_features["red_champs"]
-                    if c in champion_id_map]
+
+        blue_ids = [champion_id_map[c] for c in draft_features["blue_champs"] if c in champion_id_map]
+        red_ids = [champion_id_map[c] for c in draft_features["red_champs"] if c in champion_id_map]
         if len(blue_ids) != 5 or len(red_ids) != 5:
             return None
         blue_enc = mlb.transform([blue_ids])
-        red_enc  = mlb.transform([red_ids])
+        red_enc = mlb.transform([red_ids])
         return np.hstack([blue_enc, red_enc]).astype(np.float32)
     except Exception:
         return None
@@ -355,27 +358,33 @@ def to_build_vector(build_features: dict, encoders: dict) -> Optional[Any]:
     """
     try:
         import numpy as np
+
         item_mlb = encoders["item_mlb"]
         rune_mlb = encoders["rune_mlb"]
-        pos_le   = encoders["pos_le"]
+        pos_le = encoders["pos_le"]
         champ_le = encoders["champ_le"]
 
         # Items stored as strings in the encoder
-        item_ids  = [str(i) for i in build_features["item_ids"]]
-        item_enc  = item_mlb.transform([item_ids])
-        rune_enc  = rune_mlb.transform([build_features["rune_ids"]])
-        pos_enc   = pos_le.transform([build_features["position"]]).reshape(-1, 1)
+        item_ids = [str(i) for i in build_features["item_ids"]]
+        item_enc = item_mlb.transform([item_ids])
+        rune_enc = rune_mlb.transform([build_features["rune_ids"]])
+        pos_enc = pos_le.transform([build_features["position"]]).reshape(-1, 1)
 
         # Champion name → ID needed — caller must resolve
-        champ_id  = build_features.get("champion_id")
+        champ_id = build_features.get("champion_id")
         if champ_id is None:
             return None
         champ_enc = champ_le.transform([champ_id]).reshape(-1, 1)
-        numeric   = np.array([[
-            build_features["gold"],
-            build_features["cs"],
-            build_features["dmg"],
-        ]], dtype=np.float32)
+        numeric = np.array(
+            [
+                [
+                    build_features["gold"],
+                    build_features["cs"],
+                    build_features["dmg"],
+                ]
+            ],
+            dtype=np.float32,
+        )
         return np.hstack([item_enc, rune_enc, pos_enc, champ_enc, numeric]).astype(np.float32)
     except Exception:
         return None
@@ -389,25 +398,31 @@ def to_performance_vector(perf_features: dict, encoders: dict) -> Optional[Any]:
     """
     try:
         import numpy as np
-        pos_le   = encoders["pos_le"]
+
+        pos_le = encoders["pos_le"]
         champ_le = encoders["champ_le"]
 
-        pos_enc   = pos_le.transform([perf_features["position"]]).reshape(-1, 1)
-        champ_id  = perf_features.get("champion_id")
+        pos_enc = pos_le.transform([perf_features["position"]]).reshape(-1, 1)
+        champ_id = perf_features.get("champion_id")
         if champ_id is None:
             return None
         champ_enc = champ_le.transform([champ_id]).reshape(-1, 1)
-        numeric   = np.array([[
-            perf_features["kills"],
-            perf_features["deaths"],
-            perf_features["assists"],
-            perf_features["gold"],
-            perf_features["cs"],
-            perf_features["dmg_champs"],
-            perf_features["vision"],
-            perf_features["kda"],
-            perf_features["kp"],
-        ]], dtype=np.float32)
+        numeric = np.array(
+            [
+                [
+                    perf_features["kills"],
+                    perf_features["deaths"],
+                    perf_features["assists"],
+                    perf_features["gold"],
+                    perf_features["cs"],
+                    perf_features["dmg_champs"],
+                    perf_features["vision"],
+                    perf_features["kda"],
+                    perf_features["kp"],
+                ]
+            ],
+            dtype=np.float32,
+        )
         return np.hstack([pos_enc, champ_enc, numeric]).astype(np.float32)
     except Exception:
         return None

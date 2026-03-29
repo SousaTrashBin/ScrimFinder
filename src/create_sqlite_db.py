@@ -1,7 +1,8 @@
-import sqlite3
-import pandas as pd
 import os
+import sqlite3
 from pathlib import Path
+
+import pandas as pd
 
 DB_NAME = "league_data.db"
 DATA_DIR = ""
@@ -268,16 +269,16 @@ def create_tables(cursor):
 
 def import_csv_to_db(conn):
     import_order = [
-        ('dim_champions', 'dim_champions'),
-        ('dim_items', 'dim_items'),
-        ('dim_runes', 'dim_runes'),
-        ('dim_players', 'dim_players'),
-        ('matches', 'matches'),
-        ('player_stats', 'player_stats'),
-        ('team_stats', 'team_stats'),
-        ('items', 'player_items'),
-        ('bans', 'bans'),
-        ('runes', 'player_runes')
+        ("dim_champions", "dim_champions"),
+        ("dim_items", "dim_items"),
+        ("dim_runes", "dim_runes"),
+        ("dim_players", "dim_players"),
+        ("matches", "matches"),
+        ("player_stats", "player_stats"),
+        ("team_stats", "team_stats"),
+        ("items", "player_items"),
+        ("bans", "bans"),
+        ("runes", "player_runes"),
     ]
 
     for csv_name, table_name in import_order:
@@ -287,7 +288,7 @@ def import_csv_to_db(conn):
             print(f"Importing {csv_name}.csv...")
             chunk_size = 10000
             for chunk in pd.read_csv(file_path, chunksize=chunk_size, low_memory=False):
-                chunk.to_sql(table_name, conn, if_exists='append', index=False)
+                chunk.to_sql(table_name, conn, if_exists="append", index=False)
         else:
             print(f"Warning: {csv_name}.csv not found.")
 

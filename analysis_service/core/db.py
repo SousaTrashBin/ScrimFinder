@@ -1,11 +1,15 @@
-﻿"""
+"""
 Read-only DB access for the Analysis Service.
 Only reads the models table from platform.db to find active model paths.
 """
-import json, sqlite3
+
+import json
+import sqlite3
 from contextlib import contextmanager
 from typing import Optional
+
 from analysis_service.core.config import cfg
+
 
 @contextmanager
 def get_conn():
@@ -21,12 +25,11 @@ def get_conn():
     finally:
         conn.close()
 
+
 def get_active_model(concern: str) -> Optional[dict]:
     try:
         with get_conn() as conn:
-            row = conn.execute(
-                "SELECT * FROM models WHERE concern=? AND is_active=1", (concern,)
-            ).fetchone()
+            row = conn.execute("SELECT * FROM models WHERE concern=? AND is_active=1", (concern,)).fetchone()
         if row is None:
             return None
         d = dict(row)

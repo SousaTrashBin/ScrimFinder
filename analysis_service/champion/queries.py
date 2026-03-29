@@ -1,4 +1,4 @@
-﻿"""
+"""
 analysis_service/champion/queries.py
 All SQL queries against the EUW league_data.db dataset.
 
@@ -12,6 +12,7 @@ DB Schema:
   player_items: match_id, puuid, item_id, slot
   player_runes: match_id, puuid, rune_id
 """
+
 import os
 import sqlite3
 from typing import Optional
@@ -21,10 +22,7 @@ from analysis_service.core.config import cfg
 
 def _connect() -> sqlite3.Connection:
     if not os.path.exists(cfg.LEAGUE_DB):
-        raise FileNotFoundError(
-            f"EUW database not found at '{cfg.LEAGUE_DB}'. "
-            "Set the LEAGUE_DB environment variable."
-        )
+        raise FileNotFoundError(f"EUW database not found at '{cfg.LEAGUE_DB}'. Set the LEAGUE_DB environment variable.")
     conn = sqlite3.connect(cfg.LEAGUE_DB)
     conn.row_factory = sqlite3.Row
     return conn
@@ -32,19 +30,16 @@ def _connect() -> sqlite3.Connection:
 
 # ── Champion lookups ──────────────────────────────────────────
 
+
 def get_champion_id(name: str) -> Optional[int]:
     with _connect() as conn:
-        row = conn.execute(
-            "SELECT id FROM dim_champions WHERE LOWER(name) = LOWER(?)", (name,)
-        ).fetchone()
+        row = conn.execute("SELECT id FROM dim_champions WHERE LOWER(name) = LOWER(?)", (name,)).fetchone()
     return row["id"] if row else None
 
 
 def get_champion_name_by_id(champion_id: int) -> Optional[str]:
     with _connect() as conn:
-        row = conn.execute(
-            "SELECT name FROM dim_champions WHERE id = ?", (champion_id,)
-        ).fetchone()
+        row = conn.execute("SELECT name FROM dim_champions WHERE id = ?", (champion_id,)).fetchone()
     return row["name"] if row else None
 
 
@@ -54,14 +49,13 @@ def get_champion_name(champion_id: int) -> Optional[str]:
 
 # ── Item lookups ──────────────────────────────────────────────
 
+
 def get_item_names(item_ids: list) -> list[str]:
     if not item_ids:
         return []
     placeholders = ",".join("?" * len(item_ids))
     with _connect() as conn:
-        rows = conn.execute(
-            f"SELECT id, name FROM dim_items WHERE id IN ({placeholders})", item_ids
-        ).fetchall()
+        rows = conn.execute(f"SELECT id, name FROM dim_items WHERE id IN ({placeholders})", item_ids).fetchall()
     id_to_name = {r["id"]: r["name"] for r in rows}
     return [id_to_name.get(i, str(i)) for i in item_ids]
 
@@ -71,22 +65,23 @@ def get_item_ids(item_names: list) -> list[int]:
         return []
     placeholders = ",".join("?" * len(item_names))
     with _connect() as conn:
-        rows = conn.execute(
-            f"SELECT id, name FROM dim_items WHERE name IN ({placeholders})",
-            item_names
-        ).fetchall()
+        rows = conn.execute(f"SELECT id, name FROM dim_items WHERE name IN ({placeholders})", item_names).fetchall()
     name_to_id = {r["name"]: r["id"] for r in rows}
     return [name_to_id[n] for n in item_names if n in name_to_id]
 
 
 # ── Win rate ──────────────────────────────────────────────────
 
-def query_winrate(champion_id: int, position: Optional[str] = None,
-                  match_type: Optional[str] = None) -> dict:
+
+def query_winrate(champion_id: int, position: Optional[str] = None, match_type: Optional[str] = None) -> dict:
     clauses = ["ps.champion_id = ?"]
-    params  = [champion_id]
-    if position:   clauses.append("ps.position = ?");  params.append(position)
-    if match_type: clauses.append("m.match_type = ?"); params.append(match_type)
+    params = [champion_id]
+    if position:
+        clauses.append("ps.position = ?")
+        params.append(position)
+    if match_type:
+        clauses.append("m.match_type = ?")
+        params.append(match_type)
     sql = f"""
         SELECT SUM(ps.win) AS wins, SUM(1-ps.win) AS losses, COUNT(*) AS total
         FROM player_stats ps
@@ -100,12 +95,16 @@ def query_winrate(champion_id: int, position: Optional[str] = None,
 
 # ── Average stats ─────────────────────────────────────────────
 
-def query_stats(champion_id: int, position: Optional[str] = None,
-                match_type: Optional[str] = None) -> dict:
+
+def query_stats(champion_id: int, position: Optional[str] = None, match_type: Optional[str] = None) -> dict:
     clauses = ["ps.champion_id = ?"]
-    params  = [champion_id]
-    if position:   clauses.append("ps.position = ?");  params.append(position)
-    if match_type: clauses.append("m.match_type = ?"); params.append(match_type)
+    params = [champion_id]
+    if position:
+        clauses.append("ps.position = ?")
+        params.append(position)
+    if match_type:
+        clauses.append("m.match_type = ?")
+        params.append(match_type)
     sql = f"""
         SELECT
             ROUND(AVG(ps.kda),        2) AS avgKda,
@@ -121,22 +120,29 @@ def query_stats(champion_id: int, position: Optional[str] = None,
         row = conn.execute(sql, params).fetchone()
     if row is None:
         return {}
-    return {k: round(float(v), 2) if v is not None else 0.0
-            for k, v in dict(row).items()}
+    return {k: round(float(v), 2) if v is not None else 0.0 for k, v in dict(row).items()}
 
 
 # ── Top items ─────────────────────────────────────────────────
 
-def query_top_items(champion_id: int, position: Optional[str] = None,
-                    match_type: Optional[str] = None, limit: int = 6) -> list[str]:
+
+def query_top_items(
+    champion_id: int, position: Optional[str] = None, match_type: Optional[str] = None, limit: int = 6
+) -> list[str]:
     clauses = [
-        "ps.champion_id = ?", "ps.win = 1", "pi.item_id != 0",
+        "ps.champion_id = ?",
+        "ps.win = 1",
+        "pi.item_id != 0",
         # Exclude wards, potions, trinkets
         "pi.item_id NOT IN (1001,2003,2031,2055,3340,3364,3363)",
     ]
     params = [champion_id]
-    if position:   clauses.append("ps.position = ?");  params.append(position)
-    if match_type: clauses.append("m.match_type = ?"); params.append(match_type)
+    if position:
+        clauses.append("ps.position = ?")
+        params.append(position)
+    if match_type:
+        clauses.append("m.match_type = ?")
+        params.append(match_type)
     params.append(limit)
     sql = f"""
         SELECT di.name, COUNT(*) AS cnt
@@ -156,8 +162,8 @@ def query_top_items(champion_id: int, position: Optional[str] = None,
 
 # ── Counter matchups ──────────────────────────────────────────
 
-def query_counters(champion_id: int, position: Optional[str] = None,
-                   limit: int = 5) -> tuple[list[str], list[str]]:
+
+def query_counters(champion_id: int, position: Optional[str] = None, limit: int = 5) -> tuple[list[str], list[str]]:
     """
     Head-to-head win rates. Fast approach:
     1. Get a sample of match_ids where this champion played
@@ -196,7 +202,7 @@ def query_counters(champion_id: int, position: Optional[str] = None,
     try:
         with _connect() as conn:
             rows = list(conn.execute(sql, params_step1).fetchall())
-        counters     = [f"{r['name']} ({r['win_rate']}% WR)" for r in rows[:limit]]
+        counters = [f"{r['name']} ({r['win_rate']}% WR)" for r in rows[:limit]]
         countered_by = [f"{r['name']} ({r['win_rate']}% WR)" for r in rows[-limit:]]
         return counters, countered_by
     except Exception:
@@ -205,12 +211,17 @@ def query_counters(champion_id: int, position: Optional[str] = None,
 
 # ── Top champions ─────────────────────────────────────────────
 
-def query_top_champions(position: Optional[str] = None,
-                        match_type: Optional[str] = None,
-                        limit: int = 10) -> list[dict]:
+
+def query_top_champions(
+    position: Optional[str] = None, match_type: Optional[str] = None, limit: int = 10
+) -> list[dict]:
     clauses, params = [], []
-    if position:   clauses.append("ps.position = ?");  params.append(position)
-    if match_type: clauses.append("m.match_type = ?"); params.append(match_type)
+    if position:
+        clauses.append("ps.position = ?")
+        params.append(position)
+    if match_type:
+        clauses.append("m.match_type = ?")
+        params.append(match_type)
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
     params.append(limit)
     sql = f"""
@@ -232,27 +243,30 @@ def query_top_champions(position: Optional[str] = None,
 
 # ── Player stats ──────────────────────────────────────────────
 
-def query_player_stats(summoner_id: str, last_n: int = 20,
-                       champion: Optional[str] = None,
-                       role: Optional[str] = None,
-                       match_type: Optional[str] = None) -> list[dict]:
+
+def query_player_stats(
+    summoner_id: str,
+    last_n: int = 20,
+    champion: Optional[str] = None,
+    role: Optional[str] = None,
+    match_type: Optional[str] = None,
+) -> list[dict]:
     _ROLE_TO_DB = {
-        "TOP": "TOP", "JUNGLE": "JUNGLE", "MID": "MIDDLE",
-        "BOT": "BOTTOM", "SUPPORT": "UTILITY",
+        "TOP": "TOP",
+        "JUNGLE": "JUNGLE",
+        "MID": "MIDDLE",
+        "BOT": "BOTTOM",
+        "SUPPORT": "UTILITY",
     }
 
     # Step 1: resolve puuid first — dim_players is small, this is fast
     with _connect() as conn:
         if "#" in summoner_id:
             name, tag = summoner_id.split("#", 1)
-            row = conn.execute(
-                "SELECT puuid FROM dim_players WHERE name = ? AND tag = ?",
-                (name, tag)
-            ).fetchone()
+            row = conn.execute("SELECT puuid FROM dim_players WHERE name = ? AND tag = ?", (name, tag)).fetchone()
         else:
             row = conn.execute(
-                "SELECT puuid FROM dim_players WHERE puuid = ? OR name = ? LIMIT 1",
-                (summoner_id, summoner_id)
+                "SELECT puuid FROM dim_players WHERE puuid = ? OR name = ? LIMIT 1", (summoner_id, summoner_id)
             ).fetchone()
 
         if row is None:
@@ -261,7 +275,7 @@ def query_player_stats(summoner_id: str, last_n: int = 20,
 
         # Step 2: query player_stats by puuid directly
         clauses = ["ps.puuid = ?"]
-        params  = [puuid]
+        params = [puuid]
 
         if champion:
             cid = get_champion_id(champion)

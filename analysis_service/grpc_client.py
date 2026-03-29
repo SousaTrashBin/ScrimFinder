@@ -8,19 +8,18 @@ replacing the direct platform.db reads once gRPC is fully wired.
 Falls back to direct DB reads if Training Service is unreachable,
 so the Analysis Service degrades gracefully if Training is down.
 """
+
 import json
 import os
 import threading
 from typing import Optional
 
 # ── Training Service gRPC address ────────────────────────────
-TRAINING_GRPC_URL = os.environ.get(
-    "TRAINING_GRPC_URL", "localhost:50051"
-)
+TRAINING_GRPC_URL = os.environ.get("TRAINING_GRPC_URL", "localhost:50051")
 
 _channel = None
-_stub    = None
-_lock    = threading.Lock()
+_stub = None
+_lock = threading.Lock()
 
 
 def _get_stub():
@@ -31,9 +30,11 @@ def _get_stub():
             return _stub
         try:
             import grpc
+
             from analysis_service import training_service_pb2_grpc
+
             _channel = grpc.insecure_channel(TRAINING_GRPC_URL)
-            _stub    = training_service_pb2_grpc.TrainingServiceStub(_channel)
+            _stub = training_service_pb2_grpc.TrainingServiceStub(_channel)
             return _stub
         except ImportError:
             return None
@@ -56,21 +57,22 @@ def get_active_model_grpc(concern: str) -> Optional[dict]:
 
     try:
         from analysis_service import training_service_pb2
-        request  = training_service_pb2.GetActiveModelRequest(concern=concern)
+
+        request = training_service_pb2.GetActiveModelRequest(concern=concern)
         response = stub.GetActiveModel(request, timeout=5)
 
         if not response.found:
             return None
 
         return {
-            "id":           response.model_id,
-            "concern":      response.concern,
-            "algorithm":    response.algorithm,
-            "version":      response.version,
-            "file_path":    response.file_path,
-            "metrics":      json.loads(response.metrics_json) if response.metrics_json else {},
+            "id": response.model_id,
+            "concern": response.concern,
+            "algorithm": response.algorithm,
+            "version": response.version,
+            "file_path": response.file_path,
+            "metrics": json.loads(response.metrics_json) if response.metrics_json else {},
             "activated_at": response.activated_at,
-            "is_active":    True,
+            "is_active": True,
         }
     except Exception:
         return None
@@ -87,14 +89,13 @@ def health_check_grpc() -> dict:
 
     try:
         from analysis_service import training_service_pb2
-        response = stub.HealthCheck(
-            training_service_pb2.HealthCheckRequest(), timeout=5
-        )
+
+        response = stub.HealthCheck(training_service_pb2.HealthCheckRequest(), timeout=5)
         return {
-            "healthy":        response.healthy,
-            "message":        response.message,
+            "healthy": response.healthy,
+            "message": response.message,
             "games_ingested": response.games_ingested,
-            "active_models":  list(response.active_models),
+            "active_models": list(response.active_models),
         }
     except Exception as e:
         return {"healthy": False, "message": str(e)}
@@ -118,6 +119,7 @@ def get_active_model(concern: str) -> Optional[dict]:
     # Fallback: read platform.db directly
     try:
         from analysis_service.core import db
+
         return db.get_active_model(concern)
     except Exception:
         return None

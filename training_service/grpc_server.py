@@ -16,6 +16,7 @@ Generated stubs (from training_service.proto):
   Run: python -m grpc_tools.protoc -I proto --python_out=. --grpc_python_out=. proto/training_service.proto
   Then import: training_service_pb2, training_service_pb2_grpc
 """
+
 import json
 import os
 import threading
@@ -31,9 +32,7 @@ _server = None
 GRPC_PORT = int(os.environ.get("GRPC_PORT", 50051))
 
 # ── Detail Filling Service URL ────────────────────────────────
-DETAIL_FILLING_URL = os.environ.get(
-    "DETAIL_FILLING_URL", "http://detail_filling_service:8080"
-)
+DETAIL_FILLING_URL = os.environ.get("DETAIL_FILLING_URL", "http://detail_filling_service:8080")
 
 
 def _fetch_raw_match(match_id: str) -> dict:
@@ -42,6 +41,7 @@ def _fetch_raw_match(match_id: str) -> dict:
     GET /matches/{matchId}/raw
     """
     import urllib.request
+
     url = f"{DETAIL_FILLING_URL}/matches/{match_id}/raw"
     try:
         with urllib.request.urlopen(url, timeout=30) as resp:
@@ -51,6 +51,7 @@ def _fetch_raw_match(match_id: str) -> dict:
 
 
 # ── Servicer ──────────────────────────────────────────────────
+
 
 class TrainingServiceServicer:
     """
@@ -68,7 +69,7 @@ class TrainingServiceServicer:
         from training_service.training_service_pb2 import ForwardMatchResponse
 
         match_id = request.match_id
-        source   = request.source or "matchmaking"
+        source = request.source or "matchmaking"
 
         try:
             # 1. Fetch raw Riot JSON from detail_filling_service
@@ -76,6 +77,7 @@ class TrainingServiceServicer:
 
             # 2. Validate
             from training_service.ingestion.feature_extractor import validate_riot_match
+
             valid, reason = validate_riot_match(raw)
             if not valid:
                 return ForwardMatchResponse(
@@ -89,6 +91,7 @@ class TrainingServiceServicer:
 
             # 4. Extract features
             from training_service.ingestion.feature_extractor import extract
+
             features = extract(raw)
 
             draft_ok = build_ok = perf_ok = False
@@ -102,15 +105,13 @@ class TrainingServiceServicer:
             # Store build features (one per player)
             if features.get("build"):
                 build_vecs = [json.dumps(b) for b in features["build"]]
-                db.upsert_features(match_id, "build", build_vecs,
-                                   [f"player_{i}" for i in range(len(build_vecs))])
+                db.upsert_features(match_id, "build", build_vecs, [f"player_{i}" for i in range(len(build_vecs))])
                 build_ok = True
 
             # Store performance features (one per player)
             if features.get("performance"):
                 perf_vecs = [json.dumps(p) for p in features["performance"]]
-                db.upsert_features(match_id, "performance", perf_vecs,
-                                   [f"player_{i}" for i in range(len(perf_vecs))])
+                db.upsert_features(match_id, "performance", perf_vecs, [f"player_{i}" for i in range(len(perf_vecs))])
                 perf_ok = True
 
             return ForwardMatchResponse(
@@ -161,9 +162,10 @@ class TrainingServiceServicer:
     def HealthCheck(self, request, context):
         """Return training service health status."""
         from training_service.training_service_pb2 import HealthCheckResponse
+
         try:
-            games     = db.count_games()
-            active    = [m["concern"] for m in db.list_models(active_only=True)]
+            games = db.count_games()
+            active = [m["concern"] for m in db.list_models(active_only=True)]
             return HealthCheckResponse(
                 healthy=True,
                 message="Training Service is healthy.",
@@ -175,6 +177,7 @@ class TrainingServiceServicer:
 
 
 # ── Server startup ────────────────────────────────────────────
+
 
 def serve(block: bool = True) -> grpc.Server:
     """
@@ -198,9 +201,7 @@ def serve(block: bool = True) -> grpc.Server:
         return None
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    training_service_pb2_grpc.add_TrainingServiceServicer_to_server(
-        TrainingServiceServicer(), server
-    )
+    training_service_pb2_grpc.add_TrainingServiceServicer_to_server(TrainingServiceServicer(), server)
     server.add_insecure_port(f"[::]:{GRPC_PORT}")
     server.start()
     print(f"[gRPC] Training Service listening on port {GRPC_PORT}")
@@ -222,18 +223,18 @@ def start_background_server():
 
     def _run_server():
         try:
-            from training_service import training_service_pb2_grpc
-            import grpc
-            from concurrent import futures
             import os
+            from concurrent import futures
+
+            import grpc
+
+            from training_service import training_service_pb2_grpc
 
             port = int(os.environ.get("GRPC_PORT", 50051))
 
             _server_local = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
 
-            training_service_pb2_grpc.add_TrainingServiceServicer_to_server(
-                TrainingServiceServicer(), _server_local
-            )
+            training_service_pb2_grpc.add_TrainingServiceServicer_to_server(TrainingServiceServicer(), _server_local)
 
             # Use 0.0.0.0 instead of [::] for Docker compatibility
             _server_local.add_insecure_port(f"0.0.0.0:{port}")
@@ -250,7 +251,6 @@ def start_background_server():
     # Start in a non-daemon thread so it survives
     thread = threading.Thread(target=_run_server, name="grpc-server", daemon=False)
     thread.start()
-
 
 
 # ── Standalone entry point ────────────────────────────────────

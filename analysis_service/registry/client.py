@@ -1,7 +1,11 @@
-﻿import os, pickle, threading
+import os
+import pickle
+import threading
 from typing import Optional
-from analysis_service.core.config import cfg
+
 from analysis_service.core import db
+from analysis_service.core.config import cfg
+
 
 class RegistryClient:
     def __init__(self, concern: str):
@@ -18,22 +22,28 @@ class RegistryClient:
             if self._artifact is None:
                 raise RuntimeError(
                     f"No active model for concern='{self._concern}'. "
-                    "Train one via the Training Service (POST /training/jobs).")
+                    "Train one via the Training Service (POST /training/jobs)."
+                )
             return self._artifact
 
     def current_version(self) -> Optional[str]:
-        with self._lock: return self._version
+        with self._lock:
+            return self._version
 
     def is_ready(self) -> bool:
-        with self._lock: return self._artifact is not None
+        with self._lock:
+            return self._artifact is not None
 
     def _load(self):
         row = db.get_active_model(self._concern)
-        if not row: return
+        if not row:
+            return
         path = row.get("file_path")
-        if not path or not os.path.exists(path): return
+        if not path or not os.path.exists(path):
+            return
         try:
-            with open(path, "rb") as f: art = pickle.load(f)
+            with open(path, "rb") as f:
+                art = pickle.load(f)
             with self._lock:
                 self._artifact = art
                 self._version = row["version"]
@@ -46,12 +56,16 @@ class RegistryClient:
                 row = db.get_active_model(self._concern)
                 if row and row.get("version") != self._version:
                     self._load()
+
         threading.Thread(target=loop, daemon=True, name=f"watcher-{self._concern}").start()
 
-    def stop(self): self._stop.set()
+    def stop(self):
+        self._stop.set()
+
 
 _clients: dict = {}
 _lock = threading.Lock()
+
 
 def get_client(concern: str) -> RegistryClient:
     with _lock:

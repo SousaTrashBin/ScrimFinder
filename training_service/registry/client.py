@@ -1,7 +1,11 @@
-﻿import os, pickle, threading
+import os
+import pickle
+import threading
 from typing import Optional
-from training_service.core.config import cfg
+
 from training_service.core import db
+from training_service.core.config import cfg
+
 
 class RegistryClient:
     def __init__(self, concern: str):
@@ -50,13 +54,16 @@ class RegistryClient:
                 row = db.get_active_model(self._concern)
                 if row and row.get("version") != self._version:
                     self._load()
+
         threading.Thread(target=loop, daemon=True, name=f"watcher-{self._concern}").start()
 
     def stop(self):
         self._stop.set()
 
+
 _clients: dict = {}
 _lock = threading.Lock()
+
 
 def get_client(concern: str) -> RegistryClient:
     with _lock:
