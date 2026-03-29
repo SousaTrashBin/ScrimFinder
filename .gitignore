@@ -70,3 +70,5 @@ ENV/
 *.db
 *.log
 analysis_api/models/
+
+.idea/
