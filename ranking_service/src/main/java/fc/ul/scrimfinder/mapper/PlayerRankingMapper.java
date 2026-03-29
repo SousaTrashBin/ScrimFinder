@@ -10,14 +10,14 @@ public interface PlayerRankingMapper {
 
     @Mapping(source = "player.id", target = "playerId")
     @Mapping(source = "player.discordUsername", target = "username")
-    @Mapping(source = "player.lolAccountPPUID", target = "lolAccountPPUID")
+    @Mapping(
+            target = "lolAccountPPUID",
+            expression =
+                    "java(playerRanking.getPlayer().getPrimaryAccount() != null ? playerRanking.getPlayer().getPrimaryAccount().getPuuid() : null)")
+    @Mapping(
+            target = "region",
+            expression =
+                    "java(playerRanking.getPlayer().getPrimaryAccount() != null ? playerRanking.getPlayer().getPrimaryAccount().getRegion() : null)")
     @Mapping(source = "queue.id", target = "queueId")
     PlayerRankingDTO toDTO(PlayerRanking playerRanking);
-
-    @Mapping(source = "playerId", target = "player.id")
-    @Mapping(source = "username", target = "player.discordUsername")
-    @Mapping(source = "lolAccountPPUID", target = "player.lolAccountPPUID")
-    @Mapping(source = "queueId", target = "queue.id")
-    @Mapping(target = "privateId", ignore = true)
-    PlayerRanking toEntity(PlayerRankingDTO playerRankingDTO);
 }

@@ -1,0 +1,54 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: traefik
+  namespace: kube-system
+  labels:
+    app: traefik
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: traefik
+  template:
+    metadata:
+      labels:
+        app: traefik
+    spec:
+      serviceAccountName: traefik-ingress-controller
+      containers:
+        - name: traefik
+          image: traefik:v3.1.2
+          args:
+            - --api.insecure=true
+            - --accesslog
+            - --entrypoints.web.Address=:80
+            - --providers.kubernetesingress
+            - --providers.kubernetescrd
+            - --log.level=DEBUG
+          ports:
+            - name: web
+              containerPort: 80
+            - name: admin
+              containerPort: 8080
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  type: NodePort
+  selector:
+    app: traefik
+  ports:
+    - protocol: TCP
+      port: 80
+      name: web
+      targetPort: 80
+      nodePort: 30080
+    - protocol: TCP
+      port: 8080
+      name: admin
+      targetPort: 8080
+      nodePort: 30880

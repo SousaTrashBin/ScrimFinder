@@ -1,0 +1,62 @@
+@baseUrl = http://localhost:13200/api/v1/riot
+
+@matchId1 = EUW1_7779779801
+@matchId2 = EUW1_7798917216
+@matchId3 = EUW1_7794855675
+@matchId4 = EUW1_7799338678
+@matchId5 = EUW1_7793513696
+@matchId6 = EUW1_7797556115
+
+@player1 = Frank Lundy/AGENT
+@player2 = Phanta/107
+@player3 = sousa/balls
+
+###
+# @name GET match 1 raw
+
+GET {{baseUrl}}/matches/{{matchId1}}/raw
+
+###
+# @name GET match 1
+
+GET {{baseUrl}}/matches/{{matchId1}}
+
+###
+# @name GET match 2
+
+GET {{baseUrl}}/matches/{{matchId2}}
+
+###
+# @name GET match 3
+
+GET {{baseUrl}}/matches/{{matchId3}}
+
+###
+# @name GET match 4
+
+GET {{baseUrl}}/matches/{{matchId4}}
+
+###
+# @name GET match 5
+
+GET {{baseUrl}}/matches/{{matchId5}}
+
+###
+# @name GET match 6
+
+GET {{baseUrl}}/matches/{{matchId6}}
+
+###
+# @name GET player 1
+
+GET {{baseUrl}}/players/{{player1}}
+
+###
+# @name GET player 2
+
+GET {{baseUrl}}/players/{{player2}}
+
+###
+# @name GET player 3
+
+GET {{baseUrl}}/players/{{player3}}

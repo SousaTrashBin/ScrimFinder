@@ -1,12 +1,13 @@
 package fc.ul.scrimfinder.domain;
 
+import fc.ul.scrimfinder.util.Region;
 import fc.ul.scrimfinder.util.Role;
 import fc.ul.scrimfinder.util.TicketStatus;
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -14,9 +15,7 @@ import java.time.LocalDateTime;
 @Table(name = "match_ticket")
 public class MatchTicket {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Id private UUID id = UUID.randomUUID();
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "player_id")
@@ -25,6 +24,10 @@ public class MatchTicket {
     @ManyToOne(optional = false)
     @JoinColumn(name = "queue_id")
     private Queue queue;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Region region;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -37,8 +40,9 @@ public class MatchTicket {
     @Column(nullable = false)
     private int mmr;
 
-    @Column
-    private Integer team;
+    @Column private String riotPuuid;
+
+    @Column private Integer team;
 
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();

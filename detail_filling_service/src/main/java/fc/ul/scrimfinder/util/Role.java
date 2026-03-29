@@ -20,6 +20,10 @@ public enum Role {
                 return r;
             }
         }
-        return null;
+        return switch (name.toUpperCase()) {
+            case "MIDDLE" -> MID;
+            case "UTILITY" -> SUPPORT;
+            default -> null;
+        };
     }
 }

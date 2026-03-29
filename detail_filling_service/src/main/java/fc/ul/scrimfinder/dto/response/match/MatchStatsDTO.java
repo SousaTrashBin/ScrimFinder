@@ -1,20 +1,15 @@
 package fc.ul.scrimfinder.dto.response.match;
 
-import fc.ul.scrimfinder.util.PatchInterval;
-import fc.ul.scrimfinder.util.TimeInterval;
-
 import java.util.List;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 public record MatchStatsDTO(
-        List<String> ranks,
-        List<String> champions,
-        Integer matchTripleKills,
-        Integer matchQuadKills,
-        Integer matchPentaKills,
-        PatchInterval patchInterval,
-        TimeInterval timeInterval,
-        List<TeamStats> teams,
-        Long queueId,
-        List<PlayerStats> players
-) {
-}
+        String riotMatchId, // including match region
+        String patch,
+        @Schema(
+                        description =
+                                "Reflected as the number of seconds since January 1st, 1970 at UTC (Unix timestamp)")
+                Long gameCreation,
+        Long gameDuration,
+        List<PlayerStatsDTO> players,
+        List<TeamStatsDTO> teams) {}

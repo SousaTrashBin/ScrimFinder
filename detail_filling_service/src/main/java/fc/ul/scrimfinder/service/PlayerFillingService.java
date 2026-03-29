@@ -1,9 +1,14 @@
 package fc.ul.scrimfinder.service;
 
 import fc.ul.scrimfinder.dto.response.player.PlayerDTO;
-import fc.ul.scrimfinder.exception.ExternalServiceUnavailableException;
-import fc.ul.scrimfinder.exception.PlayerNotFoundException;
+import fc.ul.scrimfinder.exception.*;
+import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
 
 public interface PlayerFillingService {
-    PlayerDTO getFilledPlayer(String playerId) throws PlayerNotFoundException, ExternalServiceUnavailableException;
+    @CircuitBreaker(skipOn = {PlayerNotFoundException.class})
+    PlayerDTO getFilledPlayer(String name, String tag)
+            throws PlayerNotFoundException,
+                    InvalidPlayerFormatException,
+                    UnauthorizedException,
+                    ExternalServiceUnavailableException;
 }

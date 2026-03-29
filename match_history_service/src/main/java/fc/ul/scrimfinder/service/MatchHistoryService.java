@@ -1,39 +1,37 @@
 package fc.ul.scrimfinder.service;
 
-import fc.ul.scrimfinder.dto.request.MatchAddDto;
-import fc.ul.scrimfinder.dto.request.MatchStats;
-import fc.ul.scrimfinder.dto.request.SortParam;
-import fc.ul.scrimfinder.dto.response.MatchDto;
-import fc.ul.scrimfinder.dto.response.PaginatedResponseDto;
+import fc.ul.scrimfinder.dto.request.filtering.MatchFilters;
+import fc.ul.scrimfinder.dto.response.MatchDTO;
+import fc.ul.scrimfinder.dto.response.PaginatedResponseDTO;
 import fc.ul.scrimfinder.exception.*;
-
-import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
 
 public interface MatchHistoryService {
-    MatchDto getMatchById(Long matchId) throws
-            MatchNotFoundException,
-            ExternalServiceUnavailableException;
+    @CircuitBreaker(skipOn = {MatchNotFoundException.class})
+    MatchDTO getMatchById(String riotMatchId)
+            throws MatchNotFoundException,
+                    InvalidExternalJsonFormatException,
+                    ExternalServiceUnavailableException;
 
-    PaginatedResponseDto<MatchDto> getMatches(int page, int size, MatchStats filterParams, List<SortParam> sortParams) throws
-            PlayerNotFoundException,
-            ChampionNotFoundException,
-            RankNotFoundException,
-            InvalidIntervalException,
-            InvalidRoleException,
-            InvalidTeamsException;
+    @CircuitBreaker(skipOn = {InvalidIntervalException.class, InvalidTeamsException.class})
+    PaginatedResponseDTO<MatchDTO> getMatches(int page, int size, MatchFilters filterParams)
+            throws InvalidIntervalException, InvalidTeamsException;
 
-    MatchDto addMatchById(String riotMatchId) throws
-            MatchAlreadyExistsException,
-            MatchNotFoundException,
-            InvalidIntervalException,
-            InvalidTeamsException;
+    @CircuitBreaker(
+            skipOn = {
+                MatchAlreadyExistsException.class,
+                MatchNotFoundException.class,
+                NotEnoughMMRDeltasException.class,
+                PlayerNotFoundException.class
+            })
+    MatchDTO addMatchById(String riotMatchId, UUID queueId, Map<String, Integer> mmrDeltas)
+            throws MatchAlreadyExistsException,
+                    MatchNotFoundException,
+                    NotEnoughMMRDeltasException,
+                    PlayerNotFoundException;
 
-    MatchDto addMatch(MatchAddDto matchAddDto) throws
-            MatchAlreadyExistsException,
-            InvalidIntervalException,
-            InvalidTeamsException;
-
-    MatchDto delMatchById(Long matchId) throws
-            MatchNotFoundException,
-            ExternalServiceUnavailableException;
+    @CircuitBreaker(skipOn = {MatchNotFoundException.class})
+    MatchDTO deleteMatchById(String riotMatchId) throws MatchNotFoundException;
 }

@@ -1,9 +1,9 @@
 package fc.ul.scrimfinder.repository;
 
 import fc.ul.scrimfinder.domain.Match;
-import io.quarkus.hibernate.orm.panache.PanacheRepository;
+import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import jakarta.enterprise.context.ApplicationScoped;
+import java.util.UUID;
 
 @ApplicationScoped
-public class MatchRepository implements PanacheRepository<Match> {
-}
+public class MatchRepository implements PanacheRepositoryBase<Match, UUID> {}

@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package fc.ul.scrimfinder.grpc;
+
+option java_multiple_files = true;
+option java_package = "fc.ul.scrimfinder.grpc";
+option java_outer_classname = "PlayerProto";
+
+service ExternalPlayerFillingService {
+  rpc GetPlayer(PlayerRequest) returns (PlayerResponse) {}
+}
+
+message PlayerRequest {
+  string gameName = 1;
+  string tagLine = 2;
+}
+
+message PlayerResponse {
+  string puuid = 1;
+  string gameName = 2;
+  string tagLine = 3;
+  repeated LeagueEntry entries = 4;
+}
+
+message LeagueEntry {
+  string queueType = 1;
+  string tier = 2;
+  string rank = 3;
+  int32 leaguePoints = 4;
+  int32 wins = 5;
+  int32 losses = 6;
+}

@@ -1,34 +1,52 @@
 package fc.ul.scrimfinder.service.impl;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import fc.ul.scrimfinder.dto.response.match.MatchDTO;
+import fc.ul.scrimfinder.Config;
 import fc.ul.scrimfinder.dto.response.match.MatchStatsDTO;
-import fc.ul.scrimfinder.dto.response.match.PlayerStats;
-import fc.ul.scrimfinder.dto.response.match.TeamStats;
+import fc.ul.scrimfinder.redis.RedisService;
 import fc.ul.scrimfinder.service.MatchFillingService;
 import fc.ul.scrimfinder.service.RiotAdapterService;
+import fc.ul.scrimfinder.util.ColoredMessage;
+import fc.ul.scrimfinder.util.LogColor;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import org.jboss.logging.Logger;
 
 @ApplicationScoped
 public class MatchFillingServiceImpl implements MatchFillingService {
 
-    @Inject
-    RiotAdapterService riotAdapterService;
+    @Inject RiotAdapterService riotAdapterService;
+
+    @Inject RedisService redisService;
+
+    @Inject Config config;
+
+    @Inject Logger logger;
 
     @Override
-    public MatchDTO getFilledMatch(Long matchId) {
-        return null;
+    public MatchStatsDTO getFilledMatch(String matchId) {
+        logger.info(
+                ColoredMessage.withColor("GET match from Riot with ID: " + matchId, LogColor.GREEN));
+        return redisService
+                .get(matchId, MatchStatsDTO.class)
+                .orElseGet(
+                        () -> {
+                            MatchStatsDTO match = riotAdapterService.getMatchData(matchId);
+                            redisService.set(matchId, match, config.redisCacheMatchKeyTtl());
+                            return match;
+                        });
     }
 
     @Override
-    public String getRawMatchData(Long matchId) {
-        return "";
+    public String getRawMatchData(String matchId) {
+        logger.info(
+                ColoredMessage.withColor("GET raw match from Riot with ID: " + matchId, LogColor.GREEN));
+        return redisService
+                .get(matchId + "raw", String.class)
+                .orElseGet(
+                        () -> {
+                            String match = riotAdapterService.getRawMatchData(matchId);
+                            redisService.set(matchId + "raw", match, config.redisCacheMatchKeyTtl());
+                            return match;
+                        });
     }
 }
-

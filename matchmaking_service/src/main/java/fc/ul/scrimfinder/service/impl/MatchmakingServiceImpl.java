@@ -22,138 +22,191 @@ import fc.ul.scrimfinder.util.*;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import lombok.extern.slf4j.Slf4j;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
-
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
+import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
+import org.eclipse.microprofile.faulttolerance.Retry;
+import org.eclipse.microprofile.faulttolerance.Timeout;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 @Slf4j
 @ApplicationScoped
 public class MatchmakingServiceImpl implements MatchmakingService {
 
     private static final int K_FACTOR = 40;
+    @Inject PlayerRepository playerRepository;
+    @Inject QueueRepository queueRepository;
+    @Inject MatchTicketRepository ticketRepository;
+    @Inject LobbyRepository lobbyRepository;
+    @Inject MatchRepository matchRepository;
+    @Inject RedisMatchmakingRepository redisRepository;
+    @Inject DistributedLockService lockService;
+    @Inject MatchTicketMapper ticketMapper;
+    @Inject LobbyMapper lobbyMapper;
+    @Inject MatchMapper matchMapper;
+    @Inject @RestClient RankingServiceClient rankingServiceClient;
+
     @Inject
-    PlayerRepository playerRepository;
-    @Inject
-    QueueRepository queueRepository;
-    @Inject
-    MatchTicketRepository ticketRepository;
-    @Inject
-    LobbyRepository lobbyRepository;
-    @Inject
-    MatchRepository matchRepository;
-    @Inject
-    RedisMatchmakingRepository redisRepository;
-    @Inject
-    DistributedLockService lockService;
-    @Inject
-    MatchTicketMapper ticketMapper;
-    @Inject
-    LobbyMapper lobbyMapper;
-    @Inject
-    MatchMapper matchMapper;
-    @Inject
-    @RestClient
-    RankingServiceClient rankingServiceClient;
+    @io.quarkus.grpc.GrpcClient("ranking-service")
+    fc.ul.scrimfinder.grpc.RankingService rankingGrpcService;
 
     @Override
     @Transactional
+    @Retry(maxRetries = 2, delay = 500)
+    @Timeout(3000)
     public MatchTicketDTO joinQueue(JoinQueueRequest request) {
-        Player player = playerRepository.findByIdOptional(request.getPlayerId())
-                .orElseThrow(() -> new PlayerNotFoundException("Player not found: " + request.getPlayerId()));
+        log.info(
+                "\u001B[33m[PENDING]\u001B[0m Player {} attempting to join queue {}",
+                request.getPlayerId(),
+                request.getQueueId());
+        Player player =
+                playerRepository
+                        .findByIdOptional(request.getPlayerId())
+                        .orElseThrow(
+                                () -> {
+                                    log.error(
+                                            "\u001B[31m[ERROR]\u001B[0m Player not found: {}", request.getPlayerId());
+                                    return new PlayerNotFoundException("Player not found: " + request.getPlayerId());
+                                });
 
-        Queue queue = queueRepository.findByIdOptional(request.getQueueId())
-                .orElseThrow(() -> new QueueNotFoundException("Queue not found: " + request.getQueueId()));
+        Queue queue =
+                queueRepository
+                        .findByIdOptional(request.getQueueId())
+                        .orElseThrow(
+                                () -> {
+                                    log.error("\u001B[31m[ERROR]\u001B[0m Queue not found: {}", request.getQueueId());
+                                    return new QueueNotFoundException("Queue not found: " + request.getQueueId());
+                                });
 
-        PlayerRankingDTO ranking = rankingServiceClient.getPlayerRanking(player.getId(), queue.getId());
+        List<PlayerRankingDTO> rankings =
+                rankingServiceClient.getPlayerRanking(player.getId(), queue.getId());
 
-        if (ranking == null || ranking.lolAccountPPUID() == null) {
-            throw new LeagueAccountNotLinkedException("A valid League Account must be linked before joining the queue.");
+        if (rankings == null || rankings.isEmpty()) {
+            log.error(
+                    "\u001B[31m[ERROR]\u001B[0m No linked League account found for player {}",
+                    player.getId());
+            throw new LeagueAccountNotLinkedException(
+                    "A valid League Account with a region must be linked before joining the queue.");
+        }
+
+        PlayerRankingDTO ranking = rankings.get(0);
+
+        if (ranking.lolAccountPPUID() == null || ranking.region() == null) {
+            log.error("\u001B[31m[ERROR]\u001B[0m Invalid ranking data for player {}", player.getId());
+            throw new LeagueAccountNotLinkedException(
+                    "A valid League Account with a region must be linked before joining the queue.");
+        }
+
+        if (queue.getRegion() != null && queue.getRegion() != ranking.region()) {
+            log.warn(
+                    "\u001B[33m[WARN]\u001B[0m Region mismatch: Queue requires {} but player is {}",
+                    queue.getRegion(),
+                    ranking.region());
+            throw new RuntimeException("This queue is restricted to region: " + queue.getRegion());
         }
 
         MatchTicket ticket = new MatchTicket();
         ticket.setPlayer(player);
         ticket.setQueue(queue);
+        ticket.setRegion(ranking.region());
         ticket.setRole(request.getRole() != null ? request.getRole() : Role.NONE);
         ticket.setStatus(TicketStatus.IN_QUEUE);
         ticket.setMmr(ranking.mmr());
+        ticket.setRiotPuuid(ranking.lolAccountPPUID());
         ticketRepository.persist(ticket);
 
-        redisRepository.addTicket(queue.getId(), ticket.getRole(), ticket.getId(), ticket.getMmr());
+        redisRepository.addTicket(
+                queue.getId(), ticket.getRegion(), ticket.getRole(), ticket.getId(), ticket.getMmr());
 
-        processQueue(queue);
+        log.info(
+                "\u001B[32m[STATE CHANGE]\u001B[0m Ticket {} created: Player {} in queue {} (Region: {}, Role: {}, MMR: {})",
+                ticket.getId(),
+                player.getId(),
+                queue.getId(),
+                ticket.getRegion(),
+                ticket.getRole(),
+                ticket.getMmr());
+
+        processQueue(queue, ticket.getRegion());
 
         return ticketMapper.toDTO(ticket);
     }
 
-    private void processQueue(Queue queue) {
-        String lockKey = "lock:matchmaking:queue:" + queue.getId();
+    private void processQueue(Queue queue, Region region) {
+        String lockKey =
+                "lock:matchmaking:queue:" + queue.getId().toString() + ":region:" + region.name();
         if (!lockService.acquireLock(lockKey, Duration.ofSeconds(10))) {
             return;
         }
 
         try {
             if (queue.isRoleQueue()) {
-                processRoleQueue(queue);
+                processRoleQueue(queue, region);
             } else {
-                processStandardQueue(queue);
+                processStandardQueue(queue, region);
             }
         } finally {
             lockService.releaseLock(lockKey);
         }
     }
 
-    private void processStandardQueue(Queue queue) {
-        List<Long> ticketIds = redisRepository.getTickets(queue.getId(), Role.NONE);
+    private void processStandardQueue(Queue queue, Region region) {
+        List<UUID> ticketIds = redisRepository.getTickets(queue.getId(), region, Role.NONE);
         if (ticketIds.size() < queue.getRequiredPlayers()) return;
 
-        List<MatchTicket> tickets = ticketIds.stream()
-                .map(id -> ticketRepository.findById(id))
-                .sorted(Comparator.comparingInt(MatchTicket::getMmr))
-                .collect(Collectors.toList());
+        List<MatchTicket> tickets =
+                ticketIds.stream()
+                        .map(id -> ticketRepository.findById(id))
+                        .filter(Objects::nonNull)
+                        .sorted(Comparator.comparingInt(MatchTicket::getMmr))
+                        .collect(Collectors.toList());
+
+        if (tickets.size() < queue.getRequiredPlayers()) return;
 
         if (queue.getMode() == MatchmakingMode.RANK_BASED) {
             for (int i = 0; i <= tickets.size() - queue.getRequiredPlayers(); i++) {
                 MatchTicket min = tickets.get(i);
                 MatchTicket max = tickets.get(i + queue.getRequiredPlayers() - 1);
                 if (max.getMmr() - min.getMmr() <= queue.getMmrWindow()) {
-                    List<MatchTicket> matched = new ArrayList<>(tickets.subList(i, i + queue.getRequiredPlayers()));
-                    createMatchProposal(queue, matched);
+                    List<MatchTicket> matched =
+                            new ArrayList<>(tickets.subList(i, i + queue.getRequiredPlayers()));
+                    createMatchProposal(queue, region, matched);
                     return;
                 }
             }
         } else {
-            createMatchProposal(queue, tickets.subList(0, queue.getRequiredPlayers()));
+            createMatchProposal(queue, region, tickets.subList(0, queue.getRequiredPlayers()));
         }
     }
 
-    private void processRoleQueue(Queue queue) {
-        Map<Role, List<Long>> ticketIdsByRole = new HashMap<>();
+    private void processRoleQueue(Queue queue, Region region) {
+        Map<Role, List<UUID>> ticketIdsByRole = new HashMap<>();
         for (Role role : Role.values()) {
             if (role == Role.NONE) continue;
-            ticketIdsByRole.put(role, redisRepository.getTickets(queue.getId(), role));
+            ticketIdsByRole.put(role, redisRepository.getTickets(queue.getId(), region, role));
         }
 
         if (hasEnoughForRoleQueueRedis(ticketIdsByRole)) {
-            List<MatchTicket> matched = tryFindRoleMatch(queue, ticketIdsByRole);
+            List<MatchTicket> matched = tryFindRoleMatch(queue, region, ticketIdsByRole);
             if (matched != null) {
-                createMatchProposal(queue, matched);
+                createMatchProposal(queue, region, matched);
             }
         }
     }
 
-    private boolean hasEnoughForRoleQueueRedis(Map<Role, List<Long>> byRole) {
-        return byRole.getOrDefault(Role.TOP, List.of()).size() >= 2 &&
-                byRole.getOrDefault(Role.JUNGLE, List.of()).size() >= 2 &&
-                byRole.getOrDefault(Role.MID, List.of()).size() >= 2 &&
-                byRole.getOrDefault(Role.BOT, List.of()).size() >= 2 &&
-                byRole.getOrDefault(Role.SUPP, List.of()).size() >= 2;
+    private boolean hasEnoughForRoleQueueRedis(Map<Role, List<UUID>> byRole) {
+        return byRole.getOrDefault(Role.TOP, List.of()).size() >= 2
+                && byRole.getOrDefault(Role.JUNGLE, List.of()).size() >= 2
+                && byRole.getOrDefault(Role.MID, List.of()).size() >= 2
+                && byRole.getOrDefault(Role.BOTTOM, List.of()).size() >= 2
+                && byRole.getOrDefault(Role.SUPPORT, List.of()).size() >= 2;
     }
 
-    private List<MatchTicket> tryFindRoleMatch(Queue queue, Map<Role, List<Long>> ticketIdsByRole) {
+    private List<MatchTicket> tryFindRoleMatch(
+            Queue queue, Region region, Map<Role, List<UUID>> ticketIdsByRole) {
         List<MatchTicket> candidates = new ArrayList<>();
         for (Role role : Role.values()) {
             if (role == Role.NONE) continue;
@@ -173,19 +226,20 @@ public class MatchmakingServiceImpl implements MatchmakingService {
     }
 
     @Transactional
-    protected void createMatchProposal(Queue queue, List<MatchTicket> matchedTickets) {
+    protected void createMatchProposal(Queue queue, Region region, List<MatchTicket> matchedTickets) {
         for (MatchTicket t : matchedTickets) {
-            if (!redisRepository.removeTicket(queue.getId(), t.getRole(), t.getId())) {
+            if (!redisRepository.removeTicket(queue.getId(), region, t.getRole(), t.getId())) {
                 return;
             }
         }
 
         Lobby lobby = new Lobby();
         lobby.setQueue(queue);
+        lobby.setRegion(region);
         lobbyRepository.persist(lobby);
         if (queue.isRoleQueue()) {
-            Map<Role, List<MatchTicket>> byRole = matchedTickets.stream()
-                    .collect(Collectors.groupingBy(MatchTicket::getRole));
+            Map<Role, List<MatchTicket>> byRole =
+                    matchedTickets.stream().collect(Collectors.groupingBy(MatchTicket::getRole));
             for (Role role : Role.values()) {
                 if (role == Role.NONE) continue;
                 List<MatchTicket> tickets = byRole.get(role);
@@ -203,7 +257,6 @@ public class MatchmakingServiceImpl implements MatchmakingService {
             }
         }
 
-
         for (MatchTicket t : matchedTickets) {
             t.setStatus(TicketStatus.MATCHED);
             t.setLobby(lobby);
@@ -217,15 +270,33 @@ public class MatchmakingServiceImpl implements MatchmakingService {
         match.setLobby(lobby);
         match.setState(MatchState.PENDING_ACCEPTANCE);
         matchRepository.persist(match);
+
+        log.info(
+                "\u001B[32m[STATE CHANGE]\u001B[0m Match Proposal Created: Match {} (Lobby {}) for {} tickets",
+                match.getId(),
+                lobby.getId(),
+                matchedTickets.size());
     }
 
     @Override
     @Transactional
-    public MatchDTO acceptMatch(Long matchId, Long playerId) {
-        Match match = matchRepository.findByIdOptional(matchId)
-                .orElseThrow(() -> new RuntimeException("Match not found"));
+    public MatchDTO acceptMatch(UUID matchId, UUID playerId) {
+        log.info("\u001B[33m[PENDING]\u001B[0m Player {} accepting match {}", playerId, matchId);
+        Match match =
+                matchRepository
+                        .findByIdOptional(matchId)
+                        .orElseThrow(
+                                () -> {
+                                    log.error("\u001B[31m[ERROR]\u001B[0m Match {} not found", matchId);
+                                    return new RuntimeException("Match not found");
+                                });
 
         if (match.getState() != MatchState.PENDING_ACCEPTANCE) {
+            log.warn(
+                    "\u001B[33m[WARN]\u001B[0m Player {} tried to accept match {} which is in state {}",
+                    playerId,
+                    matchId,
+                    match.getState());
             throw new RuntimeException("Match is not in acceptance phase");
         }
 
@@ -236,6 +307,7 @@ public class MatchmakingServiceImpl implements MatchmakingService {
             match.setState(MatchState.IN_PROGRESS);
             match.setStartedAt(LocalDateTime.now());
             matchRepository.persist(match);
+            log.info("\u001B[32m[STATE CHANGE]\u001B[0m Match {} is now IN_PROGRESS", matchId);
         }
 
         return matchMapper.toDTO(match);
@@ -243,12 +315,21 @@ public class MatchmakingServiceImpl implements MatchmakingService {
 
     @Override
     @Transactional
-    public void declineMatch(Long matchId, Long playerId) {
-        Match match = matchRepository.findByIdOptional(matchId)
-                .orElseThrow(() -> new RuntimeException("Match not found"));
+    public void declineMatch(UUID matchId, UUID playerId) {
+        log.info("\u001B[33m[PENDING]\u001B[0m Player {} declining match {}", playerId, matchId);
+        Match match =
+                matchRepository
+                        .findByIdOptional(matchId)
+                        .orElseThrow(
+                                () -> {
+                                    log.error("\u001B[31m[ERROR]\u001B[0m Match {} not found", matchId);
+                                    return new RuntimeException("Match not found");
+                                });
 
         match.setState(MatchState.CANCELLED);
         match.setEndedAt(LocalDateTime.now());
+        log.info(
+                "\u001B[32m[STATE CHANGE]\u001B[0m Match {} CANCELLED by player {}", matchId, playerId);
 
         for (MatchTicket t : match.getLobby().getTickets()) {
             if (t.getPlayer().getId().equals(playerId)) {
@@ -257,7 +338,8 @@ public class MatchmakingServiceImpl implements MatchmakingService {
                 t.setStatus(TicketStatus.IN_QUEUE);
                 t.setLobby(null);
                 t.setTeam(null);
-                redisRepository.addTicket(match.getLobby().getQueue().getId(), t.getRole(), t.getId(), t.getMmr());
+                redisRepository.addTicket(
+                        match.getLobby().getQueue().getId(), t.getRegion(), t.getRole(), t.getId(), t.getMmr());
             }
             ticketRepository.persist(t);
         }
@@ -266,89 +348,116 @@ public class MatchmakingServiceImpl implements MatchmakingService {
 
     @Override
     @Transactional
-    public void linkMatch(Long matchId, String externalGameId) {
-        Match match = matchRepository.findByIdOptional(matchId)
-                .orElseThrow(() -> new RuntimeException("Match not found"));
+    public void linkMatch(UUID matchId, String externalGameId) {
+        Match match =
+                matchRepository
+                        .findByIdOptional(matchId)
+                        .orElseThrow(() -> new RuntimeException("Match not found"));
         match.setExternalGameId(externalGameId);
         matchRepository.persist(match);
     }
 
     @Override
     @Transactional
-    public void completeMatch(Long matchId) {
-        Match match = matchRepository.findByIdOptional(matchId)
-                .orElseThrow(() -> new RuntimeException("Match not found"));
+    @Retry(maxRetries = 2, delay = 1000)
+    @Timeout(10000)
+    @CircuitBreaker(requestVolumeThreshold = 5, failureRatio = 0.6, delay = 5000)
+    public void completeMatch(UUID matchId) {
+        Match match =
+                matchRepository
+                        .findByIdOptional(matchId)
+                        .orElseThrow(() -> new RuntimeException("Match not found"));
 
         if (match.getExternalGameId() == null) {
-            throw new RuntimeException("Match must be linked with a valid League of Legends Game ID first.");
+            throw new RuntimeException(
+                    "Match must be linked with a valid League of Legends Game ID first.");
         }
 
         if (match.getState() == MatchState.COMPLETED) {
             return;
         }
 
-        // 1. Calculate deltas
-        List<MatchTicket> team1 = match.getLobby().getTickets().stream()
-                .filter(t -> t.getTeam() != null && t.getTeam() == 1)
-                .toList();
-        List<MatchTicket> team2 = match.getLobby().getTickets().stream()
-                .filter(t -> t.getTeam() != null && t.getTeam() == 2)
-                .toList();
+        List<MatchTicket> team1 =
+                match.getLobby().getTickets().stream()
+                        .filter(t -> t.getTeam() != null && t.getTeam() == 1)
+                        .toList();
+        List<MatchTicket> team2 =
+                match.getLobby().getTickets().stream()
+                        .filter(t -> t.getTeam() != null && t.getTeam() == 2)
+                        .toList();
 
         double avgMMR1 = team1.stream().mapToInt(MatchTicket::getMmr).average().orElse(0);
         double avgMMR2 = team2.stream().mapToInt(MatchTicket::getMmr).average().orElse(0);
 
-        Map<Long, MatchResultRequest.PlayerDelta> deltas = new HashMap<>();
+        Map<String, MatchResultRequest.PlayerDelta> deltas = new HashMap<>();
         for (MatchTicket t : team1) {
             double expected = 1.0 / (1.0 + Math.pow(10.0, (avgMMR2 - t.getMmr()) / 400.0));
             int winDelta = (int) Math.round(K_FACTOR * (1.0 - expected));
             int lossDelta = (int) Math.round(K_FACTOR * expected);
-            deltas.put(t.getPlayer().getId(), new MatchResultRequest.PlayerDelta(winDelta, lossDelta));
+            deltas.put(t.getRiotPuuid(), new MatchResultRequest.PlayerDelta(winDelta, lossDelta));
         }
         for (MatchTicket t : team2) {
             double expected = 1.0 / (1.0 + Math.pow(10.0, (avgMMR1 - t.getMmr()) / 400.0));
             int winDelta = (int) Math.round(K_FACTOR * (1.0 - expected));
             int lossDelta = (int) Math.round(K_FACTOR * expected);
-            deltas.put(t.getPlayer().getId(), new MatchResultRequest.PlayerDelta(winDelta, lossDelta));
+            deltas.put(t.getRiotPuuid(), new MatchResultRequest.PlayerDelta(winDelta, lossDelta));
         }
 
-        MatchResultRequest result = new MatchResultRequest(
-                match.getExternalGameId(),
-                match.getLobby().getQueue().getId(),
-                deltas
-        );
-
-        match.setState(MatchState.COMPLETED);
-        match.setEndedAt(LocalDateTime.now());
-        matchRepository.persist(match);
+        fc.ul.scrimfinder.grpc.MatchResultRequest gRpcRequest =
+                fc.ul.scrimfinder.grpc.MatchResultRequest.newBuilder()
+                        .setGameId(match.getExternalGameId())
+                        .setQueueId(match.getLobby().getQueue().getId().toString())
+                        .putAllPlayerDeltas(
+                                deltas.entrySet().stream()
+                                        .collect(
+                                                Collectors.toMap(
+                                                        Map.Entry::getKey,
+                                                        entry ->
+                                                                fc.ul.scrimfinder.grpc.PlayerDelta.newBuilder()
+                                                                        .setWinDelta(entry.getValue().winDelta())
+                                                                        .setLossDelta(entry.getValue().lossDelta())
+                                                                        .build())))
+                        .build();
 
         try {
-            rankingServiceClient.reportMatchResults(result);
+            var response =
+                    rankingGrpcService.reportMatchResults(gRpcRequest).await().atMost(Duration.ofSeconds(5));
+            if (!response.getSuccess()) {
+                throw new RuntimeException("Ranking service reported failure: " + response.getMessage());
+            }
+            match.setState(MatchState.COMPLETED);
+            match.setEndedAt(LocalDateTime.now());
+            matchRepository.persist(match);
         } catch (Exception e) {
             log.error("Failed to report match results for match {}: {}", matchId, e.getMessage());
             match.setState(MatchState.RESULT_REPORTING_FAILED);
             matchRepository.persist(match);
-            throw new RuntimeException("Match completed but results failed to sync. State: RESULT_REPORTING_FAILED", e);
+            throw new RuntimeException("Match results failed to sync. State: RESULT_REPORTING_FAILED", e);
         }
     }
 
     @Override
     @Transactional
-    public void leaveQueue(Long ticketId) {
-        MatchTicket ticket = ticketRepository.findByIdOptional(ticketId)
-                .orElseThrow(() -> new TicketNotFoundException("Ticket not found: " + ticketId));
+    public void leaveQueue(UUID ticketId) {
+        MatchTicket ticket =
+                ticketRepository
+                        .findByIdOptional(ticketId)
+                        .orElseThrow(() -> new TicketNotFoundException("Ticket not found: " + ticketId));
 
         if (ticket.getStatus() == TicketStatus.IN_QUEUE) {
             ticket.setStatus(TicketStatus.CANCELLED);
             ticketRepository.persist(ticket);
-            redisRepository.removeTicket(ticket.getQueue().getId(), ticket.getRole(), ticket.getId());
+            redisRepository.removeTicket(
+                    ticket.getQueue().getId(), ticket.getRegion(), ticket.getRole(), ticket.getId());
         }
     }
 
     @Override
-    public LobbyDTO getLobbyByTicket(Long ticketId) {
-        MatchTicket ticket = ticketRepository.findByIdOptional(ticketId)
-                .orElseThrow(() -> new TicketNotFoundException("Ticket not found: " + ticketId));
+    public LobbyDTO getLobbyByTicket(UUID ticketId) {
+        MatchTicket ticket =
+                ticketRepository
+                        .findByIdOptional(ticketId)
+                        .orElseThrow(() -> new TicketNotFoundException("Ticket not found: " + ticketId));
         if (ticket.getLobby() == null) return null;
         return lobbyMapper.toDTO(ticket.getLobby());
     }

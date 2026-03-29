@@ -1,0 +1,248 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: matchmaking-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: matchmaking-service
+  template:
+    metadata:
+      labels:
+        app: matchmaking-service
+    spec:
+      containers:
+      - name: matchmaking-service
+        image: scrimfinder/matchmaking-service:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 9000
+          name: grpc
+        env:
+        - name: QUARKUS_DATASOURCE_JDBC_URL
+          value: jdbc:postgresql://matchmaking-db:5432/matchmaking
+        - name: QUARKUS_DATASOURCE_USERNAME
+          value: postgres
+        - name: QUARKUS_DATASOURCE_PASSWORD
+          value: postgres
+        - name: QUARKUS_REDIS_HOSTS
+          value: redis://matchmaking-redis:6379
+        - name: RANKING_SERVICE_HOST
+          value: ranking-service
+        - name: PLAYER_FILLING_SERVICE_HOST
+          value: detail-filling-service
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /q/health/live
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /q/health/ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: matchmaking-service
+spec:
+  selector:
+    app: matchmaking-service
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  - name: grpc
+    port: 9000
+    targetPort: 9000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ranking-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ranking-service
+  template:
+    metadata:
+      labels:
+        app: ranking-service
+    spec:
+      containers:
+      - name: ranking-service
+        image: scrimfinder/ranking-service:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 9001
+          name: grpc
+        env:
+        - name: QUARKUS_DATASOURCE_JDBC_URL
+          value: jdbc:postgresql://ranking-db:5432/ranking
+        - name: QUARKUS_DATASOURCE_USERNAME
+          value: postgres
+        - name: QUARKUS_DATASOURCE_PASSWORD
+          value: postgres
+        - name: PLAYER_FILLING_SERVICE_HOST
+          value: detail-filling-service
+        - name: MATCH_HISTORY_SERVICE_HOST
+          value: match-history-service
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /q/health/live
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /q/health/ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ranking-service
+spec:
+  selector:
+    app: ranking-service
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  - name: grpc
+    port: 9001
+    targetPort: 9001
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: match-history-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: match-history-service
+  template:
+    metadata:
+      labels:
+        app: match-history-service
+    spec:
+      containers:
+      - name: match-history-service
+        image: scrimfinder/match-history-service:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: QUARKUS_DATASOURCE_JDBC_URL
+          value: jdbc:postgresql://history-db:5432/history
+        - name: QUARKUS_DATASOURCE_USERNAME
+          value: postgres
+        - name: QUARKUS_DATASOURCE_PASSWORD
+          value: postgres
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: match-history-service
+spec:
+  selector:
+    app: match-history-service
+  ports:
+  - port: 8080
+    targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: detail-filling-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: detail-filling-service
+  template:
+    metadata:
+      labels:
+        app: detail-filling-service
+    spec:
+      containers:
+      - name: detail-filling-service
+        image: scrimfinder/detail-filling-service:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: QUARKUS_REDIS_HOSTS
+          value: redis://filling-cache:6379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: detail-filling-service
+spec:
+  selector:
+    app: detail-filling-service
+  ports:
+  - port: 8080
+    targetPort: 8080
+---
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: matchmaking-service-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: matchmaking-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ranking-service-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ranking-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70

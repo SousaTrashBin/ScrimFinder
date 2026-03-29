@@ -1,16 +1,13 @@
 package fc.ul.scrimfinder.util;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @Getter
 public enum TeamSide {
-    @JsonProperty("blue")
     BLUE("blue"),
 
-    @JsonProperty("red")
     RED("red");
 
     final String teamSideName;

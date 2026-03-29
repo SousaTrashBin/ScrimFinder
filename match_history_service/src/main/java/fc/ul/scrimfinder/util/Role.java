@@ -1,25 +1,16 @@
 package fc.ul.scrimfinder.util;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @Getter
 public enum Role {
-    @JsonProperty(value = "top")
+    NONE("NONE"),
     TOP("top"),
-
-    @JsonProperty(value = "jungle")
     JUNGLE("jungle"),
-
-    @JsonProperty(value = "mid")
     MID("mid"),
-
-    @JsonProperty(value = "bottom")
     BOTTOM("bottom"),
-
-    @JsonProperty(value = "support")
     SUPPORT("support");
 
     final String roleName;
@@ -30,6 +21,10 @@ public enum Role {
                 return r;
             }
         }
-        return null;
+        return switch (name.toUpperCase()) {
+            case "MIDDLE" -> MID;
+            case "UTILITY" -> SUPPORT;
+            default -> Role.NONE;
+        };
     }
 }

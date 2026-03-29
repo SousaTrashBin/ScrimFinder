@@ -6,11 +6,11 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
-@Path("/api/v1/external/players")
-@RegisterRestClient(configKey = "scrimfinder-external-player-api")
+@Path("/api/v1/riot/players")
+@RegisterRestClient(configKey = "scrimfinder-external-api")
 public interface ExternalPlayerClient {
 
     @GET
-    @Path("/{playerId}")
-    ExternalPlayerDTO fetchPlayerRank(@PathParam("playerId") String playerId);
+    @Path("/{name}/{tag}")
+    ExternalPlayerDTO fetchPlayerRank(@PathParam("name") String name, @PathParam("tag") String tag);
 }

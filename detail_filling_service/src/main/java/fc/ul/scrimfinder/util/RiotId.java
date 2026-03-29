@@ -1,7 +1,8 @@
 package fc.ul.scrimfinder.util;
 
 public record RiotId(
+        String puuid,
         String playerName,
-        String playerTag
-) {
-}
+        String playerTag,
+        Integer summonerIcon,
+        Integer summonerLevel) {}
