@@ -31,19 +31,19 @@ def _connect() -> sqlite3.Connection:
 # ── Champion lookups ──────────────────────────────────────────
 
 
-def get_champion_id(name: str) -> Optional[int]:
+def get_champion_id(name: str) -> int | None:
     with _connect() as conn:
         row = conn.execute("SELECT id FROM dim_champions WHERE LOWER(name) = LOWER(?)", (name,)).fetchone()
     return row["id"] if row else None
 
 
-def get_champion_name_by_id(champion_id: int) -> Optional[str]:
+def get_champion_name_by_id(champion_id: int) -> str | None:
     with _connect() as conn:
         row = conn.execute("SELECT name FROM dim_champions WHERE id = ?", (champion_id,)).fetchone()
     return row["name"] if row else None
 
 
-def get_champion_name(champion_id: int) -> Optional[str]:
+def get_champion_name(champion_id: int) -> str | None:
     return get_champion_name_by_id(champion_id)
 
 
@@ -73,7 +73,7 @@ def get_item_ids(item_names: list) -> list[int]:
 # ── Win rate ──────────────────────────────────────────────────
 
 
-def query_winrate(champion_id: int, position: Optional[str] = None, match_type: Optional[str] = None) -> dict:
+def query_winrate(champion_id: int, position: str | None = None, match_type: str | None = None) -> dict:
     clauses = ["ps.champion_id = ?"]
     params = [champion_id]
     if position:
@@ -96,7 +96,7 @@ def query_winrate(champion_id: int, position: Optional[str] = None, match_type: 
 # ── Average stats ─────────────────────────────────────────────
 
 
-def query_stats(champion_id: int, position: Optional[str] = None, match_type: Optional[str] = None) -> dict:
+def query_stats(champion_id: int, position: str | None = None, match_type: str | None = None) -> dict:
     clauses = ["ps.champion_id = ?"]
     params = [champion_id]
     if position:
@@ -127,7 +127,7 @@ def query_stats(champion_id: int, position: Optional[str] = None, match_type: Op
 
 
 def query_top_items(
-    champion_id: int, position: Optional[str] = None, match_type: Optional[str] = None, limit: int = 6
+    champion_id: int, position: str | None = None, match_type: str | None = None, limit: int = 6
 ) -> list[str]:
     clauses = [
         "ps.champion_id = ?",
@@ -163,7 +163,7 @@ def query_top_items(
 # ── Counter matchups ──────────────────────────────────────────
 
 
-def query_counters(champion_id: int, position: Optional[str] = None, limit: int = 5) -> tuple[list[str], list[str]]:
+def query_counters(champion_id: int, position: str | None = None, limit: int = 5) -> tuple[list[str], list[str]]:
     """
     Head-to-head win rates. Fast approach:
     1. Get a sample of match_ids where this champion played
@@ -212,9 +212,7 @@ def query_counters(champion_id: int, position: Optional[str] = None, limit: int 
 # ── Top champions ─────────────────────────────────────────────
 
 
-def query_top_champions(
-    position: Optional[str] = None, match_type: Optional[str] = None, limit: int = 10
-) -> list[dict]:
+def query_top_champions(position: str | None = None, match_type: str | None = None, limit: int = 10) -> list[dict]:
     clauses, params = [], []
     if position:
         clauses.append("ps.position = ?")
@@ -247,9 +245,9 @@ def query_top_champions(
 def query_player_stats(
     summoner_id: str,
     last_n: int = 20,
-    champion: Optional[str] = None,
-    role: Optional[str] = None,
-    match_type: Optional[str] = None,
+    champion: str | None = None,
+    role: str | None = None,
+    match_type: str | None = None,
 ) -> list[dict]:
     _ROLE_TO_DB = {
         "TOP": "TOP",

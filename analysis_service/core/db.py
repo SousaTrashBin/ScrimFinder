@@ -26,7 +26,7 @@ def get_conn():
         conn.close()
 
 
-def get_active_model(concern: str) -> Optional[dict]:
+def get_active_model(concern: str) -> dict | None:
     try:
         with get_conn() as conn:
             row = conn.execute("SELECT * FROM models WHERE concern=? AND is_active=1", (concern,)).fetchone()

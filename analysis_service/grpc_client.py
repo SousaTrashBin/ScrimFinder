@@ -42,7 +42,7 @@ def _get_stub():
             return None
 
 
-def get_active_model_grpc(concern: str) -> Optional[dict]:
+def get_active_model_grpc(concern: str) -> dict | None:
     """
     Get active model metadata from Training Service via gRPC.
     Returns None if Training Service is unreachable.
@@ -101,7 +101,7 @@ def health_check_grpc() -> dict:
         return {"healthy": False, "message": str(e)}
 
 
-def get_active_model(concern: str) -> Optional[dict]:
+def get_active_model(concern: str) -> dict | None:
     """
     Get active model metadata.
 

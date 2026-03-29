@@ -11,7 +11,7 @@ class RegistryClient:
     def __init__(self, concern: str):
         self._concern = concern
         self._artifact = None
-        self._version: Optional[str] = None
+        self._version: str | None = None
         self._lock = threading.Lock()
         self._stop = threading.Event()
         self._load()
@@ -26,7 +26,7 @@ class RegistryClient:
                 )
             return self._artifact
 
-    def current_version(self) -> Optional[str]:
+    def current_version(self) -> str | None:
         with self._lock:
             return self._version
 

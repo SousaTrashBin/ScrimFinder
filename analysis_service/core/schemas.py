@@ -39,7 +39,7 @@ class Concern(str, Enum):
 class ErrorResponse(BaseModel):
     code: int
     message: str
-    details: Optional[str] = None
+    details: str | None = None
 
 
 class ChampionInDraft(BaseModel):
@@ -54,7 +54,7 @@ class DraftTeam(BaseModel):
 class DraftAnalysisRequest(BaseModel):
     team_blue: DraftTeam
     team_red: DraftTeam
-    model_id: Optional[int] = None
+    model_id: int | None = None
 
 
 class DraftAnalysisResponse(BaseModel):
@@ -66,15 +66,15 @@ class DraftAnalysisResponse(BaseModel):
     red_counters: list[str]
     win_conditions: dict
     tips: list[str]
-    model_version: Optional[str]
+    model_version: str | None
 
 
 class BuildAnalysisRequest(BaseModel):
     champion: str
-    role: Optional[Role] = None
+    role: Role | None = None
     items: list[str] = Field(..., min_length=1)
-    enemy_composition: Optional[list[str]] = None
-    model_id: Optional[int] = None
+    enemy_composition: list[str] | None = None
+    model_id: int | None = None
 
 
 class AlternativeItem(BaseModel):
@@ -87,19 +87,19 @@ class BuildAnalysisResponse(BaseModel):
     champion: str
     items: list[str]
     score: int = Field(..., ge=0, le=100)
-    win_rate_with_build: Optional[float]
+    win_rate_with_build: float | None
     strengths: list[str]
     weaknesses: list[str]
     alternative_items: list[AlternativeItem]
-    model_version: Optional[str]
+    model_version: str | None
 
 
 class PlayerAnalysisRequest(BaseModel):
     summoner_id: str
-    champion: Optional[str] = None
-    role: Optional[Role] = None
+    champion: str | None = None
+    role: Role | None = None
     last_n_games: int = Field(20, ge=1, le=200)
-    match_type: Optional[str] = None
+    match_type: str | None = None
 
 
 class PerformanceMetric(BaseModel):
@@ -112,28 +112,28 @@ class ImprovementTip(BaseModel):
     category: TipCategory
     tip: str
     impact: ImpactLevel
-    related_metric: Optional[str] = None
+    related_metric: str | None = None
 
 
 class PlayerAnalysisResponse(BaseModel):
     summoner_id: str
     matches_analyzed: int
-    champion: Optional[str]
-    role: Optional[str]
+    champion: str | None
+    role: str | None
     win_rate: float
-    kda: Optional[PerformanceMetric]
-    avg_damage: Optional[PerformanceMetric]
-    avg_vision: Optional[PerformanceMetric]
-    avg_gold_pm: Optional[PerformanceMetric]
-    obj_participation: Optional[PerformanceMetric]
+    kda: PerformanceMetric | None
+    avg_damage: PerformanceMetric | None
+    avg_vision: PerformanceMetric | None
+    avg_gold_pm: PerformanceMetric | None
+    obj_participation: PerformanceMetric | None
     tips: list[ImprovementTip]
-    model_version: Optional[str]
+    model_version: str | None
 
 
 class GameAnalysisRequest(BaseModel):
-    game_id: Optional[str] = None
-    raw_data: Optional[dict] = None
-    model_id: Optional[int] = None
+    game_id: str | None = None
+    raw_data: dict | None = None
+    model_id: int | None = None
     concern: Concern = Concern.PERFORMANCE
 
 
@@ -147,33 +147,33 @@ class PlayerOutcome(BaseModel):
     gold: int
     cs: int
     vision: int
-    performance_score: Optional[float] = None
+    performance_score: float | None = None
     highlights: list[str] = []
     lowlights: list[str] = []
 
 
 class GameAnalysisResponse(BaseModel):
     game_id: str
-    patch: Optional[str]
-    duration_sec: Optional[int]
-    winner: Optional[str]
+    patch: str | None
+    duration_sec: int | None
+    winner: str | None
     players: list[PlayerOutcome]
     team_synergies: dict
     key_moments: list[str]
-    model_version: Optional[str]
+    model_version: str | None
 
 
 class ChampionAnalysisRequest(BaseModel):
     champion: str
-    position: Optional[str] = None
-    patch: Optional[str] = None
-    match_type: Optional[str] = None
-    model_id: Optional[int] = None
+    position: str | None = None
+    patch: str | None = None
+    match_type: str | None = None
+    model_id: int | None = None
 
 
 class ChampionStats(BaseModel):
     champion: str
-    position: Optional[str]
+    position: str | None
     win_rate: float
     pick_rate: float
     total_games: int
@@ -192,4 +192,4 @@ class ChampionAnalysisResponse(BaseModel):
     champion: str
     stats: ChampionStats
     tier: str
-    model_version: Optional[str]
+    model_version: str | None

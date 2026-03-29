@@ -68,7 +68,7 @@ def _derive_id(data: dict) -> str:
     return "game_" + hashlib.sha1(json.dumps(data, sort_keys=True).encode()).hexdigest()[:16]
 
 
-def _model_version(concern: str) -> Optional[str]:
+def _model_version(concern: str) -> str | None:
     row = grpc_client.get_active_model(concern)
     return row["version"] if row else None
 
@@ -110,7 +110,7 @@ def _percentile_score(value: float, percentile_data: dict, metric: str) -> float
     return 95.0
 
 
-def _score_player(pipe, pos_le, champ_le, position_db: str, champion_id: int, stats: dict) -> Optional[float]:
+def _score_player(pipe, pos_le, champ_le, position_db: str, champion_id: int, stats: dict) -> float | None:
     """Run performance model on a single player's stats. Returns win probability."""
     try:
         pos_enc = pos_le.transform([position_db]).reshape(-1, 1)
@@ -372,7 +372,7 @@ def analyze_player(body: PlayerAnalysisRequest) -> PlayerAnalysisResponse:
             match_type=body.match_type,
         )
     except Exception as e:
-        raise HTTPException(status_code=503, detail=f"LEAGUE_DB unavailable: {e}")
+        raise HTTPException(status_code=503, detail=f"LEAGUE_DB unavailable: {e}") from e
 
     if not stats_rows:
         return PlayerAnalysisResponse(
@@ -599,7 +599,7 @@ def analyze_champion(body: ChampionAnalysisRequest) -> ChampionAnalysisResponse:
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=503, detail=f"LEAGUE_DB unavailable: {e}")
+        raise HTTPException(status_code=503, detail=f"LEAGUE_DB unavailable: {e}") from e
 
     total = wr.get("total", 0)
     win_rate = round(wr.get("wins", 0) / max(total, 1) * 100, 2)
@@ -694,7 +694,7 @@ def _draft_tips(blue, red) -> list[str]:
     return tips
 
 
-def _eval_build(items: list[str], enemies: Optional[list[str]]) -> tuple[list[str], list[str]]:
+def _eval_build(items: list[str], enemies: list[str] | None) -> tuple[list[str], list[str]]:
     s, w = [], []
     item_set = set(items)
     if "Kraken Slayer" in item_set:
@@ -714,7 +714,7 @@ def _eval_build(items: list[str], enemies: Optional[list[str]]) -> tuple[list[st
     return s or ["Balanced general-purpose build"], w or ["No notable weaknesses identified"]
 
 
-def _suggest_alts(items: list[str], enemies: Optional[list[str]]) -> list[AlternativeItem]:
+def _suggest_alts(items: list[str], enemies: list[str] | None) -> list[AlternativeItem]:
     alts = []
     if enemies and "Malphite" in enemies and "Runaan's Hurricane" in items:
         alts.append(

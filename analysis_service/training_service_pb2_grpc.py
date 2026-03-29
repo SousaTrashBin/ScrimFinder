@@ -26,7 +26,7 @@ if _version_not_supported:
     )
 
 
-class TrainingServiceStub(object):
+class TrainingServiceStub:
     """── Training Service ──────────────────────────────────────────
     Exposed by training_service, called by:
     - match_history_service (ForwardMatch)
@@ -60,7 +60,7 @@ class TrainingServiceStub(object):
         )
 
 
-class TrainingServiceServicer(object):
+class TrainingServiceServicer:
     """── Training Service ──────────────────────────────────────────
     Exposed by training_service, called by:
     - match_history_service (ForwardMatch)
@@ -116,7 +116,7 @@ def add_TrainingServiceServicer_to_server(servicer, server):
 
 
 # This class is part of an EXPERIMENTAL API.
-class TrainingService(object):
+class TrainingService:
     """── Training Service ──────────────────────────────────────────
     Exposed by training_service, called by:
     - match_history_service (ForwardMatch)
