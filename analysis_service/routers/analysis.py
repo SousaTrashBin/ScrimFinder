@@ -13,9 +13,9 @@ Game:        Per-player performance scoring using performance model
 import hashlib
 import json
 import pickle
+from pathlib import Path
 
 import numpy as np
-import Path
 from fastapi import APIRouter, HTTPException
 
 import analysis_service.grpc_client as grpc_client
@@ -81,10 +81,10 @@ def _load_artifact(concern: str) -> tuple:
             detail=f"No active model for concern='{concern}'. "
             "Train one via the Training Service (POST /training/jobs).",
         )
-    path = row.get("file_path")
-    if not path or not Path.exists(path):
-        raise HTTPException(status_code=503, detail=f"Model file not found at '{path}'. Re-train to regenerate.")
-    with Path.open(path, "rb") as f:
+    path_str = row.get("file_path")
+    if not path_str or not Path(path_str).exists():
+        raise HTTPException(status_code=503, detail=f"Model file not found at '{path_str}'. Re-train to regenerate.")
+    with Path(path_str).open("rb") as f:
         return pickle.load(f), row["version"]
 
 

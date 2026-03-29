@@ -1,6 +1,5 @@
 import json
 import os
-from datetime import datetime
 from multiprocessing import Pool, cpu_count
 from pathlib import Path
 
@@ -155,7 +154,7 @@ def parse_riot_file(file_path):
                     dim_runes[rid] = RUNE_NAME_MAP.get(rid, f"Rune {rid}")
 
         return m, team_stats, bans, p_stats, p_items, p_runes, dim_champs, dim_players, dim_items, dim_runes, [], []
-    except:
+    except Exception:
         return None
 
 

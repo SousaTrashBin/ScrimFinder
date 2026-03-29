@@ -183,8 +183,10 @@ def deploy_job(job_id: str = Path(...)):
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found.")
     if row["status"] != "COMPLETED":
         raise HTTPException(
-            status_code=409, detail=f"Job is '{row['status']}' â€” only COMPLETED jobs can be deployed."
+            status_code=409,
+            detail=f"Job is '{row['status']}' — only COMPLETED jobs can be deployed.",
         )
+
     if not row.get("model_id"):
         raise HTTPException(status_code=409, detail="No model_id recorded on this job.")
     try:

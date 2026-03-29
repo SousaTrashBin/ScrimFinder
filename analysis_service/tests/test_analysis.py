@@ -4,12 +4,36 @@ Run: docker exec scrimfinder_analysis pytest tests/test_analysis.py -v
 """
 
 import os
+import sqlite3
 import tempfile
 from pathlib import Path
 
 _TMP = Path(tempfile.mkdtemp(prefix="analysis_test_"))
-os.environ["PLATFORM_DB"] = str(_TMP / "platform.db")
+_PLATFORM_DB = _TMP / "platform.db"
+_LEAGUE_DB = _TMP / "league_data.db"
+
+os.environ["PLATFORM_DB"] = str(_PLATFORM_DB)
 os.environ["MODELS_DIR"] = str(_TMP / "models")
+os.environ["LEAGUE_DB"] = str(_LEAGUE_DB)
+
+for db_path in [_PLATFORM_DB, _LEAGUE_DB]:
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS models (id INTEGER PRIMARY KEY, concern TEXT, version TEXT, "
+        "file_path TEXT, is_active INTEGER, metrics TEXT, hyperparams TEXT, feature_names TEXT)"
+    )
+    conn.execute("CREATE TABLE IF NOT EXISTS dim_champions (id TEXT PRIMARY KEY, name TEXT)")
+    conn.execute("CREATE TABLE IF NOT EXISTS dim_players (puuid TEXT PRIMARY KEY, name TEXT, tag TEXT)")
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS matches (match_id TEXT PRIMARY KEY, match_type TEXT, duration INTEGER, patch TEXT)"
+    )
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS player_stats (match_id TEXT, puuid TEXT, champion_id TEXT, "
+        "position TEXT, win INTEGER, kills INTEGER, deaths INTEGER, assists INTEGER, gold INTEGER, "
+        "cs INTEGER, dmg_champs INTEGER, vision INTEGER, kda REAL, kp REAL)"
+    )
+    conn.close()
 
 from fastapi.testclient import TestClient  # noqa: E402
 

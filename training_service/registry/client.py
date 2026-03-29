@@ -1,6 +1,6 @@
-import os
 import pickle
 import threading
+from pathlib import Path
 from typing import Optional
 
 from training_service.core import db
@@ -36,11 +36,14 @@ class RegistryClient:
         row = db.get_active_model(self._concern)
         if not row:
             return
-        path = row.get("file_path")
-        if not path or not os.path.exists(path):
+        path_str = row.get("file_path")
+        if not path_str:
+            return
+        path = Path(path_str)
+        if not path.exists():
             return
         try:
-            with open(path, "rb") as f:
+            with path.open("rb") as f:
                 art = pickle.load(f)
             with self._lock:
                 self._artifact = art

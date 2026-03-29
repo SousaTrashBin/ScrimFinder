@@ -9,6 +9,7 @@ on raw player_stats rows. Sampling rows before grouping breaks the
 
 import os
 import sqlite3
+from pathlib import Path
 from typing import Callable, Optional
 
 import numpy as np
@@ -45,7 +46,7 @@ Filters = dict  # keys: sample (float), limit (int), matchType (str)
 
 
 def _connect() -> sqlite3.Connection:
-    if not os.path.exists(DB_PATH):
+    if not Path(DB_PATH).exists():
         raise FileNotFoundError(
             f"Database not found at {DB_PATH}. Set the LEAGUE_DB environment variable to the correct path."
         )
@@ -240,7 +241,9 @@ def load_build_data(report: Report, filters: Optional[Filters] = None):
     items = _read_chunked(
         f"""
             SELECT match_id, puuid, item_id FROM player_items
-            {("WHERE " + match_clause.replace("ps.match_id", "match_id").replace("AND ", "", 1)) if match_clause else ""}
+            {
+            ("WHERE " + match_clause.replace("ps.match_id", "match_id").replace("AND ", "", 1)) if match_clause else ""
+        }
         """,
         "Loading items",
         report,
@@ -253,7 +256,9 @@ def load_build_data(report: Report, filters: Optional[Filters] = None):
     runes = _read_chunked(
         f"""
             SELECT match_id, puuid, rune_id FROM player_runes
-            {("WHERE " + match_clause.replace("ps.match_id", "match_id").replace("AND ", "", 1)) if match_clause else ""}
+            {
+            ("WHERE " + match_clause.replace("ps.match_id", "match_id").replace("AND ", "", 1)) if match_clause else ""
+        }
         """,
         "Loading runes",
         report,

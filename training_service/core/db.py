@@ -92,7 +92,8 @@ def insert_game(game_id, raw, source="manual"):
     platform = raw.get("platform") or raw.get("platformId")
     with get_conn() as conn:
         conn.execute(
-            "INSERT OR REPLACE INTO games (id,source,patch,match_type,duration_sec,platform,raw_json,ingested_at) VALUES (?,?,?,?,?,?,?,?)",
+            "INSERT OR REPLACE INTO games (id,source,patch,match_type,duration_sec,platform,raw_json,ingested_at) "
+            "VALUES (?,?,?,?,?,?,?,?)",
             (game_id, source, patch, match_type, duration_sec, platform, json.dumps(raw), now_iso()),
         )
 
@@ -122,7 +123,8 @@ def list_games(source=None, patch=None, match_type=None, limit=50, offset=0):
     with get_conn() as conn:
         total = conn.execute(f"SELECT COUNT(*) FROM games {where}", params).fetchone()[0]
         rows = conn.execute(
-            f"SELECT id,source,patch,match_type,duration_sec,ingested_at FROM games {where} ORDER BY ingested_at DESC LIMIT ? OFFSET ?",
+            "SELECT id,source,patch,match_type,duration_sec,ingested_at "
+            f"FROM games {where} ORDER BY ingested_at DESC LIMIT ? OFFSET ?",
             params + [limit, offset],
         ).fetchall()
     return [dict(r) for r in rows], total
@@ -131,7 +133,9 @@ def list_games(source=None, patch=None, match_type=None, limit=50, offset=0):
 def upsert_features(game_id, concern, vector, names, schema_version="1"):
     with get_conn() as conn:
         conn.execute(
-            "INSERT OR REPLACE INTO features (game_id,concern,feature_vector,feature_names,schema_version,extracted_at) VALUES (?,?,?,?,?,?)",
+            "INSERT OR REPLACE INTO features "
+            "(game_id,concern,feature_vector,feature_names,schema_version,extracted_at) "
+            "VALUES (?,?,?,?,?,?)",
             (game_id, concern, json.dumps(vector), json.dumps(names), schema_version, now_iso()),
         )
 
@@ -154,7 +158,8 @@ def get_features(game_id, concern=None):
 def insert_dataset(ds_id, name, concern, filters, description=""):
     with get_conn() as conn:
         conn.execute(
-            "INSERT INTO datasets (id,name,description,concern,filters,status,created_at) VALUES (?,?,?,?,?,'pending',?)",
+            "INSERT INTO datasets (id,name,description,concern,filters,status,created_at) "
+            "VALUES (?,?,?,?,?,'pending',?)",
             (ds_id, name, description, concern, json.dumps(filters), now_iso()),
         )
 
@@ -204,7 +209,8 @@ def register_model(
 ):
     with get_conn() as conn:
         cur = conn.execute(
-            "INSERT INTO models (concern,algorithm,dataset_id,version,file_path,metrics,hyperparams,feature_names,is_active,created_at) VALUES (?,?,?,?,?,?,?,?,0,?)",
+            "INSERT INTO models (concern,algorithm,dataset_id,version,file_path,metrics,"
+            "hyperparams,feature_names,is_active,created_at) VALUES (?,?,?,?,?,?,?,?,0,?)",
             (
                 concern,
                 algorithm,

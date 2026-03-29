@@ -24,7 +24,10 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     root_path="/api/v1/training",
     title="ScrimFinder Training Service",
-    description="Game ingestion, feature extraction, dataset management, ML training and model registry.\n\n**Student:** Rodrigo Neto (fc59850)",
+    description=(
+        "Game ingestion, feature extraction, dataset management, ML training and model registry.\n\n"
+        "**Student:** Rodrigo Neto (fc59850)"
+    ),
     version="1.0.0",
     lifespan=lifespan,
 )
