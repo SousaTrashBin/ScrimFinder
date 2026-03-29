@@ -1,27 +1,36 @@
 #!/bin/bash
-echo "starting scrimFinder building process..."
+set -e
 
-SERVICES=("matchmaking_service" "ranking_service" "match_history_service" "detail_filling_service")
+echo "starting ScrimFinder building process..."
 
-for service in "${SERVICES[@]}"; do
-    echo "building $service..."
-    cd "$service" || exit
-    ./mvnw spotless:apply
-    ./mvnw package -DskipTests
-    cd ..
+if ! command -v docker &> /dev/null; then
+    echo "error: docker not found. please install Docker."
+    exit 1
+fi
+
+if docker compose version &> /dev/null; then
+    DOCKER_COMPOSE="docker compose"
+elif command -v docker-compose &> /dev/null; then
+    DOCKER_COMPOSE="docker-compose"
+else
+    echo "error: docker compose not found. please install docker compose."
+    exit 1
+fi
+
+echo "building and starting system using $DOCKER_COMPOSE..."
+
+echo "applying code formatting ..."
+for service in matchmaking_service ranking_service match_history_service detail_filling_service; do
+    if [ -f "$service/mvnw" ]; then
+        echo "formatting $service..."
+        (cd "$service" && ./mvnw spotless:apply -B -q)
+    fi
 done
 
-echo "starting docker compose..."
-docker compose up --build -d
+export DOCKER_BUILDKIT=1
+export COMPOSE_DOCKER_CLI_BUILD=1
 
-echo "system is booting up!"
-echo "traefik API Gateway: http://localhost"
-echo "traefik Dashboard: http://localhost:8080"
+$DOCKER_COMPOSE up --build
+
 echo ""
-echo "API Endpoints:"
-echo "- Matchmaking: http://localhost/api/v1/matchmaking"
-echo "- Ranking: http://localhost/api/v1/ranking"
-echo "- History: http://localhost/api/v1/history"
-echo "- Detail Filling: http://localhost/api/v1/riot"
-echo ""
-echo "Run 'docker compose logs -f' to see progress."
+echo "System has stopped."

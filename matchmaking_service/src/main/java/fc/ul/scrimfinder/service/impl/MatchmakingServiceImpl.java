@@ -349,12 +349,24 @@ public class MatchmakingServiceImpl implements MatchmakingService {
     @Override
     @Transactional
     public void linkMatch(UUID matchId, String externalGameId) {
+        log.info(
+                "\u001B[33m[PENDING]\u001B[0m Linking match {} with external Game ID {}",
+                matchId,
+                externalGameId);
         Match match =
                 matchRepository
                         .findByIdOptional(matchId)
-                        .orElseThrow(() -> new RuntimeException("Match not found"));
+                        .orElseThrow(
+                                () -> {
+                                    log.error("\u001B[31m[ERROR]\u001B[0m Match {} not found for linking", matchId);
+                                    return new RuntimeException("Match not found");
+                                });
         match.setExternalGameId(externalGameId);
         matchRepository.persist(match);
+        log.info(
+                "\u001B[32m[STATE CHANGE]\u001B[0m Match {} successfully linked to {}",
+                matchId,
+                externalGameId);
     }
 
     @Override
@@ -439,16 +451,30 @@ public class MatchmakingServiceImpl implements MatchmakingService {
     @Override
     @Transactional
     public void leaveQueue(UUID ticketId) {
+        log.info("\u001B[33m[PENDING]\u001B[0m Player attempting to leave queue. Ticket: {}", ticketId);
         MatchTicket ticket =
                 ticketRepository
                         .findByIdOptional(ticketId)
-                        .orElseThrow(() -> new TicketNotFoundException("Ticket not found: " + ticketId));
+                        .orElseThrow(
+                                () -> {
+                                    log.warn(
+                                            "\u001B[33m[WARN]\u001B[0m Leave queue failed: Ticket {} not found",
+                                            ticketId);
+                                    return new TicketNotFoundException("Ticket not found: " + ticketId);
+                                });
 
         if (ticket.getStatus() == TicketStatus.IN_QUEUE) {
             ticket.setStatus(TicketStatus.CANCELLED);
             ticketRepository.persist(ticket);
             redisRepository.removeTicket(
                     ticket.getQueue().getId(), ticket.getRegion(), ticket.getRole(), ticket.getId());
+            log.info(
+                    "\u001B[32m[STATE CHANGE]\u001B[0m Ticket {} CANCELLED: Player left queue", ticketId);
+        } else {
+            log.warn(
+                    "\u001B[33m[WARN]\u001B[0m Ticket {} is not in queue (Status: {}). Cannot leave.",
+                    ticketId,
+                    ticket.getStatus());
         }
     }
 

@@ -39,6 +39,15 @@ public interface RankingServiceClient {
             @QueryParam("tagLine") String tagLine,
             @QueryParam("region") fc.ul.scrimfinder.util.Region region);
 
+    @POST
+    @Path("/players/{playerId}/link")
+    void linkLolAccountAlias(
+            @PathParam("playerId") UUID playerId,
+            @QueryParam("puuid") String puuid,
+            @QueryParam("gameName") String gameName,
+            @QueryParam("tagLine") String tagLine,
+            @QueryParam("region") fc.ul.scrimfinder.util.Region region);
+
     @PUT
     @Path("/players/{playerId}/set-primary-account")
     void setPrimaryAccount(@PathParam("playerId") UUID playerId, @QueryParam("puuid") String puuid);
