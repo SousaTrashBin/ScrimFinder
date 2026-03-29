@@ -58,7 +58,9 @@ class RegistryClient:
                 if row and row.get("version") != self._version:
                     self._load()
 
-        threading.Thread(target=loop, daemon=True, name=f"watcher-{self._concern}").start()
+        threading.Thread(
+            target=loop, daemon=True, name=f"watcher-{self._concern}"
+        ).start()
 
     def stop(self):
         self._stop.set()

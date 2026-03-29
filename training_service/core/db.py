@@ -94,7 +94,16 @@ def insert_game(game_id, raw, source="manual"):
         conn.execute(
             "INSERT OR REPLACE INTO games (id,source,patch,match_type,duration_sec,platform,raw_json,ingested_at) "
             "VALUES (?,?,?,?,?,?,?,?)",
-            (game_id, source, patch, match_type, duration_sec, platform, json.dumps(raw), now_iso()),
+            (
+                game_id,
+                source,
+                patch,
+                match_type,
+                duration_sec,
+                platform,
+                json.dumps(raw),
+                now_iso(),
+            ),
         )
 
 
@@ -121,7 +130,9 @@ def list_games(source=None, patch=None, match_type=None, limit=50, offset=0):
         params.append(match_type)
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
     with get_conn() as conn:
-        total = conn.execute(f"SELECT COUNT(*) FROM games {where}", params).fetchone()[0]
+        total = conn.execute(f"SELECT COUNT(*) FROM games {where}", params).fetchone()[
+            0
+        ]
         rows = conn.execute(
             "SELECT id,source,patch,match_type,duration_sec,ingested_at "
             f"FROM games {where} ORDER BY ingested_at DESC LIMIT ? OFFSET ?",
@@ -136,16 +147,28 @@ def upsert_features(game_id, concern, vector, names, schema_version="1"):
             "INSERT OR REPLACE INTO features "
             "(game_id,concern,feature_vector,feature_names,schema_version,extracted_at) "
             "VALUES (?,?,?,?,?,?)",
-            (game_id, concern, json.dumps(vector), json.dumps(names), schema_version, now_iso()),
+            (
+                game_id,
+                concern,
+                json.dumps(vector),
+                json.dumps(names),
+                schema_version,
+                now_iso(),
+            ),
         )
 
 
 def get_features(game_id, concern=None):
     with get_conn() as conn:
         if concern:
-            rows = conn.execute("SELECT * FROM features WHERE game_id=? AND concern=?", (game_id, concern)).fetchall()
+            rows = conn.execute(
+                "SELECT * FROM features WHERE game_id=? AND concern=?",
+                (game_id, concern),
+            ).fetchall()
         else:
-            rows = conn.execute("SELECT * FROM features WHERE game_id=?", (game_id,)).fetchall()
+            rows = conn.execute(
+                "SELECT * FROM features WHERE game_id=?", (game_id,)
+            ).fetchall()
     result = []
     for r in rows:
         d = dict(r)
@@ -186,10 +209,13 @@ def list_datasets(concern=None):
     with get_conn() as conn:
         if concern:
             rows = conn.execute(
-                "SELECT * FROM datasets WHERE concern=? ORDER BY created_at DESC", (concern,)
+                "SELECT * FROM datasets WHERE concern=? ORDER BY created_at DESC",
+                (concern,),
             ).fetchall()
         else:
-            rows = conn.execute("SELECT * FROM datasets ORDER BY created_at DESC").fetchall()
+            rows = conn.execute(
+                "SELECT * FROM datasets ORDER BY created_at DESC"
+            ).fetchall()
     result = []
     for r in rows:
         d = dict(r)
@@ -205,7 +231,14 @@ def delete_dataset(ds_id):
 
 
 def register_model(
-    concern, algorithm, version, file_path, metrics, hyperparams=None, dataset_id=None, feature_names=None
+    concern,
+    algorithm,
+    version,
+    file_path,
+    metrics,
+    hyperparams=None,
+    dataset_id=None,
+    feature_names=None,
 ):
     with get_conn() as conn:
         cur = conn.execute(
@@ -228,11 +261,19 @@ def register_model(
 
 def activate_model(model_id):
     with get_conn() as conn:
-        row = conn.execute("SELECT concern FROM models WHERE id=?", (model_id,)).fetchone()
+        row = conn.execute(
+            "SELECT concern FROM models WHERE id=?", (model_id,)
+        ).fetchone()
         if row is None:
             raise ValueError(f"No model id={model_id}")
-        conn.execute("UPDATE models SET is_active=0 WHERE concern=? AND is_active=1", (row["concern"],))
-        conn.execute("UPDATE models SET is_active=1,activated_at=? WHERE id=?", (now_iso(), model_id))
+        conn.execute(
+            "UPDATE models SET is_active=0 WHERE concern=? AND is_active=1",
+            (row["concern"],),
+        )
+        conn.execute(
+            "UPDATE models SET is_active=1,activated_at=? WHERE id=?",
+            (now_iso(), model_id),
+        )
 
 
 def deactivate_model(model_id):
@@ -242,7 +283,9 @@ def deactivate_model(model_id):
 
 def get_active_model(concern):
     with get_conn() as conn:
-        row = conn.execute("SELECT * FROM models WHERE concern=? AND is_active=1", (concern,)).fetchone()
+        row = conn.execute(
+            "SELECT * FROM models WHERE concern=? AND is_active=1", (concern,)
+        ).fetchone()
     if row is None:
         return None
     d = dict(row)
@@ -273,7 +316,9 @@ def list_models(concern=None, active_only=False):
         clauses.append("is_active=1")
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
     with get_conn() as conn:
-        rows = conn.execute(f"SELECT * FROM models {where} ORDER BY created_at DESC", params).fetchall()
+        rows = conn.execute(
+            f"SELECT * FROM models {where} ORDER BY created_at DESC", params
+        ).fetchall()
     result = []
     for r in rows:
         d = dict(r)
@@ -288,7 +333,14 @@ def create_job(job_id, concern, algorithm="auto", dataset_id=None, filters=None)
     with get_conn() as conn:
         conn.execute(
             "INSERT INTO training_jobs (id,concern,algorithm,dataset_id,filters,created_at) VALUES (?,?,?,?,?,?)",
-            (job_id, concern, algorithm, dataset_id, json.dumps(filters or {}), now_iso()),
+            (
+                job_id,
+                concern,
+                algorithm,
+                dataset_id,
+                json.dumps(filters or {}),
+                now_iso(),
+            ),
         )
 
 
@@ -306,7 +358,9 @@ def update_job(job_id, **kwargs):
 
 def get_job(job_id):
     with get_conn() as conn:
-        row = conn.execute("SELECT * FROM training_jobs WHERE id=?", (job_id,)).fetchone()
+        row = conn.execute(
+            "SELECT * FROM training_jobs WHERE id=?", (job_id,)
+        ).fetchone()
     if row is None:
         return None
     d = dict(row)
@@ -326,7 +380,8 @@ def list_jobs(concern=None, status=None, limit=100):
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
     with get_conn() as conn:
         rows = conn.execute(
-            f"SELECT * FROM training_jobs {where} ORDER BY created_at DESC LIMIT ?", params + [limit]
+            f"SELECT * FROM training_jobs {where} ORDER BY created_at DESC LIMIT ?",
+            params + [limit],
         ).fetchall()
     result = []
     for r in rows:

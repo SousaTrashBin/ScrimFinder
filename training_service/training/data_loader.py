@@ -174,13 +174,20 @@ def load_draft_data(report: Report, filters: Optional[Filters] = None):
     )
 
     # win is per-player but consistent within a team; take first value per match for blue team
-    wins = df[df["team_id"] == "100"][["match_id", "win"]].groupby("match_id")["win"].first().reset_index()
+    wins = (
+        df[df["team_id"] == "100"][["match_id", "win"]]
+        .groupby("match_id")["win"]
+        .first()
+        .reset_index()
+    )
 
     report(52, "Merging teams…")
     merged = blue.merge(red, on="match_id").merge(wins, on="match_id")
 
     # Keep only complete 5v5 matches
-    merged = merged[merged["blue_champs"].apply(len).eq(5) & merged["red_champs"].apply(len).eq(5)]
+    merged = merged[
+        merged["blue_champs"].apply(len).eq(5) & merged["red_champs"].apply(len).eq(5)
+    ]
 
     if len(merged) == 0:
         raise ValueError(
@@ -242,7 +249,12 @@ def load_build_data(report: Report, filters: Optional[Filters] = None):
         f"""
             SELECT match_id, puuid, item_id FROM player_items
             {
-            ("WHERE " + match_clause.replace("ps.match_id", "match_id").replace("AND ", "", 1)) if match_clause else ""
+            (
+                "WHERE "
+                + match_clause.replace("ps.match_id", "match_id").replace("AND ", "", 1)
+            )
+            if match_clause
+            else ""
         }
         """,
         "Loading items",
@@ -257,7 +269,12 @@ def load_build_data(report: Report, filters: Optional[Filters] = None):
         f"""
             SELECT match_id, puuid, rune_id FROM player_runes
             {
-            ("WHERE " + match_clause.replace("ps.match_id", "match_id").replace("AND ", "", 1)) if match_clause else ""
+            (
+                "WHERE "
+                + match_clause.replace("ps.match_id", "match_id").replace("AND ", "", 1)
+            )
+            if match_clause
+            else ""
         }
         """,
         "Loading runes",
@@ -283,7 +300,9 @@ def load_build_data(report: Report, filters: Optional[Filters] = None):
     )
 
     report(69, "Joining features…")
-    df = stats.merge(items_g, on=["match_id", "puuid"], how="left").merge(runes_g, on=["match_id", "puuid"], how="left")
+    df = stats.merge(items_g, on=["match_id", "puuid"], how="left").merge(
+        runes_g, on=["match_id", "puuid"], how="left"
+    )
     df["item_ids"] = df["item_ids"].apply(lambda x: x if isinstance(x, list) else [])
     df["rune_ids"] = df["rune_ids"].apply(lambda x: x if isinstance(x, list) else [])
 
@@ -302,7 +321,12 @@ def load_build_data(report: Report, filters: Optional[Filters] = None):
     X = np.hstack([item_enc, rune_enc, pos_enc, champ_enc, numeric]).astype(np.float32)
     y = df["win"].values.astype(np.int32)
 
-    encoders = {"item_mlb": item_mlb, "rune_mlb": rune_mlb, "pos_le": pos_le, "champ_le": champ_le}
+    encoders = {
+        "item_mlb": item_mlb,
+        "rune_mlb": rune_mlb,
+        "pos_le": pos_le,
+        "champ_le": champ_le,
+    }
 
     report(95, f"Data ready — shape {X.shape}")
     return X, y, encoders
@@ -343,7 +367,17 @@ def load_performance_data(report: Report, filters: Optional[Filters] = None):
         raise ValueError("No data returned — check filters.")
 
     percentile_table = {}
-    PERF_METRICS = ["kills", "deaths", "assists", "gold", "cs", "dmg_champs", "vision", "kda", "kp"]
+    PERF_METRICS = [
+        "kills",
+        "deaths",
+        "assists",
+        "gold",
+        "cs",
+        "dmg_champs",
+        "vision",
+        "kda",
+        "kp",
+    ]
     for i, pos in enumerate(VALID_POSITIONS):
         pct = 50 + int((i / len(VALID_POSITIONS)) * 18)
         report(pct, f"Computing percentiles for {pos}…")
@@ -371,7 +405,17 @@ def load_performance_data(report: Report, filters: Optional[Filters] = None):
     champ_enc = champ_le.fit_transform(df["champion_id"]).reshape(-1, 1)
 
     report(78, "Assembling feature matrix…")
-    numeric_cols = ["kills", "deaths", "assists", "gold", "cs", "dmg_champs", "vision", "kda", "kp"]
+    numeric_cols = [
+        "kills",
+        "deaths",
+        "assists",
+        "gold",
+        "cs",
+        "dmg_champs",
+        "vision",
+        "kda",
+        "kp",
+    ]
     numeric = df[numeric_cols].fillna(0).values
     X = np.hstack([pos_enc, champ_enc, numeric]).astype(np.float32)
     y = df["win"].values.astype(np.int32)

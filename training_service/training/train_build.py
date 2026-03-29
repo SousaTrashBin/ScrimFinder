@@ -48,7 +48,9 @@ def train(job) -> None:
     from sklearn.model_selection import train_test_split
 
     report(93, "Splitting train/test")
-    X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+    X_tr, X_te, y_tr, y_te = train_test_split(
+        X, y, test_size=0.2, random_state=42, stratify=y
+    )
     n = len(X_tr)
 
     # ── 3. Train ──────────────────────────────────────────────
@@ -90,7 +92,11 @@ def train(job) -> None:
             }
             report(95, f"Training LightGBM ({trees} trees) on {n:,} rows")
             clf = lgb.LGBMClassifier(
-                n_estimators=trees, learning_rate=0.05, max_depth=6, num_leaves=31, random_state=42
+                n_estimators=trees,
+                learning_rate=0.05,
+                max_depth=6,
+                num_leaves=31,
+                random_state=42,
             )
         except ImportError:
             algorithm = "random_forest"

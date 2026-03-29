@@ -13,7 +13,9 @@ from google.protobuf import runtime_version as _runtime_version
 from google.protobuf import symbol_database as _symbol_database
 from google.protobuf.internal import builder as _builder
 
-_runtime_version.ValidateProtobufRuntimeVersion(_runtime_version.Domain.PUBLIC, 5, 27, 2, "", "training_service.proto")
+_runtime_version.ValidateProtobufRuntimeVersion(
+    _runtime_version.Domain.PUBLIC, 5, 27, 2, "", "training_service.proto"
+)
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
@@ -25,10 +27,14 @@ DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "training_service.training_service_pb2", _globals)
+_builder.BuildTopDescriptorsAndMessages(
+    DESCRIPTOR, "training_service.training_service_pb2", _globals
+)
 if _descriptor._USE_C_DESCRIPTORS == False:
     DESCRIPTOR._options = None
-    DESCRIPTOR._serialized_options = b"\n\x16fc.ul.scrimfinder.grpcB\rAnalysisProtoP\x01"
+    DESCRIPTOR._serialized_options = (
+        b"\n\x16fc.ul.scrimfinder.grpcB\rAnalysisProtoP\x01"
+    )
     _globals["_FORWARDSMATCHREQUEST"]._serialized_start = 39
     _globals["_FORWARDSMATCHREQUEST"]._serialized_end = 94
     _globals["_FORWARDSMATCHRESPONSE"]._serialized_start = 96

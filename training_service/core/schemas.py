@@ -79,7 +79,9 @@ class BatchIngestResponse(BaseModel):
 class FeatureExtractRequest(BaseModel):
     game_id: Optional[str] = None
     raw_data: Optional[dict] = None
-    concerns: list[Concern] = Field(default=[Concern.DRAFT, Concern.BUILD, Concern.PERFORMANCE])
+    concerns: list[Concern] = Field(
+        default=[Concern.DRAFT, Concern.BUILD, Concern.PERFORMANCE]
+    )
     store: bool = True
 
 
@@ -144,7 +146,9 @@ class DatasetListResponse(BaseModel):
 class TrainingJobCreate(BaseModel):
     concern: Concern
     algorithm: Algorithm = Algorithm.AUTO
-    dataset_id: Optional[str] = Field(None, description="Leave empty to train from EUW DB directly.")
+    dataset_id: Optional[str] = Field(
+        None, description="Leave empty to train from EUW DB directly."
+    )
     sample: Optional[float] = Field(None, ge=0.01, le=1.0)
     limit: Optional[int] = Field(None, ge=1000)
     match_type: Optional[str] = None

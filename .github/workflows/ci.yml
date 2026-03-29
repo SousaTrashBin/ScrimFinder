@@ -71,8 +71,8 @@ jobs:
 
       - name: lint with ruff
         run: |
-          ruff check ${{ matrix.service }} --config pyproject.toml
-          ruff format --check ${{ matrix.service }} --config pyproject.toml
+          ruff check ${{ matrix.service }}
+          ruff format --check ${{ matrix.service }}
 
       - name: run tests with pytest
         run: |

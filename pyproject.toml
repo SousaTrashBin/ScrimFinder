@@ -1,0 +1,15 @@
+target-version = "py311"
+line-length = 120
+extend-exclude = [
+    "**/training_service_pb2.py",
+    "**/training_service_pb2_grpc.py",
+]
+
+[lint]
+select = ["E", "F", "W", "I"]
+ignore = []
+
+[format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"

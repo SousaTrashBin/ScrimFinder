@@ -20,8 +20,18 @@ from training_service.main import app  # noqa: E402
 
 client = TestClient(app, raise_server_exceptions=False)
 
-GAME = {"matchId": "EUW1_TEST_001", "gameVersion": "14.10.1", "gameType": "RANKED", "gameDuration": 1823}
-GAME2 = {"matchId": "EUW1_TEST_002", "gameVersion": "14.10.1", "gameType": "NORMAL", "gameDuration": 2100}
+GAME = {
+    "matchId": "EUW1_TEST_001",
+    "gameVersion": "14.10.1",
+    "gameType": "RANKED",
+    "gameDuration": 1823,
+}
+GAME2 = {
+    "matchId": "EUW1_TEST_002",
+    "gameVersion": "14.10.1",
+    "gameType": "NORMAL",
+    "gameDuration": 2100,
+}
 
 
 class TestSystem:
@@ -52,12 +62,17 @@ class TestGames:
         assert r.json()["id"] == "MY_ID"
 
     def test_batch(self):
-        r = client.post("/games/batch", json={"games": [{"data": GAME}, {"data": GAME2}]})
+        r = client.post(
+            "/games/batch", json={"games": [{"data": GAME}, {"data": GAME2}]}
+        )
         assert r.status_code == 201
         assert r.json()["ingested"] == 2
 
     def test_batch_limit(self):
-        r = client.post("/games/batch", json={"games": [{"data": {"matchId": f"G{i}"}} for i in range(1001)]})
+        r = client.post(
+            "/games/batch",
+            json={"games": [{"data": {"matchId": f"G{i}"}} for i in range(1001)]},
+        )
         assert r.status_code == 422
 
     def test_get(self):
@@ -89,22 +104,39 @@ class TestFeatures:
         client.post("/games", json={"data": GAME})
 
     def test_extract_by_id(self):
-        r = client.post("/features/extract", json={"game_id": "EUW1_TEST_001", "concerns": ["draft"], "store": False})
+        r = client.post(
+            "/features/extract",
+            json={"game_id": "EUW1_TEST_001", "concerns": ["draft"], "store": False},
+        )
         assert r.status_code == 200
         assert r.json()["features"][0]["concern"] == "draft"
 
     def test_extract_inline(self):
-        r = client.post("/features/extract", json={"raw_data": GAME, "concerns": ["build"], "store": False})
+        r = client.post(
+            "/features/extract",
+            json={"raw_data": GAME, "concerns": ["build"], "store": False},
+        )
         assert r.status_code == 200
 
     def test_extract_404(self):
-        assert client.post("/features/extract", json={"game_id": "NOPE", "concerns": ["draft"]}).status_code == 404
+        assert (
+            client.post(
+                "/features/extract", json={"game_id": "NOPE", "concerns": ["draft"]}
+            ).status_code
+            == 404
+        )
 
     def test_extract_422(self):
-        assert client.post("/features/extract", json={"concerns": ["draft"]}).status_code == 422
+        assert (
+            client.post("/features/extract", json={"concerns": ["draft"]}).status_code
+            == 422
+        )
 
     def test_get_after_store(self):
-        client.post("/features/extract", json={"game_id": "EUW1_TEST_001", "concerns": ["draft"], "store": True})
+        client.post(
+            "/features/extract",
+            json={"game_id": "EUW1_TEST_001", "concerns": ["draft"], "store": True},
+        )
         r = client.get("/features/EUW1_TEST_001")
         assert r.status_code == 200
 
@@ -114,12 +146,17 @@ class TestFeatures:
 
 class TestDatasets:
     def test_create(self):
-        r = client.post("/datasets", json={"name": "Test DS", "concern": "draft", "filters": {}})
+        r = client.post(
+            "/datasets", json={"name": "Test DS", "concern": "draft", "filters": {}}
+        )
         assert r.status_code == 201
         assert r.json()["id"].startswith("ds_")
 
     def test_build(self):
-        r = client.post("/datasets/build", json={"name": "Built DS", "concern": "build", "filters": {}})
+        r = client.post(
+            "/datasets/build",
+            json={"name": "Built DS", "concern": "build", "filters": {}},
+        )
         assert r.status_code == 202
 
     def test_list(self):
@@ -129,7 +166,9 @@ class TestDatasets:
         assert client.get("/datasets/ds_nope").status_code == 404
 
     def test_delete(self):
-        r = client.post("/datasets", json={"name": "Del DS", "concern": "draft", "filters": {}})
+        r = client.post(
+            "/datasets", json={"name": "Del DS", "concern": "draft", "filters": {}}
+        )
         ds_id = r.json()["id"]
         assert client.delete(f"/datasets/{ds_id}").status_code == 204
         assert client.get(f"/datasets/{ds_id}").status_code == 404
@@ -147,13 +186,20 @@ class TestTrainingJobs:
 
     def test_all_concerns(self):
         for c in ["draft", "build", "performance"]:
-            assert client.post("/training/jobs", json={"concern": c, "sample": 0.01}).status_code == 202
+            assert (
+                client.post(
+                    "/training/jobs", json={"concern": c, "sample": 0.01}
+                ).status_code
+                == 202
+            )
 
     def test_list(self):
         assert "jobs" in client.get("/training/jobs").json()
 
     def test_get(self):
-        j = client.post("/training/jobs", json={"concern": "draft", "sample": 0.01}).json()
+        j = client.post(
+            "/training/jobs", json={"concern": "draft", "sample": 0.01}
+        ).json()
         r = client.get(f"/training/jobs/{j['id']}")
         assert r.status_code == 200
         assert r.json()["id"] == j["id"]
@@ -162,7 +208,9 @@ class TestTrainingJobs:
         assert client.get("/training/jobs/job_nope").status_code == 404
 
     def test_cancel(self):
-        j = client.post("/training/jobs", json={"concern": "draft", "sample": 0.01}).json()
+        j = client.post(
+            "/training/jobs", json={"concern": "draft", "sample": 0.01}
+        ).json()
         time.sleep(0.3)
         assert client.post(f"/training/jobs/{j['id']}/cancel").status_code == 200
 
@@ -170,10 +218,18 @@ class TestTrainingJobs:
         assert client.post("/training/jobs/job_nope/cancel").status_code == 404
 
     def test_invalid_concern(self):
-        assert client.post("/training/jobs", json={"concern": "invalid"}).status_code == 422
+        assert (
+            client.post("/training/jobs", json={"concern": "invalid"}).status_code
+            == 422
+        )
 
     def test_dataset_not_found(self):
-        assert client.post("/training/jobs", json={"concern": "draft", "dataset_id": "ds_nope"}).status_code == 404
+        assert (
+            client.post(
+                "/training/jobs", json={"concern": "draft", "dataset_id": "ds_nope"}
+            ).status_code
+            == 404
+        )
 
 
 class TestModels:

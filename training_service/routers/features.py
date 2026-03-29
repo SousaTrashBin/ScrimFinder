@@ -25,7 +25,9 @@ def extract_features(body: FeatureExtractRequest):
     if body.game_id:
         row = db.get_game(body.game_id)
         if row is None:
-            raise HTTPException(status_code=404, detail=f"Game '{body.game_id}' not found.")
+            raise HTTPException(
+                status_code=404, detail=f"Game '{body.game_id}' not found."
+            )
         game_id, _raw = body.game_id, row["raw_json"]
     elif body.raw_data:
         import hashlib
@@ -35,11 +37,18 @@ def extract_features(body: FeatureExtractRequest):
             for k in ("matchId", "match_id", "gameId", "id"):
                 if data.get(k):
                     return str(data[k])
-            return "game_" + hashlib.sha1(json.dumps(data, sort_keys=True).encode()).hexdigest()[:16]
+            return (
+                "game_"
+                + hashlib.sha1(json.dumps(data, sort_keys=True).encode()).hexdigest()[
+                    :16
+                ]
+            )
 
         game_id, _raw = _derive(body.raw_data), body.raw_data
     else:
-        raise HTTPException(status_code=422, detail="Provide either game_id or raw_data.")
+        raise HTTPException(
+            status_code=422, detail="Provide either game_id or raw_data."
+        )
 
     # TODO: from training_service.ingestion.feature_extractor import extract
     vectors = []
@@ -70,7 +79,11 @@ def extract_features(body: FeatureExtractRequest):
                     extracted_at=now_iso(),
                 )
             )
-    return FeatureExtractResponse(game_id=game_id, features=vectors, stored=body.store and body.game_id is not None)
+    return FeatureExtractResponse(
+        game_id=game_id,
+        features=vectors,
+        stored=body.store and body.game_id is not None,
+    )
 
 
 @router.get(
@@ -84,7 +97,10 @@ def get_features(game_id: str = Path(...), concern: Optional[Concern] = Query(No
         raise HTTPException(status_code=404, detail=f"Game '{game_id}' not found.")
     rows = db.get_features(game_id, concern.value if concern else None)
     if not rows:
-        raise HTTPException(status_code=404, detail=f"No features for '{game_id}'. Run POST /features/extract first.")
+        raise HTTPException(
+            status_code=404,
+            detail=f"No features for '{game_id}'. Run POST /features/extract first.",
+        )
     return [
         FeatureVector(
             game_id=r["game_id"],
@@ -99,13 +115,19 @@ def get_features(game_id: str = Path(...), concern: Optional[Concern] = Query(No
 
 
 @router.delete(
-    "/{game_id}", status_code=204, summary="Delete cached features", responses={404: {"model": ErrorResponse}}
+    "/{game_id}",
+    status_code=204,
+    summary="Delete cached features",
+    responses={404: {"model": ErrorResponse}},
 )
 def delete_features(game_id: str = Path(...), concern: Optional[Concern] = Query(None)):
     if db.get_game(game_id) is None:
         raise HTTPException(status_code=404, detail=f"Game '{game_id}' not found.")
     with db.get_conn() as conn:
         if concern:
-            conn.execute("DELETE FROM features WHERE game_id=? AND concern=?", (game_id, concern.value))
+            conn.execute(
+                "DELETE FROM features WHERE game_id=? AND concern=?",
+                (game_id, concern.value),
+            )
         else:
             conn.execute("DELETE FROM features WHERE game_id=?", (game_id,))

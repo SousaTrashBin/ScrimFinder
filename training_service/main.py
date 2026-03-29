@@ -31,7 +31,9 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
+)
 app.include_router(games.router)
 app.include_router(features.router)
 app.include_router(datasets.router)
@@ -57,9 +59,13 @@ def health():
 
 @app.exception_handler(404)
 async def not_found(req, exc):
-    return JSONResponse(status_code=404, content={"code": 404, "message": str(exc.detail)})
+    return JSONResponse(
+        status_code=404, content={"code": 404, "message": str(exc.detail)}
+    )
 
 
 @app.exception_handler(500)
 async def server_error(req, exc):
-    return JSONResponse(status_code=500, content={"code": 500, "message": "Internal server error."})
+    return JSONResponse(
+        status_code=500, content={"code": 500, "message": "Internal server error."}
+    )

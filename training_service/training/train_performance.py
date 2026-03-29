@@ -50,7 +50,9 @@ def train(job) -> None:
     from sklearn.preprocessing import StandardScaler
 
     report(93, "Splitting train/test")
-    X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+    X_tr, X_te, y_tr, y_te = train_test_split(
+        X, y, test_size=0.2, random_state=42, stratify=y
+    )
     n = len(X_tr)
 
     # ── 3. Train ──────────────────────────────────────────────
@@ -191,4 +193,7 @@ def train(job) -> None:
     )
     db.activate_model(mid)
     job.model_id = mid
-    report(100, f"Done — accuracy={metrics['accuracy']} f1={metrics['f1_weighted']} roc_auc={metrics['roc_auc']}")
+    report(
+        100,
+        f"Done — accuracy={metrics['accuracy']} f1={metrics['f1_weighted']} roc_auc={metrics['roc_auc']}",
+    )

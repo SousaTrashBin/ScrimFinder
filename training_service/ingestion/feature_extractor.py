@@ -215,7 +215,9 @@ def _extract_build(participant: dict, match_id: str, duration: int) -> Optional[
     # Core stats
     gold = participant.get("goldEarned", 0)
     cs = participant.get("totalMinionsKilled", 0)
-    dmg = participant.get("totalDamageDealtToChampions", participant.get("totalDamageDealt", 0))
+    dmg = participant.get(
+        "totalDamageDealtToChampions", participant.get("totalDamageDealt", 0)
+    )
 
     items = _extract_items(participant)
     runes = _extract_runes(participant)
@@ -238,7 +240,9 @@ def _extract_build(participant: dict, match_id: str, duration: int) -> Optional[
     }
 
 
-def _extract_performance(participant: dict, match_id: str, duration: int, team_kills: int) -> Optional[dict]:
+def _extract_performance(
+    participant: dict, match_id: str, duration: int, team_kills: int
+) -> Optional[dict]:
     """
     Performance features: the 9 stats the performance model is trained on,
     plus position and champion for benchmarking context.
@@ -252,7 +256,9 @@ def _extract_performance(participant: dict, match_id: str, duration: int, team_k
     assists = participant.get("assists", 0)
     gold = participant.get("goldEarned", 0)
     cs = participant.get("totalMinionsKilled", 0)
-    dmg = participant.get("totalDamageDealtToChampions", participant.get("totalDamageDealt", 0))
+    dmg = participant.get(
+        "totalDamageDealtToChampions", participant.get("totalDamageDealt", 0)
+    )
     vision = participant.get("visionScore", participant.get("wardsPlaced", 0))
 
     kda = _safe_kda(kills, deaths, assists)
@@ -319,7 +325,16 @@ def validate_riot_match(raw: dict) -> tuple[bool, str]:
     if len(info["participants"]) != 10:
         return False, f"Expected 10 participants, got {len(info['participants'])}"
     p = info["participants"][0]
-    required = ["championName", "teamId", "teamPosition", "win", "kills", "deaths", "assists", "goldEarned"]
+    required = [
+        "championName",
+        "teamId",
+        "teamPosition",
+        "win",
+        "kills",
+        "deaths",
+        "assists",
+        "goldEarned",
+    ]
     for field in required:
         if field not in p:
             return False, f"Participant missing required field '{field}'"
@@ -340,8 +355,16 @@ def to_draft_vector(draft_features: dict, mlb, champion_id_map: dict) -> Optiona
     try:
         import numpy as np
 
-        blue_ids = [champion_id_map[c] for c in draft_features["blue_champs"] if c in champion_id_map]
-        red_ids = [champion_id_map[c] for c in draft_features["red_champs"] if c in champion_id_map]
+        blue_ids = [
+            champion_id_map[c]
+            for c in draft_features["blue_champs"]
+            if c in champion_id_map
+        ]
+        red_ids = [
+            champion_id_map[c]
+            for c in draft_features["red_champs"]
+            if c in champion_id_map
+        ]
         if len(blue_ids) != 5 or len(red_ids) != 5:
             return None
         blue_enc = mlb.transform([blue_ids])
@@ -385,7 +408,9 @@ def to_build_vector(build_features: dict, encoders: dict) -> Optional[Any]:
             ],
             dtype=np.float32,
         )
-        return np.hstack([item_enc, rune_enc, pos_enc, champ_enc, numeric]).astype(np.float32)
+        return np.hstack([item_enc, rune_enc, pos_enc, champ_enc, numeric]).astype(
+            np.float32
+        )
     except Exception:
         return None
 

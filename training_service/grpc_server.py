@@ -31,7 +31,9 @@ _server = None
 GRPC_PORT = int(os.environ.get("GRPC_PORT", 50051))
 
 # ── Detail Filling Service URL ────────────────────────────────
-DETAIL_FILLING_URL = os.environ.get("DETAIL_FILLING_URL", "http://detail_filling_service:8080")
+DETAIL_FILLING_URL = os.environ.get(
+    "DETAIL_FILLING_URL", "http://detail_filling_service:8080"
+)
 
 
 def _fetch_raw_match(match_id: str) -> dict:
@@ -46,7 +48,9 @@ def _fetch_raw_match(match_id: str) -> dict:
         with urllib.request.urlopen(url, timeout=30) as resp:
             return json.loads(resp.read().decode())
     except Exception as e:
-        raise RuntimeError(f"Failed to fetch match {match_id} from detail_filling_service: {e}")
+        raise RuntimeError(
+            f"Failed to fetch match {match_id} from detail_filling_service: {e}"
+        )
 
 
 # ── Servicer ──────────────────────────────────────────────────
@@ -104,13 +108,23 @@ class TrainingServiceServicer:
             # Store build features (one per player)
             if features.get("build"):
                 build_vecs = [json.dumps(b) for b in features["build"]]
-                db.upsert_features(match_id, "build", build_vecs, [f"player_{i}" for i in range(len(build_vecs))])
+                db.upsert_features(
+                    match_id,
+                    "build",
+                    build_vecs,
+                    [f"player_{i}" for i in range(len(build_vecs))],
+                )
                 build_ok = True
 
             # Store performance features (one per player)
             if features.get("performance"):
                 perf_vecs = [json.dumps(p) for p in features["performance"]]
-                db.upsert_features(match_id, "performance", perf_vecs, [f"player_{i}" for i in range(len(perf_vecs))])
+                db.upsert_features(
+                    match_id,
+                    "performance",
+                    perf_vecs,
+                    [f"player_{i}" for i in range(len(perf_vecs))],
+                )
                 perf_ok = True
 
             return ForwardMatchResponse(
@@ -200,7 +214,9 @@ def serve(block: bool = True) -> grpc.Server:
         return None
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    training_service_pb2_grpc.add_TrainingServiceServicer_to_server(TrainingServiceServicer(), server)
+    training_service_pb2_grpc.add_TrainingServiceServicer_to_server(
+        TrainingServiceServicer(), server
+    )
     server.add_insecure_port(f"[::]:{GRPC_PORT}")
     server.start()
     print(f"[gRPC] Training Service listening on port {GRPC_PORT}")
@@ -233,7 +249,9 @@ def start_background_server():
 
             _server_local = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
 
-            training_service_pb2_grpc.add_TrainingServiceServicer_to_server(TrainingServiceServicer(), _server_local)
+            training_service_pb2_grpc.add_TrainingServiceServicer_to_server(
+                TrainingServiceServicer(), _server_local
+            )
 
             # Use 0.0.0.0 instead of [::] for Docker compatibility
             _server_local.add_insecure_port(f"0.0.0.0:{port}")

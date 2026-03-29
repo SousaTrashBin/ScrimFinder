@@ -99,9 +99,17 @@ def _run(job_id, concern, algorithm, dataset_id, filters, cancel):
             completed_at=now_iso(),
         )
     except InterruptedError:
-        db.update_job(job_id, status="CANCELLED", stage="Cancelled", completed_at=now_iso())
+        db.update_job(
+            job_id, status="CANCELLED", stage="Cancelled", completed_at=now_iso()
+        )
     except Exception as exc:
-        db.update_job(job_id, status="FAILED", stage="Failed", error=str(exc), completed_at=now_iso())
+        db.update_job(
+            job_id,
+            status="FAILED",
+            stage="Failed",
+            error=str(exc),
+            completed_at=now_iso(),
+        )
 
 
 @router.post(
@@ -115,34 +123,61 @@ def create_job(body: TrainingJobCreate):
     if body.dataset_id:
         ds = db.get_dataset(body.dataset_id)
         if ds is None:
-            raise HTTPException(status_code=404, detail=f"Dataset '{body.dataset_id}' not found.")
+            raise HTTPException(
+                status_code=404, detail=f"Dataset '{body.dataset_id}' not found."
+            )
         if ds["status"] != "ready":
-            raise HTTPException(status_code=409, detail=f"Dataset status is '{ds['status']}', must be 'ready'.")
+            raise HTTPException(
+                status_code=409,
+                detail=f"Dataset status is '{ds['status']}', must be 'ready'.",
+            )
     filters = {
         k: v
-        for k, v in {"sample": body.sample, "limit": body.limit, "match_type": body.match_type}.items()
+        for k, v in {
+            "sample": body.sample,
+            "limit": body.limit,
+            "match_type": body.match_type,
+        }.items()
         if v is not None
     }
     job_id = "job_" + uuid.uuid4().hex[:12]
-    db.create_job(job_id, body.concern.value, body.algorithm.value, body.dataset_id, filters)
+    db.create_job(
+        job_id, body.concern.value, body.algorithm.value, body.dataset_id, filters
+    )
     cancel = threading.Event()
     _cancel_flags[job_id] = cancel
     threading.Thread(
         target=_run,
-        args=(job_id, body.concern.value, body.algorithm.value, body.dataset_id, filters, cancel),
+        args=(
+            job_id,
+            body.concern.value,
+            body.algorithm.value,
+            body.dataset_id,
+            filters,
+            cancel,
+        ),
         daemon=True,
     ).start()
     return _resp(db.get_job(job_id))
 
 
 @router.get("", response_model=TrainingJobListResponse, summary="List jobs")
-def list_jobs(concern: Optional[str] = None, status: Optional[JobStatus] = None, limit: int = Query(100, ge=1, le=500)):
-    rows = db.list_jobs(concern=concern, status=status.value if status else None, limit=limit)
+def list_jobs(
+    concern: Optional[str] = None,
+    status: Optional[JobStatus] = None,
+    limit: int = Query(100, ge=1, le=500),
+):
+    rows = db.list_jobs(
+        concern=concern, status=status.value if status else None, limit=limit
+    )
     return TrainingJobListResponse(jobs=[_resp(r) for r in rows])
 
 
 @router.get(
-    "/{job_id}", response_model=TrainingJobResponse, summary="Get job status", responses={404: {"model": ErrorResponse}}
+    "/{job_id}",
+    response_model=TrainingJobResponse,
+    summary="Get job status",
+    responses={404: {"model": ErrorResponse}},
 )
 def get_job(job_id: str = Path(...)):
     row = db.get_job(job_id)
@@ -162,12 +197,19 @@ def cancel_job(job_id: str = Path(...)):
     if row is None:
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found.")
     if row["status"] not in ("PENDING", "RUNNING"):
-        raise HTTPException(status_code=409, detail=f"Job is '{row['status']}' â€” cannot cancel.")
+        raise HTTPException(
+            status_code=409, detail=f"Job is '{row['status']}' â€” cannot cancel."
+        )
     ev = _cancel_flags.get(job_id)
     if ev:
         ev.set()
     else:
-        db.update_job(job_id, status="CANCELLED", stage="Cancelled via API", completed_at=now_iso())
+        db.update_job(
+            job_id,
+            status="CANCELLED",
+            stage="Cancelled via API",
+            completed_at=now_iso(),
+        )
     return _resp(db.get_job(job_id))
 
 
