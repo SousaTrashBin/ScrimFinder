@@ -246,3 +246,132 @@ spec:
       target:
         type: Utilization
         averageUtilization: 70
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: training-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: training-service
+  template:
+    metadata:
+      labels:
+        app: training-service
+    spec:
+      containers:
+      - name: training-service
+        image: scrimfinder/training-service:latest
+        ports:
+        - containerPort: 8000
+          name: http
+        - containerPort: 50051
+          name: grpc
+        env:
+        - name: PLATFORM_DB
+          value: /data/platform.db
+        - name: MODELS_DIR
+          value: /data/models
+        - name: GAMES_DIR
+          value: /data/games
+        - name: DATASETS_DIR
+          value: /data/datasets
+        - name: DETAIL_FILLING_URL
+          value: http://detail-filling-service:8080
+        volumeMounts:
+        - name: ai-storage
+          mountPath: /data
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: ai-storage
+        persistentVolumeClaim:
+          claimName: ai-storage-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: training-service
+spec:
+  selector:
+    app: training-service
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+  - name: grpc
+    port: 50051
+    targetPort: 50051
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analysis-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: analysis-service
+  template:
+    metadata:
+      labels:
+        app: analysis-service
+    spec:
+      containers:
+      - name: analysis-service
+        image: scrimfinder/analysis-service:latest
+        ports:
+        - containerPort: 8001
+          name: http
+        env:
+        - name: PLATFORM_DB
+          value: /data/platform.db
+        - name: MODELS_DIR
+          value: /data/models
+        - name: TRAINING_GRPC_URL
+          value: training-service:50051
+        volumeMounts:
+        - name: ai-storage
+          mountPath: /data
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: ai-storage
+        persistentVolumeClaim:
+          claimName: ai-storage-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: analysis-service
+spec:
+  selector:
+    app: analysis-service
+  ports:
+  - name: http
+    port: 8001
+    targetPort: 8001
