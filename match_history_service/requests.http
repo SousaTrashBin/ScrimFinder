@@ -1393,3 +1393,8 @@ GET {{baseUrl}}/matches?page=0&size=2
         }
     ]
 }
+
+###
+# @name DELETE match 2
+
+DELETE {{baseUrl}}/matches/{{matchId2}}

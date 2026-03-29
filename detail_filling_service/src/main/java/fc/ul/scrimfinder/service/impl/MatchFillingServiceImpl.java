@@ -5,8 +5,11 @@ import fc.ul.scrimfinder.dto.response.match.MatchStatsDTO;
 import fc.ul.scrimfinder.redis.RedisService;
 import fc.ul.scrimfinder.service.MatchFillingService;
 import fc.ul.scrimfinder.service.RiotAdapterService;
+import fc.ul.scrimfinder.util.ColoredMessage;
+import fc.ul.scrimfinder.util.LogColor;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.jboss.logging.Logger;
 
 @ApplicationScoped
 public class MatchFillingServiceImpl implements MatchFillingService {
@@ -17,8 +20,12 @@ public class MatchFillingServiceImpl implements MatchFillingService {
 
     @Inject Config config;
 
+    @Inject Logger logger;
+
     @Override
     public MatchStatsDTO getFilledMatch(String matchId) {
+        logger.info(
+                ColoredMessage.withColor("GET match from Riot with ID: " + matchId, LogColor.GREEN));
         return redisService
                 .get(matchId, MatchStatsDTO.class)
                 .orElseGet(
@@ -31,6 +38,8 @@ public class MatchFillingServiceImpl implements MatchFillingService {
 
     @Override
     public String getRawMatchData(String matchId) {
+        logger.info(
+                ColoredMessage.withColor("GET raw match from Riot with ID: " + matchId, LogColor.GREEN));
         return redisService
                 .get(matchId + "raw", String.class)
                 .orElseGet(

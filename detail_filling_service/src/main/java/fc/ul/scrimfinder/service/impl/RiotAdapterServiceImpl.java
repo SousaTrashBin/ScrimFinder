@@ -8,7 +8,9 @@ import fc.ul.scrimfinder.exception.InvalidMatchFormatException;
 import fc.ul.scrimfinder.exception.InvalidPlayerFormatException;
 import fc.ul.scrimfinder.mapper.RiotMapper;
 import fc.ul.scrimfinder.service.RiotAdapterService;
+import fc.ul.scrimfinder.util.ColoredMessage;
 import fc.ul.scrimfinder.util.JsonNodeFinder;
+import fc.ul.scrimfinder.util.LogColor;
 import fc.ul.scrimfinder.util.Subregion;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -17,6 +19,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
+import org.jboss.logging.Logger;
 
 @ApplicationScoped
 public class RiotAdapterServiceImpl implements RiotAdapterService {
@@ -33,15 +36,24 @@ public class RiotAdapterServiceImpl implements RiotAdapterService {
 
     @Inject ClientUrlPrefixProvider clientUrlPrefixProvider;
 
+    @Inject Logger logger;
+
     @Override
     public String getRawMatchData(String matchId) {
         String[] idParts = matchId.split("_");
         if (idParts.length < 2) {
+            logger.error(
+                    ColoredMessage.withColor(
+                            "Invalid match id format. It should be SUBREGION_ID but got: " + matchId,
+                            LogColor.RED));
             throw new InvalidMatchFormatException(
                     "Invalid match id format. It should be SUBREGION_ID but got: " + matchId);
         }
         Subregion subregion = Subregion.fromSubregionName(idParts[0]);
         if (subregion == null) {
+            logger.error(
+                    ColoredMessage.withColor(
+                            "Invalid match id. No subregion found for: " + idParts[0], LogColor.RED));
             throw new InvalidMatchFormatException(
                     "Invalid match id. No subregion found for: " + idParts[0]);
         }
@@ -65,6 +77,9 @@ public class RiotAdapterServiceImpl implements RiotAdapterService {
         RegionDTO region = getRegionData(account.puuid());
         SummonerDTO summoner = getSummonerData(account.puuid(), region.subregion());
 
+        logger.info(
+                ColoredMessage.withColor(
+                        String.format("Fetch player data for player %s", account.puuid()), LogColor.GREEN));
         clientUrlPrefixProvider.setPrefix(region.subregion());
         String rawPlayerQueueStats = playerServiceClient.getLeagueEntriesByPUUID(account.puuid());
         JsonNode playerQueueStats =
@@ -81,6 +96,9 @@ public class RiotAdapterServiceImpl implements RiotAdapterService {
     }
 
     private AccountDTO getAccountData(String name, String tag) {
+        logger.info(
+                ColoredMessage.withColor(
+                        String.format("Fetch account data for player %s#%s", name, tag), LogColor.GREEN));
         String rawAccount = accountServiceClient.getByRiotId(name, tag);
         return RiotMapper.toAccountDTO(
                 Objects.requireNonNull(
@@ -90,6 +108,9 @@ public class RiotAdapterServiceImpl implements RiotAdapterService {
     }
 
     private RegionDTO getRegionData(String puuid) {
+        logger.info(
+                ColoredMessage.withColor(
+                        String.format("Fetch region data for player %s", puuid), LogColor.GREEN));
         String rawRegion = regionServiceClient.getActiveRegion(puuid);
         return RiotMapper.toRegionDTO(
                 Objects.requireNonNull(
@@ -99,6 +120,9 @@ public class RiotAdapterServiceImpl implements RiotAdapterService {
     }
 
     private SummonerDTO getSummonerData(String puuid, String subregion) {
+        logger.info(
+                ColoredMessage.withColor(
+                        String.format("Fetch summoner data for player %s", puuid), LogColor.GREEN));
         clientUrlPrefixProvider.setPrefix(subregion);
         String rawSummoner = summonerServiceClient.getByAccessToken(puuid);
         return RiotMapper.toSummonerDTO(

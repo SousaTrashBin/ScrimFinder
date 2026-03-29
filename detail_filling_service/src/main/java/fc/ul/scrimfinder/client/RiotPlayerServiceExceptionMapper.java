@@ -3,13 +3,19 @@ package fc.ul.scrimfinder.client;
 import fc.ul.scrimfinder.exception.ExternalServiceUnavailableException;
 import fc.ul.scrimfinder.exception.PlayerNotFoundException;
 import fc.ul.scrimfinder.exception.UnauthorizedException;
+import fc.ul.scrimfinder.util.ColoredMessage;
 import fc.ul.scrimfinder.util.ErrorResponse;
+import fc.ul.scrimfinder.util.LogColor;
 import fc.ul.scrimfinder.util.RiotErrorMessageConverter;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
+import org.jboss.logging.Logger;
 
 public class RiotPlayerServiceExceptionMapper implements ResponseExceptionMapper<RuntimeException> {
+
+    @Inject Logger logger;
 
     @Override
     public RuntimeException toThrowable(Response response) {
@@ -17,6 +23,12 @@ public class RiotPlayerServiceExceptionMapper implements ResponseExceptionMapper
             ErrorResponse errorResponse = RiotErrorMessageConverter.convertRiotErrorMessage(response);
             int code = Integer.parseInt(errorResponse.getCode());
             String message = errorResponse.getMessage();
+
+            if (code == 401 || code == 503) {
+                logger.error(ColoredMessage.withColor(message, LogColor.RED));
+            } else {
+                logger.warn(ColoredMessage.withColor(message, LogColor.YELLOW));
+            }
 
             return switch (code) {
                 case 401 -> new UnauthorizedException(message);
