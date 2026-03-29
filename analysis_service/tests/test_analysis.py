@@ -5,10 +5,11 @@ Run: docker exec scrimfinder_analysis pytest tests/test_analysis.py -v
 
 import os
 import tempfile
+from pathlib import Path
 
-_TMP = tempfile.mkdtemp(prefix="analysis_test_")
-os.environ["PLATFORM_DB"] = os.path.join(_TMP, "platform.db")
-os.environ["MODELS_DIR"] = os.path.join(_TMP, "models")
+_TMP = Path(tempfile.mkdtemp(prefix="analysis_test_"))
+os.environ["PLATFORM_DB"] = str(_TMP / "platform.db")
+os.environ["MODELS_DIR"] = str(_TMP / "models")
 
 from fastapi.testclient import TestClient  # noqa: E402
 

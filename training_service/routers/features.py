@@ -26,7 +26,7 @@ def extract_features(body: FeatureExtractRequest):
         row = db.get_game(body.game_id)
         if row is None:
             raise HTTPException(status_code=404, detail=f"Game '{body.game_id}' not found.")
-        game_id, raw = body.game_id, row["raw_json"]
+        game_id, _raw = body.game_id, row["raw_json"]
     elif body.raw_data:
         import hashlib
         import json
@@ -37,7 +37,7 @@ def extract_features(body: FeatureExtractRequest):
                     return str(data[k])
             return "game_" + hashlib.sha1(json.dumps(data, sort_keys=True).encode()).hexdigest()[:16]
 
-        game_id, raw = _derive(body.raw_data), body.raw_data
+        game_id, _raw = _derive(body.raw_data), body.raw_data
     else:
         raise HTTPException(status_code=422, detail="Provide either game_id or raw_data.")
 

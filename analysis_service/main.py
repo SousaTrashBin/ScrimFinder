@@ -1,4 +1,4 @@
-"""
+﻿"""
 analysis_service/main.py â€” REST API on port 8001.
 Serves real-time ML predictions and champion statistics.
 Reads trained models from the shared volume written by the Training Service.
@@ -16,7 +16,10 @@ cfg.ensure_dirs()
 app = FastAPI(
     root_path="/api/v1/analysis",
     title="ScrimFinder Analysis Service",
-    description="Real-time draft, build, player performance and champion analysis.\n\n**Student:** Rodrigo Neto (fc59850)",
+    description="""
+    Real-time draft, build, player performance and champion analysis.\n
+    \n**Student:** Rodrigo Neto (fc59850)
+    """,
     version="1.0.0",
 )
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])

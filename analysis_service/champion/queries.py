@@ -13,9 +13,7 @@ DB Schema:
   player_runes: match_id, puuid, rune_id
 """
 
-import os
 import sqlite3
-
 from pathlib import Path
 
 from analysis_service.core.config import cfg

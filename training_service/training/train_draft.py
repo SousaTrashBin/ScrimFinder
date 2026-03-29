@@ -126,7 +126,7 @@ def train(job) -> None:
     job.metrics = metrics
 
     # ── 5. Feature names ──────────────────────────────────────
-    n_champs = len(mlb.classes_)
+    len(mlb.classes_)
     feature_names = [f"blue_{c}" for c in mlb.classes_] + [f"red_{c}" for c in mlb.classes_]
 
     # ── 6. Save ───────────────────────────────────────────────

@@ -25,7 +25,6 @@ from concurrent import futures
 import grpc
 
 from training_service.core import db
-from training_service.core.config import cfg
 
 _server = None
 # ── gRPC port ─────────────────────────────────────────────────
@@ -156,7 +155,7 @@ class TrainingServiceServicer:
                 metrics_json=json.dumps(row.get("metrics", {})),
                 activated_at=row.get("activated_at", ""),
             )
-        except Exception as e:
+        except Exception:
             return GetActiveModelResponse(found=False, concern=concern)
 
     def HealthCheck(self, request, context):

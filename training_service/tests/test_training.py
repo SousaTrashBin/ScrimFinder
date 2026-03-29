@@ -6,18 +6,17 @@ Run: docker exec scrimfinder_training pytest tests/test_training.py -v -m "not s
 import os
 import tempfile
 import time
+from pathlib import Path
 
-import pytest
+_TMP = Path(tempfile.mkdtemp(prefix="train_test_"))
+os.environ["PLATFORM_DB"] = str(_TMP / "platform.db")
+os.environ["MODELS_DIR"] = str(_TMP / "models")
+os.environ["GAMES_DIR"] = str(_TMP / "games")
+os.environ["DATASETS_DIR"] = str(_TMP / "datasets")
 
-_TMP = tempfile.mkdtemp(prefix="train_test_")
-os.environ["PLATFORM_DB"] = os.path.join(_TMP, "platform.db")
-os.environ["MODELS_DIR"] = os.path.join(_TMP, "models")
-os.environ["GAMES_DIR"] = os.path.join(_TMP, "games")
-os.environ["DATASETS_DIR"] = os.path.join(_TMP, "datasets")
+from fastapi.testclient import TestClient  # noqa: E402
 
-from fastapi.testclient import TestClient
-
-from training_service.main import app
+from training_service.main import app  # noqa: E402
 
 client = TestClient(app, raise_server_exceptions=False)
 

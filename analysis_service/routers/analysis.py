@@ -1,4 +1,4 @@
-"""
+﻿"""
 analysis_service/routers/analysis.py
 All analysis endpoints with real ML inference.
 
@@ -12,10 +12,10 @@ Game:        Per-player performance scoring using performance model
 
 import hashlib
 import json
-import os
 import pickle
 
 import numpy as np
+import Path
 from fastapi import APIRouter, HTTPException
 
 import analysis_service.grpc_client as grpc_client
@@ -82,9 +82,9 @@ def _load_artifact(concern: str) -> tuple:
             "Train one via the Training Service (POST /training/jobs).",
         )
     path = row.get("file_path")
-    if not path or not os.path.exists(path):
+    if not path or not Path.exists(path):
         raise HTTPException(status_code=503, detail=f"Model file not found at '{path}'. Re-train to regenerate.")
-    with open(path, "rb") as f:
+    with Path.open(path, "rb") as f:
         return pickle.load(f), row["version"]
 
 

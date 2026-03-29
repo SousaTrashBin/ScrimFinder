@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Path, Query
+from fastapi import APIRouter, HTTPException, Path
 
 from training_service.core import db
 from training_service.core.schemas import ErrorResponse, ModelListResponse, ModelMeta

@@ -136,8 +136,8 @@ def train(job) -> None:
     # ── 5. Feature names ──────────────────────────────────────
     item_mlb = encoders["item_mlb"]
     rune_mlb = encoders["rune_mlb"]
-    pos_le = encoders["pos_le"]
-    champ_le = encoders["champ_le"]
+    encoders["pos_le"]
+    encoders["champ_le"]
 
     feature_names = (
         [f"item_{i}" for i in item_mlb.classes_]
