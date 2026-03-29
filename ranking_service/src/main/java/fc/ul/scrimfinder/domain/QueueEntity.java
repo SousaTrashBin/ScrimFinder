@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Setter
 @Getter
 @Entity
@@ -13,7 +15,7 @@ public class QueueEntity {
 
     @Id
     @Column(nullable = false, updatable = false)
-    private Long id;
+    private UUID id = UUID.randomUUID();
 
     @Column(nullable = false)
     private String name;

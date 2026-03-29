@@ -5,6 +5,7 @@ import fc.ul.scrimfinder.util.Role;
 import fc.ul.scrimfinder.util.TicketStatus;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -14,9 +15,7 @@ import lombok.Setter;
 @Table(name = "match_ticket")
 public class MatchTicket {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Id private UUID id = UUID.randomUUID();
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "player_id")
@@ -40,6 +39,8 @@ public class MatchTicket {
 
     @Column(nullable = false)
     private int mmr;
+
+    @Column private String riotPuuid;
 
     @Column private Integer team;
 

@@ -1,10 +1,12 @@
 package fc.ul.scrimfinder.domain;
 
 import jakarta.persistence.*;
-import java.util.ArrayList;
-import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "player")
@@ -14,7 +16,7 @@ public class Player {
 
     @Id
     @Column(nullable = false, updatable = false)
-    private Long id;
+    private UUID id = UUID.randomUUID();
 
     @Column(nullable = false, unique = true)
     private String discordUsername;

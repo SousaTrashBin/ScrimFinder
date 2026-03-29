@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -14,9 +15,7 @@ import lombok.Setter;
 @Table(name = "lobby")
 public class Lobby {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Id private UUID id = UUID.randomUUID();
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "queue_id")

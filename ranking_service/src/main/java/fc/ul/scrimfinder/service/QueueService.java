@@ -8,12 +8,14 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
+import java.util.UUID;
+
 public interface QueueService {
-    QueueDTO createQueue(Long queueId, String name, MMRRuleType MMRRuleType, @Positive int initialMMR)
+    QueueDTO createQueue(UUID queueId, String name, MMRRuleType MMRRuleType, @Positive int initialMMR)
             throws QueueNotFoundException;
 
-    QueueDTO updateQueue(Long queueId, @NotNull @Valid UpdateQueueRequest updateDTO)
+    QueueDTO updateQueue(UUID queueId, @NotNull @Valid UpdateQueueRequest updateDTO)
             throws QueueNotFoundException;
 
-    QueueDTO deleteQueue(Long queueId) throws QueueNotFoundException;
+    QueueDTO deleteQueue(UUID queueId) throws QueueNotFoundException;
 }

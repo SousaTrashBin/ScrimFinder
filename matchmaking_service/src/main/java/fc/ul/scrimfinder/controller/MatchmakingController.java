@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.util.UUID;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -75,7 +76,7 @@ public class MatchmakingController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    public Response leaveQueue(@PathParam("ticketId") Long ticketId) {
+    public Response leaveQueue(@PathParam("ticketId") UUID ticketId) {
         matchmakingService.leaveQueue(ticketId);
         return Response.noContent().build();
     }
@@ -100,7 +101,7 @@ public class MatchmakingController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    public Response getLobby(@PathParam("ticketId") Long ticketId) {
+    public Response getLobby(@PathParam("ticketId") UUID ticketId) {
         LobbyDTO lobby = matchmakingService.getLobbyByTicket(ticketId);
         if (lobby == null) {
             return Response.status(Response.Status.NOT_FOUND).build();
@@ -129,7 +130,7 @@ public class MatchmakingController {
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     public Response acceptMatch(
-            @PathParam("matchId") Long matchId, @QueryParam("playerId") Long playerId) {
+            @PathParam("matchId") UUID matchId, @QueryParam("playerId") UUID playerId) {
         MatchDTO match = matchmakingService.acceptMatch(matchId, playerId);
         return Response.ok(match).build();
     }
@@ -151,7 +152,7 @@ public class MatchmakingController {
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     public Response declineMatch(
-            @PathParam("matchId") Long matchId, @QueryParam("playerId") Long playerId) {
+            @PathParam("matchId") UUID matchId, @QueryParam("playerId") UUID playerId) {
         matchmakingService.declineMatch(matchId, playerId);
         return Response.noContent().build();
     }
@@ -171,7 +172,7 @@ public class MatchmakingController {
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     public Response linkMatch(
-            @PathParam("matchId") Long matchId, @QueryParam("externalGameId") String externalGameId) {
+            @PathParam("matchId") UUID matchId, @QueryParam("externalGameId") String externalGameId) {
         matchmakingService.linkMatch(matchId, externalGameId);
         return Response.ok().build();
     }
@@ -197,7 +198,7 @@ public class MatchmakingController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    public Response completeMatch(@PathParam("matchId") Long matchId) {
+    public Response completeMatch(@PathParam("matchId") UUID matchId) {
         matchmakingService.completeMatch(matchId);
         return Response.ok().build();
     }

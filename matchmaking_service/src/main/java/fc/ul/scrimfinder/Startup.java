@@ -8,17 +8,21 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.util.UUID;
 
 @ApplicationScoped
 public class Startup {
+
+    private static final UUID GLOBAL_QUEUE_ID =
+            UUID.fromString("00000000-0000-0000-0000-000000000001");
 
     @Inject QueueRepository queueRepository;
 
     @Transactional
     void onStart(@Observes StartupEvent ev) {
-        if (queueRepository.findByIdOptional(1L).isEmpty()) {
+        if (queueRepository.findByIdOptional(GLOBAL_QUEUE_ID).isEmpty()) {
             Queue globalQueue = new Queue();
-            globalQueue.setId(1L);
+            globalQueue.setId(GLOBAL_QUEUE_ID);
             globalQueue.setName("Global Queue");
             globalQueue.setNamespace("GLOBAL");
             globalQueue.setRequiredPlayers(10);

@@ -16,6 +16,8 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
+import java.util.UUID;
+
 @ApplicationScoped
 public class QueueServiceImpl implements QueueService {
 
@@ -26,7 +28,7 @@ public class QueueServiceImpl implements QueueService {
     @Override
     @Transactional
     public QueueDTO createQueue(
-            Long queueId, String name, MMRRuleType mmrRuleType, @Positive int initialMMR) {
+            UUID queueId, String name, MMRRuleType mmrRuleType, @Positive int initialMMR) {
         if (queueRepository.findByIdOptional(queueId).isPresent()) {
             throw new MMRAlreadyExistsException("Queue with this ID already exists");
         }
@@ -44,7 +46,7 @@ public class QueueServiceImpl implements QueueService {
 
     @Override
     @Transactional
-    public QueueDTO updateQueue(Long queueId, @NotNull @Valid UpdateQueueRequest updateDTO) {
+    public QueueDTO updateQueue(UUID queueId, @NotNull @Valid UpdateQueueRequest updateDTO) {
         QueueEntity queue =
                 queueRepository
                         .findByIdOptional(queueId)
@@ -61,7 +63,7 @@ public class QueueServiceImpl implements QueueService {
 
     @Override
     @Transactional
-    public QueueDTO deleteQueue(Long queueId) throws QueueNotFoundException {
+    public QueueDTO deleteQueue(UUID queueId) throws QueueNotFoundException {
         QueueEntity queue =
                 queueRepository
                         .findByIdOptional(queueId)

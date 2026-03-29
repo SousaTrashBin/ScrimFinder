@@ -4,12 +4,12 @@ import fc.ul.scrimfinder.util.Region;
 import java.util.UUID;
 
 public record PlayerRankingDTO(
-        UUID publicId,
-        Long playerId,
+        UUID id,
+        UUID playerId,
         String username,
         String lolAccountPPUID,
         Region region,
-        Long queueId,
+        UUID queueId,
         int mmr,
         int wins,
         int losses) {}

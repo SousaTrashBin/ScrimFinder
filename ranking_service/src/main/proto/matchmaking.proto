@@ -12,8 +12,8 @@ service RankingService {
 
 message MatchResultRequest {
   string gameId = 1;
-  int64 queueId = 2;
-  map<int64, PlayerDelta> playerDeltas = 3;
+  string queueId = 2;
+  map<string, PlayerDelta> playerDeltas = 3;
 }
 
 message PlayerDelta {

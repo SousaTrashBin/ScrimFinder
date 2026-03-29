@@ -1,9 +1,10 @@
 package fc.ul.scrimfinder.service;
 
 import fc.ul.scrimfinder.dto.response.PlayerDTO;
+import java.util.UUID;
 
 public interface PlayerService {
-    PlayerDTO createPlayer(Long id, String username);
+    PlayerDTO createPlayer(UUID id, String username);
 
-    PlayerDTO getPlayer(Long id);
+    PlayerDTO getPlayer(UUID id);
 }

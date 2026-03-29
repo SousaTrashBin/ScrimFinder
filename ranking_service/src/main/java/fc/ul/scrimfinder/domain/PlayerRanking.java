@@ -1,9 +1,10 @@
 package fc.ul.scrimfinder.domain;
 
 import jakarta.persistence.*;
-import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.UUID;
 
 @Entity
 @Table(
@@ -14,12 +15,8 @@ import lombok.Setter;
 public class PlayerRanking {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
     @Column(nullable = false, updatable = false)
-    private Long privateId;
-
-    @Column(nullable = false, unique = true, updatable = false)
-    private UUID publicId;
+    private UUID id = UUID.randomUUID();
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "queue_id", nullable = false)

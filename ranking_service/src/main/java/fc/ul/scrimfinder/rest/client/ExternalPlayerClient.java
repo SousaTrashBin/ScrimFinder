@@ -11,6 +11,6 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 public interface ExternalPlayerClient {
 
     @GET
-    @Path("/{playerId}")
-    ExternalPlayerDTO fetchPlayerRank(@PathParam("playerId") String playerId);
+    @Path("/{name}/{tag}")
+    ExternalPlayerDTO fetchPlayerRank(@PathParam("name") String name, @PathParam("tag") String tag);
 }

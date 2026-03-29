@@ -12,14 +12,16 @@ import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import java.util.Map;
-import java.util.Optional;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 @Path("/players")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -53,7 +55,7 @@ public class PlayerRankingController {
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     public Response getPlayerRanking(
-            @PathParam("playerId") Long playerId, @QueryParam("queueId") Optional<Long> queueId) {
+            @PathParam("playerId") UUID playerId, @QueryParam("queueId") Optional<UUID> queueId) {
         var rankings = playerRankingService.getPlayerRanking(playerId, queueId);
 
         if (queueId.isPresent()) {
@@ -97,7 +99,7 @@ public class PlayerRankingController {
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     public Response processMatchResults(@NotNull @Valid MatchResultRequest matchResultRequest) {
-        Map<Long, PlayerRankingDTO> updatedRankings =
+        Map<UUID, PlayerRankingDTO> updatedRankings =
                 playerRankingService.processMatchResults(matchResultRequest);
         return Response.ok(updatedRankings).build();
     }
@@ -137,7 +139,7 @@ public class PlayerRankingController {
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     public Response populatePlayerMMR(
-            @PathParam("playerId") Long playerId,
+            @PathParam("playerId") UUID playerId,
             @NotNull @Valid CreatePlayerRequest createPlayerRequest) {
         var populatedMMR = playerRankingService.populatePlayerMMR(playerId, createPlayerRequest);
         return Response.status(Response.Status.CREATED).entity(populatedMMR).build();

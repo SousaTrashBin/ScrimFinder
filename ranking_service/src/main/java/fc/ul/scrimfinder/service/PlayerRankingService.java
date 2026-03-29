@@ -13,17 +13,18 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface PlayerRankingService {
-    List<PlayerRankingDTO> getPlayerRanking(Long playerId, Optional<Long> queueId)
+    List<PlayerRankingDTO> getPlayerRanking(UUID playerId, Optional<UUID> queueId)
             throws PlayerNotFoundException, QueueNotFoundException;
 
-    Map<Long, PlayerRankingDTO> processMatchResults(@Valid MatchResultRequest matchResultRequest)
+    Map<UUID, PlayerRankingDTO> processMatchResults(@Valid MatchResultRequest matchResultRequest)
             throws PlayerNotFoundException, QueueNotFoundException;
 
     PaginatedResponseDTO<PlayerRankingDTO> getQueueLeaderboard(
-            int page, int size, Optional<Long> queueId, Optional<Region> region);
+            int page, int size, Optional<UUID> queueId, Optional<Region> region);
 
-    PlayerRankingDTO populatePlayerMMR(Long playerId, @Valid CreatePlayerRequest createPlayerRequest)
+    PlayerRankingDTO populatePlayerMMR(UUID playerId, @Valid CreatePlayerRequest createPlayerRequest)
             throws MMRAlreadyExistsException, QueueNotFoundException, LeagueAccountNotLinkedException;
 }

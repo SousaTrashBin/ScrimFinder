@@ -11,6 +11,7 @@ import fc.ul.scrimfinder.util.Region;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.util.UUID;
 
 @ApplicationScoped
 public class QueueServiceImpl implements QueueService {
@@ -22,7 +23,7 @@ public class QueueServiceImpl implements QueueService {
     @Override
     @Transactional
     public QueueDTO createQueue(
-            Long id,
+            UUID id,
             String name,
             String namespace,
             int requiredPlayers,
@@ -44,7 +45,7 @@ public class QueueServiceImpl implements QueueService {
     }
 
     @Override
-    public QueueDTO getQueue(Long id) {
+    public QueueDTO getQueue(UUID id) {
         Queue queue =
                 queueRepository
                         .findByIdOptional(id)

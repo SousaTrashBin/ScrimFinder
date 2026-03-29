@@ -10,6 +10,7 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.util.UUID;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -51,7 +52,7 @@ public class QueueController {
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     public Response createQueue(
-            @PathParam("id") Long id,
+            @PathParam("id") UUID id,
             @QueryParam("name") String name,
             @QueryParam("namespace") String namespace,
             @QueryParam("requiredPlayers") @DefaultValue("10") int requiredPlayers,
@@ -85,7 +86,7 @@ public class QueueController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    public Response getQueue(@PathParam("id") Long id) {
+    public Response getQueue(@PathParam("id") UUID id) {
         QueueDTO queue = queueService.getQueue(id);
         return Response.ok(queue).build();
     }

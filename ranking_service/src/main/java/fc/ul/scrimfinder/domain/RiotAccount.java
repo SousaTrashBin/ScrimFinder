@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Entity
 @Table(name = "riot_account")
 @Getter
@@ -12,8 +14,7 @@ import lombok.Setter;
 public class RiotAccount {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private UUID id = UUID.randomUUID();
 
     @Column(nullable = false, unique = true)
     private String puuid;

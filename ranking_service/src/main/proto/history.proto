@@ -1,21 +1,23 @@
 syntax = "proto3";
 
-package fc.ul.scrimfinder;
+package fc.ul.scrimfinder.grpc;
 
 option java_multiple_files = true;
 option java_package = "fc.ul.scrimfinder.grpc";
-option java_outer_classname = "HistoryProto";
+option java_outer_classname = "MatchHistoryProto";
 
 service MatchHistoryService {
-  rpc SaveMatchMMRGains (SaveMatchMMRGainsRequest) returns (SaveMatchMMRGainsResponse);
+  rpc SaveMatchMMRGains (SaveMatchMMRGainsRequest) returns (SaveMatchMMRGainsResponse) {}
 }
 
 message SaveMatchMMRGainsRequest {
   string gameId = 1;
-  map<int64, int32> playerMMRGains = 2;
+  string queueId = 2;
+  map<string, int32> playerMMRGains = 3;
 }
 
 message SaveMatchMMRGainsResponse {
   bool success = 1;
   string message = 2;
 }
+

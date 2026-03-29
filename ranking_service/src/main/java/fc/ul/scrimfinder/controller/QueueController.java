@@ -19,6 +19,8 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
+import java.util.UUID;
+
 @Path("/queue")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
@@ -57,7 +59,7 @@ public class QueueController {
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     public Response createQueue(
-            @PathParam("queueId") Long queueId,
+            @PathParam("queueId") UUID queueId,
             @QueryParam("name") String name,
             @QueryParam("rule") @DefaultValue("NONE") MMRRuleType MMRRuleType,
             @QueryParam("initialMMR") @Positive @DefaultValue("1000") int initialMMR) {
@@ -93,7 +95,7 @@ public class QueueController {
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     public Response updateQueue(
-            @PathParam("queueId") Long queueId, @NotNull @Valid UpdateQueueRequest updateDTO) {
+            @PathParam("queueId") UUID queueId, @NotNull @Valid UpdateQueueRequest updateDTO) {
         var updatedQueue = queueService.updateQueue(queueId, updateDTO);
         return Response.ok(updatedQueue).build();
     }
@@ -112,7 +114,7 @@ public class QueueController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    public Response deleteQueue(@PathParam("queueId") Long queueId) {
+    public Response deleteQueue(@PathParam("queueId") UUID queueId) {
         queueService.deleteQueue(queueId);
         return Response.noContent().build();
     }
