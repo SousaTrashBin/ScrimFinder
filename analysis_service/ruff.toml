@@ -1,0 +1,27 @@
+target-version = "py311"
+line-length = 120
+
+extend-exclude = ["*pb2*.py"]
+
+[lint]
+select = [
+    "E",
+    "F",
+    "W",
+    "I",
+    "UP",
+    "PTH",
+    "B",
+    "SIM",
+]
+
+ignore = [
+    "E402",
+    "B904",
+]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
