@@ -3,8 +3,6 @@ name: ScrimFinder CI
 on:
   push:
     branches: [ main, work/diogo, work/bruno, work/rodrigo ]
-  pull_request:
-    branches: [ main, work/diogo, work/bruno, work/rodrigo ]
 
 permissions:
   contents: read
