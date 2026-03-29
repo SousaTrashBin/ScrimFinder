@@ -14,7 +14,6 @@ import hashlib
 import json
 import os
 import pickle
-from typing import Optional
 
 import numpy as np
 from fastapi import APIRouter, HTTPException

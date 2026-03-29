@@ -1,7 +1,6 @@
 import os
 import pickle
 import threading
-from typing import Optional
 
 from analysis_service.core import db
 from analysis_service.core.config import cfg

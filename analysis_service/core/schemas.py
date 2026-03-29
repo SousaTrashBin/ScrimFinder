@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from enum import Enum
-from typing import Optional
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 
-class Role(str, Enum):
+class Role(StrEnum):
     TOP = "TOP"
     JUNGLE = "JUNGLE"
     MID = "MID"
@@ -14,13 +13,13 @@ class Role(str, Enum):
     SUPPORT = "SUPPORT"
 
 
-class ImpactLevel(str, Enum):
+class ImpactLevel(StrEnum):
     LOW = "LOW"
     MEDIUM = "MEDIUM"
     HIGH = "HIGH"
 
 
-class TipCategory(str, Enum):
+class TipCategory(StrEnum):
     VISION = "VISION"
     FARMING = "FARMING"
     DAMAGE = "DAMAGE"
@@ -30,7 +29,7 @@ class TipCategory(str, Enum):
     GAME_SENSE = "GAME_SENSE"
 
 
-class Concern(str, Enum):
+class Concern(StrEnum):
     DRAFT = "draft"
     BUILD = "build"
     PERFORMANCE = "performance"

@@ -6,7 +6,6 @@ Only reads the models table from platform.db to find active model paths.
 import json
 import sqlite3
 from contextlib import contextmanager
-from typing import Optional
 
 from analysis_service.core.config import cfg
 

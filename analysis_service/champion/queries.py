@@ -15,14 +15,17 @@ DB Schema:
 
 import os
 import sqlite3
-from typing import Optional
+
+from pathlib import Path
 
 from analysis_service.core.config import cfg
 
 
 def _connect() -> sqlite3.Connection:
-    if not os.path.exists(cfg.LEAGUE_DB):
-        raise FileNotFoundError(f"EUW database not found at '{cfg.LEAGUE_DB}'. Set the LEAGUE_DB environment variable.")
+    if not Path(cfg.LEAGUE_DB).exists():
+        raise FileNotFoundError(
+            f"EUW database not found at '{cfg.LEAGUE_DB}'. Set the LEAGUE_DB environment variable."
+        )
     conn = sqlite3.connect(cfg.LEAGUE_DB)
     conn.row_factory = sqlite3.Row
     return conn

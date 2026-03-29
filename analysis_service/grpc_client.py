@@ -12,7 +12,6 @@ so the Analysis Service degrades gracefully if Training is down.
 import json
 import os
 import threading
-from typing import Optional
 
 # ── Training Service gRPC address ────────────────────────────
 TRAINING_GRPC_URL = os.environ.get("TRAINING_GRPC_URL", "localhost:50051")
