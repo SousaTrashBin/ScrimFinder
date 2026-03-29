@@ -21,9 +21,7 @@ from analysis_service.core.config import cfg
 
 def _connect() -> sqlite3.Connection:
     if not Path(cfg.LEAGUE_DB).exists():
-        raise FileNotFoundError(
-            f"EUW database not found at '{cfg.LEAGUE_DB}'. Set the LEAGUE_DB environment variable."
-        )
+        raise FileNotFoundError(f"EUW database not found at '{cfg.LEAGUE_DB}'. Set the LEAGUE_DB environment variable.")
     conn = sqlite3.connect(cfg.LEAGUE_DB)
     conn.row_factory = sqlite3.Row
     return conn

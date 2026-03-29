@@ -1,4 +1,4 @@
-﻿"""
+"""
 analysis_service/routers/analysis.py
 All analysis endpoints with real ML inference.
 
