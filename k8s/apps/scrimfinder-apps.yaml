@@ -17,6 +17,9 @@ spec:
         image: scrimfinder/matchmaking-service:latest
         ports:
         - containerPort: 8080
+          name: http
+        - containerPort: 9000
+          name: grpc
         env:
         - name: QUARKUS_DATASOURCE_JDBC_URL
           value: jdbc:postgresql://matchmaking-db:5432/matchmaking
@@ -26,6 +29,29 @@ spec:
           value: postgres
         - name: QUARKUS_REDIS_HOSTS
           value: redis://matchmaking-redis:6379
+        - name: RANKING_SERVICE_HOST
+          value: ranking-service
+        - name: PLAYER_FILLING_SERVICE_HOST
+          value: detail-filling-service
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /q/health/live
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /q/health/ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
 ---
 apiVersion: v1
 kind: Service
@@ -35,8 +61,12 @@ spec:
   selector:
     app: matchmaking-service
   ports:
-  - port: 8080
+  - name: http
+    port: 8080
     targetPort: 8080
+  - name: grpc
+    port: 9000
+    targetPort: 9000
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -57,6 +87,9 @@ spec:
         image: scrimfinder/ranking-service:latest
         ports:
         - containerPort: 8080
+          name: http
+        - containerPort: 9001
+          name: grpc
         env:
         - name: QUARKUS_DATASOURCE_JDBC_URL
           value: jdbc:postgresql://ranking-db:5432/ranking
@@ -64,6 +97,29 @@ spec:
           value: postgres
         - name: QUARKUS_DATASOURCE_PASSWORD
           value: postgres
+        - name: PLAYER_FILLING_SERVICE_HOST
+          value: detail-filling-service
+        - name: MATCH_HISTORY_SERVICE_HOST
+          value: match-history-service
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /q/health/live
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /q/health/ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
 ---
 apiVersion: v1
 kind: Service
@@ -73,8 +129,12 @@ spec:
   selector:
     app: ranking-service
   ports:
-  - port: 8080
+  - name: http
+    port: 8080
     targetPort: 8080
+  - name: grpc
+    port: 9001
+    targetPort: 9001
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -148,3 +208,41 @@ spec:
   - port: 8080
     targetPort: 8080
 ---
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: matchmaking-service-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: matchmaking-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ranking-service-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ranking-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
