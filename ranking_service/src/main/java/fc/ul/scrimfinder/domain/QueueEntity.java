@@ -2,10 +2,9 @@ package fc.ul.scrimfinder.domain;
 
 import fc.ul.scrimfinder.util.MMRRuleType;
 import jakarta.persistence.*;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.UUID;
 
 @Setter
 @Getter

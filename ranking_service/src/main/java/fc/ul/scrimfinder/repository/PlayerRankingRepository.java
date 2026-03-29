@@ -19,8 +19,7 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class PlayerRankingRepository implements PanacheRepositoryBase<PlayerRanking, UUID> {
 
-    @Inject
-    PlayerRankingMapper mapper;
+    @Inject PlayerRankingMapper mapper;
 
     public Optional<PlayerRanking> findByPlayerAndQueue(Player player, QueueEntity queue) {
         return find("player = ?1 and queue = ?2", player, queue).firstResultOptional();

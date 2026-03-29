@@ -1,5 +1,10 @@
 package fc.ul.scrimfinder.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import fc.ul.scrimfinder.domain.Player;
 import fc.ul.scrimfinder.domain.PlayerRanking;
 import fc.ul.scrimfinder.domain.QueueEntity;
@@ -24,18 +29,12 @@ import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
-import org.junit.jupiter.api.Test;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
+import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 @TestTransaction

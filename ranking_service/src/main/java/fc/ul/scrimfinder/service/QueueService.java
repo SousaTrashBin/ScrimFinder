@@ -7,7 +7,6 @@ import fc.ul.scrimfinder.util.MMRRuleType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-
 import java.util.UUID;
 
 public interface QueueService {

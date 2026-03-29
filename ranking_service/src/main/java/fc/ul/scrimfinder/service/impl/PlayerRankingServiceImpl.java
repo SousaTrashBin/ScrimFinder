@@ -27,14 +27,13 @@ import io.quarkus.grpc.GrpcClient;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.util.*;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.faulttolerance.Timeout;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @ApplicationScoped
@@ -46,8 +45,7 @@ public class PlayerRankingServiceImpl implements PlayerRankingService {
 
     @Inject QueueRepository queueRepository;
 
-    @Inject
-    RiotAccountRepository riotAccountRepository;
+    @Inject RiotAccountRepository riotAccountRepository;
 
     @Inject PlayerRankingMapper playerRankingMapper;
 

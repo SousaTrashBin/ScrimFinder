@@ -1,20 +1,19 @@
 package fc.ul.scrimfinder.controller;
 
-import fc.ul.scrimfinder.dto.response.PlayerRankingDTO;
-import fc.ul.scrimfinder.service.PlayerRankingService;
-import fc.ul.scrimfinder.util.Region;
-import io.quarkus.test.InjectMock;
-import io.quarkus.test.junit.QuarkusTest;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-import java.util.UUID;
-
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+
+import fc.ul.scrimfinder.dto.response.PlayerRankingDTO;
+import fc.ul.scrimfinder.service.PlayerRankingService;
+import fc.ul.scrimfinder.util.Region;
+import io.quarkus.test.InjectMock;
+import io.quarkus.test.junit.QuarkusTest;
+import java.util.List;
+import java.util.UUID;
+import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 public class PlayerRankingResourceTest {

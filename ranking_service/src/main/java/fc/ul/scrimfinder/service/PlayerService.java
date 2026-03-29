@@ -4,7 +4,6 @@ import fc.ul.scrimfinder.dto.response.PlayerDTO;
 import fc.ul.scrimfinder.exception.LeagueAccountNotLinkedException;
 import fc.ul.scrimfinder.exception.PlayerNotFoundException;
 import fc.ul.scrimfinder.util.Region;
-
 import java.util.UUID;
 
 public interface PlayerService {

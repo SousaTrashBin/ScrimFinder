@@ -1,5 +1,9 @@
 package fc.ul.scrimfinder.service;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import fc.ul.scrimfinder.domain.Player;
 import fc.ul.scrimfinder.domain.RiotAccount;
 import fc.ul.scrimfinder.dto.response.PlayerDTO;
@@ -17,15 +21,10 @@ import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-
 import java.util.Optional;
 import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 @QuarkusTest
 @TestTransaction

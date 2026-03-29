@@ -18,11 +18,10 @@ import io.quarkus.grpc.GrpcClient;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.util.UUID;
 import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.faulttolerance.Timeout;
-
-import java.util.UUID;
 
 @ApplicationScoped
 public class PlayerServiceImpl implements PlayerService {
