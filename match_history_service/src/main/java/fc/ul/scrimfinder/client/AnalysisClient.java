@@ -4,6 +4,7 @@ import fc.ul.scrimfinder.dto.response.MatchDTO;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.rest.client.annotation.RegisterProvider;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
@@ -14,5 +15,6 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 public interface AnalysisClient {
     // TODO
     @POST
+    @Retry(maxRetries = 4)
     MatchDTO createMatch(@BeanParam @Valid MatchDTO match);
 }

@@ -13,6 +13,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.util.Map;
 import java.util.UUID;
+import org.eclipse.microprofile.faulttolerance.Timeout;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -50,6 +51,13 @@ public class MatchHistoryController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class))),
                 @APIResponse(
+                        responseCode = "408",
+                        description = "Request timeout",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = ErrorResponse.class))),
+                @APIResponse(
                         responseCode = "500",
                         description = "Internal error in communicating with other services",
                         content =
@@ -64,6 +72,7 @@ public class MatchHistoryController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class))),
             })
+    @Timeout(2000)
     public Response getMatchById(@PathParam("riotMatchId") @NotBlank String riotMatchId) {
         MatchDTO match = matchHistoryService.getMatchById(riotMatchId);
         return Response.ok(match).build();
@@ -86,8 +95,16 @@ public class MatchHistoryController {
                         content =
                                 @Content(
                                         mediaType = "application/json",
+                                        schema = @Schema(implementation = ErrorResponse.class))),
+                @APIResponse(
+                        responseCode = "408",
+                        description = "Request timeout",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
+    @Timeout(5000)
     public Response getMatches(
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("size") @DefaultValue("20") @Min(1) @Max(100) int size,
@@ -124,8 +141,16 @@ public class MatchHistoryController {
                         content =
                                 @Content(
                                         mediaType = "application/json",
-                                        schema = @Schema(implementation = ErrorResponse.class)))
+                                        schema = @Schema(implementation = ErrorResponse.class))),
+                @APIResponse(
+                        responseCode = "408",
+                        description = "Request timeout",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = ErrorResponse.class))),
             })
+    @Timeout(2000)
     public Response addMatchById(
             @PathParam("riotMatchId") @NotBlank String riotMatchId,
             @QueryParam("queueId") @NotNull UUID queueId,
@@ -160,8 +185,16 @@ public class MatchHistoryController {
                         content =
                                 @Content(
                                         mediaType = "application/json",
-                                        schema = @Schema(implementation = ErrorResponse.class)))
+                                        schema = @Schema(implementation = ErrorResponse.class))),
+                @APIResponse(
+                        responseCode = "408",
+                        description = "Request timeout",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = ErrorResponse.class))),
             })
+    @Timeout(2000)
     public Response deleteMatchById(@PathParam("riotMatchId") @NotBlank String riotMatchId) {
         MatchDTO deletedMatch = matchHistoryService.deleteMatchById(riotMatchId);
         return Response.ok(deletedMatch).build();

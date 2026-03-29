@@ -4,6 +4,7 @@ import io.quarkus.rest.client.reactive.ClientQueryParam;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.rest.client.annotation.RegisterProvider;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
@@ -15,6 +16,7 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 public interface RiotAccountServiceClient {
     @GET
     @Path("/{gameName}/{tagLine}")
+    @Retry(maxRetries = 4)
     String getByRiotId(
             @PathParam("gameName") @NotBlank String gameName,
             @PathParam("tagLine") @NotBlank String tagLine);

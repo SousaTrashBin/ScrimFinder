@@ -1,28 +1,26 @@
 package fc.ul.scrimfinder.grpc;
 
-import fc.ul.scrimfinder.client.RiotAccountServiceClient;
 import fc.ul.scrimfinder.dto.response.player.PlayerDTO;
-import fc.ul.scrimfinder.service.RiotAdapterService;
+import fc.ul.scrimfinder.service.PlayerFillingService;
 import io.quarkus.grpc.GrpcService;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import java.util.stream.Collectors;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
+import org.eclipse.microprofile.faulttolerance.Timeout;
 
 @GrpcService
 public class PlayerGrpcService implements ExternalPlayerFillingService {
 
-    @Inject RiotAdapterService riotAdapterService;
-
-    @Inject @RestClient RiotAccountServiceClient accountServiceClient;
+    @Inject PlayerFillingService playerFillingService;
 
     @Override
+    @Timeout(2000)
     public Uni<PlayerResponse> getPlayer(PlayerRequest request) {
         return Uni.createFrom()
                 .item(
                         () -> {
                             PlayerDTO player =
-                                    riotAdapterService.getPlayerData(request.getGameName(), request.getTagLine());
+                                    playerFillingService.getFilledPlayer(request.getGameName(), request.getTagLine());
 
                             return PlayerResponse.newBuilder()
                                     .setPuuid(player.account().puuid())

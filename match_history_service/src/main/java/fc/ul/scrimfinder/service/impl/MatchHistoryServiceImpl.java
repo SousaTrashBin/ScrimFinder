@@ -145,7 +145,14 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
 
         matchHistoryRepository.persist(match); // cascade to all player stats as well
 
-        if (!analysisAdapterService.sendMatchForAnalysis(matchDTO)) {
+        try {
+            if (!analysisAdapterService.sendMatchForAnalysis(matchDTO)) {
+                logger.warn(
+                        ColoredMessage.withColor(
+                                String.format("Failed to send match %s to the analysis service", riotMatchId),
+                                LogColor.YELLOW));
+            }
+        } catch (Exception x) {
             logger.warn(
                     ColoredMessage.withColor(
                             String.format("Failed to send match %s to the analysis service", riotMatchId),

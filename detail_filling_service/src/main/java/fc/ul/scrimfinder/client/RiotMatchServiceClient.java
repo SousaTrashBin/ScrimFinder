@@ -4,6 +4,7 @@ import io.quarkus.rest.client.reactive.ClientQueryParam;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.rest.client.annotation.RegisterProvider;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
@@ -16,5 +17,6 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 public interface RiotMatchServiceClient {
     @GET
     @Path("/{matchId}")
+    @Retry(maxRetries = 4)
     String getMatch(@PathParam("matchId") @NotNull String matchId);
 }

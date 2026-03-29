@@ -61,6 +61,13 @@ public class GlobalExceptionHandler {
     }
 
     @ServerExceptionMapper
+    public RestResponse<ErrorResponse> mapException(InterruptedException x) {
+        return RestResponse.status(
+                Response.Status.REQUEST_TIMEOUT,
+                ErrorResponse.builder().code("REQUEST_TIMEOUT").message(x.getMessage()).build());
+    }
+
+    @ServerExceptionMapper
     public RestResponse<ErrorResponse> mapException(WebApplicationException x) {
         return RestResponse.status(
                 Response.Status.fromStatusCode(x.getResponse().getStatus()),

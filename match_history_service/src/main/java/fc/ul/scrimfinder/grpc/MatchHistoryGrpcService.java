@@ -6,6 +6,7 @@ import jakarta.inject.Inject;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.eclipse.microprofile.faulttolerance.Timeout;
 
 @GrpcService
 public class MatchHistoryGrpcService implements MatchHistoryService {
@@ -13,6 +14,7 @@ public class MatchHistoryGrpcService implements MatchHistoryService {
     @Inject fc.ul.scrimfinder.service.MatchHistoryService matchHistoryService;
 
     @Override
+    @Timeout(2000)
     public Uni<SaveMatchMMRGainsResponse> saveMatchMMRGains(SaveMatchMMRGainsRequest request) {
         UUID queueId = UUID.fromString(request.getQueueId());
         Map<String, Integer> mmrGains =

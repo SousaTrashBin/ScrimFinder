@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Size;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.faulttolerance.Timeout;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -52,6 +53,13 @@ public class PlayerFillingController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class))),
                 @APIResponse(
+                        responseCode = "408",
+                        description = "Request timeout",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = ErrorResponse.class))),
+                @APIResponse(
                         responseCode = "500",
                         description = "Internal error communication with Riot - unexpected response format",
                         content =
@@ -73,6 +81,7 @@ public class PlayerFillingController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
+    @Timeout(2000)
     public Response getFilledPlayer(
             @PathParam("name")
                     @Size(
