@@ -21,6 +21,8 @@ app = FastAPI(
     \n**Student:** Rodrigo Neto (fc59850)
     """,
     version="1.0.0",
+    docs_url="/q/docs",
+    openapi_url="/q/openapi.json",
 )
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 app.include_router(analysis.router)
