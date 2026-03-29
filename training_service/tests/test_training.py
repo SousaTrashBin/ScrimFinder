@@ -42,7 +42,7 @@ class TestSystem:
         assert client.get("/").json()["status"] == "ok"
 
     def test_docs(self):
-        assert client.get("/docs").status_code == 200
+        assert client.get("/q/docs").status_code == 200
 
 
 class TestGames:
