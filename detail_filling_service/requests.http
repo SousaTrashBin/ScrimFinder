@@ -1,4 +1,6 @@
-@baseUrl = http://localhost:13200/api/v1/riot
+@baseUrl = http://localhost/api/v1/riot
+
+@server = EUW
 
 @matchId1 = EUW1_7779779801
 @matchId2 = EUW1_7798917216
@@ -49,14 +51,14 @@ GET {{baseUrl}}/matches/{{matchId6}}
 ###
 # @name GET player 1
 
-GET {{baseUrl}}/players/{{player1}}
+GET {{baseUrl}}/players/{{server}}/{{player1}}
 
 ###
 # @name GET player 2
 
-GET {{baseUrl}}/players/{{player2}}
+GET {{baseUrl}}/players/{{server}}/{{player2}}
 
 ###
 # @name GET player 3
 
-GET {{baseUrl}}/players/{{player3}}
+GET {{baseUrl}}/players/{{server}}/{{player3}}
