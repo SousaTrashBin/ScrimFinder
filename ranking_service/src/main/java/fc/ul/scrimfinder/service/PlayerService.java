@@ -10,6 +10,8 @@ public interface PlayerService {
 
     PlayerDTO createPlayer(UUID id, String username);
 
+    PlayerDTO getPlayer(UUID id) throws PlayerNotFoundException;
+
     PlayerDTO linkLolAccount(
             UUID playerId, String puuid, String gameName, String tagLine, Region region);
 

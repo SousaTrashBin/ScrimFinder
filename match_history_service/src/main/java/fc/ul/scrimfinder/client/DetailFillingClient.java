@@ -18,8 +18,10 @@ public interface DetailFillingClient {
     String getFilledMatch(@PathParam("matchId") @NotBlank String matchId);
 
     @GET
-    @Path("players/{name}/{tag}")
+    @Path("players/{server}/{name}/{tag}")
     @Retry(maxRetries = 4)
     String getFilledPlayer(
-            @PathParam("name") @NotBlank String name, @PathParam("tag") @NotBlank String tag);
+            @PathParam("server") @NotBlank String server,
+            @PathParam("name") @NotBlank String name,
+            @PathParam("tag") @NotBlank String tag);
 }

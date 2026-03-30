@@ -6,6 +6,7 @@ import fc.ul.scrimfinder.dto.response.PlayerRankingDTO;
 import fc.ul.scrimfinder.exception.PlayerNotFoundException;
 import fc.ul.scrimfinder.service.PlayerRankingService;
 import fc.ul.scrimfinder.util.ErrorResponse;
+import io.smallrye.common.annotation.Blocking;
 import io.smallrye.common.constraint.NotNull;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
@@ -23,6 +24,7 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 @Path("/players")
+@Blocking
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 @Tag(name = "Player Ranking", description = "Operations for player MMR and ranking history")

@@ -7,7 +7,7 @@ RUN --mount=type=cache,target=/root/.m2,id=m2-matchmaking mvn dependency:go-offl
 
 COPY src /code/src
 
-RUN --mount=type=cache,target=/root/.m2,id=m2-matchmaking mvn package -DskipTests -B
+RUN --mount=type=cache,target=/root/.m2,id=m2-matchmaking mvn package -DskipTests -Dspotless.skip=true -B
 
 FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.24
 WORKDIR /deployments

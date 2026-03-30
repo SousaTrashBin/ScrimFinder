@@ -9,12 +9,12 @@ public interface DetailFillingAdapterService {
     MatchDTO getMatch(String riotMatchId)
             throws InvalidExternalJsonFormatException, ExternalServiceUnavailableException;
 
-    String getPlayerPuuid(String name, String tag)
+    String getPlayerPuuid(String server, String name, String tag)
             throws PlayerNotFoundException,
                     InvalidExternalJsonFormatException,
                     ExternalServiceUnavailableException;
 
-    Integer getPlayerIcon(String name, String tag)
+    Integer getPlayerIcon(String server, String name, String tag)
             throws PlayerNotFoundException,
                     InvalidExternalJsonFormatException,
                     ExternalServiceUnavailableException;

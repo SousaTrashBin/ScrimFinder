@@ -27,8 +27,8 @@ public class PlayerFillingController {
     @Inject PlayerFillingService playerFillingService;
 
     @GET
-    @Path("/{name}/{tag}")
-    @Operation(summary = "Get complete player information by player name and tag")
+    @Path("/{server}/{name}/{tag}")
+    @Operation(summary = "Get complete player information by server, player name and tag")
     @APIResponses(
             value = {
                 @APIResponse(
@@ -40,7 +40,7 @@ public class PlayerFillingController {
                                         schema = @Schema(implementation = PlayerDTO.class))),
                 @APIResponse(
                         responseCode = "400",
-                        description = "Invalid player ID provided",
+                        description = "Invalid server or player ID provided",
                         content =
                                 @Content(
                                         mediaType = "application/json",
@@ -83,6 +83,7 @@ public class PlayerFillingController {
             })
     @Timeout(2000)
     public Response getFilledPlayer(
+            @PathParam("server") String server,
             @PathParam("name")
                     @Size(
                             min = 3,
@@ -92,7 +93,7 @@ public class PlayerFillingController {
             @PathParam("tag")
                     @Size(min = 3, max = 5, message = "The player tag must have between 3 and 5 characters")
                     String tag) {
-        PlayerDTO player = playerFillingService.getFilledPlayer(name, tag);
+        PlayerDTO player = playerFillingService.getFilledPlayer(server, name, tag);
         return Response.ok(player).build();
     }
 }

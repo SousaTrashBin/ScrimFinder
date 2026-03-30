@@ -13,6 +13,7 @@ service ExternalPlayerFillingService {
 message PlayerRequest {
   string gameName = 1;
   string tagLine = 2;
+  string server = 3;
 }
 
 message PlayerResponse {

@@ -114,7 +114,8 @@ public class RedisServiceTest {
     public void testGetExistentPlayerFromCache() {
         final String name = "kung";
         final String tag = "foo";
-        final String playerId = String.format("%s#%s", name, tag);
+        final String server = "EUW";
+        final String playerId = String.format("%s#%s#%s", server, name, tag);
 
         final AccountDTO accountDTO = new AccountDTO("puuid", "kung", "foo");
 
@@ -127,8 +128,9 @@ public class RedisServiceTest {
 
         final PlayerDTO playerDTO = new PlayerDTO(accountDTO, regionDTO, summonerDTO, Set.of(queueDTO));
 
-        when(riotAdapterService.getPlayerData(anyString(), anyString())).thenReturn(playerDTO);
-        playerFillingService.getFilledPlayer(name, tag);
+        when(riotAdapterService.getPlayerData(anyString(), anyString(), anyString()))
+                .thenReturn(playerDTO);
+        playerFillingService.getFilledPlayer(server, name, tag);
         assertNotNull(redisService.keys(playerId));
         assertEquals(1, redisService.keys(playerId).size());
         assertEquals(playerDTO, redisService.get(playerId, PlayerDTO.class).get());

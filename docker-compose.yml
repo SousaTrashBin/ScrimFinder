@@ -125,6 +125,7 @@ services:
     environment:
       REDIS_URL: redis://redis:6379
       QUARKUS_REDIS_HOSTS: redis://redis:6379
+      RIOT_API_KEY: "${RIOT_API_KEY}"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.filling.rule=PathPrefix(`/api/v1/riot`)"

@@ -10,6 +10,7 @@ import fc.ul.scrimfinder.mapper.PlayerMapper;
 import fc.ul.scrimfinder.repository.PlayerRepository;
 import fc.ul.scrimfinder.service.PlayerService;
 import io.quarkus.grpc.GrpcClient;
+import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -18,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 @Slf4j
+@Blocking
 @ApplicationScoped
 public class PlayerServiceImpl implements PlayerService {
 

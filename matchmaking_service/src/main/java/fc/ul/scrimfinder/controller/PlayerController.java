@@ -3,6 +3,7 @@ package fc.ul.scrimfinder.controller;
 import fc.ul.scrimfinder.dto.response.PlayerDTO;
 import fc.ul.scrimfinder.service.PlayerService;
 import fc.ul.scrimfinder.util.ErrorResponse;
+import io.smallrye.common.annotation.Blocking;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -16,6 +17,7 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 @Path("/players")
+@Blocking
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 @Tag(

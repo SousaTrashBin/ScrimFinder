@@ -17,16 +17,6 @@ else
     exit 1
 fi
 
-echo "building and starting system using $DOCKER_COMPOSE..."
-
-echo "applying code formatting ..."
-for service in matchmaking_service ranking_service match_history_service detail_filling_service; do
-    if [ -f "$service/mvnw" ]; then
-        echo "formatting $service..."
-        (cd "$service" && ./mvnw spotless:apply -B -q)
-    fi
-done
-
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
 

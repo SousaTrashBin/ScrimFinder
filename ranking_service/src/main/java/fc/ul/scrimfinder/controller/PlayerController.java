@@ -4,6 +4,7 @@ import fc.ul.scrimfinder.dto.response.PlayerDTO;
 import fc.ul.scrimfinder.service.PlayerService;
 import fc.ul.scrimfinder.util.ErrorResponse;
 import fc.ul.scrimfinder.util.Region;
+import io.smallrye.common.annotation.Blocking;
 import jakarta.inject.Inject;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -19,6 +20,7 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 @Path("/players")
+@Blocking
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 @Tag(
@@ -51,6 +53,31 @@ public class PlayerController {
             @QueryParam("id") @NotNull UUID id, @QueryParam("username") @NotBlank String username) {
         var player = playerService.createPlayer(id, username);
         return Response.status(Response.Status.CREATED).entity(player).build();
+    }
+
+    @GET
+    @Path("/{playerId}")
+    @Operation(summary = "Get player details")
+    @APIResponses(
+            value = {
+                @APIResponse(
+                        responseCode = "200",
+                        description = "Player found",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = PlayerDTO.class))),
+                @APIResponse(
+                        responseCode = "404",
+                        description = "Player not found",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = ErrorResponse.class)))
+            })
+    public Response getPlayer(@PathParam("playerId") @NotNull UUID playerId) {
+        var player = playerService.getPlayer(playerId);
+        return Response.ok(player).build();
     }
 
     @PUT

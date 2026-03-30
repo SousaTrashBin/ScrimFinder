@@ -15,6 +15,7 @@ import fc.ul.scrimfinder.util.MMRConverter;
 import fc.ul.scrimfinder.util.Region;
 import fc.ul.scrimfinder.util.Tier;
 import io.quarkus.grpc.GrpcClient;
+import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -25,6 +26,7 @@ import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.faulttolerance.Timeout;
 
 @Slf4j
+@Blocking
 @ApplicationScoped
 public class PlayerServiceImpl implements PlayerService {
 
@@ -56,6 +58,20 @@ public class PlayerServiceImpl implements PlayerService {
     }
 
     @Override
+    public PlayerDTO getPlayer(UUID id) {
+        log.debug("Fetching player profile with ID: {}", id);
+        Player player =
+                playerRepository
+                        .findByIdOptional(id)
+                        .orElseThrow(
+                                () -> {
+                                    log.warn("Player profile fetch failed: ID {} not found", id);
+                                    return new PlayerNotFoundException("Player not found: " + id);
+                                });
+        return playerMapper.toDTO(player);
+    }
+
+    @Override
     @Transactional
     @Retry(maxRetries = 3, delay = 500)
     @Timeout(3000)
@@ -76,7 +92,11 @@ public class PlayerServiceImpl implements PlayerService {
             externalPlayer =
                     playerFillingClient
                             .getPlayer(
-                                    PlayerRequest.newBuilder().setGameName(gameName).setTagLine(tagLine).build())
+                                    PlayerRequest.newBuilder()
+                                            .setGameName(gameName)
+                                            .setTagLine(tagLine)
+                                            .setServer(region.getDisplayName())
+                                            .build())
                             .await()
                             .indefinitely();
             log.info("Verified Riot account {}#{} via External Service", gameName, tagLine);
@@ -182,6 +202,7 @@ public class PlayerServiceImpl implements PlayerService {
                                     PlayerRequest.newBuilder()
                                             .setGameName(primaryAccount.getGameName())
                                             .setTagLine(primaryAccount.getTagLine())
+                                            .setServer(primaryAccount.getRegion().getDisplayName())
                                             .build())
                             .await()
                             .indefinitely();
@@ -192,7 +213,7 @@ public class PlayerServiceImpl implements PlayerService {
                             entry -> {
                                 RankDTO rankDTO =
                                         new RankDTO(
-                                                Tier.valueOf(entry.getTier()),
+                                                Tier.valueOf(entry.getTier().toUpperCase()),
                                                 parseDivision(entry.getRank()),
                                                 entry.getLeaguePoints());
                                 if ("RANKED_SOLO_5x5".equals(entry.getQueueType())) {
