@@ -3,21 +3,31 @@ package fc.ul.scrimfinder.client;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.client.ClientRequestContext;
 import jakarta.ws.rs.client.ClientRequestFilter;
+import jakarta.ws.rs.client.ClientResponseContext;
+import jakarta.ws.rs.client.ClientResponseFilter;
 import jakarta.ws.rs.core.UriBuilder;
-import lombok.Getter;
-import lombok.Setter;
 
-@Getter
-@Setter
 @ApplicationScoped
-public class ClientUrlPrefixProvider implements ClientRequestFilter {
-    String prefix;
+public class ClientUrlPrefixProvider implements ClientRequestFilter, ClientResponseFilter {
+    private static final ThreadLocal<String> PREFIX = new ThreadLocal<>();
+
+    public void setPrefix(String prefix) {
+        PREFIX.set(prefix);
+    }
 
     @Override
     public void filter(ClientRequestContext requestContext) {
-        requestContext.setUri(
-                UriBuilder.fromUri(
-                                String.format("https://%s.%s", prefix, requestContext.getUri().toString()))
-                        .build());
+        String prefix = PREFIX.get();
+        if (prefix != null) {
+            requestContext.setUri(
+                    UriBuilder.fromUri(requestContext.getUri())
+                            .host(String.format("%s.%s", prefix, requestContext.getUri().getHost()))
+                            .build());
+        }
+    }
+
+    @Override
+    public void filter(ClientRequestContext requestContext, ClientResponseContext responseContext) {
+        PREFIX.remove();
     }
 }

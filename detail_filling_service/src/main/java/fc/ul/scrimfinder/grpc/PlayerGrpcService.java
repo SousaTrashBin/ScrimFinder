@@ -3,12 +3,14 @@ package fc.ul.scrimfinder.grpc;
 import fc.ul.scrimfinder.dto.response.player.PlayerDTO;
 import fc.ul.scrimfinder.service.PlayerFillingService;
 import io.quarkus.grpc.GrpcService;
+import io.smallrye.common.annotation.Blocking;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import java.util.stream.Collectors;
 import org.eclipse.microprofile.faulttolerance.Timeout;
 
 @GrpcService
+@Blocking
 public class PlayerGrpcService implements ExternalPlayerFillingService {
 
     @Inject PlayerFillingService playerFillingService;
@@ -20,7 +22,8 @@ public class PlayerGrpcService implements ExternalPlayerFillingService {
                 .item(
                         () -> {
                             PlayerDTO player =
-                                    playerFillingService.getFilledPlayer(request.getGameName(), request.getTagLine());
+                                    playerFillingService.getFilledPlayer(
+                                            request.getServer(), request.getGameName(), request.getTagLine());
 
                             return PlayerResponse.newBuilder()
                                     .setPuuid(player.account().puuid())

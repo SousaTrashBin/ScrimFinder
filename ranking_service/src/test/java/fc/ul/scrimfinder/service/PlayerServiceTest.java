@@ -147,6 +147,7 @@ public class PlayerServiceTest {
         ra.setPrimary(true);
         ra.setGameName("Name");
         ra.setTagLine("TAG");
+        ra.setRegion(Region.EUW);
         p.getRiotAccounts().add(ra);
 
         when(playerRepository.findByIdOptional(pid)).thenReturn(Optional.of(p));

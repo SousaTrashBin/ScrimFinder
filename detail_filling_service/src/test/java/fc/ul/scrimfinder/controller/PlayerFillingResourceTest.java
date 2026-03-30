@@ -10,7 +10,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fc.ul.scrimfinder.client.RiotAccountServiceClient;
 import fc.ul.scrimfinder.client.RiotPlayerServiceClient;
-import fc.ul.scrimfinder.client.RiotRegionServiceClient;
 import fc.ul.scrimfinder.client.RiotSummonerServiceClient;
 import fc.ul.scrimfinder.dto.response.player.*;
 import fc.ul.scrimfinder.redis.RedisService;
@@ -34,8 +33,6 @@ public class PlayerFillingResourceTest {
 
     @InjectMock @RestClient RiotAccountServiceClient riotAccountServiceClient;
 
-    @InjectMock @RestClient RiotRegionServiceClient riotRegionServiceClient;
-
     @InjectMock @RestClient RiotSummonerServiceClient riotSummonerServiceClient;
 
     @InjectMock @RestClient RiotPlayerServiceClient riotPlayerServiceClient;
@@ -46,6 +43,7 @@ public class PlayerFillingResourceTest {
     @Order(1)
     public void testGetPlayerFillEndpoint() throws JsonProcessingException {
         final String path = "/players";
+        final String server = "EUW";
 
         final String puuid = UUID.randomUUID().toString();
 
@@ -57,9 +55,6 @@ public class PlayerFillingResourceTest {
                         .build()
                         .toString();
 
-        final String regionRiotDTO =
-                Json.createObjectBuilder().add("region", "euw1").build().toString();
-
         final String summonerRiotDTO =
                 Json.createObjectBuilder()
                         .add("profileIconId", 1)
@@ -68,18 +63,18 @@ public class PlayerFillingResourceTest {
                         .toString();
 
         final String playerQueueStatsRiotDTO =
-                Set.of(
-                                Json.createObjectBuilder()
-                                        .add("queueType", "RANKED_FOO")
-                                        .add("tier", "emerald")
-                                        .add("rank", "I")
-                                        .add("leaguePoints", 5L)
-                                        .add("wins", 0)
-                                        .add("losses", 30)
-                                        .add("hotStreak", false)
-                                        .build()
-                                        .toString())
-                        .toString();
+                "["
+                        + Json.createObjectBuilder()
+                                .add("queueType", "RANKED_FOO")
+                                .add("tier", "emerald")
+                                .add("rank", "I")
+                                .add("leaguePoints", 5L)
+                                .add("wins", 0)
+                                .add("losses", 30)
+                                .add("hotStreak", false)
+                                .build()
+                                .toString()
+                        + "]";
 
         final AccountDTO accountDTO = new AccountDTO(puuid, "kung", "foo");
 
@@ -93,7 +88,6 @@ public class PlayerFillingResourceTest {
         final PlayerDTO playerDTO = new PlayerDTO(accountDTO, regionDTO, summonerDTO, Set.of(queueDTO));
 
         when(riotAccountServiceClient.getByRiotId(anyString(), anyString())).thenReturn(accountRiotDTO);
-        when(riotRegionServiceClient.getActiveRegion(anyString())).thenReturn(regionRiotDTO);
         when(riotSummonerServiceClient.getByAccessToken(anyString())).thenReturn(summonerRiotDTO);
         when(riotPlayerServiceClient.getLeagueEntriesByPUUID(anyString()))
                 .thenReturn(playerQueueStatsRiotDTO);
@@ -101,7 +95,7 @@ public class PlayerFillingResourceTest {
 
         given()
                 .when()
-                .get(String.format("%s/%s/%s", path, accountDTO.name(), accountDTO.tag()))
+                .get(String.format("%s/%s/%s/%s", path, server, accountDTO.name(), accountDTO.tag()))
                 .then()
                 .statusCode(200)
                 .body(is(new ObjectMapper().writeValueAsString(playerDTO)));

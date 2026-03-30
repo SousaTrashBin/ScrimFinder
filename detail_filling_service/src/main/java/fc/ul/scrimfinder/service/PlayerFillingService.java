@@ -6,7 +6,7 @@ import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
 
 public interface PlayerFillingService {
     @CircuitBreaker(skipOn = {PlayerNotFoundException.class})
-    PlayerDTO getFilledPlayer(String name, String tag)
+    PlayerDTO getFilledPlayer(String server, String name, String tag)
             throws PlayerNotFoundException,
                     InvalidPlayerFormatException,
                     UnauthorizedException,

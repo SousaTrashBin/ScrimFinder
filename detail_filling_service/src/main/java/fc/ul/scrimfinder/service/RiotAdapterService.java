@@ -21,7 +21,7 @@ public interface RiotAdapterService {
                     UnauthorizedException,
                     ExternalServiceUnavailableException;
 
-    PlayerDTO getPlayerData(String name, String tag)
+    PlayerDTO getPlayerData(String server, String name, String tag)
             throws PlayerNotFoundException,
                     InvalidPlayerFormatException,
                     UnauthorizedException,

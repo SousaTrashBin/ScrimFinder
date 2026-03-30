@@ -23,17 +23,18 @@ public class PlayerFillingServiceImpl implements PlayerFillingService {
     @Inject Logger logger;
 
     @Override
-    public PlayerDTO getFilledPlayer(String name, String tag) {
+    public PlayerDTO getFilledPlayer(String server, String name, String tag) {
         logger.info(
                 ColoredMessage.withColor(
-                        String.format("GET player from Riot with name %s and tag %s", name, tag),
+                        String.format(
+                                "GET player from Riot with name %s and tag %s on server %s", name, tag, server),
                         LogColor.GREEN));
-        String playerRedisKey = String.format("%s#%s", name, tag);
+        String playerRedisKey = String.format("%s#%s#%s", server, name, tag);
         return redisService
                 .get(playerRedisKey, PlayerDTO.class)
                 .orElseGet(
                         () -> {
-                            PlayerDTO player = riotAdapterService.getPlayerData(name, tag);
+                            PlayerDTO player = riotAdapterService.getPlayerData(server, name, tag);
                             redisService.set(playerRedisKey, player, config.redisCachePlayerKeyTtl());
                             return player;
                         });

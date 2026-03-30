@@ -30,8 +30,6 @@ public class RiotAdapterServiceImpl implements RiotAdapterService {
 
     @Inject @RestClient RiotMatchServiceClient matchServiceClient;
 
-    @Inject @RestClient RiotRegionServiceClient regionServiceClient;
-
     @Inject @RestClient RiotSummonerServiceClient summonerServiceClient;
 
     @Inject ClientUrlPrefixProvider clientUrlPrefixProvider;
@@ -72,9 +70,15 @@ public class RiotAdapterServiceImpl implements RiotAdapterService {
     }
 
     @Override
-    public PlayerDTO getPlayerData(String name, String tag) {
-        AccountDTO account = getAccountData(name, tag);
-        RegionDTO region = getRegionData(account.puuid());
+    public PlayerDTO getPlayerData(String server, String name, String tag) {
+        Subregion subregion = Subregion.fromServerName(server);
+        if (subregion == null) {
+            throw new InvalidPlayerFormatException("Invalid server: " + server);
+        }
+
+        AccountDTO account = getAccountData(name, tag, subregion.toRegion().getRegionName());
+        RegionDTO region =
+                new RegionDTO(subregion.toRegion().getRegionName(), subregion.getSubRegionName());
         SummonerDTO summoner = getSummonerData(account.puuid(), region.subregion());
 
         logger.info(
@@ -95,27 +99,17 @@ public class RiotAdapterServiceImpl implements RiotAdapterService {
         return new PlayerDTO(account, region, summoner, queues);
     }
 
-    private AccountDTO getAccountData(String name, String tag) {
+    private AccountDTO getAccountData(String name, String tag, String region) {
         logger.info(
                 ColoredMessage.withColor(
-                        String.format("Fetch account data for player %s#%s", name, tag), LogColor.GREEN));
+                        String.format("Fetch account data for player %s#%s in region %s", name, tag, region),
+                        LogColor.GREEN));
+        clientUrlPrefixProvider.setPrefix(region);
         String rawAccount = accountServiceClient.getByRiotId(name, tag);
         return RiotMapper.toAccountDTO(
                 Objects.requireNonNull(
                                 new JsonNodeFinder(null)
                                         .fromStringOrThrow(rawAccount, InvalidPlayerFormatException.class))
-                        .jsonNode());
-    }
-
-    private RegionDTO getRegionData(String puuid) {
-        logger.info(
-                ColoredMessage.withColor(
-                        String.format("Fetch region data for player %s", puuid), LogColor.GREEN));
-        String rawRegion = regionServiceClient.getActiveRegion(puuid);
-        return RiotMapper.toRegionDTO(
-                Objects.requireNonNull(
-                                new JsonNodeFinder(null)
-                                        .fromStringOrThrow(rawRegion, InvalidPlayerFormatException.class))
                         .jsonNode());
     }
 

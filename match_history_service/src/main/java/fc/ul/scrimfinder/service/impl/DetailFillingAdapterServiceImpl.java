@@ -26,13 +26,14 @@ public class DetailFillingAdapterServiceImpl implements DetailFillingAdapterServ
     }
 
     @Override
-    public String getPlayerPuuid(String name, String tag) {
-        return mapToPlayerPuuidFromDetailFilling(detailFillingClient.getFilledPlayer(name, tag));
+    public String getPlayerPuuid(String server, String name, String tag) {
+        return mapToPlayerPuuidFromDetailFilling(
+                detailFillingClient.getFilledPlayer(server, name, tag));
     }
 
     @Override
-    public Integer getPlayerIcon(String name, String tag) {
-        return mapToPlayerIconFromDetailFilling(detailFillingClient.getFilledPlayer(name, tag));
+    public Integer getPlayerIcon(String server, String name, String tag) {
+        return mapToPlayerIconFromDetailFilling(detailFillingClient.getFilledPlayer(server, name, tag));
     }
 
     private MatchDTO mapToMatchFromDetailFilling(String json) {
