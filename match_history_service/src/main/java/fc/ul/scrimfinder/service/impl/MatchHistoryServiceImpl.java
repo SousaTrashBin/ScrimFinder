@@ -13,10 +13,10 @@ import fc.ul.scrimfinder.mapper.PlayerMatchStatsMapper;
 import fc.ul.scrimfinder.repository.MatchHistoryRepository;
 import fc.ul.scrimfinder.repository.PlayerMatchStatsRepository;
 import fc.ul.scrimfinder.repository.PlayerRepository;
-import fc.ul.scrimfinder.service.AnalysisAdapterService;
 import fc.ul.scrimfinder.service.DetailFillingAdapterService;
 import fc.ul.scrimfinder.service.MatchFilterSorterService;
 import fc.ul.scrimfinder.service.MatchHistoryService;
+import fc.ul.scrimfinder.service.TrainingAdapterService;
 import fc.ul.scrimfinder.util.ColoredMessage;
 import fc.ul.scrimfinder.util.LogColor;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -34,7 +34,7 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
 
     @Inject DetailFillingAdapterService detailFillingAdapterService;
 
-    @Inject AnalysisAdapterService analysisAdapterService;
+    @Inject TrainingAdapterService trainingAdapterService;
 
     @Inject MatchHistoryRepository matchHistoryRepository;
 
@@ -110,6 +110,7 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
                             "This match has %d players but only %d MMR deltas were provided",
                             matchDTO.getPlayers().size(), playerMMRGains.size()));
         }
+        logger.warn(matchDTO);
 
         matchDTO
                 .getPlayers()
@@ -146,7 +147,7 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
         matchHistoryRepository.persist(match); // cascade to all player stats as well
 
         try {
-            if (!analysisAdapterService.sendMatchForAnalysis(matchDTO)) {
+            if (!trainingAdapterService.sendMatchForAnalysis(riotMatchId)) {
                 logger.warn(
                         ColoredMessage.withColor(
                                 String.format("Failed to send match %s to the analysis service", riotMatchId),

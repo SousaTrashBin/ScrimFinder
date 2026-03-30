@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package fc.ul.scrimfinder.grpc;
+
+option java_multiple_files = true;
+option java_package = "fc.ul.scrimfinder.grpc";
+option java_outer_classname = "TrainingProto";
+
+service TrainingService {
+  rpc ForwardMatch (ForwardMatchRequest) returns (ForwardMatchResponse);
+}
+
+message ForwardMatchRequest {
+  string matchId = 1;
+}
+
+message ForwardMatchResponse {
+  bool success = 1;
+  string message = 2;
+}

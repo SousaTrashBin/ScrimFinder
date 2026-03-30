@@ -8,15 +8,13 @@ import fc.ul.scrimfinder.util.RiotId;
 import fc.ul.scrimfinder.util.Role;
 import fc.ul.scrimfinder.util.TeamSide;
 import jakarta.enterprise.inject.Vetoed;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
+@Data
 @Vetoed
 public class PlayerStatsDTO {
     private RiotId riotId;

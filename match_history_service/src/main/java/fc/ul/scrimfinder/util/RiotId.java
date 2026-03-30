@@ -1,15 +1,13 @@
 package fc.ul.scrimfinder.util;
 
 import jakarta.enterprise.inject.Vetoed;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Data
 @Vetoed
 public class RiotId {
     private String puuid;

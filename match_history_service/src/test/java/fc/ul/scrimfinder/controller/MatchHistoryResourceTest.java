@@ -3,11 +3,11 @@ package fc.ul.scrimfinder.controller;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fc.ul.scrimfinder.client.AnalysisClient;
 import fc.ul.scrimfinder.dto.request.PlayerStatsDTO;
 import fc.ul.scrimfinder.dto.request.TeamStatsDTO;
 import fc.ul.scrimfinder.dto.request.filtering.MatchFilters;
@@ -16,6 +16,7 @@ import fc.ul.scrimfinder.dto.request.filtering.TeamFilters;
 import fc.ul.scrimfinder.dto.response.MatchDTO;
 import fc.ul.scrimfinder.dto.response.PaginatedResponseDTO;
 import fc.ul.scrimfinder.service.DetailFillingAdapterService;
+import fc.ul.scrimfinder.service.TrainingAdapterService;
 import fc.ul.scrimfinder.util.Champion;
 import fc.ul.scrimfinder.util.RiotId;
 import fc.ul.scrimfinder.util.Role;
@@ -28,7 +29,6 @@ import io.restassured.http.ContentType;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -38,7 +38,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class MatchHistoryResourceTest {
 
-    @InjectMock @RestClient AnalysisClient analysisClient;
+    @InjectMock TrainingAdapterService trainingAdapterService;
 
     @InjectMock DetailFillingAdapterService detailFillingAdapterService;
 
@@ -316,7 +316,7 @@ public class MatchHistoryResourceTest {
                         "HsNHWkClaNLYjltBCQYa5mJ_UA9Nzm_QwWXbJBFN0kVsJIL5NV57eEgDmzGvie4v02FVRcZ20dZ4Ig", -4,
                         "69SHi68G5IHp3HnB8GahSVsh_UfAh0qu1FwKnV2WaRd-qQ5gcwOcHZ1aXfPasS51Q9Iv63S-QM9a7w", -5);
 
-        when(analysisClient.createMatch(any())).thenReturn(new MatchDTO());
+        when(trainingAdapterService.sendMatchForAnalysis(anyString())).thenReturn(true);
         when(detailFillingAdapterService.getMatch(any())).thenReturn(expectedMatchDTO);
 
         given()
@@ -349,7 +349,7 @@ public class MatchHistoryResourceTest {
                         "HsNHWkClaNLYjltBCQYa5mJ_UA9Nzm_QwWXbJBFN0kVsJIL5NV57eEgDmzGvie4v02FVRcZ20dZ4Ig", -4,
                         "69SHi68G5IHp3HnB8GahSVsh_UfAh0qu1FwKnV2WaRd-qQ5gcwOcHZ1aXfPasS51Q9Iv63S-QM9a7w", -5);
 
-        when(analysisClient.createMatch(any())).thenReturn(new MatchDTO());
+        when(trainingAdapterService.sendMatchForAnalysis(anyString())).thenReturn(true);
         when(detailFillingAdapterService.getMatch(any())).thenReturn(expectedMatchDTO);
 
         given()

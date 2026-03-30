@@ -4,16 +4,14 @@ import fc.ul.scrimfinder.dto.request.PlayerStatsDTO;
 import fc.ul.scrimfinder.dto.request.TeamStatsDTO;
 import java.util.List;
 import java.util.UUID;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
+@Data
 public class MatchDTO {
     private String riotMatchId;
     private UUID queueId;
