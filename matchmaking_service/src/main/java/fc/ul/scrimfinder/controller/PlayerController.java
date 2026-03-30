@@ -26,7 +26,6 @@ public class PlayerController {
     @Inject PlayerService playerService;
 
     @POST
-    @Path("/{id}")
     @Operation(
             summary = "Create a new player and register in Ranking Service",
             description = "Atomic operation: rolls back local creation if remote registration fails.")
@@ -54,8 +53,8 @@ public class PlayerController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    public Response createPlayer(@PathParam("id") UUID id, @QueryParam("username") String username) {
-        PlayerDTO player = playerService.createPlayer(id, username);
+    public Response createPlayer(@QueryParam("username") String username) {
+        PlayerDTO player = playerService.createPlayer(username);
         return Response.status(Response.Status.CREATED).entity(player).build();
     }
 

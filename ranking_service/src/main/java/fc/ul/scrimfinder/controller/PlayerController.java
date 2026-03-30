@@ -82,12 +82,48 @@ public class PlayerController {
             })
     public Response linkLolAccount(
             @PathParam("playerId") @NotNull UUID playerId,
-            @QueryParam("puuid") @NotBlank String puuid,
+            @QueryParam("puuid") String puuid,
             @QueryParam("gameName") @NotBlank String gameName,
             @QueryParam("tagLine") @NotBlank String tagLine,
             @QueryParam("region") @NotNull Region region) {
         var updatedPlayer = playerService.linkLolAccount(playerId, puuid, gameName, tagLine, region);
         return Response.ok(updatedPlayer).build();
+    }
+
+    @POST
+    @Path("/{playerId}/link")
+    @Operation(summary = "Link a League of Legends account to a player (Alias for /link-lol-account)")
+    @APIResponses(
+            value = {
+                @APIResponse(
+                        responseCode = "200",
+                        description = "Account successfully linked",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = PlayerDTO.class))),
+                @APIResponse(
+                        responseCode = "400",
+                        description = "Invalid account info or already linked",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = ErrorResponse.class))),
+                @APIResponse(
+                        responseCode = "404",
+                        description = "Player not found",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = ErrorResponse.class)))
+            })
+    public Response linkLolAccountAlias(
+            @PathParam("playerId") @NotNull UUID playerId,
+            @QueryParam("puuid") String puuid,
+            @QueryParam("gameName") @NotBlank String gameName,
+            @QueryParam("tagLine") @NotBlank String tagLine,
+            @QueryParam("region") @NotNull Region region) {
+        return linkLolAccount(playerId, puuid, gameName, tagLine, region);
     }
 
     @PUT

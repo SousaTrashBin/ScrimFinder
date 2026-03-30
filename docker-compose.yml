@@ -66,6 +66,7 @@ services:
       QUARKUS_DATASOURCE_USERNAME: postgres
       QUARKUS_DATASOURCE_PASSWORD: postgres
       QUARKUS_REDIS_HOSTS: redis://redis:6379
+      RANKING_SERVICE_URL: http://ranking-service:8080
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.matchmaking.rule=PathPrefix(`/api/v1/matchmaking`)"
@@ -85,6 +86,8 @@ services:
       QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://ranking-db:5432/ranking
       QUARKUS_DATASOURCE_USERNAME: postgres
       QUARKUS_DATASOURCE_PASSWORD: postgres
+      DETAIL_FILLING_SERVICE_URL: http://detail-filling-service:8080
+      MATCH_HISTORY_SERVICE_URL: http://match-history-service:8080
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.ranking.rule=PathPrefix(`/api/v1/ranking`)"
@@ -102,6 +105,11 @@ services:
       QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://history-db:5432/history
       QUARKUS_DATASOURCE_USERNAME: postgres
       QUARKUS_DATASOURCE_PASSWORD: postgres
+      DB_URL: jdbc:postgresql://history-db:5432/history
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DETAIL_FILLING_SERVICE_URL: http://detail-filling-service:8080
+      ANALYSIS_SERVICE_URL: http://analysis-service:8001
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.history.rule=PathPrefix(`/api/v1/history`)"
@@ -115,6 +123,7 @@ services:
       context: ./detail_filling_service
       dockerfile: Dockerfile
     environment:
+      REDIS_URL: redis://redis:6379
       QUARKUS_REDIS_HOSTS: redis://redis:6379
     labels:
       - "traefik.enable=true"

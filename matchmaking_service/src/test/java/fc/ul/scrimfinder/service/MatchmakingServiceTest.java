@@ -243,6 +243,21 @@ public class MatchmakingServiceTest {
                 });
     }
 
+    @Test
+    void testJoinQueue_NoLinkedAccount() {
+        Queue queue = createQueue("Quick Queue", 2, MatchmakingMode.NORMAL);
+        Player p1 = createPlayer("P1");
+
+        when(rankingServiceClient.getPlayerRanking(any(UUID.class), any(UUID.class)))
+                .thenReturn(List.of());
+
+        assertThrows(
+                fc.ul.scrimfinder.exception.LeagueAccountNotLinkedException.class,
+                () -> {
+                    matchmakingService.joinQueue(new JoinQueueRequest(p1.getId(), queue.getId(), null));
+                });
+    }
+
     private Queue createQueue(String name, int requiredPlayers, MatchmakingMode mode) {
         Queue queue = new Queue();
         queue.setName(name);
