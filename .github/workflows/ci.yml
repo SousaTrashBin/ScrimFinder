@@ -29,6 +29,8 @@ jobs:
       with:
         java-version: '21'
         distribution: 'temurin'
+        cache: 'maven'
+        cache-dependency-path: ${{ matrix.service }}/pom.xml
 
     - name: check formatting
       run: |
@@ -61,6 +63,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: 'pip'
+          cache-dependency-path: ${{ matrix.service }}/requirements.txt
 
       - name: install dependencies
         run: |
