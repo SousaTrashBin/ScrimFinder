@@ -62,6 +62,7 @@ def _fetch_raw_match(match_id: str) -> dict:
 # startup failures if the .proto hasn't been compiled yet.
 try:
     from training_service import training_service_pb2_grpc
+
     _BaseServicer = training_service_pb2_grpc.TrainingServiceServicer
 except ImportError:
     _BaseServicer = object
@@ -81,7 +82,9 @@ class TrainingServiceServicer(_BaseServicer):
 
         match_id = request.match_id
         source = request.source or "matchmaking"
-        print(f"[gRPC] Received ForwardMatch for {match_id} (source={source})", flush=True)
+        print(
+            f"[gRPC] Received ForwardMatch for {match_id} (source={source})", flush=True
+        )
 
         try:
             # 1. Fetch raw Riot JSON from detail_filling_service
@@ -112,7 +115,9 @@ class TrainingServiceServicer(_BaseServicer):
 
             # Store draft features
             if features.get("draft") and features["draft"].get("valid"):
-                db.upsert_features(match_id, "draft", [features["draft"]], ["draft_raw"])
+                db.upsert_features(
+                    match_id, "draft", [features["draft"]], ["draft_raw"]
+                )
                 draft_ok = True
 
             # Store build features (one per player)
@@ -148,6 +153,7 @@ class TrainingServiceServicer(_BaseServicer):
         except Exception as e:
             print(f"[gRPC] Error processing match {match_id}: {e}", flush=True)
             import traceback
+
             traceback.print_exc()
             return ForwardMatchResponse(
                 success=False,
