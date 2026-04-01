@@ -15,10 +15,12 @@ init_db()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("LIFESPAN STARTED", flush=True)
-    from training_service.grpc_server import start_background_server
+    from training_service.grpc_server import start_background_server, stop_server
 
     start_background_server()
     yield
+    print("LIFESPAN ENDED - Stopping gRPC", flush=True)
+    stop_server(grace=1)
 
 
 app = FastAPI(

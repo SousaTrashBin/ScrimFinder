@@ -27,12 +27,13 @@ import grpc
 from training_service.core import db
 
 _server = None
+
 # ── gRPC port ─────────────────────────────────────────────────
 GRPC_PORT = int(os.environ.get("GRPC_PORT", 50051))
 
 # ── Detail Filling Service URL ────────────────────────────────
 DETAIL_FILLING_URL = os.environ.get(
-    "DETAIL_FILLING_URL", "http://detail_filling_service:8080/api/v1/riot"
+    "DETAIL_FILLING_URL", "http://detail-filling-service:8080/api/v1/riot"
 )
 
 
@@ -42,26 +43,33 @@ def _fetch_raw_match(match_id: str) -> dict:
     GET /matches/{matchId}/raw
     """
     import urllib.request
+    from urllib.parse import quote
 
-    url = f"{DETAIL_FILLING_URL}/matches/{match_id}/raw"
+    url = f"{DETAIL_FILLING_URL}/matches/{quote(match_id)}/raw"
     try:
+        print(f"[gRPC] Fetching raw match from: {url}", flush=True)
         with urllib.request.urlopen(url, timeout=30) as resp:
             return json.loads(resp.read().decode())
     except Exception as e:
         raise RuntimeError(
-            f"Failed to fetch match {match_id} from detail_filling_service: {e}"
+            f"Failed to fetch match {match_id} from detail_filling_service at {url}: {e}"
         )
 
 
 # ── Servicer ──────────────────────────────────────────────────
 
+# We import the base class inside a function or use a try-except to avoid
+# startup failures if the .proto hasn't been compiled yet.
+try:
+    from training_service import training_service_pb2_grpc
+    _BaseServicer = training_service_pb2_grpc.TrainingServiceServicer
+except ImportError:
+    _BaseServicer = object
 
-class TrainingServiceServicer:
+
+class TrainingServiceServicer(_BaseServicer):
     """
     Implements the TrainingService gRPC interface.
-    Uses the generated pb2 types but works without them
-    for IDE compatibility — the actual pb2 import happens
-    at server start time.
     """
 
     def ForwardMatch(self, request, context):
@@ -104,29 +112,26 @@ class TrainingServiceServicer:
 
             # Store draft features
             if features.get("draft") and features["draft"].get("valid"):
-                draft_vec = json.dumps(features["draft"])
-                db.upsert_features(match_id, "draft", [draft_vec], ["draft_raw"])
+                db.upsert_features(match_id, "draft", [features["draft"]], ["draft_raw"])
                 draft_ok = True
 
             # Store build features (one per player)
             if features.get("build"):
-                build_vecs = [json.dumps(b) for b in features["build"]]
                 db.upsert_features(
                     match_id,
                     "build",
-                    build_vecs,
-                    [f"player_{i}" for i in range(len(build_vecs))],
+                    features["build"],
+                    [f"player_{i}" for i in range(len(features["build"]))],
                 )
                 build_ok = True
 
             # Store performance features (one per player)
             if features.get("performance"):
-                perf_vecs = [json.dumps(p) for p in features["performance"]]
                 db.upsert_features(
                     match_id,
                     "performance",
-                    perf_vecs,
-                    [f"player_{i}" for i in range(len(perf_vecs))],
+                    features["performance"],
+                    [f"player_{i}" for i in range(len(features["performance"]))],
                 )
                 perf_ok = True
 
@@ -196,10 +201,10 @@ class TrainingServiceServicer:
             return HealthCheckResponse(healthy=False, message=str(e))
 
 
-# ── Server startup ────────────────────────────────────────────
+# ── Server management ──────────────────────────────────────────
 
 
-def serve(block: bool = True) -> grpc.Server:
+def start_server(block: bool = False) -> grpc.Server:
     """
     Start the gRPC server.
 
@@ -210,73 +215,66 @@ def serve(block: bool = True) -> grpc.Server:
     Returns:
         The running grpc.Server instance.
     """
+    global _server
+
+    if _server is not None:
+        print("[gRPC] Server already running.")
+        return _server
+
     try:
         from training_service import training_service_pb2_grpc
     except ImportError:
         print(
-            "[gRPC] WARNING: training_service_pb2_grpc not found. "
+            "[gRPC] ERROR: training_service_pb2_grpc not found. "
             "Run: python -m grpc_tools.protoc -I proto "
             "--python_out=. --grpc_python_out=. proto/training_service.proto"
         )
         return None
 
+    port = int(os.environ.get("GRPC_PORT", 50051))
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     training_service_pb2_grpc.add_TrainingServiceServicer_to_server(
         TrainingServiceServicer(), server
     )
-    server.add_insecure_port(f"[::]:{GRPC_PORT}")
+
+    # Use 0.0.0.0 for better compatibility with Windows and standard networking
+    # [::] can sometimes be restrictive on Windows if IPv6 isn't perfect
+    server.add_insecure_port(f"0.0.0.0:{port}")
     server.start()
-    print(f"[gRPC] Training Service listening on port {GRPC_PORT}")
+    _server = server
+
+    print(f"[gRPC] Training Service listening on port {port}", flush=True)
 
     if block:
         server.wait_for_termination()
+
     return server
+
+
+def stop_server(grace: int = 0):
+    """Gracefully stop the gRPC server."""
+    global _server
+    if _server is not None:
+        print("[gRPC] Stopping server...", flush=True)
+        _server.stop(grace)
+        _server = None
 
 
 def start_background_server():
     """
     Start the gRPC server in a background thread.
-    Keeps the thread alive via wait_for_termination() so the server continues listening.
+    Used for FastAPI lifespan integration.
     """
-    global _server
-
-    if _server is not None:
-        return  # already running
-
-    def _run_server():
-        try:
-            import os
-            from concurrent import futures
-
-            import grpc
-
-            from training_service import training_service_pb2_grpc
-
-            port = int(os.environ.get("GRPC_PORT", 50051))
-
-            _server_local = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-
-            training_service_pb2_grpc.add_TrainingServiceServicer_to_server(
-                TrainingServiceServicer(), _server_local
-            )
-
-            # Use [::] to support both IPv4 and IPv6
-            _server_local.add_insecure_port(f"[::]:{port}")
-            _server_local.start()
-
-            print(f"[gRPC] server running on port {port}", flush=True)
-
-            # BLOCK HERE - keeps thread alive and server listening
-            _server_local.wait_for_termination()
-
-        except Exception as e:
-            print(f"[gRPC] ERROR: {e}", flush=True)
-
-    # Start in a non-daemon thread so it survives
-    thread = threading.Thread(target=_run_server, name="grpc-server", daemon=False)
+    # Start in a daemon thread so it doesn't block process exit if stop() isn't called
+    thread = threading.Thread(
+        target=start_server,
+        kwargs={"block": True},
+        name="grpc-server-thread",
+        daemon=True,
+    )
     thread.start()
 
 
 # ── Standalone entry point ────────────────────────────────────
 if __name__ == "__main__":
-    serve(block=True)
+    start_server(block=True)
