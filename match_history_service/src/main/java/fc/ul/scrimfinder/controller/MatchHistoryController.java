@@ -150,7 +150,7 @@ public class MatchHistoryController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class))),
             })
-    @Timeout(2000)
+    @Timeout(15000)
     public Response addMatchById(
             @PathParam("riotMatchId") @NotBlank String riotMatchId,
             @QueryParam("queueId") @NotNull UUID queueId,

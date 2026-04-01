@@ -150,13 +150,18 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
             if (!trainingAdapterService.sendMatchForAnalysis(riotMatchId)) {
                 logger.warn(
                         ColoredMessage.withColor(
-                                String.format("Failed to send match %s to the analysis service", riotMatchId),
+                                String.format("Failed to send match %s to the training service", riotMatchId),
                                 LogColor.YELLOW));
+            } else {
+                logger.info(
+                        ColoredMessage.withColor(
+                                String.format("Match %s sent to the training service", riotMatchId),
+                                LogColor.GREEN));
             }
         } catch (Exception x) {
             logger.warn(
                     ColoredMessage.withColor(
-                            String.format("Failed to send match %s to the analysis service", riotMatchId),
+                            String.format("Failed to send match %s to the training service", riotMatchId),
                             LogColor.YELLOW));
         }
         return matchDTO;
