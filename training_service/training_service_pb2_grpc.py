@@ -2,10 +2,11 @@
 """Client and server classes corresponding to protobuf-defined services."""
 
 import grpc
+import warnings
 
 from training_service import training_service_pb2 as training__service__pb2
 
-GRPC_GENERATED_VERSION = "1.78.0"
+GRPC_GENERATED_VERSION = "1.80.0"
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 
@@ -43,19 +44,19 @@ class TrainingServiceStub(object):
             channel: A grpc.Channel.
         """
         self.ForwardMatch = channel.unary_unary(
-            "/scrimfinder.TrainingService/ForwardMatch",
+            "/fc.ul.scrimfinder.grpc.TrainingService/ForwardMatch",
             request_serializer=training__service__pb2.ForwardMatchRequest.SerializeToString,
             response_deserializer=training__service__pb2.ForwardMatchResponse.FromString,
             _registered_method=True,
         )
         self.GetActiveModel = channel.unary_unary(
-            "/scrimfinder.TrainingService/GetActiveModel",
+            "/fc.ul.scrimfinder.grpc.TrainingService/GetActiveModel",
             request_serializer=training__service__pb2.GetActiveModelRequest.SerializeToString,
             response_deserializer=training__service__pb2.GetActiveModelResponse.FromString,
             _registered_method=True,
         )
         self.HealthCheck = channel.unary_unary(
-            "/scrimfinder.TrainingService/HealthCheck",
+            "/fc.ul.scrimfinder.grpc.TrainingService/HealthCheck",
             request_serializer=training__service__pb2.HealthCheckRequest.SerializeToString,
             response_deserializer=training__service__pb2.HealthCheckResponse.FromString,
             _registered_method=True,
@@ -113,11 +114,11 @@ def add_TrainingServiceServicer_to_server(servicer, server):
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-        "scrimfinder.TrainingService", rpc_method_handlers
+        "fc.ul.scrimfinder.grpc.TrainingService", rpc_method_handlers
     )
     server.add_generic_rpc_handlers((generic_handler,))
     server.add_registered_method_handlers(
-        "scrimfinder.TrainingService", rpc_method_handlers
+        "fc.ul.scrimfinder.grpc.TrainingService", rpc_method_handlers
     )
 
 
@@ -146,7 +147,7 @@ class TrainingService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/scrimfinder.TrainingService/ForwardMatch",
+            "/fc.ul.scrimfinder.grpc.TrainingService/ForwardMatch",
             training__service__pb2.ForwardMatchRequest.SerializeToString,
             training__service__pb2.ForwardMatchResponse.FromString,
             options,
@@ -176,7 +177,7 @@ class TrainingService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/scrimfinder.TrainingService/GetActiveModel",
+            "/fc.ul.scrimfinder.grpc.TrainingService/GetActiveModel",
             training__service__pb2.GetActiveModelRequest.SerializeToString,
             training__service__pb2.GetActiveModelResponse.FromString,
             options,
@@ -206,7 +207,7 @@ class TrainingService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/scrimfinder.TrainingService/HealthCheck",
+            "/fc.ul.scrimfinder.grpc.TrainingService/HealthCheck",
             training__service__pb2.HealthCheckRequest.SerializeToString,
             training__service__pb2.HealthCheckResponse.FromString,
             options,

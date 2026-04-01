@@ -32,7 +32,7 @@ GRPC_PORT = int(os.environ.get("GRPC_PORT", 50051))
 
 # ── Detail Filling Service URL ────────────────────────────────
 DETAIL_FILLING_URL = os.environ.get(
-    "DETAIL_FILLING_URL", "http://detail_filling_service:8080"
+    "DETAIL_FILLING_URL", "http://detail_filling_service:8080/api/v1/riot"
 )
 
 

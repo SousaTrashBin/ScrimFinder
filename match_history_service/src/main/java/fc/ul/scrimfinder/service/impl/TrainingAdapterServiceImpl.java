@@ -23,11 +23,9 @@ public class TrainingAdapterServiceImpl implements TrainingAdapterService {
     @CircuitBreaker()
     public boolean sendMatchForAnalysis(String riotMatchId) {
         try {
-            ForwardMatchResponse response =
-                    trainingService
-                            .forwardMatch(ForwardMatchRequest.newBuilder().setMatchId(riotMatchId).build())
-                            .await()
-                            .indefinitely();
+            ForwardMatchRequest request =
+                    ForwardMatchRequest.newBuilder().setMatchId(riotMatchId).build();
+            ForwardMatchResponse response = trainingService.forwardMatch(request).await().indefinitely();
             return response.getSuccess();
         } catch (Exception x) {
             return false;
