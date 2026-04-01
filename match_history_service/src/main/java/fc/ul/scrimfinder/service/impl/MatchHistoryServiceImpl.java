@@ -110,7 +110,6 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
                             "This match has %d players but only %d MMR deltas were provided",
                             matchDTO.getPlayers().size(), playerMMRGains.size()));
         }
-        logger.warn(matchDTO);
 
         matchDTO
                 .getPlayers()
