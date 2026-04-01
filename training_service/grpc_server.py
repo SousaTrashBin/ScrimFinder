@@ -73,16 +73,19 @@ class TrainingServiceServicer:
 
         match_id = request.match_id
         source = request.source or "matchmaking"
+        print(f"[gRPC] Received ForwardMatch for {match_id} (source={source})", flush=True)
 
         try:
             # 1. Fetch raw Riot JSON from detail_filling_service
             raw = _fetch_raw_match(match_id)
+            print(f"[gRPC] Successfully fetched raw match {match_id}", flush=True)
 
             # 2. Validate
             from training_service.ingestion.feature_extractor import validate_riot_match
 
             valid, reason = validate_riot_match(raw)
             if not valid:
+                print(f"[gRPC] Validation failed for {match_id}: {reason}", flush=True)
                 return ForwardMatchResponse(
                     success=False,
                     message=f"Invalid match JSON: {reason}",
@@ -127,6 +130,7 @@ class TrainingServiceServicer:
                 )
                 perf_ok = True
 
+            print(f"[gRPC] Successfully processed match {match_id}", flush=True)
             return ForwardMatchResponse(
                 success=True,
                 message=f"Match {match_id} ingested and features extracted.",
@@ -137,6 +141,9 @@ class TrainingServiceServicer:
             )
 
         except Exception as e:
+            print(f"[gRPC] Error processing match {match_id}: {e}", flush=True)
+            import traceback
+            traceback.print_exc()
             return ForwardMatchResponse(
                 success=False,
                 message=str(e),
@@ -253,8 +260,8 @@ def start_background_server():
                 TrainingServiceServicer(), _server_local
             )
 
-            # Use 0.0.0.0 instead of [::] for Docker compatibility
-            _server_local.add_insecure_port(f"0.0.0.0:{port}")
+            # Use [::] to support both IPv4 and IPv6
+            _server_local.add_insecure_port(f"[::]:{port}")
             _server_local.start()
 
             print(f"[gRPC] server running on port {port}", flush=True)
