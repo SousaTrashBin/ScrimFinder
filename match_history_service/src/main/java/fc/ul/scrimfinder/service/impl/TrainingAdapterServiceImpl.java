@@ -18,8 +18,7 @@ public class TrainingAdapterServiceImpl implements TrainingAdapterService {
     @GrpcClient("training-service")
     TrainingService trainingService;
 
-    @Inject
-    Logger logger;
+    @Inject Logger logger;
 
     @Override
     @Retry(maxRetries = 4)
@@ -30,11 +29,11 @@ public class TrainingAdapterServiceImpl implements TrainingAdapterService {
             ForwardMatchRequest request =
                     ForwardMatchRequest.newBuilder().setMatchId(riotMatchId).build();
             ForwardMatchResponse response = trainingService.forwardMatch(request).await().indefinitely();
-            
+
             if (!response.getSuccess()) {
                 logger.error("Training service returned failure: " + response.getMessage());
             }
-            
+
             return response.getSuccess();
         } catch (Exception x) {
             logger.error("Error communicating with training-service via gRPC: " + x.getMessage(), x);
