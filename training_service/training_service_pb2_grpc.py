@@ -2,7 +2,6 @@
 """Client and server classes corresponding to protobuf-defined services."""
 
 import grpc
-import warnings
 
 from training_service import training_service_pb2 as training__service__pb2
 
