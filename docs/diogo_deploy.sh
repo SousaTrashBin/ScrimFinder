@@ -43,4 +43,26 @@ for SERVICE in "${SERVICES[@]}"; do
 done
 
 echo "Deployment images pushed successfully to $REGION!"
-exit 0
+
+CLUSTER_NAME="scrimfinder-cluster" # Adjust if necessary
+
+echo "Fetching GKE credentials..."
+gcloud container clusters get-credentials "$CLUSTER_NAME" --region "$REGION" --project "$PROJECT_ID"
+
+echo "Applying Kubernetes manifests..."
+kubectl apply -f k8s/traefik/crds.yaml
+kubectl apply -f k8s/traefik/rbac.yaml
+kubectl apply -f k8s/apps/infrastructure.yaml
+kubectl apply -f k8s/traefik/deployment.yaml
+kubectl apply -f k8s/apps/scrimfinder-apps.yaml
+kubectl apply -f k8s/traefik/ingressroutes.yaml
+
+echo "Waiting for Traefik LoadBalancer External IP..."
+EXTERNAL_IP=""
+while [ -z "$EXTERNAL_IP" ]; do
+    echo "Waiting for IP..."
+    EXTERNAL_IP=$(kubectl get svc traefik -n kube-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+    [ -z "$EXTERNAL_IP" ] && sleep 10
+done
+
+echo "Deployment complete! Traefik External IP: $EXTERNAL_IP"
