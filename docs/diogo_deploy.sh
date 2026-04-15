@@ -32,12 +32,14 @@ else
     echo "Repository $REPO_NAME already exists."
 fi
 
-SERVICES=("matchmaking-service" "ranking-service" "match-history-service" "detail-filling-service" "training-service" "analysis-service")
+SERVICES=("matchmaking-service" "ranking_service" "match_history_service" "detail_filling_service" "training_service" "analysis_service")
 
 for SERVICE in "${SERVICES[@]}"; do
-    echo "Building and pushing $SERVICE..."
-    docker build -t "$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$SERVICE:latest" "./$SERVICE"
-    docker push "$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$SERVICE:latest"
+    # Image name should use hyphens to match k8s manifests
+    IMAGE_NAME=$(echo "$SERVICE" | tr '_' '-')
+    echo "Building and pushing $SERVICE (Tag: $IMAGE_NAME)..."
+    docker build -t "$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$IMAGE_NAME:latest" "./$SERVICE"
+    docker push "$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$IMAGE_NAME:latest"
 done
 
 echo "Deployment images pushed successfully to $REGION!"
