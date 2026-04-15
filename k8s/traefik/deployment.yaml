@@ -38,7 +38,7 @@ metadata:
   name: traefik
   namespace: kube-system
 spec:
-  type: NodePort
+  type: LoadBalancer
   selector:
     app: traefik
   ports:
@@ -46,9 +46,7 @@ spec:
       port: 80
       name: web
       targetPort: 80
-      nodePort: 30080
     - protocol: TCP
       port: 8080
       name: admin
       targetPort: 8080
-      nodePort: 30880

@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: matchmaking-service
-        image: scrimfinder/matchmaking-service:latest
+        image: europe-west3-docker.pkg.dev/scrimfinder-12345/scrimfinder/matchmaking-service:latest
         ports:
         - containerPort: 8080
           name: http
@@ -84,7 +84,7 @@ spec:
     spec:
       containers:
       - name: ranking-service
-        image: scrimfinder/ranking-service:latest
+        image: europe-west3-docker.pkg.dev/scrimfinder-12345/scrimfinder/ranking-service:latest
         ports:
         - containerPort: 8080
           name: http
@@ -152,7 +152,7 @@ spec:
     spec:
       containers:
       - name: match-history-service
-        image: scrimfinder/match-history-service:latest
+        image: europe-west3-docker.pkg.dev/scrimfinder-12345/scrimfinder/match-history-service:latest
         ports:
         - containerPort: 8080
         env:
@@ -190,7 +190,7 @@ spec:
     spec:
       containers:
       - name: detail-filling-service
-        image: scrimfinder/detail-filling-service:latest
+        image: europe-west3-docker.pkg.dev/scrimfinder-12345/scrimfinder/detail-filling-service:latest
         ports:
         - containerPort: 8080
         env:
@@ -263,7 +263,7 @@ spec:
     spec:
       containers:
       - name: training-service
-        image: scrimfinder/training-service:latest
+        image: europe-west3-docker.pkg.dev/scrimfinder-12345/scrimfinder/training-service:latest
         ports:
         - containerPort: 8000
           name: http
@@ -332,7 +332,7 @@ spec:
     spec:
       containers:
       - name: analysis-service
-        image: scrimfinder/analysis-service:latest
+        image: europe-west3-docker.pkg.dev/scrimfinder-12345/scrimfinder/analysis-service:latest
         ports:
         - containerPort: 8001
           name: http
