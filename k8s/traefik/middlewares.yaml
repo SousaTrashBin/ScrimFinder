@@ -26,3 +26,18 @@ spec:
   rateLimit:
     average: 100
     burst: 50
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: sablier-middleware
+  namespace: kube-system
+spec:
+  plugin:
+    sablier:
+      server: http://sablier.kube-system.svc.cluster.local:10000
+      sessionDuration: 20m
+      dynamic:
+        displayName: ScrimFinder Platform
+        showDetails: true
+        theme: dark
