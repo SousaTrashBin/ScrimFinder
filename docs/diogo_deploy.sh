@@ -58,8 +58,6 @@ done
 
 echo "deployment images pushed successfully to $REGION!"
 
-CLUSTER_NAME="scrimfinder-cluster"
-
 echo "fetching GKE credentials..."
 gcloud container clusters get-credentials "$CLUSTER_NAME" --region "$REGION" --project "$PROJECT_ID"
 
