@@ -30,8 +30,9 @@ if ! gcloud container clusters describe "$CLUSTER_NAME" --region "$REGION" > /de
     gcloud container clusters create "$CLUSTER_NAME" \
         --region "$REGION" \
         --num-nodes 1 \
-        --machine-type e2-medium \
-        --enable-autoscaling --min-nodes 1 --max-nodes 3 \
+        --machine-type e2-small \
+        --spot \
+        --enable-autoscaling --min-nodes 1 --max-nodes 2 \
         --quiet
 else
     echo "cluster $CLUSTER_NAME already exists."
