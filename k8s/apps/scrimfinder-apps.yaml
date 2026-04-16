@@ -3,8 +3,11 @@ kind: Deployment
 metadata:
   name: matchmaking-service
   namespace: default
+  annotations:
+    sablier.acousteau.com/strategy: dynamic
+    sablier.acousteau.com/duration: 20m
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: matchmaking-service
@@ -79,8 +82,11 @@ kind: Deployment
 metadata:
   name: ranking-service
   namespace: default
+  annotations:
+    sablier.acousteau.com/strategy: dynamic
+    sablier.acousteau.com/duration: 20m
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: ranking-service
@@ -153,8 +159,11 @@ kind: Deployment
 metadata:
   name: match-history-service
   namespace: default
+  annotations:
+    sablier.acousteau.com/strategy: dynamic
+    sablier.acousteau.com/duration: 20m
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: match-history-service
@@ -204,6 +213,9 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: match-history-service-hpa
   namespace: default
+  annotations:
+    sablier.acousteau.com/strategy: dynamic
+    sablier.acousteau.com/duration: 20m
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -237,8 +249,11 @@ kind: Deployment
 metadata:
   name: detail-filling-service
   namespace: default
+  annotations:
+    sablier.acousteau.com/strategy: dynamic
+    sablier.acousteau.com/duration: 20m
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: detail-filling-service
@@ -280,6 +295,9 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: detail-filling-service-hpa
   namespace: default
+  annotations:
+    sablier.acousteau.com/strategy: dynamic
+    sablier.acousteau.com/duration: 20m
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -313,8 +331,11 @@ kind: Deployment
 metadata:
   name: training-service
   namespace: default
+  annotations:
+    sablier.acousteau.com/strategy: dynamic
+    sablier.acousteau.com/duration: 20m
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: training-service
@@ -352,6 +373,9 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: training-service-hpa
   namespace: default
+  annotations:
+    sablier.acousteau.com/strategy: dynamic
+    sablier.acousteau.com/duration: 20m
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -385,8 +409,11 @@ kind: Deployment
 metadata:
   name: analysis-service
   namespace: default
+  annotations:
+    sablier.acousteau.com/strategy: dynamic
+    sablier.acousteau.com/duration: 20m
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: analysis-service
