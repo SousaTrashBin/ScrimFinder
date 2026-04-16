@@ -121,3 +121,68 @@ spec:
   resources:
     requests:
       storage: 1Gi
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sablier
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: sablier-manager
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets"]
+    verbs: ["get", "list", "watch", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: sablier-manager-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: sablier-manager
+subjects:
+  - kind: ServiceAccount
+    name: sablier
+    namespace: kube-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sablier
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sablier
+  template:
+    metadata:
+      labels:
+        app: sablier
+    spec:
+      serviceAccountName: sablier
+      containers:
+        - name: sablier
+          image: acousteau/sablier:latest
+          args:
+            - --provider.kubernetes
+          ports:
+            - containerPort: 10000
+              name: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sablier
+  namespace: kube-system
+spec:
+  selector:
+    app: sablier
+  ports:
+    - port: 10000
+      targetPort: 10000
