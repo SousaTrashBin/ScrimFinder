@@ -46,15 +46,17 @@ spec:
           value: postgres
         - name: POSTGRES_USER
           value: postgres
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
         ports:
         - containerPort: 5432
         resources:
           requests:
-            cpu: "200m"
-            memory: "512Mi"
+            cpu: "100m"
+            memory: "256Mi"
           limits:
-            cpu: "1000m"
-            memory: "2Gi"
+            cpu: "500m"
+            memory: "1Gi"
         livenessProbe:
           exec:
             command: ["pg_isready", "-U", "postgres"]
@@ -135,11 +137,11 @@ spec:
         - containerPort: 6379
         resources:
           requests:
-            cpu: "100m"
-            memory: "128Mi"
+            cpu: "50m"
+            memory: "64Mi"
           limits:
-            cpu: "500m"
-            memory: "512Mi"
+            cpu: "200m"
+            memory: "256Mi"
         livenessProbe:
           tcpSocket:
             port: 6379
