@@ -1,9 +1,10 @@
 #!/bin/bash
 set -e
 
-REQUIRED_VARS=("SCRIM_PROJECT_ID" "SCRIM_REGION" "SCRIM_REPO_NAME" "SCRIM_ENV_TAG" "SCRIM_CLUSTER_NAME")
-for var in "${REQUIRED_VARS[@]}"; do
-    if [ -z "${!var}" ]; then
+REQUIRED_VARS="SCRIM_PROJECT_ID SCRIM_REGION SCRIM_REPO_NAME SCRIM_ENV_TAG SCRIM_CLUSTER_NAME"
+
+for var in $REQUIRED_VARS; do
+    if [ -z "$(eval echo \$$var)" ]; then
         echo "error: $var is not set. please set it in your system environment."
         exit 1
     fi
@@ -22,7 +23,7 @@ if gcloud container clusters describe "$CLUSTER_NAME" --region "$REGION" > /dev/
     echo "fetching GKE credentials..."
     gcloud container clusters get-credentials "$CLUSTER_NAME" --region "$REGION" --project "$PROJECT_ID"
 
-    echo "deleting Kubernetes resources (attempting graceful cleanup)..."
+    echo "deleting Kubernetes resources..."
     export PROJECT_ID REGION REPO_NAME ENV_TAG CLUSTER_NAME
     
     kubectl delete -f k8s/traefik/ingressroutes.yaml --ignore-not-found || true
@@ -38,10 +39,10 @@ if gcloud container clusters describe "$CLUSTER_NAME" --region "$REGION" > /dev/
     kubectl delete -f k8s/apps/infrastructure.yaml --ignore-not-found || true
     kubectl delete -f k8s/traefik/rbac.yaml --ignore-not-found || true
     
-    echo "deleting GKE cluster: $CLUSTER_NAME to stop all compute costs..."
+    echo "deleting GKE cluster: $CLUSTER_NAME..."
     gcloud container clusters delete "$CLUSTER_NAME" --region "$REGION" --project "$PROJECT_ID" --quiet
 else
     echo "cluster $CLUSTER_NAME not found or already deleted."
 fi
 
-echo "shutdown complete! GKE cluster and computing resources have been removed."
+echo "shutdown complete!"

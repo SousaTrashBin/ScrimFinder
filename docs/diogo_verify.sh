@@ -4,22 +4,21 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-bash "$SCRIPT_DIR/diogo_shutdown.sh"
-
 cd "$ROOT_DIR"
 if [ -f "test.sh" ]; then
+    echo "running local tests..."
     bash "test.sh"
 else
     echo "error: test.sh not found in root directory!"
     exit 1
 fi
 
+echo "deploying changes..."
 bash "$SCRIPT_DIR/diogo_deploy.sh"
 
-
-echo "waiting for Traefik External IP for verification..."
+echo "waiting for Traefik External IP..."
 EXTERNAL_IP=""
-MAX_RETRIES=12
+MAX_RETRIES=20
 RETRY_COUNT=0
 
 while [ -z "$EXTERNAL_IP" ] && [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
@@ -32,27 +31,29 @@ while [ -z "$EXTERNAL_IP" ] && [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
 done
 
 if [ -z "$EXTERNAL_IP" ]; then
-    echo "could not retrieve Traefik External IP after waiting."
+    echo "error: could not retrieve Traefik External IP."
     exit 1
 fi
 
-echo "verifying Matchmaking Service endpoint (http://$EXTERNAL_IP/api/v1/matchmaking/q/health/ready)..."
+echo "verifying Matchmaking Service readiness (http://$EXTERNAL_IP/api/v1/matchmaking/q/health/ready)..."
 
-RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "http://$EXTERNAL_IP/api/v1/matchmaking/q/health/ready")
-
-if [ "$RESPONSE" -eq 200 ]; then
-    echo "success! Service is READY. HTTP Status: $RESPONSE"
-else
-    echo "warning: Expected 200 but got $RESPONSE. It might still be starting up or middleware isn't ready."
-    echo "retrying in 10 seconds..."
-    sleep 10
-    RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "http://$EXTERNAL_IP/api/v1/matchmaking/q/health/ready")
-    if [ "$RESPONSE" -eq 200 ]; then
-        echo "success on retry! HTTP Status: $RESPONSE"
-    else
-        echo "failure! Service is not ready. HTTP Status: $RESPONSE"
-        exit 1
+READY=false
+for i in {1..15}; do
+    RESPONSE=$(curl -s "http://$EXTERNAL_IP/api/v1/matchmaking/q/health/ready" || echo "FAILED")
+    if echo "$RESPONSE" | grep -q '"status": "UP"'; then
+        READY=true
+        break
     fi
+    echo "waiting for service to report 'UP'... ($i/15)"
+    sleep 5
+done
+
+if [ "$READY" = "true" ]; then
+    echo "SUCCESS! Service is UP and responding correctly."
+else
+    echo "FAILURE! Service did not report 'UP' within the timeout."
+    echo "last response: $RESPONSE"
+    exit 1
 fi
 
 echo "verification complete!"
