@@ -2,12 +2,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: matchmaking-service
-  namespace: default
-  annotations:
-    sablier.acousteau.com/strategy: dynamic
-    sablier.acousteau.com/duration: 20m
+  namespace: scrimfinder
 spec:
-  replicas: 0
+  replicas: 1
+  strategy:
+    type: RollingUpdate
   selector:
     matchLabels:
       app: matchmaking-service
@@ -61,11 +60,31 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 10
 ---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: matchmaking-service-hpa
+  namespace: scrimfinder
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: matchmaking-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+---
 apiVersion: v1
 kind: Service
 metadata:
   name: matchmaking-service
-  namespace: default
+  namespace: scrimfinder
 spec:
   selector:
     app: matchmaking-service
@@ -81,12 +100,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ranking-service
-  namespace: default
-  annotations:
-    sablier.acousteau.com/strategy: dynamic
-    sablier.acousteau.com/duration: 20m
+  namespace: scrimfinder
 spec:
-  replicas: 0
+  replicas: 1
+  strategy:
+    type: RollingUpdate
   selector:
     matchLabels:
       app: ranking-service
@@ -138,11 +156,31 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 10
 ---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ranking-service-hpa
+  namespace: scrimfinder
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ranking-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+---
 apiVersion: v1
 kind: Service
 metadata:
   name: ranking-service
-  namespace: default
+  namespace: scrimfinder
 spec:
   selector:
     app: ranking-service
@@ -158,12 +196,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: match-history-service
-  namespace: default
-  annotations:
-    sablier.acousteau.com/strategy: dynamic
-    sablier.acousteau.com/duration: 20m
+  namespace: scrimfinder
 spec:
-  replicas: 0
+  replicas: 1
+  strategy:
+    type: RollingUpdate
   selector:
     matchLabels:
       app: match-history-service
@@ -195,6 +232,13 @@ spec:
           value: "8080"
         - name: PLAYER_FILLING_SVC_URL
           value: http://detail-filling-service:8080
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
         livenessProbe:
           httpGet:
             path: /api/v1/history/q/health/live
@@ -212,10 +256,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: match-history-service-hpa
-  namespace: default
-  annotations:
-    sablier.acousteau.com/strategy: dynamic
-    sablier.acousteau.com/duration: 20m
+  namespace: scrimfinder
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -235,7 +276,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: match-history-service
-  namespace: default
+  namespace: scrimfinder
 spec:
   selector:
     app: match-history-service
@@ -248,12 +289,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: detail-filling-service
-  namespace: default
-  annotations:
-    sablier.acousteau.com/strategy: dynamic
-    sablier.acousteau.com/duration: 20m
+  namespace: scrimfinder
 spec:
-  replicas: 0
+  replicas: 1
+  strategy:
+    type: RollingUpdate
   selector:
     matchLabels:
       app: detail-filling-service
@@ -277,6 +317,13 @@ spec:
           value: training-service
         - name: TRAINING_SVC_RPC_PORT
           value: "8000"
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
         livenessProbe:
           httpGet:
             path: /api/v1/riot/q/health/live
@@ -294,10 +341,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: detail-filling-service-hpa
-  namespace: default
-  annotations:
-    sablier.acousteau.com/strategy: dynamic
-    sablier.acousteau.com/duration: 20m
+  namespace: scrimfinder
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -317,7 +361,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: detail-filling-service
-  namespace: default
+  namespace: scrimfinder
 spec:
   selector:
     app: detail-filling-service
@@ -330,12 +374,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: training-service
-  namespace: default
-  annotations:
-    sablier.acousteau.com/strategy: dynamic
-    sablier.acousteau.com/duration: 20m
+  namespace: scrimfinder
 spec:
-  replicas: 0
+  replicas: 1
+  strategy:
+    type: RollingUpdate
   selector:
     matchLabels:
       app: training-service
@@ -360,6 +403,16 @@ spec:
           limits:
             cpu: "500m"
             memory: "512Mi"
+        livenessProbe:
+          tcpSocket:
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
         volumeMounts:
         - name: ai-storage
           mountPath: /app/data
@@ -372,10 +425,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: training-service-hpa
-  namespace: default
-  annotations:
-    sablier.acousteau.com/strategy: dynamic
-    sablier.acousteau.com/duration: 20m
+  namespace: scrimfinder
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -395,7 +445,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: training-service
-  namespace: default
+  namespace: scrimfinder
 spec:
   selector:
     app: training-service
@@ -408,12 +458,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: analysis-service
-  namespace: default
-  annotations:
-    sablier.acousteau.com/strategy: dynamic
-    sablier.acousteau.com/duration: 20m
+  namespace: scrimfinder
 spec:
-  replicas: 0
+  replicas: 1
+  strategy:
+    type: RollingUpdate
   selector:
     matchLabels:
       app: analysis-service
@@ -431,6 +480,23 @@ spec:
         env:
         - name: PLATFORM_DB
           value: postgresql://postgres:postgres@matchmaking-db:5432/matchmaking
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          tcpSocket:
+            port: 8001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 8001
+          initialDelaySeconds: 5
+          periodSeconds: 10
         volumeMounts:
         - name: ai-storage
           mountPath: /app/data
@@ -439,11 +505,31 @@ spec:
         persistentVolumeClaim:
           claimName: ai-storage-pvc
 ---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: analysis-service-hpa
+  namespace: scrimfinder
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: analysis-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+---
 apiVersion: v1
 kind: Service
 metadata:
   name: analysis-service
-  namespace: default
+  namespace: scrimfinder
 spec:
   selector:
     app: analysis-service
