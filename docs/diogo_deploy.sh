@@ -99,12 +99,16 @@ else
 fi
 kubectl apply -f k8s/traefik/ingressroutes.yaml
 
-echo "waiting for Traefik LoadBalancer External IP..."
+echo "waiting for Traefik LoadBalancer External IP/Hostname..."
 EXTERNAL_IP=""
 while [ -z "$EXTERNAL_IP" ]; do
     echo "waiting for IP..."
     EXTERNAL_IP=$(kubectl get svc traefik -n kube-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
-    [ -z "$EXTERNAL_IP" ] && sleep 15
+    if [ -z "$EXTERNAL_IP" ]; then
+        echo "checking for Hostname..."
+        EXTERNAL_IP=$(kubectl get svc traefik -n kube-system -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
+    fi
+    [ -z "$EXTERNAL_IP" ] && sleep 10
 done
 
 echo "deployment complete! Traefik External IP: $EXTERNAL_IP"
