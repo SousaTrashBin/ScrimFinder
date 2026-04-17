@@ -1,6 +1,3 @@
 #!/bin/bash
-
-echo "stopping scrimFinder service..."
-docker compose down -v
-
-echo "system shut down."
+# Redirecting to the main shutdown script
+bash docs/diogo_shutdown.sh
