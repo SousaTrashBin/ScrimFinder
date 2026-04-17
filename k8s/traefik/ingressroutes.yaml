@@ -2,7 +2,7 @@ apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
   name: scrimfinder-routes
-  namespace: kube-system
+  namespace: scrimfinder
 spec:
   entryPoints:
     - web
@@ -12,11 +12,8 @@ spec:
       priority: 100
       services:
         - name: matchmaking-service
-          namespace: default
           port: 8080
       middlewares:
-        - name: sablier-middleware
-          namespace: kube-system
         - name: api-ratelimit
           namespace: kube-system
     - match: PathPrefix(`/api/v1/ranking`)
@@ -24,11 +21,8 @@ spec:
       priority: 100
       services:
         - name: ranking-service
-          namespace: default
           port: 8080
       middlewares:
-        - name: sablier-middleware
-          namespace: kube-system
         - name: api-ratelimit
           namespace: kube-system
     - match: PathPrefix(`/api/v1/history`)
@@ -36,35 +30,8 @@ spec:
       priority: 100
       services:
         - name: match-history-service
-          namespace: default
           port: 8080
       middlewares:
-        - name: sablier-middleware
-          namespace: kube-system
-        - name: api-ratelimit
-          namespace: kube-system
-    - match: PathPrefix(`/api/v1/riot`)
-      kind: Rule
-      priority: 100
-      services:
-        - name: detail-filling-service
-          namespace: default
-          port: 8080
-      middlewares:
-        - name: sablier-middleware
-          namespace: kube-system
-        - name: api-ratelimit
-          namespace: kube-system
-    - match: PathPrefix(`/api/v1/training`)
-      kind: Rule
-      priority: 100
-      services:
-        - name: training-service
-          namespace: default
-          port: 8000
-      middlewares:
-        - name: sablier-middleware
-          namespace: kube-system
         - name: api-ratelimit
           namespace: kube-system
     - match: PathPrefix(`/api/v1/analysis`)
@@ -72,19 +39,16 @@ spec:
       priority: 100
       services:
         - name: analysis-service
-          namespace: default
           port: 8001
       middlewares:
-        - name: sablier-middleware
-          namespace: kube-system
         - name: api-ratelimit
           namespace: kube-system
-    - match: PathPrefix(`/dashboard`) || PathPrefix(`/api`)
+    - match: PathPrefix(`/api/internal`)
       kind: Rule
       priority: 10
       services:
-        - name: api@internal
-          kind: TraefikService
+        - kind: TraefikService
+          name: api@internal
       middlewares:
         - name: dashboard-auth
           namespace: kube-system
