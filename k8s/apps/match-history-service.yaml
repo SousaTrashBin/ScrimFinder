@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: match-history-service-deployment
+  labels:
+    app: match-history-service
+spec:
+  strategy:
+    type: RollingUpdate
+  replicas: 3
+  selector:
+    matchLabels:
+      app: match-history-service
+  template:
+    metadata:
+      name: match-history-service-pod
+      labels:
+        app: match-history-service
+    spec:
+      containers:
+        - name: match-history-service
+          image: scrimfinder/match-history-service:1.0
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: match-history-service-service
+spec:
+  selector:
+    app: match-history-service
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 80
+  type: LoadBalancer
+      

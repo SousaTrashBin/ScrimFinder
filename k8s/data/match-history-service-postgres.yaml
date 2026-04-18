@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: match-history-service-postgres
+spec:
+  replicas: 3
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      db: match-history-service-postgres
+  template:
+    metadata:
+      labels:
+        db: match-history-service-postgres
+    spec:
+      containers:
+        - name: match-history-service-postgres
+          image: postgres:15
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - mountPath: /data
+              name: match-history-service-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: match-history-service-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: match-history-service-postgres-service
+spec:
+  clusterIP: None
+  selector:
+    db: match-history-service-postgres-service
+  ports:
+    - protocol: TCP
+      port: 5432
+  type: ClusterIP
+  

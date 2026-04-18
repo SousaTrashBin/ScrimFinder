@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: detail-filling-service-deployment
+  labels:
+    app: detail-filling-service
+spec:
+  strategy:
+    type: RollingUpdate
+  replicas: 3
+  selector:
+    matchLabels:
+      app: detail-filling-service
+  template:
+    metadata:
+      name: detail-filling-service-pod
+      labels:
+        app: detail-filling-service
+    spec:
+      containers:
+        - name: detail-filling-service
+          image: scrimfinder/detail-filling-service:1.0
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: detail-filling-service-service
+spec:
+  selector:
+    app: detail-filling-service
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 80
+  type: LoadBalancer
+      

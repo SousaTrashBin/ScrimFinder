@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: detail-filling-service-redis
+spec:
+  replicas: 1
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      db: detail-filling-service-redis
+  template:
+    metadata:
+      labels:
+        db: detail-filling-service-redis
+    spec:
+      containers:
+        - name: detail-filling-service-redis
+          image: redis:7
+          ports:
+            - containerPort: 6379
+          volumeMounts:
+            - mountPath: /data
+              name: detail-filling-service-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: detail-filling-service-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: detail-filling-service-redis-service
+spec:
+  clusterIP: None
+  selector:
+    db: detail-filling-service-redis-service
+  ports:
+    - protocol: TCP
+      port: 6379
+  type: ClusterIP
+      

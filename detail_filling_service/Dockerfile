@@ -1,6 +1,8 @@
 FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /code
 
+LABEL version="1.0"
+
 COPY pom.xml /code/
 
 RUN --mount=type=cache,target=/root/.m2,id=m2-detail mvn dependency:go-offline -B
