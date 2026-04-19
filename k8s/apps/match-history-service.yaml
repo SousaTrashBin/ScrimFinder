@@ -1,14 +1,14 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: match-history-service-deployment
+  name: match-history-service
   namespace: scrimfinder
   labels:
     app: match-history-service
 spec:
   strategy:
     type: RollingUpdate
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: match-history-service
@@ -26,7 +26,34 @@ spec:
           ports:
             - containerPort: 8080
               protocol: TCP
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
       restartPolicy: Always
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: match-history-service-hpa
+  namespace: scrimfinder
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: match-history-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
 ---
 apiVersion: v1
 kind: Service

@@ -1,14 +1,14 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: detail-filling-service-deployment
+  name: detail-filling-service
   namespace: scrimfinder
   labels:
     app: detail-filling-service
 spec:
   strategy:
     type: RollingUpdate
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: detail-filling-service
@@ -26,7 +26,34 @@ spec:
           ports:
             - containerPort: 8080
               protocol: TCP
+          resources:
+            requests:
+              memory: "16Mi"
+              cpu: "100m"
+            limits:
+              memory: "64Mi"
+              cpu: "200m"
       restartPolicy: Always
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: detail-filling-service-hpa
+  namespace: scrimfinder
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: detail-filling-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
 ---
 apiVersion: v1
 kind: Service
