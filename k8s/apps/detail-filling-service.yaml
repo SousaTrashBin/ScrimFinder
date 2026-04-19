@@ -45,7 +45,20 @@ spec:
               port: 8080
             initialDelaySeconds: 30
             periodSeconds: 5
+          envFrom:
+            - configMapRef:
+                name: detail-filling-service-config
+            - secretRef:
+                name: detail-filling-service-secrets
       restartPolicy: Always
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: detail-filling-service-config
+data:
+  REDIS_URL: "redis://redis:6379"
+  QUARKUS_REDIS_HOSTS: "redis://redis:6379"
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler

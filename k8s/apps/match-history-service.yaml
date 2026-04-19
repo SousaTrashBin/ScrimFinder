@@ -45,7 +45,22 @@ spec:
               port: 8080
             initialDelaySeconds: 30
             periodSeconds: 5
+          envFrom:
+            - configMapRef:
+                name: match-history-service-config
+            - secretRef:
+                name: match-history-service-secrets
       restartPolicy: Always
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: match-history-service-config
+data:
+  DB_KIND: "postgresql"
+  DETAIL_FILLING_SERVICE_URL: "http://detail-filling-service:8080"
+  TRAINING_SERVICE_HOST: "training-service"
+  TRAINING_SERVICE_PORT: "8000"
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
