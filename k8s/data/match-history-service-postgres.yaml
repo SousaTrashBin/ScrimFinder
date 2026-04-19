@@ -44,6 +44,12 @@ spec:
           volumeMounts:
             - mountPath: "/data"
               name: match-history-service-data
+            - mountPath: "/docker-entrypoint-initdb.d/"
+              name: match-history-service-postgres-init-script
+      volumes:
+        - name: match-history-service-postgres-init-script
+          configMap:
+            name: match-history-service-postgres-init-config
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -56,6 +62,15 @@ spec:
   resources:
     requests:
       storage: 15Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: match-history-service-postgres-init-config
+  namespace: scrimfinder
+data:
+  init-db.sql: |
+    CREATE DATABASE history;
 ---
 apiVersion: v1
 kind: Service
