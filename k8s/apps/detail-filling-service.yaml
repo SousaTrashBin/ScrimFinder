@@ -39,12 +39,14 @@ spec:
               port: 8080
             failureThreshold: 2
             periodSeconds: 5
+            timeoutSeconds: 5
           readinessProbe:
             httpGet:
               path: /api/v1/riot/q/health/ready
               port: 8080
             initialDelaySeconds: 30
             periodSeconds: 5
+            timeoutSeconds: 5
           envFrom:
             - configMapRef:
                 name: detail-filling-service-config
