@@ -1,4 +1,4 @@
-@baseUrl = http://localhost/api/v1/riot
+@baseUrl = http://detail-filling-service:8080/api/v1/riot
 
 @server = EUW
 

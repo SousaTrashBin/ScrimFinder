@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: detail-filling-service
-          image: scrimfinder/detail-filling-service:1.0
+          image: ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/detail-filling-service:1.0
           imagePullPolicy: Always
           ports:
             - containerPort: 8080

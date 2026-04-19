@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: match-history-service
-          image: scrimfinder/match-history-service:1.0
+          image: ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/match-history-service:1.0
           imagePullPolicy: Always
           ports:
             - containerPort: 8080

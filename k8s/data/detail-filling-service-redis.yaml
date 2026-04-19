@@ -23,7 +23,7 @@ spec:
           ports:
             - containerPort: 6379
           volumeMounts:
-            - mountPath: /data
+            - mountPath: "/data"
               name: detail-filling-service-data
 ---
 apiVersion: v1
