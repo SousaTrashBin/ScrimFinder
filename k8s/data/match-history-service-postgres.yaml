@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: match-history-service-postgres
+  namespace: scrimfinder
 spec:
   replicas: 3
   updateStrategy:
@@ -11,6 +12,8 @@ spec:
       db: match-history-service-postgres
   template:
     metadata:
+      name: match-history-service-postgres-pod
+      namespace: scrimfinder
       labels:
         db: match-history-service-postgres
     spec:
@@ -27,6 +30,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: match-history-service-data
+  namespace: scrimfinder
 spec:
   accessModes:
     - ReadWriteOnce
@@ -38,6 +42,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: match-history-service-postgres-service
+  namespace: scrimfinder
 spec:
   clusterIP: None
   selector:

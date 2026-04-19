@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: detail-filling-service-deployment
+  namespace: scrimfinder
   labels:
     app: detail-filling-service
 spec:
@@ -14,6 +15,7 @@ spec:
   template:
     metadata:
       name: detail-filling-service-pod
+      namespace: scrimfinder
       labels:
         app: detail-filling-service
     spec:
@@ -30,6 +32,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: detail-filling-service-service
+  namespace: scrimfinder
 spec:
   selector:
     app: detail-filling-service

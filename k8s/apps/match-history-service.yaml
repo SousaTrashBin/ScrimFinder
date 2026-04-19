@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: match-history-service-deployment
+  namespace: scrimfinder
   labels:
     app: match-history-service
 spec:
@@ -14,6 +15,7 @@ spec:
   template:
     metadata:
       name: match-history-service-pod
+      namespace: scrimfinder
       labels:
         app: match-history-service
     spec:
@@ -30,6 +32,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: match-history-service-service
+  namespace: scrimfinder
 spec:
   selector:
     app: match-history-service
