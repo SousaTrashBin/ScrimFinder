@@ -33,6 +33,18 @@ spec:
             limits:
               memory: "128Mi"
               cpu: "200m"
+          livenessProbe:
+            httpGet:
+              path: /api/v1/history/q/health/live
+              port: 8080
+            failureThreshold: 2
+            periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /api/v1/history/q/health/ready
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 5
       restartPolicy: Always
 ---
 apiVersion: autoscaling/v2
