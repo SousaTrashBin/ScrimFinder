@@ -24,10 +24,10 @@ spec:
             - containerPort: 5432
           resources:
             requests:
-              memory: "15Gi"
+              memory: "5Gi"
               cpu: "700m"
             limits:
-              memory: "20Gi"
+              memory: "15Gi"
               cpu: "900m"
           livenessProbe:
             exec:
@@ -61,7 +61,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 15Gi
+      storage: 5Gi
 ---
 apiVersion: v1
 kind: ConfigMap
