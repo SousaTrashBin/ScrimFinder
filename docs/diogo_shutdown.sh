@@ -16,12 +16,14 @@ REPO_NAME="$SCRIM_REPO_NAME"
 ENV_TAG="$SCRIM_ENV_TAG"
 CLUSTER_NAME="$SCRIM_CLUSTER_NAME"
 
+ZONE="${REGION}-a"
+
 echo "setting active GCP project to $PROJECT_ID..."
 gcloud config set project "$PROJECT_ID" --quiet
 
-if gcloud container clusters describe "$CLUSTER_NAME" --region "$REGION" > /dev/null 2>&1; then
+if gcloud container clusters describe "$CLUSTER_NAME" --zone "$ZONE" > /dev/null 2>&1; then
     echo "fetching GKE credentials..."
-    gcloud container clusters get-credentials "$CLUSTER_NAME" --region "$REGION" --project "$PROJECT_ID"
+    gcloud container clusters get-credentials "$CLUSTER_NAME" --zone "$ZONE" --project "$PROJECT_ID"
 
     echo "deleting Kubernetes resources..."
     export PROJECT_ID REGION REPO_NAME ENV_TAG CLUSTER_NAME
@@ -40,7 +42,7 @@ if gcloud container clusters describe "$CLUSTER_NAME" --region "$REGION" > /dev/
     kubectl delete -f k8s/traefik/rbac.yaml --ignore-not-found || true
     
     echo "deleting GKE cluster: $CLUSTER_NAME..."
-    gcloud container clusters delete "$CLUSTER_NAME" --region "$REGION" --project "$PROJECT_ID" --quiet
+    gcloud container clusters delete "$CLUSTER_NAME" --zone "$ZONE" --project "$PROJECT_ID" --quiet
 else
     echo "cluster $CLUSTER_NAME not found or already deleted."
 fi

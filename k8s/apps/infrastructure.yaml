@@ -52,8 +52,8 @@ spec:
         - containerPort: 5432
         resources:
           requests:
-            cpu: "100m"
-            memory: "256Mi"
+            cpu: "20m"
+            memory: "128Mi"
           limits:
             cpu: "500m"
             memory: "1Gi"
@@ -137,8 +137,8 @@ spec:
         - containerPort: 6379
         resources:
           requests:
-            cpu: "50m"
-            memory: "64Mi"
+            cpu: "10m"
+            memory: "32Mi"
           limits:
             cpu: "200m"
             memory: "256Mi"

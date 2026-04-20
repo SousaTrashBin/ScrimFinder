@@ -29,6 +29,13 @@ spec:
           ports:
             - name: web
               containerPort: 80
+          resources:
+            requests:
+              cpu: "20m"
+              memory: "64Mi"
+            limits:
+              cpu: "100m"
+              memory: "128Mi"
 ---
 kind: Service
 apiVersion: v1

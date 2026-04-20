@@ -42,8 +42,8 @@ spec:
           value: "8080"
         resources:
           requests:
-            cpu: "50m"
-            memory: "128Mi"
+            cpu: "10m"
+            memory: "64Mi"
           limits:
             cpu: "500m"
             memory: "512Mi"
@@ -138,8 +138,8 @@ spec:
           value: "8080"
         resources:
           requests:
-            cpu: "50m"
-            memory: "128Mi"
+            cpu: "10m"
+            memory: "64Mi"
           limits:
             cpu: "500m"
             memory: "512Mi"
@@ -234,8 +234,8 @@ spec:
           value: http://detail-filling-service:8080
         resources:
           requests:
-            cpu: "50m"
-            memory: "128Mi"
+            cpu: "10m"
+            memory: "64Mi"
           limits:
             cpu: "500m"
             memory: "512Mi"
@@ -319,8 +319,8 @@ spec:
           value: "8000"
         resources:
           requests:
-            cpu: "50m"
-            memory: "128Mi"
+            cpu: "10m"
+            memory: "64Mi"
           limits:
             cpu: "500m"
             memory: "512Mi"
@@ -398,8 +398,8 @@ spec:
           value: postgresql://postgres:postgres@matchmaking-db:5432/matchmaking
         resources:
           requests:
-            cpu: "50m"
-            memory: "128Mi"
+            cpu: "10m"
+            memory: "64Mi"
           limits:
             cpu: "500m"
             memory: "512Mi"
@@ -482,8 +482,8 @@ spec:
           value: postgresql://postgres:postgres@matchmaking-db:5432/matchmaking
         resources:
           requests:
-            cpu: "50m"
-            memory: "128Mi"
+            cpu: "10m"
+            memory: "64Mi"
           limits:
             cpu: "500m"
             memory: "512Mi"

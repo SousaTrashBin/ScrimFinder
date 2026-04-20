@@ -26,33 +26,37 @@ gcloud services enable \
     compute.googleapis.com \
     iam.googleapis.com
 
+ZONE="${REGION}-a"
+
 echo "checking GKE cluster status..."
-CLUSTER_STATUS=$(gcloud container clusters describe "$CLUSTER_NAME" --region "$REGION" --format="value(status)" 2>/dev/null || echo "NOT_FOUND")
+CLUSTER_STATUS=$(gcloud container clusters describe "$CLUSTER_NAME" --zone "$ZONE" --format="value(status)" 2>/dev/null || echo "NOT_FOUND")
 
 if [ "$CLUSTER_STATUS" = "STOPPING" ] || [ "$CLUSTER_STATUS" = "DELETING" ]; then
     echo "cluster is currently being deleted. waiting for deletion to complete..."
     while [ "$CLUSTER_STATUS" != "NOT_FOUND" ]; do
         echo "current status: $CLUSTER_STATUS. waiting 20s..."
         sleep 20
-        CLUSTER_STATUS=$(gcloud container clusters describe "$CLUSTER_NAME" --region "$REGION" --format="value(status)" 2>/dev/null || echo "NOT_FOUND")
+        CLUSTER_STATUS=$(gcloud container clusters describe "$CLUSTER_NAME" --zone "$ZONE" --format="value(status)" 2>/dev/null || echo "NOT_FOUND")
     done
 fi
 
 if [ "$CLUSTER_STATUS" = "NOT_FOUND" ]; then
-    echo "creating GKE cluster: $CLUSTER_NAME ..."
+    echo "creating GKE zonal cluster: $CLUSTER_NAME in $ZONE ..."
     gcloud container clusters create "$CLUSTER_NAME" \
-        --region "$REGION" \
+        --zone "$ZONE" \
         --num-nodes 1 \
-        --machine-type e2-medium \
+        --machine-type e2-standard-4 \
+        --disk-size 40 \
+        --disk-type pd-standard \
         --spot \
-        --enable-autoscaling --min-nodes 1 --max-nodes 2 \
+        --enable-autoscaling --min-nodes 1 --max-nodes 1 \
         --quiet
     CLUSTER_STATUS="PROVISIONING"
 fi
 
 echo "ensuring cluster $CLUSTER_NAME is RUNNING..."
 until [ "$CLUSTER_STATUS" = "RUNNING" ]; do
-    CLUSTER_STATUS=$(gcloud container clusters describe "$CLUSTER_NAME" --region "$REGION" --project "$PROJECT_ID" --format="value(status)" 2>/dev/null || echo "ERROR")
+    CLUSTER_STATUS=$(gcloud container clusters describe "$CLUSTER_NAME" --zone "$ZONE" --project "$PROJECT_ID" --format="value(status)" 2>/dev/null || echo "ERROR")
     if [ "$CLUSTER_STATUS" = "RUNNING" ]; then
         break
     fi
@@ -78,7 +82,7 @@ for SERVICE in $SERVICES; do
 done
 
 echo "fetching GKE credentials..."
-gcloud container clusters get-credentials "$CLUSTER_NAME" --region "$REGION" --project "$PROJECT_ID"
+gcloud container clusters get-credentials "$CLUSTER_NAME" --zone "$ZONE" --project "$PROJECT_ID"
 
 echo "applying Kubernetes manifests..."
 kubectl apply -f k8s/traefik/crds.yaml
