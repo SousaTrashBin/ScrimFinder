@@ -101,21 +101,39 @@ fi
 echo "deploying with Helm (including Traefik and Routing)..."
 helm dependency update k8s/charts/scrimfinder
 
-echo "preparing namespace and secrets..."
-kubectl create namespace scrimfinder --dry-run=client -o yaml | kubectl apply -f -
-kubectl create secret generic scrimfinder-secrets \
-    --namespace scrimfinder \
-    --from-literal=riot-api-key="$RIOT_API_KEY" \
-    --from-literal=db-user="$SCRIM_DB_USER" \
-    --from-literal=db-password="$SCRIM_DB_PASSWORD" \
-    --dry-run=client -o yaml | kubectl apply -f -
+if helm plugin list | grep -q "diff"; then
+    echo "--- PREVIEWING CHANGES (helm diff) ---"
+    helm diff upgrade scrimfinder k8s/charts/scrimfinder \
+        --namespace scrimfinder \
+        --set global.imageRegistry="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}" \
+        --set global.region="${REGION}" \
+        --set global.projectId="${PROJECT_ID}" \
+        --set global.repoName="${REPO_NAME}" \
+        --set secrets.riotApiKey="$RIOT_API_KEY" \
+        --set secrets.dbUser="$SCRIM_DB_USER" \
+        --set secrets.dbPassword="$SCRIM_DB_PASSWORD" \
+        --allow-unreleased
+    
+    if [ "$CONFIRM_DEPLOY" = "true" ]; then
+        echo "Proceeding with deployment..."
+    else
+        echo "Check the diff above. To bypass this check in the future, set CONFIRM_DEPLOY=true."
+    fi
+fi
 
+echo "preparing namespace..."
+kubectl create namespace scrimfinder --dry-run=client -o yaml | kubectl apply -f -
+
+echo "deploying with Helm..."
 helm upgrade --install scrimfinder k8s/charts/scrimfinder \
     --namespace scrimfinder --create-namespace \
     --set global.imageRegistry="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}" \
     --set global.region="${REGION}" \
     --set global.projectId="${PROJECT_ID}" \
     --set global.repoName="${REPO_NAME}" \
+    --set secrets.riotApiKey="$RIOT_API_KEY" \
+    --set secrets.dbUser="$SCRIM_DB_USER" \
+    --set secrets.dbPassword="$SCRIM_DB_PASSWORD" \
     --wait \
     --timeout 10m
 
