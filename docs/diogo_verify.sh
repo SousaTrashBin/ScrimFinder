@@ -18,13 +18,16 @@ bash "$SCRIPT_DIR/diogo_deploy.sh"
 
 echo "waiting for Traefik External IP..."
 EXTERNAL_IP=""
-MAX_RETRIES=20
+MAX_RETRIES=30
 RETRY_COUNT=0
 
 while [ -z "$EXTERNAL_IP" ] && [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-    EXTERNAL_IP=$(kubectl get svc traefik -n kube-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+    EXTERNAL_IP=$(kubectl get svc scrimfinder-traefik -n scrimfinder -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
     if [ -z "$EXTERNAL_IP" ]; then
-        echo "waiting for IP ($((RETRY_COUNT+1))/$MAX_RETRIES)..."
+        EXTERNAL_IP=$(kubectl get svc scrimfinder-traefik -n scrimfinder -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
+    fi
+    if [ -z "$EXTERNAL_IP" ]; then
+        echo "waiting for IP/Hostname ($((RETRY_COUNT+1))/$MAX_RETRIES)..."
         sleep 10
         RETRY_COUNT=$((RETRY_COUNT+1))
     fi
@@ -35,25 +38,64 @@ if [ -z "$EXTERNAL_IP" ]; then
     exit 1
 fi
 
-echo "verifying Matchmaking Service readiness (http://$EXTERNAL_IP/api/v1/matchmaking/q/health/ready)..."
+echo "traefik is accessible at: $EXTERNAL_IP"
 
-READY=false
-for i in {1..15}; do
-    RESPONSE=$(curl -s "http://$EXTERNAL_IP/api/v1/matchmaking/q/health/ready" || echo "FAILED")
-    if echo "$RESPONSE" | grep -q '"status": "UP"'; then
-        READY=true
-        break
+SERVICES_TO_CHECK="
+matchmaking-service:/api/v1/matchmaking/q/health/ready
+ranking-service:/api/v1/ranking/q/health/ready
+match-history-service:/api/v1/history/q/health/ready
+detail-filling-service:/api/v1/riot/q/health/ready
+training-service:/api/v1/training/q/health/ready
+analysis-service:/api/v1/analysis/q/health/ready
+"
+
+check_health() {
+    local SERVICE_NAME=$1
+    local HEALTH_PATH=$2
+    local IP=$3
+    local READY=false
+
+    echo "verifying $SERVICE_NAME readiness (http://$IP$HEALTH_PATH)..."
+    
+    for i in {1..25}; do
+        RESPONSE=$(curl -s "http://$IP$HEALTH_PATH" || echo "FAILED")
+        if echo "$RESPONSE" | grep -qE '"status":\s*"(UP|ok)"'; then
+            READY=true
+            break
+        fi
+        sleep 5
+    done
+
+    if [ "$READY" = "true" ]; then
+        echo "SUCCESS! $SERVICE_NAME is UP."
+        return 0
+    else
+        echo "FAILURE! $SERVICE_NAME did not report 'UP' or 'ok' within the timeout."
+        echo "last response from $SERVICE_NAME: $RESPONSE"
+        return 1
     fi
-    echo "waiting for service to report 'UP'... ($i/15)"
-    sleep 5
+}
+
+PIDS=()
+for ENTRY in $SERVICES_TO_CHECK; do
+    SERVICE_NAME=$(echo $ENTRY | cut -d':' -f1)
+    HEALTH_PATH=$(echo $ENTRY | cut -d':' -f2)
+    check_health "$SERVICE_NAME" "$HEALTH_PATH" "$EXTERNAL_IP" &
+    PIDS+=($!)
 done
 
-if [ "$READY" = "true" ]; then
-    echo "SUCCESS! Service is UP and responding correctly."
-else
-    echo "FAILURE! Service did not report 'UP' within the timeout."
-    echo "last response: $RESPONSE"
+FAILED=0
+for pid in "${PIDS[@]}"; do
+    if ! wait "$pid"; then
+        FAILED=1
+    fi
+done
+
+if [ $FAILED -ne 0 ]; then
+    echo "verification failed for one or more services."
     exit 1
 fi
+
+echo "all services verified successfully!"
 
 echo "verification complete!"

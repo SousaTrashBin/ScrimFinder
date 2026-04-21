@@ -25,21 +25,8 @@ if gcloud container clusters describe "$CLUSTER_NAME" --zone "$ZONE" > /dev/null
     echo "fetching GKE credentials..."
     gcloud container clusters get-credentials "$CLUSTER_NAME" --zone "$ZONE" --project "$PROJECT_ID"
 
-    echo "deleting Kubernetes resources..."
-    export PROJECT_ID REGION REPO_NAME ENV_TAG CLUSTER_NAME
-    
-    kubectl delete -f k8s/traefik/ingressroutes.yaml --ignore-not-found || true
-    kubectl delete -f k8s/traefik/middlewares.yaml --ignore-not-found || true
-    
-    if command -v envsubst >/dev/null 2>&1; then
-        envsubst < k8s/apps/scrimfinder-apps.yaml | kubectl delete -f - --ignore-not-found || true
-    else
-        kubectl delete -f k8s/apps/scrimfinder-apps.yaml --ignore-not-found || true
-    fi
-    
-    kubectl delete -f k8s/traefik/deployment.yaml --ignore-not-found || true
-    kubectl delete -f k8s/apps/infrastructure.yaml --ignore-not-found || true
-    kubectl delete -f k8s/traefik/rbac.yaml --ignore-not-found || true
+    echo "deleting Kubernetes resources with Helm..."
+    helm uninstall scrimfinder -n scrimfinder || true
     
     echo "deleting GKE cluster: $CLUSTER_NAME..."
     gcloud container clusters delete "$CLUSTER_NAME" --zone "$ZONE" --project "$PROJECT_ID" --quiet
