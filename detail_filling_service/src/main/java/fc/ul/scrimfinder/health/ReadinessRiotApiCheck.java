@@ -1,5 +1,6 @@
 package fc.ul.scrimfinder.health;
 
+import fc.ul.scrimfinder.client.ClientUrlPrefixProvider;
 import fc.ul.scrimfinder.client.RiotHealthClient;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -15,6 +16,8 @@ public class ReadinessRiotApiCheck implements HealthCheck {
 
     @Inject @RestClient RiotHealthClient riotHealthClient;
 
+    @Inject ClientUrlPrefixProvider clientUrlPrefixProvider;
+
     @Override
     public HealthCheckResponse call() {
         if (isRiotApiAvailable()) {
@@ -24,6 +27,7 @@ public class ReadinessRiotApiCheck implements HealthCheck {
     }
 
     private boolean isRiotApiAvailable() {
+        clientUrlPrefixProvider.setPrefix("euw1");
         try (Response response = riotHealthClient.checkHealth()) {
             return response.getStatus() < 400;
         } catch (Exception x) {
