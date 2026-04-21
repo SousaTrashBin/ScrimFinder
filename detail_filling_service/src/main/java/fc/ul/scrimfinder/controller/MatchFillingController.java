@@ -81,7 +81,7 @@ public class MatchFillingController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    @Timeout(2000)
+    @Timeout(10000)
     public Response getFilledMatch(@PathParam("matchId") @NotBlank String matchId) {
         MatchStatsDTO match = matchFillingService.getFilledMatch(matchId);
         return Response.ok(match).build();
@@ -138,7 +138,7 @@ public class MatchFillingController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    @Timeout(2000)
+    @Timeout(10000)
     public Response getRawMatchData(@PathParam("matchId") @NotBlank String matchId) {
         String match = matchFillingService.getRawMatchData(matchId);
         return Response.ok(match).build();
