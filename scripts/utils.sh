@@ -2,11 +2,35 @@
 
 NAMESPACE="scrimfinder"
 
+check_helm_plugins() {
+    local plugins=("diff")
+    for plugin in "${plugins[@]}"; do
+        if ! helm plugin list | grep -q "$plugin"; then
+            echo "Warning: Helm plugin '$plugin' is not installed. Some features may be disabled."
+        fi
+    done
+}
+
 case "$1" in
+    "diff")
+        echo "Calculating Helm diff for scrimfinder..."
+        helm diff upgrade scrimfinder k8s/charts/scrimfinder \
+            --namespace $NAMESPACE \
+            --set global.imageRegistry="${SCRIM_REGION}-docker.pkg.dev/${SCRIM_PROJECT_ID}/${SCRIM_REPO_NAME}" \
+            --set global.region="${SCRIM_REGION}" \
+            --set global.projectId="${SCRIM_PROJECT_ID}" \
+            --set global.repoName="${SCRIM_REPO_NAME}" \
+            --set secrets.riotApiKey="$RIOT_API_KEY" \
+            --set secrets.dbUser="$SCRIM_DB_USER" \
+            --set secrets.dbPassword="$SCRIM_DB_PASSWORD" \
+            --allow-unreleased
+        ;;
     "db-proxy")
-        echo "Starting local proxy to Postgres (localhost:5432)..."
-        echo "You can now connect your IDE (IntelliJ, DBeaver) to localhost:5432"
-        kubectl port-forward -n $NAMESPACE svc/matchmaking-db 5432:5432
+        DB_SVC="${2:-matchmaking-db}"
+        PORT="${3:-5432}"
+        echo "Starting local proxy to $DB_SVC (localhost:$PORT)..."
+        echo "You can now connect your IDE to localhost:$PORT"
+        kubectl port-forward -n $NAMESPACE svc/$DB_SVC $PORT:5432
         ;;
     "traefik-proxy")
         echo "Starting local proxy to Traefik Dashboard (localhost:9000)..."
@@ -34,7 +58,7 @@ case "$1" in
         echo "Usage: ./utils.sh <command>"
         echo ""
         echo "Commands:"
-        echo "  db-proxy      Forward local 5432 to Cloud Postgres"
+        echo "  db-proxy [s]  Forward local 5432 to DB service (default: matchmaking-db)"
         echo "  traefik-proxy Forward local 9000 to Traefik Dashboard"
         echo "  logs <svc>    Stream logs for a service"
         echo "  monitor       Open K9s (or kubectl watch)"
