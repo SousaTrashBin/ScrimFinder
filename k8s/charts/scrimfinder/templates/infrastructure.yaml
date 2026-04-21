@@ -1,40 +1,35 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: postgres-init-config
-  namespace: {{ .Values.global.namespace }}
-data:
-  init-db.sql: |
-    CREATE DATABASE matchmaking;
-    CREATE DATABASE ranking;
-    CREATE DATABASE history;
----
+{{- $namespace := .Values.global.namespace -}}
+{{- $postgresResources := .Values.infrastructure.postgres.resources -}}
+{{- $redisResources := .Values.infrastructure.redis.resources -}}
+
+{{- /* postgreSQL instances */ -}}
+{{- range $dbName := (list "matchmaking" "ranking" "history") }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: postgres-data-pvc
-  namespace: {{ .Values.global.namespace }}
+  name: {{ $dbName }}-db-pvc
+  namespace: {{ $namespace }}
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: {{ .Values.infrastructure.postgres.storage }}
+      storage: {{ $.Values.infrastructure.postgres.storage }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: postgres-db
-  namespace: {{ .Values.global.namespace }}
+  name: {{ $dbName }}-db
+  namespace: {{ $namespace }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: postgres-db
+      app: {{ $dbName }}-db
   template:
     metadata:
       labels:
-        app: postgres-db
+        app: {{ $dbName }}-db
     spec:
       containers:
       - name: postgres
@@ -50,82 +45,61 @@ spec:
             secretKeyRef:
               name: scrimfinder-secrets
               key: db-password
+        - name: POSTGRES_DB
+          value: {{ $dbName }}
         - name: PGDATA
           value: /var/lib/postgresql/data/pgdata
         ports:
         - containerPort: 5432
         resources:
-          {{- toYaml .Values.infrastructure.postgres.resources | nindent 10 }}
+          {{- toYaml $postgresResources | nindent 10 }}
         livenessProbe:
           exec:
-            command: ["pg_isready", "-U", "$(POSTGRES_USER)"]
+            command: ["/bin/sh", "-c", "pg_isready -U $POSTGRES_USER"]
           initialDelaySeconds: 60
           periodSeconds: 10
         readinessProbe:
           exec:
-            command: ["pg_isready", "-U", "$(POSTGRES_USER)"]
+            command: ["/bin/sh", "-c", "pg_isready -U $POSTGRES_USER"]
           initialDelaySeconds: 10
           periodSeconds: 10
         volumeMounts:
         - name: postgres-data
           mountPath: /var/lib/postgresql/data
-        - name: init-scripts
-          mountPath: /docker-entrypoint-initdb.d/
       volumes:
       - name: postgres-data
         persistentVolumeClaim:
-          claimName: postgres-data-pvc
-      - name: init-scripts
-        configMap:
-          name: postgres-init-config
+          claimName: {{ $dbName }}-db-pvc
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: matchmaking-db
-  namespace: {{ .Values.global.namespace }}
+  name: {{ $dbName }}-db
+  namespace: {{ $namespace }}
 spec:
   selector:
-    app: postgres-db
+    app: {{ $dbName }}-db
   ports:
   - port: 5432
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: ranking-db
-  namespace: {{ .Values.global.namespace }}
-spec:
-  selector:
-    app: postgres-db
-  ports:
-  - port: 5432
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: history-db
-  namespace: {{ .Values.global.namespace }}
-spec:
-  selector:
-    app: postgres-db
-  ports:
-  - port: 5432
----
+{{- end }}
+
+{{- /* redis instances */ -}}
+{{- range $redisName := (list "matchmaking-redis" "filling-cache") }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: redis-cache
-  namespace: {{ .Values.global.namespace }}
+  name: {{ $redisName }}
+  namespace: {{ $namespace }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: redis-cache
+      app: {{ $redisName }}
   template:
     metadata:
       labels:
-        app: redis-cache
+        app: {{ $redisName }}
     spec:
       containers:
       - name: redis
@@ -133,7 +107,7 @@ spec:
         ports:
         - containerPort: 6379
         resources:
-          {{- toYaml .Values.infrastructure.redis.resources | nindent 10 }}
+          {{- toYaml $redisResources | nindent 10 }}
         livenessProbe:
           tcpSocket:
             port: 6379
@@ -148,30 +122,22 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: matchmaking-redis
-  namespace: {{ .Values.global.namespace }}
+  name: {{ $redisName }}
+  namespace: {{ $namespace }}
 spec:
   selector:
-    app: redis-cache
+    app: {{ $redisName }}
   ports:
   - port: 6379
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: filling-cache
-  namespace: {{ .Values.global.namespace }}
-spec:
-  selector:
-    app: redis-cache
-  ports:
-  - port: 6379
----
+{{- end }}
+
+{{- /* shared AI Storage */ -}}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: ai-storage-pvc
-  namespace: {{ .Values.global.namespace }}
+  namespace: {{ $namespace }}
 spec:
   accessModes:
     - ReadWriteOnce
