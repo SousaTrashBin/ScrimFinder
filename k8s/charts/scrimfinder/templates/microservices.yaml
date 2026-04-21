@@ -6,6 +6,9 @@ metadata:
   name: {{ $name }}
   namespace: {{ $.Values.global.namespace }}
 spec:
+  {{- if not ($config.autoscaling).enabled }}
+  replicas: {{ $config.replicas | default 1 }}
+  {{- end }}
   selector:
     matchLabels:
       app: {{ $name }}
@@ -14,9 +17,21 @@ spec:
       labels:
         app: {{ $name }}
     spec:
+      {{- with $.Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $config.securityContext | default $.Values.global.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
       - name: {{ $name }}
         image: "{{ $.Values.global.imageRegistry }}/{{ $name }}:{{ $.Values.global.imageTag }}"
+        {{- with $config.containerSecurityContext | default $.Values.global.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
         ports:
         {{- range $config.ports }}
         - containerPort: {{ .containerPort }}
@@ -79,6 +94,18 @@ spec:
         - name: {{ $config.persistence.claimName }}
           mountPath: {{ $config.persistence.mountPath }}
         {{- end }}
+      {{- with $config.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $config.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $config.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- if $config.persistence }}
       volumes:
       - name: {{ $config.persistence.claimName }}
@@ -96,15 +123,25 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: {{ $name }}
-  minReplicas: 1
-  maxReplicas: 5
+  minReplicas: {{ ($config.autoscaling).minReplicas | default 1 }}
+  maxReplicas: {{ ($config.autoscaling).maxReplicas | default 5 }}
   metrics:
+  {{- if ($config.autoscaling).targetCPUUtilizationPercentage | default 70 }}
   - type: Resource
     resource:
       name: cpu
       target:
         type: Utilization
-        averageUtilization: 70
+        averageUtilization: {{ ($config.autoscaling).targetCPUUtilizationPercentage | default 70 }}
+  {{- end }}
+  {{- if ($config.autoscaling).targetMemoryUtilizationPercentage }}
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: {{ ($config.autoscaling).targetMemoryUtilizationPercentage }}
+  {{- end }}
 ---
 apiVersion: v1
 kind: Service
