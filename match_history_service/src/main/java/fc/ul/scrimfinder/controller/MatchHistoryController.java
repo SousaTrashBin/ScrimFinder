@@ -72,7 +72,7 @@ public class MatchHistoryController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class))),
             })
-    @Timeout(2000)
+    @Timeout(10000)
     public Response getMatchById(@PathParam("riotMatchId") @NotBlank String riotMatchId) {
         MatchDTO match = matchHistoryService.getMatchById(riotMatchId);
         return Response.ok(match).build();
@@ -104,7 +104,7 @@ public class MatchHistoryController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    @Timeout(5000)
+    @Timeout(30000)
     public Response getMatches(
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("size") @DefaultValue("20") @Min(1) @Max(100) int size,
@@ -194,7 +194,7 @@ public class MatchHistoryController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class))),
             })
-    @Timeout(2000)
+    @Timeout(10000)
     public Response deleteMatchById(@PathParam("riotMatchId") @NotBlank String riotMatchId) {
         MatchDTO deletedMatch = matchHistoryService.deleteMatchById(riotMatchId);
         return Response.ok(deletedMatch).build();
