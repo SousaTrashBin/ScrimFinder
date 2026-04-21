@@ -15,6 +15,15 @@ rules:
       - services
       - endpoints
       - secrets
+      - nodes
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - discovery.k8s.io
+    resources:
+      - endpointslices
     verbs:
       - get
       - list
@@ -38,6 +47,7 @@ rules:
       - update
   - apiGroups:
       - traefik.io
+      - traefik.containo.us
     resources:
       - ingressroutes
       - ingressroutetcps
@@ -48,6 +58,7 @@ rules:
       - tlsstores
       - traefikservices
       - serverstransports
+      - serverstransporttcps
     verbs:
       - get
       - list

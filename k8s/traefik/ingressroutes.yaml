@@ -2,38 +2,71 @@ apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
   name: scrimfinder-routes
-  namespace: default
+  namespace: scrimfinder
 spec:
   entryPoints:
     - web
   routes:
     - match: PathPrefix(`/api/v1/matchmaking`)
       kind: Rule
+      priority: 100
       services:
         - name: matchmaking-service
           port: 8080
+      middlewares:
+        - name: api-ratelimit
+          namespace: kube-system
     - match: PathPrefix(`/api/v1/ranking`)
       kind: Rule
+      priority: 100
       services:
         - name: ranking-service
           port: 8080
+      middlewares:
+        - name: api-ratelimit
+          namespace: kube-system
     - match: PathPrefix(`/api/v1/history`)
       kind: Rule
+      priority: 100
       services:
         - name: match-history-service
           port: 8080
+      middlewares:
+        - name: api-ratelimit
+          namespace: kube-system
     - match: PathPrefix(`/api/v1/riot`)
       kind: Rule
+      priority: 100
       services:
         - name: detail-filling-service
           port: 8080
+      middlewares:
+        - name: api-ratelimit
+          namespace: kube-system
     - match: PathPrefix(`/api/v1/training`)
       kind: Rule
+      priority: 100
       services:
         - name: training-service
           port: 8000
+      middlewares:
+        - name: api-ratelimit
+          namespace: kube-system
     - match: PathPrefix(`/api/v1/analysis`)
       kind: Rule
+      priority: 100
       services:
         - name: analysis-service
           port: 8001
+      middlewares:
+        - name: api-ratelimit
+          namespace: kube-system
+    - match: PathPrefix(`/api/internal`)
+      kind: Rule
+      priority: 10
+      services:
+        - kind: TraefikService
+          name: api@internal
+      middlewares:
+        - name: dashboard-auth
+          namespace: kube-system

@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: dashboard-auth-secret
+  namespace: kube-system
+type: Opaque
+stringData:
+  users: |
+    ${DASHBOARD_USER}:${DASHBOARD_PASSWORD}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: dashboard-auth
+  namespace: kube-system
+spec:
+  basicAuth:
+    secret: dashboard-auth-secret
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: api-ratelimit
+  namespace: kube-system
+spec:
+  rateLimit:
+    average: 100
+    burst: 50
