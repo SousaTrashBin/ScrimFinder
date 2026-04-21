@@ -79,7 +79,9 @@ if ! gcloud artifacts repositories describe "$REPO_NAME" --location="$REGION" > 
     gcloud artifacts repositories create "$REPO_NAME" --repository-format=docker --location="$REGION" --description="Docker repository for ScrimFinder"
 fi
 
-SERVICES="matchmaking-service ranking_service match_history_service detail_filling_service training_service analysis_service"
+if [ -z "$SERVICES" ]; then
+    SERVICES="matchmaking-service ranking_service match_history_service detail_filling_service training_service analysis_service"
+fi
 
 if [ "$SKIP_BUILD" != "true" ]; then
     echo "building and pushing services in parallel..."
@@ -102,6 +104,9 @@ echo "deploying with Helm (including Traefik and Routing)..."
 helm dependency update k8s/charts/scrimfinder
 
 if helm plugin list | grep -q "diff"; then
+    echo "Temporarily installing Traefik CRDs for helm diff..."
+    kubectl apply -f https://raw.githubusercontent.com/traefik/traefik/v3.0/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml --server-side --force-conflicts
+    
     echo "--- PREVIEWING CHANGES (helm diff) ---"
     helm diff upgrade scrimfinder k8s/charts/scrimfinder \
         --namespace scrimfinder \
@@ -113,6 +118,9 @@ if helm plugin list | grep -q "diff"; then
         --set secrets.dbUser="$SCRIM_DB_USER" \
         --set secrets.dbPassword="$SCRIM_DB_PASSWORD" \
         --allow-unreleased
+    
+    echo "Removing temporary Traefik CRDs to let Helm manage them..."
+    kubectl delete -f https://raw.githubusercontent.com/traefik/traefik/v3.0/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml
     
     if [ "$CONFIRM_DEPLOY" = "true" ]; then
         echo "Proceeding with deployment..."
@@ -150,3 +158,6 @@ while [ -z "$EXTERNAL_IP" ]; do
 done
 
 echo "deployment complete! Traefik External IP: $EXTERNAL_IP"
+
+echo "verifying service health with internal smoke tests..."
+helm test scrimfinder --namespace scrimfinder
