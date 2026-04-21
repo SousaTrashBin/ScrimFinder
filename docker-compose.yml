@@ -58,7 +58,7 @@ services:
 
   matchmaking-service:
     build:
-      context: ./matchmaking_service
+      context: matchmaking-service
       dockerfile: Dockerfile
     environment:
       QUARKUS_DATASOURCE_DB_KIND: postgresql

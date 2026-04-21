@@ -7,5 +7,6 @@ import org.mapstruct.Mapper;
 @Mapper(componentModel = "cdi")
 public interface RiotAccountMapper {
 
+    @org.mapstruct.Mapping(source = "primary", target = "isPrimary")
     RiotAccountDTO toDTO(RiotAccount riotAccount);
 }

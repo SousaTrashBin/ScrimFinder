@@ -2,8 +2,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: matchmaking-service
+  namespace: scrimfinder
 spec:
   replicas: 1
+  strategy:
+    type: RollingUpdate
   selector:
     matchLabels:
       app: matchmaking-service
@@ -14,7 +17,7 @@ spec:
     spec:
       containers:
       - name: matchmaking-service
-        image: scrimfinder/matchmaking-service:latest
+        image: ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/matchmaking-service:latest
         ports:
         - containerPort: 8080
           name: http
@@ -29,190 +32,39 @@ spec:
           value: postgres
         - name: QUARKUS_REDIS_HOSTS
           value: redis://matchmaking-redis:6379
-        - name: RANKING_SERVICE_HOST
+        - name: RANKING_SVC_HOST
           value: ranking-service
-        - name: PLAYER_FILLING_SERVICE_HOST
+        - name: RANKING_SVC_PORT
+          value: "9001"
+        - name: PLAYER_FILLING_SVC_HOST
           value: detail-filling-service
+        - name: PLAYER_FILLING_SVC_PORT
+          value: "8080"
         resources:
           requests:
-            cpu: "200m"
-            memory: "256Mi"
+            cpu: "10m"
+            memory: "64Mi"
           limits:
             cpu: "500m"
             memory: "512Mi"
         livenessProbe:
           httpGet:
-            path: /q/health/live
+            path: /api/v1/matchmaking/q/health/live
             port: 8080
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
-            path: /q/health/ready
+            path: /api/v1/matchmaking/q/health/ready
             port: 8080
           initialDelaySeconds: 5
           periodSeconds: 10
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: matchmaking-service
-spec:
-  selector:
-    app: matchmaking-service
-  ports:
-  - name: http
-    port: 8080
-    targetPort: 8080
-  - name: grpc
-    port: 9000
-    targetPort: 9000
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: ranking-service
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: ranking-service
-  template:
-    metadata:
-      labels:
-        app: ranking-service
-    spec:
-      containers:
-      - name: ranking-service
-        image: scrimfinder/ranking-service:latest
-        ports:
-        - containerPort: 8080
-          name: http
-        - containerPort: 9001
-          name: grpc
-        env:
-        - name: QUARKUS_DATASOURCE_JDBC_URL
-          value: jdbc:postgresql://ranking-db:5432/ranking
-        - name: QUARKUS_DATASOURCE_USERNAME
-          value: postgres
-        - name: QUARKUS_DATASOURCE_PASSWORD
-          value: postgres
-        - name: PLAYER_FILLING_SERVICE_HOST
-          value: detail-filling-service
-        - name: MATCH_HISTORY_SERVICE_HOST
-          value: match-history-service
-        resources:
-          requests:
-            cpu: "200m"
-            memory: "256Mi"
-          limits:
-            cpu: "500m"
-            memory: "512Mi"
-        livenessProbe:
-          httpGet:
-            path: /q/health/live
-            port: 8080
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /q/health/ready
-            port: 8080
-          initialDelaySeconds: 5
-          periodSeconds: 10
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: ranking-service
-spec:
-  selector:
-    app: ranking-service
-  ports:
-  - name: http
-    port: 8080
-    targetPort: 8080
-  - name: grpc
-    port: 9001
-    targetPort: 9001
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: match-history-service
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: match-history-service
-  template:
-    metadata:
-      labels:
-        app: match-history-service
-    spec:
-      containers:
-      - name: match-history-service
-        image: scrimfinder/match-history-service:latest
-        ports:
-        - containerPort: 8080
-        env:
-        - name: QUARKUS_DATASOURCE_JDBC_URL
-          value: jdbc:postgresql://history-db:5432/history
-        - name: QUARKUS_DATASOURCE_USERNAME
-          value: postgres
-        - name: QUARKUS_DATASOURCE_PASSWORD
-          value: postgres
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: match-history-service
-spec:
-  selector:
-    app: match-history-service
-  ports:
-  - port: 8080
-    targetPort: 8080
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: detail-filling-service
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: detail-filling-service
-  template:
-    metadata:
-      labels:
-        app: detail-filling-service
-    spec:
-      containers:
-      - name: detail-filling-service
-        image: scrimfinder/detail-filling-service:latest
-        ports:
-        - containerPort: 8080
-        env:
-        - name: QUARKUS_REDIS_HOSTS
-          value: redis://filling-cache:6379
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: detail-filling-service
-spec:
-  selector:
-    app: detail-filling-service
-  ports:
-  - port: 8080
-    targetPort: 8080
----
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: matchmaking-service-hpa
+  namespace: scrimfinder
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -228,10 +80,87 @@ spec:
         type: Utilization
         averageUtilization: 70
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: matchmaking-service
+  namespace: scrimfinder
+spec:
+  selector:
+    app: matchmaking-service
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  - name: grpc
+    port: 9000
+    targetPort: 9000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ranking-service
+  namespace: scrimfinder
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: ranking-service
+  template:
+    metadata:
+      labels:
+        app: ranking-service
+    spec:
+      containers:
+      - name: ranking-service
+        image: ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/ranking-service:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 9001
+          name: grpc
+        env:
+        - name: QUARKUS_DATASOURCE_JDBC_URL
+          value: jdbc:postgresql://ranking-db:5432/ranking
+        - name: QUARKUS_DATASOURCE_USERNAME
+          value: postgres
+        - name: QUARKUS_DATASOURCE_PASSWORD
+          value: postgres
+        - name: PLAYER_FILLING_SVC_HOST
+          value: detail-filling-service
+        - name: PLAYER_FILLING_SVC_PORT
+          value: "8080"
+        - name: MATCH_HISTORY_SVC_HOST
+          value: match-history-service
+        - name: MATCH_HISTORY_SVC_PORT
+          value: "8080"
+        resources:
+          requests:
+            cpu: "10m"
+            memory: "64Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /api/v1/ranking/q/health/live
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/v1/ranking/q/health/ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: ranking-service-hpa
+  namespace: scrimfinder
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -247,12 +176,209 @@ spec:
         type: Utilization
         averageUtilization: 70
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ranking-service
+  namespace: scrimfinder
+spec:
+  selector:
+    app: ranking-service
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  - name: grpc
+    port: 9001
+    targetPort: 9001
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: match-history-service
+  namespace: scrimfinder
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: match-history-service
+  template:
+    metadata:
+      labels:
+        app: match-history-service
+    spec:
+      containers:
+      - name: match-history-service
+        image: ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/match-history-service:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: QUARKUS_DATASOURCE_JDBC_URL
+          value: jdbc:postgresql://history-db:5432/history
+        - name: QUARKUS_DATASOURCE_USERNAME
+          value: postgres
+        - name: QUARKUS_DATASOURCE_PASSWORD
+          value: postgres
+        - name: TRAINING_SVC_HOST
+          value: training-service
+        - name: TRAINING_SVC_RPC_PORT
+          value: "8000"
+        - name: PLAYER_FILLING_SVC_HOST
+          value: detail-filling-service
+        - name: PLAYER_FILLING_SVC_PORT
+          value: "8080"
+        - name: PLAYER_FILLING_SVC_URL
+          value: http://detail-filling-service:8080
+        resources:
+          requests:
+            cpu: "10m"
+            memory: "64Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /api/v1/history/q/health/live
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/v1/history/q/health/ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: match-history-service-hpa
+  namespace: scrimfinder
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: match-history-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: match-history-service
+  namespace: scrimfinder
+spec:
+  selector:
+    app: match-history-service
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: detail-filling-service
+  namespace: scrimfinder
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: detail-filling-service
+  template:
+    metadata:
+      labels:
+        app: detail-filling-service
+    spec:
+      containers:
+      - name: detail-filling-service
+        image: ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/detail-filling-service:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: QUARKUS_REDIS_HOSTS
+          value: redis://filling-cache:6379
+        - name: RIOT_API_KEY
+          value: "${RIOT_API_KEY}"
+        - name: TRAINING_SVC_HOST
+          value: training-service
+        - name: TRAINING_SVC_RPC_PORT
+          value: "8000"
+        resources:
+          requests:
+            cpu: "10m"
+            memory: "64Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /api/v1/riot/q/health/live
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/v1/riot/q/health/ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: detail-filling-service-hpa
+  namespace: scrimfinder
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: detail-filling-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: detail-filling-service
+  namespace: scrimfinder
+spec:
+  selector:
+    app: detail-filling-service
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: training-service
+  namespace: scrimfinder
 spec:
   replicas: 1
+  strategy:
+    type: RollingUpdate
   selector:
     matchLabels:
       app: training-service
@@ -263,48 +389,63 @@ spec:
     spec:
       containers:
       - name: training-service
-        image: scrimfinder/training-service:latest
+        image: ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/training-service:latest
         ports:
         - containerPort: 8000
           name: http
-        - containerPort: 50051
-          name: grpc
         env:
         - name: PLATFORM_DB
-          value: /data/platform.db
-        - name: MODELS_DIR
-          value: /data/models
-        - name: GAMES_DIR
-          value: /data/games
-        - name: DATASETS_DIR
-          value: /data/datasets
-        - name: DETAIL_FILLING_URL
-          value: http://detail-filling-service:8080
-        volumeMounts:
-        - name: ai-storage
-          mountPath: /data
+          value: postgresql://postgres:postgres@matchmaking-db:5432/matchmaking
         resources:
           requests:
+            cpu: "10m"
+            memory: "64Mi"
+          limits:
             cpu: "500m"
             memory: "512Mi"
-          limits:
-            cpu: "1000m"
-            memory: "1Gi"
         livenessProbe:
-          httpGet:
-            path: /health
+          tcpSocket:
             port: 8000
-          initialDelaySeconds: 15
-          periodSeconds: 20
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        volumeMounts:
+        - name: ai-storage
+          mountPath: /app/data
       volumes:
       - name: ai-storage
         persistentVolumeClaim:
           claimName: ai-storage-pvc
 ---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: training-service-hpa
+  namespace: scrimfinder
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: training-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+---
 apiVersion: v1
 kind: Service
 metadata:
   name: training-service
+  namespace: scrimfinder
 spec:
   selector:
     app: training-service
@@ -312,16 +453,16 @@ spec:
   - name: http
     port: 8000
     targetPort: 8000
-  - name: grpc
-    port: 50051
-    targetPort: 50051
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: analysis-service
+  namespace: scrimfinder
 spec:
   replicas: 1
+  strategy:
+    type: RollingUpdate
   selector:
     matchLabels:
       app: analysis-service
@@ -332,42 +473,63 @@ spec:
     spec:
       containers:
       - name: analysis-service
-        image: scrimfinder/analysis-service:latest
+        image: ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/analysis-service:latest
         ports:
         - containerPort: 8001
           name: http
         env:
         - name: PLATFORM_DB
-          value: /data/platform.db
-        - name: MODELS_DIR
-          value: /data/models
-        - name: TRAINING_GRPC_URL
-          value: training-service:50051
-        volumeMounts:
-        - name: ai-storage
-          mountPath: /data
+          value: postgresql://postgres:postgres@matchmaking-db:5432/matchmaking
         resources:
           requests:
-            cpu: "200m"
-            memory: "256Mi"
+            cpu: "10m"
+            memory: "64Mi"
           limits:
             cpu: "500m"
             memory: "512Mi"
         livenessProbe:
-          httpGet:
-            path: /health
+          tcpSocket:
             port: 8001
-          initialDelaySeconds: 15
-          periodSeconds: 20
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 8001
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        volumeMounts:
+        - name: ai-storage
+          mountPath: /app/data
       volumes:
       - name: ai-storage
         persistentVolumeClaim:
           claimName: ai-storage-pvc
 ---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: analysis-service-hpa
+  namespace: scrimfinder
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: analysis-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+---
 apiVersion: v1
 kind: Service
 metadata:
   name: analysis-service
+  namespace: scrimfinder
 spec:
   selector:
     app: analysis-service

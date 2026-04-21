@@ -20,6 +20,7 @@ public class ReadinessRiotApiCheck implements HealthCheck {
 
     @Override
     public HealthCheckResponse call() {
+        clientUrlPrefixProvider.setPrefix("euw1"); // Use EUW1 as default health check region
         if (isRiotApiAvailable()) {
             return HealthCheckResponse.named("Riot API availability check").up().build();
         }

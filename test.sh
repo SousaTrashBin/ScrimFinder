@@ -12,7 +12,7 @@ fi
 echo "running ScrimFinder services tests..."
 
 echo "testing java services"
-for service in matchmaking_service ranking_service match_history_service detail_filling_service; do
+for service in matchmaking-service ranking_service match_history_service detail_filling_service; do
     if [ -d "$service" ]; then
         echo "testing service: $service..."
         (cd "$service" && ./mvnw test -B)
