@@ -72,3 +72,6 @@ ENV/
 analysis_api/models/
 
 .idea/
+
+k8s/charts/*/charts/
+k8s/charts/*/tmpcharts/
