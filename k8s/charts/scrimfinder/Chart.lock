@@ -3,4 +3,4 @@ dependencies:
   repository: https://traefik.github.io/charts
   version: 26.0.0
 digest: sha256:656b4eb4e56108010ad7d1ebbf8f9bf7749e427e3207293d50ab6214d652079c
-generated: "2026-04-21T10:41:35.537598+01:00"
+generated: "2026-04-21T21:11:43.516007+01:00"
