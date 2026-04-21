@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-REQUIRED_VARS="SCRIM_PROJECT_ID SCRIM_REGION SCRIM_REPO_NAME SCRIM_ENV_TAG SCRIM_CLUSTER_NAME DASHBOARD_USER DASHBOARD_PASSWORD RIOT_API_KEY"
+REQUIRED_VARS="SCRIM_PROJECT_ID SCRIM_REGION SCRIM_REPO_NAME SCRIM_ENV_TAG SCRIM_CLUSTER_NAME RIOT_API_KEY SCRIM_DB_USER SCRIM_DB_PASSWORD"
 
 for var in $REQUIRED_VARS; do
     if [ -z "$(eval echo \$$var)" ]; then
@@ -100,10 +100,19 @@ fi
 
 echo "deploying with Helm (including Traefik and Routing)..."
 helm dependency update k8s/charts/scrimfinder
+
+echo "preparing namespace and secrets..."
+kubectl create namespace scrimfinder --dry-run=client -o yaml | kubectl apply -f -
+kubectl create secret generic scrimfinder-secrets \
+    --namespace scrimfinder \
+    --from-literal=riot-api-key="$RIOT_API_KEY" \
+    --from-literal=db-user="$SCRIM_DB_USER" \
+    --from-literal=db-password="$SCRIM_DB_PASSWORD" \
+    --dry-run=client -o yaml | kubectl apply -f -
+
 helm upgrade --install scrimfinder k8s/charts/scrimfinder \
     --namespace scrimfinder --create-namespace \
     --set global.imageRegistry="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}" \
-    --set services.detail-filling-service.env.RIOT_API_KEY="${RIOT_API_KEY}" \
     --set global.region="${REGION}" \
     --set global.projectId="${PROJECT_ID}" \
     --set global.repoName="${REPO_NAME}" \

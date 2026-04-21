@@ -27,13 +27,38 @@ spec:
         - name: {{ $key }}
           value: {{ $val | quote }}
         {{- end }}
+        - name: RIOT_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: scrimfinder-secrets
+              key: riot-api-key
+        - name: QUARKUS_DATASOURCE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: scrimfinder-secrets
+              key: db-user
+        - name: QUARKUS_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: scrimfinder-secrets
+              key: db-password
+
+        {{- if or (eq $name "training-service") (eq $name "analysis-service") }}
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: scrimfinder-secrets
+              key: db-user
+        - name: DB_PASS
+          valueFrom:
+            secretKeyRef:
+              name: scrimfinder-secrets
+              key: db-password
+        - name: PLATFORM_DB
+          value: "postgresql://$(DB_USER):$(DB_PASS)@matchmaking-db:5432/matchmaking"
+        {{- end }}
         resources:
-          requests:
-            cpu: "10m"
-            memory: "64Mi"
-          limits:
-            cpu: "500m"
-            memory: "512Mi"
+          {{- toYaml $config.resources | nindent 10 }}
         {{- if eq ($config.healthType | default "http") "http" }}
         livenessProbe:
           httpGet:

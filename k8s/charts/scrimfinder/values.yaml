@@ -2,8 +2,6 @@ global:
   namespace: scrimfinder
   imageRegistry: "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}"
   imageTag: "latest"
-  dbUsername: "postgres"
-  dbPassword: "postgres"
 
 traefik:
   deployment:
@@ -16,33 +14,24 @@ traefik:
       port: 8000
       expose: true
       exposedPort: 80
-    websecure:
-      port: 8443
-      expose: true
-      exposedPort: 443
-  ingressRoute:
-    dashboard:
-      enabled: false
 
 infrastructure:
   postgres:
-    password: postgres
-    user: postgres
     storage: 10Gi
     resources:
       requests:
-        cpu: "20m"
-        memory: "128Mi"
+        cpu: "100m"
+        memory: "256Mi"
       limits:
-        cpu: "500m"
+        cpu: "1000m"
         memory: "1Gi"
   redis:
     resources:
       requests:
-        cpu: "10m"
-        memory: "32Mi"
+        cpu: "50m"
+        memory: "64Mi"
       limits:
-        cpu: "200m"
+        cpu: "500m"
         memory: "256Mi"
   aiStorage:
     storage: 1Gi
@@ -54,10 +43,15 @@ services:
         containerPort: 8080
       - name: grpc
         containerPort: 9000
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "256Mi"
+      limits:
+        cpu: "800m"
+        memory: "512Mi"
     env:
       QUARKUS_DATASOURCE_JDBC_URL: "jdbc:postgresql://matchmaking-db:5432/matchmaking"
-      QUARKUS_DATASOURCE_USERNAME: "postgres"
-      QUARKUS_DATASOURCE_PASSWORD: "postgres"
       QUARKUS_REDIS_HOSTS: "redis://matchmaking-redis:6379"
       RANKING_SVC_HOST: "ranking-service"
       RANKING_SVC_PORT: "9001"
@@ -71,10 +65,15 @@ services:
         containerPort: 8080
       - name: grpc
         containerPort: 9001
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "256Mi"
+      limits:
+        cpu: "800m"
+        memory: "512Mi"
     env:
       QUARKUS_DATASOURCE_JDBC_URL: "jdbc:postgresql://ranking-db:5432/ranking"
-      QUARKUS_DATASOURCE_USERNAME: "postgres"
-      QUARKUS_DATASOURCE_PASSWORD: "postgres"
       PLAYER_FILLING_SVC_HOST: "detail-filling-service"
       PLAYER_FILLING_SVC_PORT: "8080"
       MATCH_HISTORY_SVC_HOST: "match-history-service"
@@ -85,10 +84,15 @@ services:
     ports:
       - name: http
         containerPort: 8080
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "256Mi"
+      limits:
+        cpu: "800m"
+        memory: "512Mi"
     env:
       QUARKUS_DATASOURCE_JDBC_URL: "jdbc:postgresql://history-db:5432/history"
-      QUARKUS_DATASOURCE_USERNAME: "postgres"
-      QUARKUS_DATASOURCE_PASSWORD: "postgres"
       TRAINING_SVC_HOST: "training-service"
       TRAINING_SVC_RPC_PORT: "8000"
       PLAYER_FILLING_SVC_HOST: "detail-filling-service"
@@ -100,9 +104,15 @@ services:
     ports:
       - name: http
         containerPort: 8080
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "256Mi"
+      limits:
+        cpu: "800m"
+        memory: "512Mi"
     env:
       QUARKUS_REDIS_HOSTS: "redis://filling-cache:6379"
-      RIOT_API_KEY: "${RIOT_API_KEY}"
       TRAINING_SVC_HOST: "training-service"
       TRAINING_SVC_RPC_PORT: "8000"
     healthPath: "/api/v1/riot/q/health"
@@ -111,8 +121,14 @@ services:
     ports:
       - name: http
         containerPort: 8000
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "512Mi"
+      limits:
+        cpu: "2000m"
+        memory: "2Gi"
     env:
-      PLATFORM_DB: "postgresql://postgres:postgres@matchmaking-db:5432/matchmaking"
     healthType: "http"
     healthPath: "/api/v1/training/q/health"
     persistence:
@@ -124,8 +140,14 @@ services:
     ports:
       - name: http
         containerPort: 8001
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "512Mi"
+      limits:
+        cpu: "1000m"
+        memory: "1Gi"
     env:
-      PLATFORM_DB: "postgresql://postgres:postgres@matchmaking-db:5432/matchmaking"
     healthType: "http"
     healthPath: "/api/v1/analysis/q/health"
     persistence:

@@ -40,10 +40,16 @@ spec:
       - name: postgres
         image: postgres:15
         env:
-        - name: POSTGRES_PASSWORD
-          value: {{ .Values.infrastructure.postgres.password | quote }}
         - name: POSTGRES_USER
-          value: {{ .Values.infrastructure.postgres.user | quote }}
+          valueFrom:
+            secretKeyRef:
+              name: scrimfinder-secrets
+              key: db-user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: scrimfinder-secrets
+              key: db-password
         - name: PGDATA
           value: /var/lib/postgresql/data/pgdata
         ports:
@@ -52,12 +58,12 @@ spec:
           {{- toYaml .Values.infrastructure.postgres.resources | nindent 10 }}
         livenessProbe:
           exec:
-            command: ["pg_isready", "-U", {{ .Values.infrastructure.postgres.user | quote }}]
+            command: ["pg_isready", "-U", "$(POSTGRES_USER)"]
           initialDelaySeconds: 60
           periodSeconds: 10
         readinessProbe:
           exec:
-            command: ["pg_isready", "-U", {{ .Values.infrastructure.postgres.user | quote }}]
+            command: ["pg_isready", "-U", "$(POSTGRES_USER)"]
           initialDelaySeconds: 10
           periodSeconds: 10
         volumeMounts:
