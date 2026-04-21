@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: postgres-init-config
-  namespace: scrimfinder
+  namespace: {{ .Values.global.namespace }}
 data:
   init-db.sql: |
     CREATE DATABASE matchmaking;
@@ -13,23 +13,21 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: postgres-data-pvc
-  namespace: scrimfinder
+  namespace: {{ .Values.global.namespace }}
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 10Gi
+      storage: {{ .Values.infrastructure.postgres.storage }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: postgres-db
-  namespace: scrimfinder
+  namespace: {{ .Values.global.namespace }}
 spec:
   replicas: 1
-  strategy:
-    type: RollingUpdate
   selector:
     matchLabels:
       app: postgres-db
@@ -43,29 +41,24 @@ spec:
         image: postgres:15
         env:
         - name: POSTGRES_PASSWORD
-          value: postgres
+          value: {{ .Values.infrastructure.postgres.password | quote }}
         - name: POSTGRES_USER
-          value: postgres
+          value: {{ .Values.infrastructure.postgres.user | quote }}
         - name: PGDATA
           value: /var/lib/postgresql/data/pgdata
         ports:
         - containerPort: 5432
         resources:
-          requests:
-            cpu: "20m"
-            memory: "128Mi"
-          limits:
-            cpu: "500m"
-            memory: "1Gi"
+          {{- toYaml .Values.infrastructure.postgres.resources | nindent 10 }}
         livenessProbe:
           exec:
-            command: ["pg_isready", "-U", "postgres"]
-          initialDelaySeconds: 30
+            command: ["pg_isready", "-U", {{ .Values.infrastructure.postgres.user | quote }}]
+          initialDelaySeconds: 60
           periodSeconds: 10
         readinessProbe:
           exec:
-            command: ["pg_isready", "-U", "postgres"]
-          initialDelaySeconds: 5
+            command: ["pg_isready", "-U", {{ .Values.infrastructure.postgres.user | quote }}]
+          initialDelaySeconds: 10
           periodSeconds: 10
         volumeMounts:
         - name: postgres-data
@@ -84,7 +77,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: matchmaking-db
-  namespace: scrimfinder
+  namespace: {{ .Values.global.namespace }}
 spec:
   selector:
     app: postgres-db
@@ -95,7 +88,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: ranking-db
-  namespace: scrimfinder
+  namespace: {{ .Values.global.namespace }}
 spec:
   selector:
     app: postgres-db
@@ -106,7 +99,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: history-db
-  namespace: scrimfinder
+  namespace: {{ .Values.global.namespace }}
 spec:
   selector:
     app: postgres-db
@@ -117,11 +110,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: redis-cache
-  namespace: scrimfinder
+  namespace: {{ .Values.global.namespace }}
 spec:
   replicas: 1
-  strategy:
-    type: RollingUpdate
   selector:
     matchLabels:
       app: redis-cache
@@ -136,28 +127,23 @@ spec:
         ports:
         - containerPort: 6379
         resources:
-          requests:
-            cpu: "10m"
-            memory: "32Mi"
-          limits:
-            cpu: "200m"
-            memory: "256Mi"
+          {{- toYaml .Values.infrastructure.redis.resources | nindent 10 }}
         livenessProbe:
           tcpSocket:
             port: 6379
-          initialDelaySeconds: 30
+          initialDelaySeconds: 60
           periodSeconds: 10
         readinessProbe:
           tcpSocket:
             port: 6379
-          initialDelaySeconds: 5
+          initialDelaySeconds: 10
           periodSeconds: 10
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: matchmaking-redis
-  namespace: scrimfinder
+  namespace: {{ .Values.global.namespace }}
 spec:
   selector:
     app: redis-cache
@@ -168,7 +154,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: filling-cache
-  namespace: scrimfinder
+  namespace: {{ .Values.global.namespace }}
 spec:
   selector:
     app: redis-cache
@@ -179,10 +165,10 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: ai-storage-pvc
-  namespace: scrimfinder
+  namespace: {{ .Values.global.namespace }}
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 1Gi
+      storage: {{ .Values.infrastructure.aiStorage.storage }}
