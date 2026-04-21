@@ -2,6 +2,15 @@ global:
   namespace: scrimfinder
   imageRegistry: "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}"
   imageTag: "latest"
+  podSecurityContext: # default to non root
+    runAsNonRoot: true
+    fsGroup: 2000
+  securityContext:
+    capabilities:
+      drop:
+      - ALL
+    readOnlyRootFilesystem: false
+    runAsUser: 1000
 
 traefik:
   deployment:
@@ -132,6 +141,12 @@ services:
       limits:
         cpu: "2000m"
         memory: "2Gi"
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 80
+      targetMemoryUtilizationPercentage: 80
     env:
     healthType: "http"
     healthPath: "/api/v1/training/q/health"
@@ -151,6 +166,12 @@ services:
       limits:
         cpu: "1000m"
         memory: "1Gi"
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 80
+      targetMemoryUtilizationPercentage: 80
     env:
     healthType: "http"
     healthPath: "/api/v1/analysis/q/health"
