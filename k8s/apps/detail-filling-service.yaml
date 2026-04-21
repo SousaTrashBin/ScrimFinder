@@ -21,32 +21,32 @@ spec:
     spec:
       containers:
         - name: detail-filling-service
-          image: ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/detail-filling-service:1.0
+          image: ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/detail-filling-service:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
               protocol: TCP
           resources:
             requests:
-              memory: "16Mi"
-              cpu: "100m"
-            limits:
               memory: "64Mi"
-              cpu: "200m"
+              cpu: "10m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
           livenessProbe:
             httpGet:
               path: /api/v1/riot/q/health/live
               port: 8080
-            failureThreshold: 2
+            initialDelaySeconds: 30
             periodSeconds: 5
-            timeoutSeconds: 5
+            timeoutSeconds: 10
           readinessProbe:
             httpGet:
               path: /api/v1/riot/q/health/ready
               port: 8080
             initialDelaySeconds: 30
             periodSeconds: 5
-            timeoutSeconds: 5
+            timeoutSeconds: 10
           envFrom:
             - configMapRef:
                 name: detail-filling-service-config
@@ -58,9 +58,10 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: detail-filling-service-config
+  namespace: scrimfinder
 data:
-  REDIS_URL: "redis://redis:6379"
-  QUARKUS_REDIS_HOSTS: "redis://redis:6379"
+  REDIS_URL: "redis://detail-filling-service-redis:6379"
+  QUARKUS_REDIS_HOSTS: "redis://detail-filling-service-redis:6379"
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
@@ -80,12 +81,12 @@ spec:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: 50
+          averageUtilization: 70
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: detail-filling-service-service
+  name: detail-filling-service
   namespace: scrimfinder
 spec:
   selector:
@@ -93,6 +94,6 @@ spec:
   ports:
     - protocol: TCP
       port: 8080
-      targetPort: 80
+      targetPort: 8080
   type: ClusterIP
       

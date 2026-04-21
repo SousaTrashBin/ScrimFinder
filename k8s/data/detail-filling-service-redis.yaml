@@ -24,15 +24,15 @@ spec:
             - containerPort: 6379
           resources:
             requests:
-              memory: "50Mi"
-              cpu: "50m"
+              memory: "32Mi"
+              cpu: "10m"
             limits:
-              memory: "100Mi"
-              cpu: "100m"
+              memory: "256Mi"
+              cpu: "200m"
           livenessProbe:
             tcpSocket:
               port: 6379
-            failureThreshold: 2
+            initialDelaySeconds: 30
             periodSeconds: 5
             timeoutSeconds: 5
           readinessProbe:
@@ -45,7 +45,11 @@ spec:
             timeoutSeconds: 5
           volumeMounts:
             - mountPath: "/data"
-              name: detail-filling-service-data
+              name: detail-filling-service-volume
+      volumes:
+        - name: detail-filling-service-volume
+          persistentVolumeClaim:
+            claimName: detail-filling-service-data
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -62,12 +66,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: detail-filling-service-redis-service
+  name: detail-filling-service-redis
   namespace: scrimfinder
 spec:
   clusterIP: None
   selector:
-    db: detail-filling-service-redis-service
+    db: detail-filling-service-redis
   ports:
     - protocol: TCP
       port: 6379
