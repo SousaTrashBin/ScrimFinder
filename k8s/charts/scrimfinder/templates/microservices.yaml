@@ -43,20 +43,6 @@ spec:
               name: scrimfinder-secrets
               key: db-password
 
-        {{- if or (eq $name "training-service") (eq $name "analysis-service") }}
-        - name: DB_USER
-          valueFrom:
-            secretKeyRef:
-              name: scrimfinder-secrets
-              key: db-user
-        - name: DB_PASS
-          valueFrom:
-            secretKeyRef:
-              name: scrimfinder-secrets
-              key: db-password
-        - name: PLATFORM_DB
-          value: "postgresql://$(DB_USER):$(DB_PASS)@matchmaking-db:5432/matchmaking"
-        {{- end }}
         resources:
           {{- toYaml $config.resources | nindent 10 }}
         {{- if eq ($config.healthType | default "http") "http" }}
@@ -66,23 +52,27 @@ spec:
             port: {{ $config.healthPort | default (index $config.ports 0).containerPort }}
           initialDelaySeconds: 90
           periodSeconds: 10
+          timeoutSeconds: 5
         readinessProbe:
           httpGet:
             path: {{ $config.healthPath }}/ready
             port: {{ $config.healthPort | default (index $config.ports 0).containerPort }}
           initialDelaySeconds: 20
           periodSeconds: 10
+          timeoutSeconds: 5
         {{- else if eq $config.healthType "tcp" }}
         livenessProbe:
           tcpSocket:
             port: {{ $config.healthPort | default (index $config.ports 0).containerPort }}
           initialDelaySeconds: 90
           periodSeconds: 10
+          timeoutSeconds: 5
         readinessProbe:
           tcpSocket:
             port: {{ $config.healthPort | default (index $config.ports 0).containerPort }}
           initialDelaySeconds: 20
           periodSeconds: 10
+          timeoutSeconds: 5
         {{- end }}
         {{- if $config.persistence }}
         volumeMounts:
