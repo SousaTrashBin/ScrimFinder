@@ -72,6 +72,8 @@ check_health() {
     else
         echo "FAILURE! $SERVICE_NAME did not report 'UP' or 'ok' within the timeout."
         echo "last response from $SERVICE_NAME: $RESPONSE"
+        echo "--- FETCHING LAST 20 LINES OF LOGS FOR $SERVICE_NAME ---"
+        kubectl logs -n scrimfinder -l app=$SERVICE_NAME --tail=20 || echo "could not fetch logs."
         return 1
     fi
 }

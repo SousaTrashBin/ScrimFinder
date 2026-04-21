@@ -15,6 +15,10 @@ traefik:
       expose: true
       exposedPort: 80
 
+defaultPDB:
+  enabled: true
+  minAvailable: 1
+
 infrastructure:
   postgres:
     storage: 10Gi
