@@ -14,7 +14,7 @@ else
 fi
 
 echo "deploying changes..."
-bash "$SCRIPT_DIR/diogo_deploy.sh"
+bash "$SCRIPT_DIR/deploy.sh"
 
 echo "waiting for Traefik External IP..."
 EXTERNAL_IP=""

@@ -15,7 +15,7 @@ case "$1" in
         ;;
     "logs")
         if [ -z "$2" ]; then
-            echo "Usage: ./diogo_utils.sh logs <service-name>"
+            echo "Usage: ./utils.sh logs <service-name>"
             exit 1
         fi
         kubectl logs -n $NAMESPACE -l app=$2 -f
@@ -31,7 +31,7 @@ case "$1" in
         ;;
     *)
         echo "ScrimFinder Utils"
-        echo "Usage: ./diogo_utils.sh <command>"
+        echo "Usage: ./utils.sh <command>"
         echo ""
         echo "Commands:"
         echo "  db-proxy      Forward local 5432 to Cloud Postgres"
