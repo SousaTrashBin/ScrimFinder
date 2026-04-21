@@ -4,7 +4,7 @@ metadata:
   name: match-history-service-postgres
   namespace: scrimfinder
 spec:
-  replicas: 3
+  replicas: 1
   updateStrategy:
     type: RollingUpdate
   selector:
@@ -24,29 +24,37 @@ spec:
             - containerPort: 5432
           resources:
             requests:
-              memory: "5Gi"
-              cpu: "700m"
+              memory: "128Mi"
+              cpu: "20m"
             limits:
-              memory: "15Gi"
-              cpu: "900m"
+              memory: "1Gi"
+              cpu: "500m"
           livenessProbe:
             exec:
               command: [ "pg_isready", "-U", "postgres" ]
-            failureThreshold: 2
+            initialDelaySeconds: 30
             periodSeconds: 5
-            timeoutSeconds: 5
+            timeoutSeconds: 10
           readinessProbe:
             exec:
               command: [ "pg_isready", "-U", "postgres" ]
             initialDelaySeconds: 30
             periodSeconds: 5
-            timeoutSeconds: 5
+            timeoutSeconds: 10
+          envFrom:
+            - configMapRef:
+                name: match-history-service-postgres-config
+            - secretRef:
+                name: postgres-secrets
           volumeMounts:
-            - mountPath: "/data"
-              name: match-history-service-data
+            - mountPath: "/var/lib/postgresql/data"
+              name: match-history-service-volume
             - mountPath: "/docker-entrypoint-initdb.d/"
               name: match-history-service-postgres-init-script
       volumes:
+        - name: match-history-service-volume
+          persistentVolumeClaim:
+            claimName: match-history-service-data
         - name: match-history-service-postgres-init-script
           configMap:
             name: match-history-service-postgres-init-config
@@ -61,7 +69,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 5Gi
+      storage: 10Gi
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -73,14 +81,22 @@ data:
     CREATE DATABASE history;
 ---
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: match-history-service-postgres-config
+  namespace: scrimfinder
+data:
+  PGDATA: "/var/lib/postgresql/data/pgdata"
+---
+apiVersion: v1
 kind: Service
 metadata:
-  name: match-history-service-postgres-service
+  name: match-history-service-postgres
   namespace: scrimfinder
 spec:
   clusterIP: None
   selector:
-    db: match-history-service-postgres-service
+    db: match-history-service-postgres
   ports:
     - protocol: TCP
       port: 5432
