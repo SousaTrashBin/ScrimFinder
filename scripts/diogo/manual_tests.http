@@ -1,0 +1,73 @@
+### ScrimFinder Manual API Tests
+@baseUrl = http://34.159.128.218/api/v1
+@matchmakingUrl = {{baseUrl}}/matchmaking
+@rankingUrl = {{baseUrl}}/ranking
+@historyUrl = {{baseUrl}}/history
+
+@queueId = 33e4ab83-5dde-4bb3-9113-53725c799a60
+@playerId = 480f88c1-7246-5cd4-9d5a-3561a9b85e64
+@riotMatchId = EUW1_7824036381
+
+### 1. Create a Matchmaking Queue
+# NOTE: This now automatically syncs with the Ranking Service
+POST {{matchmakingUrl}}/queues/{{queueId}}
+    ?name=Manual E2E Queue
+    &requiredPlayers=10
+    &region=EUW
+    &mode=NORMAL
+
+### 2. Create a Player Profile
+# Registers the user in both Matchmaking and Ranking DBs
+POST {{matchmakingUrl}}/players
+    ?id={{playerId}}
+    &username=manual_test_user
+
+### 3. Link LoL Account to Player
+# Links the internal ID to a real Riot account
+POST {{rankingUrl}}/players/{{playerId}}/link
+    ?gameName=Simoes88
+    &tagLine=nr1
+    &region=EUW
+
+### 4. Initialize MMR for the Queue
+# CRITICAL: Ranking Service needs a record for this specific queue before joining
+POST {{rankingUrl}}/players/{{playerId}}/mmr
+Content-Type: application/json
+
+{
+    "queueId": "{{queueId}}"
+}
+
+### 5. Join Queue
+# @name joinQueue
+POST {{matchmakingUrl}}/tickets
+Content-Type: application/json
+
+{
+    "playerId": "{{playerId}}",
+    "queueId": "{{queueId}}"
+}
+
+### 6. Check Lobby Status (Poll until matched)
+# Use the 'matchId' field from the response to proceed
+GET {{matchmakingUrl}}/tickets/{{joinQueue.response.body.id}}/lobby
+
+### 7. Accept the Match
+# Replace YOUR_MATCH_UUID with the matchId returned in Step 6
+POST {{matchmakingUrl}}/tickets/matches/YOUR_MATCH_UUID/accept
+    ?playerId={{playerId}}
+
+### 8. Link Match to Riot ID (External ID)
+# Replace YOUR_MATCH_UUID with the matchId from Step 6
+PUT {{matchmakingUrl}}/tickets/matches/YOUR_MATCH_UUID/link
+    ?externalGameId={{riotMatchId}}
+
+### 9. Complete Match
+# This triggers the gRPC pipeline to Ranking -> History
+POST {{matchmakingUrl}}/tickets/matches/YOUR_MATCH_UUID/complete
+
+### 10. Verify MMR Update
+GET {{rankingUrl}}/players/{{playerId}}/queue?queueId={{queueId}}
+
+### 11. Verify in Match History Service
+GET {{historyUrl}}/matches/{{riotMatchId}}
