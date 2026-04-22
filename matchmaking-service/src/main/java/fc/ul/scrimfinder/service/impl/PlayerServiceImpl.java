@@ -36,13 +36,16 @@ public class PlayerServiceImpl implements PlayerService {
     @Override
     @Transactional
     public PlayerDTO createPlayer(UUID id, String username) {
-        log.info("Attempting to create player with username: {} and id: {}", username, id);
+        log.info(
+                "\u001B[33m[PENDING]\u001B[0m Attempting to create player with username: {} and id: {}",
+                username,
+                id);
         if (username == null || username.isBlank()) {
-            log.error("Player creation failed: Username is null or blank");
+            log.error("\u001B[31m[ERROR]\u001B[0m Player creation failed: Username is null or blank");
             throw new IllegalArgumentException("Username is required");
         }
         if (playerRepository.find("username", username).firstResultOptional().isPresent()) {
-            log.warn("Player creation failed: Username {} already exists", username);
+            log.warn("\u001B[33m[WARN]\u001B[0m Player creation failed: Username {} already exists", username);
             throw new PlayerAlreadyExistsException(
                     "Player with username " + username + " already exists");
         }
@@ -53,15 +56,23 @@ public class PlayerServiceImpl implements PlayerService {
         }
         player.setUsername(username);
         playerRepository.persist(player);
-        log.info("Player {} persisted locally with ID: {}", username, player.getId());
+        log.info(
+                "\u001B[32m[SUCCESS]\u001B[0m Player {} persisted locally with ID: {}",
+                username,
+                player.getId());
 
         try {
             rankingServiceClient.registerPlayer(player.getId(), username);
-            log.info("Player {} successfully registered in Ranking Service", username);
+            log.info("\u001B[32m[SUCCESS]\u001B[0m Player {} successfully registered in Ranking Service", username);
         } catch (PlayerAlreadyExistsException e) {
-            log.warn("Player {} already exists in Ranking Service. Local creation finalized.", username);
+            log.warn(
+                    "\u001B[33m[WARN]\u001B[0m Player {} already exists in Ranking Service. Local creation finalized.",
+                    username);
         } catch (Exception e) {
-            log.error("Failed to register player {} in Ranking Service: {}", username, e.getMessage());
+            log.error(
+                    "\u001B[31m[ERROR]\u001B[0m Failed to register player {} in Ranking Service: {}",
+                    username,
+                    e.getMessage());
             throw e;
         }
 
@@ -70,13 +81,13 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     public PlayerDTO getPlayer(UUID id) {
-        log.debug("Fetching player with ID: {}", id);
+        log.debug("\u001B[34m[INFO]\u001B[0m Fetching player with ID: {}", id);
         Player player =
                 playerRepository
                         .findByIdOptional(id)
                         .orElseThrow(
                                 () -> {
-                                    log.warn("Player not found with ID: {}", id);
+                                    log.warn("\u001B[33m[WARN]\u001B[0m Player not found with ID: {}", id);
                                     return new PlayerNotFoundException("Player not found: " + id);
                                 });
         return playerMapper.toDTO(player);
