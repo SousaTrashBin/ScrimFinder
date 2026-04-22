@@ -53,8 +53,8 @@ All services provide interactive Swagger UI documentation at a standardized endp
 The system is fully containerized. The boot script handles building all microservices (multi-stage Docker builds) and starting the infrastructure.
 
 ```bash
-chmod +x boot.sh shutdown.sh format.sh test.sh
-./boot.sh
+chmod +x deploy.sh shutdown.sh format.sh test.sh
+./deploy.sh
 ```
 
 ### Local Development

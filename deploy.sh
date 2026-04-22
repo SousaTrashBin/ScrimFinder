@@ -1,8 +1,7 @@
 #!/bin/bash
-
 set -e
 
-REQUIRED_VARS="SCRIM_PROJECT_ID SCRIM_REGION SCRIM_REPO_NAME SCRIM_CLUSTER_NAME"
+REQUIRED_VARS="SCRIM_PROJECT_ID SCRIM_REGION SCRIM_REPO_NAME SCRIM_ENV_TAG SCRIM_CLUSTER_NAME DASHBOARD_USER DASHBOARD_PASSWORD"
 
 for var in $REQUIRED_VARS; do
     if [ "$var" = "" ]; then
@@ -14,11 +13,14 @@ done
 PROJECT_ID="$SCRIM_PROJECT_ID"
 REGION="$SCRIM_REGION"
 REPO_NAME="$SCRIM_REPO_NAME"
+ENV_TAG="$SCRIM_ENV_TAG"
 CLUSTER_NAME="$SCRIM_CLUSTER_NAME"
+
+ZONE="${REGION}-a"
 
 get_cluster_status()
 {
-    CLUSTER_STATUS=$(gcloud container clusters describe "$CLUSTER_NAME" --region "${REGION}-a" --format="value(status)" 2>/dev/null || echo "NOT_FOUND")
+    CLUSTER_STATUS=$(gcloud container clusters describe "$CLUSTER_NAME" --zone "${ZONE}" --format="value(status)" 2>/dev/null || echo "NOT_FOUND")
 }
 
 echo "setting active GCP project to $PROJECT_ID..."
@@ -44,9 +46,9 @@ if [ "$CLUSTER_STATUS" = "STOPPING" ] || [ "$CLUSTER_STATUS" = "DELETING" ]; the
 fi
 
 if [ "$CLUSTER_STATUS" = "NOT_FOUND" ]; then
-    echo "creating GKE cluster: $CLUSTER_NAME ..."
+    echo "creating GKE zonal cluster: $CLUSTER_NAME in $ZONE ..."
     gcloud container clusters create "$CLUSTER_NAME" \
-        --zone "${REGION}-a" \
+        --zone "$ZONE" \
         --num-nodes 1 \
         --machine-type e2-standard-4 \
         --disk-size 40 \
@@ -98,13 +100,17 @@ grep_words()
     echo "$RESULT"
 }
 
-SERVICES="detail_filling_service match_history_service"
+SERVICES="matchmaking-service ranking_service match_history_service detail_filling_service training_service analysis_service"
 
-POSSIBLE_DATABASES="detail-filling-service-redis match-history-service-postgres"
+POSSIBLE_DATABASES="matchmaking-service-postgres matchmaking-service-redis ranking-service-postgres match-history-service-postgres detail-filling-service-redis"
 DATABASES=""
 
-POSSIBLE_SECRETS="detail-filling-service-RIOT_API_KEY"
+POSSIBLE_SECRETS="matchmaking-service-QUARKUS_DATASOURCE_JDBC_URL matchmaking-service-QUARKUS_DATASOURCE_USERNAME matchmaking-service-QUARKUS_DATASOURCE_PASSWORD matchmaking-service-MATCHMAKING_QUARKUS_REDIS_HOSTS"
+POSSIBLE_SECRETS="${POSSIBLE_SECRETS} ranking-service-QUARKUS_DATASOURCE_JDBC_URL ranking-service-QUARKUS_DATASOURCE_USERNAME ranking-service-QUARKUS_DATASOURCE_PASSWORD"
 POSSIBLE_SECRETS="${POSSIBLE_SECRETS} match-history-service-DB_URL match-history-service-DB_USER match-history-service-DB_PASSWORD"
+POSSIBLE_SECRETS="${POSSIBLE_SECRETS} detail-filling-service-RIOT_API_KEY detail-filling-service-DETAIL_FILLING_REDIS_URL detail-filling-service-DETAIL_FILLING_QUARKUS_REDIS_HOSTS"
+POSSIBLE_SECRETS="${POSSIBLE_SECRETS} training-service-PLATFORM_DB"
+POSSIBLE_SECRETS="${POSSIBLE_SECRETS} analysis-service-PLATFORM_DB"
 SECRETS=""
 
 POSTGRES_SECRETS="POSTGRES_USER POSTGRES_PASSWORD"
@@ -130,7 +136,10 @@ for SERVICE in $SERVICES; do
     docker buildx build --platform linux/amd64 -t "$IMAGE_PATH" "./$SERVICE" --push
 done
 
-export PROJECT_ID REGION REPO_NAME CLUSTER_NAME
+echo "fetching GKE credentials..."
+gcloud container clusters get-credentials "$CLUSTER_NAME" --zone "$ZONE" --project "$PROJECT_ID"
+
+export PROJECT_ID REGION REPO_NAME ENV_TAG CLUSTER_NAME
 
 echo "generating secrets..."
 
@@ -195,6 +204,7 @@ apply apps/scrimfinder-namespace
 for DATABASE in $DATABASES; do
     apply data/"$DATABASE"
 done
+apply data/ai-storage
 
 ${apply_func} traefik/middlewares
 

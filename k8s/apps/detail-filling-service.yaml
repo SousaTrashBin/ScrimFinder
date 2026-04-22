@@ -48,20 +48,9 @@ spec:
             periodSeconds: 5
             timeoutSeconds: 10
           envFrom:
-            - configMapRef:
-                name: detail-filling-service-config
             - secretRef:
                 name: detail-filling-service-secrets
       restartPolicy: Always
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: detail-filling-service-config
-  namespace: scrimfinder
-data:
-  REDIS_URL: "redis://detail-filling-service-redis:6379"
-  QUARKUS_REDIS_HOSTS: "redis://detail-filling-service-redis:6379"
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler

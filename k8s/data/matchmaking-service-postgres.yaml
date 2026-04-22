@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: matchmaking-service-postgres
+  namespace: scrimfinder
+spec:
+  replicas: 1
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      db: matchmaking-service-postgres
+  template:
+    metadata:
+      name: matchmaking-service-postgres-pod
+      namespace: scrimfinder
+      labels:
+        db: matchmaking-service-postgres
+    spec:
+      containers:
+        - name: matchmaking-service-postgres
+          image: postgres:15
+          ports:
+            - containerPort: 5432
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "20m"
+            limits:
+              memory: "6Gi"
+              cpu: "500m"
+          livenessProbe:
+            exec:
+              command: [ "pg_isready", "-U", "postgres" ]
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            timeoutSeconds: 10
+          readinessProbe:
+            exec:
+              command: [ "pg_isready", "-U", "postgres" ]
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            timeoutSeconds: 10
+          envFrom:
+            - configMapRef:
+                name: matchmaking-service-postgres-config
+            - secretRef:
+                name: postgres-secrets
+          volumeMounts:
+            - mountPath: "/var/lib/postgresql/data"
+              name: matchmaking-service-volume
+            - mountPath: "/docker-entrypoint-initdb.d/"
+              name: matchmaking-service-postgres-init-script
+      volumes:
+        - name: matchmaking-service-volume
+          persistentVolumeClaim:
+            claimName: matchmaking-service-data
+        - name: matchmaking-service-postgres-init-script
+          configMap:
+            name: matchmaking-service-postgres-init-config
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: matchmaking-service-data
+  namespace: scrimfinder
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: matchmaking-service-postgres-init-config
+  namespace: scrimfinder
+data:
+  init-db.sql: |
+    CREATE DATABASE matchmaking;
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: matchmaking-service-postgres-config
+  namespace: scrimfinder
+data:
+  PGDATA: "/var/lib/postgresql/data/pgdata"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: matchmaking-service-postgres
+  namespace: scrimfinder
+spec:
+  clusterIP: None
+  selector:
+    db: matchmaking-service-postgres
+  ports:
+    - protocol: TCP
+      port: 5432
+  type: ClusterIP

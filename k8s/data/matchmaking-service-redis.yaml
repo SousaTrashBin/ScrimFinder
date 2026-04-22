@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: matchmaking-service-redis
+  namespace: scrimfinder
+spec:
+  replicas: 1
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      db: matchmaking-service-redis
+  template:
+    metadata:
+      name: matchmaking-service-redis-pod
+      namespace: scrimfinder
+      labels:
+        db: matchmaking-service-redis
+    spec:
+      containers:
+        - name: matchmaking-service-redis
+          image: redis:7
+          ports:
+            - containerPort: 6379
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "10m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+          livenessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            timeoutSeconds: 5
+          volumeMounts:
+            - mountPath: "/data"
+              name: matchmaking-service-volume
+      volumes:
+        - name: matchmaking-service-volume
+          persistentVolumeClaim:
+            claimName: matchmaking-service-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: matchmaking-service-data
+  namespace: scrimfinder
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: matchmaking-service-redis
+  namespace: scrimfinder
+spec:
+  clusterIP: None
+  selector:
+    db: matchmaking-service-redis
+  ports:
+    - protocol: TCP
+      port: 6379
+  type: ClusterIP

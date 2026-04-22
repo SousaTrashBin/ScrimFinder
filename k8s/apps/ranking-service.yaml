@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ranking-service
+  namespace: scrimfinder
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: ranking-service
+  template:
+    metadata:
+      labels:
+        app: ranking-service
+    spec:
+      containers:
+        - name: ranking-service
+          image: ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/ranking-service:latest
+          ports:
+            - containerPort: 8080
+              name: http
+            - containerPort: 9001
+              name: grpc
+          envFrom:
+            - configMapRef:
+                name: ranking-service-config
+            - secretRef:
+                name: ranking-service-secrets
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "64Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /api/v1/ranking/q/health/live
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /api/v1/ranking/q/health/ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: matchmaking-service-config
+  namespace: scrimfinder
+data:
+  PLAYER_FILLING_SVC_HOST: "detail-filling-service"
+  PLAYER_FILLING_SVC_PORT: "8080"
+  MATCH_HISTORY_SVC_HOST: "match-history-service"
+  MATCH_HISTORY_SVC_PORT: "8080"
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ranking-service-hpa
+  namespace: scrimfinder
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ranking-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ranking-service
+  namespace: scrimfinder
+spec:
+  selector:
+    app: ranking-service
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+    - name: grpc
+      port: 9001
+      targetPort: 9001
+      

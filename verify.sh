@@ -1,10 +1,6 @@
 #!/bin/bash
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-
-cd "$ROOT_DIR"
 if [ -f "test.sh" ]; then
     echo "running local tests..."
     bash "test.sh"
@@ -14,7 +10,7 @@ else
 fi
 
 echo "deploying changes..."
-bash "$SCRIPT_DIR/diogo_deploy.sh"
+bash "./deploy.sh"
 
 echo "waiting for Traefik External IP..."
 EXTERNAL_IP=""
