@@ -68,8 +68,9 @@ services:
       QUARKUS_REDIS_HOSTS: "redis://matchmaking-redis:6379"
       RANKING_SVC_HOST: "ranking-service"
       RANKING_SVC_PORT: "9001"
+      RANKING_SERVICE_URL: "http://ranking-service:8080"
       PLAYER_FILLING_SVC_HOST: "detail-filling-service"
-      PLAYER_FILLING_SVC_PORT: "8080"
+      PLAYER_FILLING_SVC_PORT: "9000"
     healthPath: "/api/v1/matchmaking/q/health"
   
   ranking-service:
@@ -88,15 +89,19 @@ services:
     env:
       QUARKUS_DATASOURCE_JDBC_URL: "jdbc:postgresql://ranking-db:5432/ranking"
       PLAYER_FILLING_SVC_HOST: "detail-filling-service"
-      PLAYER_FILLING_SVC_PORT: "8080"
+      PLAYER_FILLING_SVC_PORT: "9000"
       MATCH_HISTORY_SVC_HOST: "match-history-service"
-      MATCH_HISTORY_SVC_PORT: "8080"
+      MATCH_HISTORY_SVC_PORT: "9002"
+      DETAIL_FILLING_SERVICE_URL: "http://detail-filling-service:8080"
+      MATCH_HISTORY_SERVICE_URL: "http://match-history-service:8080"
     healthPath: "/api/v1/ranking/q/health"
   
   match-history-service:
     ports:
       - name: http
         containerPort: 8080
+      - name: grpc
+        containerPort: 9002
     resources:
       requests:
         cpu: "100m"
@@ -107,9 +112,9 @@ services:
     env:
       QUARKUS_DATASOURCE_JDBC_URL: "jdbc:postgresql://history-db:5432/history"
       TRAINING_SVC_HOST: "training-service"
-      TRAINING_SVC_RPC_PORT: "8000"
+      TRAINING_SVC_RPC_PORT: "50051"
       PLAYER_FILLING_SVC_HOST: "detail-filling-service"
-      PLAYER_FILLING_SVC_PORT: "8080"
+      PLAYER_FILLING_SVC_PORT: "9000"
       PLAYER_FILLING_SVC_URL: "http://detail-filling-service:8080"
     healthPath: "/api/v1/history/q/health"
   
@@ -117,6 +122,8 @@ services:
     ports:
       - name: http
         containerPort: 8080
+      - name: grpc
+        containerPort: 9000
     resources:
       requests:
         cpu: "100m"
@@ -127,13 +134,15 @@ services:
     env:
       QUARKUS_REDIS_HOSTS: "redis://filling-cache:6379"
       TRAINING_SVC_HOST: "training-service"
-      TRAINING_SVC_RPC_PORT: "8000"
+      TRAINING_SVC_RPC_PORT: "50051"
     healthPath: "/api/v1/riot/q/health"
   
   training-service:
     ports:
       - name: http
         containerPort: 8000
+      - name: grpc
+        containerPort: 50051
     resources:
       requests:
         cpu: "200m"
@@ -148,6 +157,7 @@ services:
       targetCPUUtilizationPercentage: 80
       targetMemoryUtilizationPercentage: 80
     env:
+      DETAIL_FILLING_URL: "http://detail-filling-service:8080/api/v1/riot"
     healthType: "http"
     healthPath: "/api/v1/training/q/health"
     persistence:
@@ -173,6 +183,7 @@ services:
       targetCPUUtilizationPercentage: 80
       targetMemoryUtilizationPercentage: 80
     env:
+      TRAINING_GRPC_URL: "training-service:50051"
     healthType: "http"
     healthPath: "/api/v1/analysis/q/health"
     persistence:
