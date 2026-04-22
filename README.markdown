@@ -72,7 +72,7 @@ To format and test all services locally:
 ### Prerequisites
 
 * [Google Cloud SDK](https://cloud.google.com/sdk) (gcloud)
-* [Docker](https://www.docker.com/) & [Helm 3](https://helm.sh/)
+* [Docker](https://www.docker.com/) & [Helm](https://helm.sh/)
 * **Environment Variables:**
   ```bash
   export SCRIM_PROJECT_ID="your-gcp-id"
