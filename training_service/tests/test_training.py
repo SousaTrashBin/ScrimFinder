@@ -58,12 +58,15 @@ class TestGames:
         assert r1.json()["id"] == r2.json()["id"]
 
     def test_ingest_explicit_id(self):
-        r = client.post("/api/v1/training/games", json={"id": "MY_ID", "data": {"x": 1}})
+        r = client.post(
+            "/api/v1/training/games", json={"id": "MY_ID", "data": {"x": 1}}
+        )
         assert r.json()["id"] == "MY_ID"
 
     def test_batch(self):
         r = client.post(
-            "/api/v1/training/games/batch", json={"games": [{"data": GAME}, {"data": GAME2}]}
+            "/api/v1/training/games/batch",
+            json={"games": [{"data": GAME}, {"data": GAME2}]},
         )
         assert r.status_code == 201
         assert r.json()["ingested"] == 2
@@ -121,14 +124,17 @@ class TestFeatures:
     def test_extract_404(self):
         assert (
             client.post(
-                "/api/v1/training/features/extract", json={"game_id": "NOPE", "concerns": ["draft"]}
+                "/api/v1/training/features/extract",
+                json={"game_id": "NOPE", "concerns": ["draft"]},
             ).status_code
             == 404
         )
 
     def test_extract_422(self):
         assert (
-            client.post("/api/v1/training/features/extract", json={"concerns": ["draft"]}).status_code
+            client.post(
+                "/api/v1/training/features/extract", json={"concerns": ["draft"]}
+            ).status_code
             == 422
         )
 
@@ -147,7 +153,8 @@ class TestFeatures:
 class TestDatasets:
     def test_create(self):
         r = client.post(
-            "/api/v1/training/datasets", json={"name": "Test DS", "concern": "draft", "filters": {}}
+            "/api/v1/training/datasets",
+            json={"name": "Test DS", "concern": "draft", "filters": {}},
         )
         assert r.status_code == 201
         assert r.json()["id"].startswith("ds_")
@@ -167,7 +174,8 @@ class TestDatasets:
 
     def test_delete(self):
         r = client.post(
-            "/api/v1/training/datasets", json={"name": "Del DS", "concern": "draft", "filters": {}}
+            "/api/v1/training/datasets",
+            json={"name": "Del DS", "concern": "draft", "filters": {}},
         )
         ds_id = r.json()["id"]
         assert client.delete(f"/api/v1/training/datasets/{ds_id}").status_code == 204
@@ -179,7 +187,9 @@ class TestDatasets:
 
 class TestTrainingJobs:
     def test_create(self):
-        r = client.post("/api/v1/training/jobs", json={"concern": "draft", "sample": 0.01})
+        r = client.post(
+            "/api/v1/training/jobs", json={"concern": "draft", "sample": 0.01}
+        )
         assert r.status_code == 202
         assert r.json()["concern"] == "draft"
         assert r.json()["status"] in ("PENDING", "RUNNING")
@@ -219,14 +229,17 @@ class TestTrainingJobs:
 
     def test_invalid_concern(self):
         assert (
-            client.post("/api/v1/training/jobs", json={"concern": "invalid"}).status_code
+            client.post(
+                "/api/v1/training/jobs", json={"concern": "invalid"}
+            ).status_code
             == 422
         )
 
     def test_dataset_not_found(self):
         assert (
             client.post(
-                "/api/v1/training/jobs", json={"concern": "draft", "dataset_id": "ds_nope"}
+                "/api/v1/training/jobs",
+                json={"concern": "draft", "dataset_id": "ds_nope"},
             ).status_code
             == 404
         )
@@ -247,7 +260,9 @@ class TestModels:
         assert client.post("/api/v1/training/models/99999/activate").status_code == 404
 
     def test_deactivate_404(self):
-        assert client.post("/api/v1/training/models/99999/deactivate").status_code == 404
+        assert (
+            client.post("/api/v1/training/models/99999/deactivate").status_code == 404
+        )
 
     def test_delete_404(self):
         assert client.delete("/api/v1/training/models/99999").status_code == 404

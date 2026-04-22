@@ -55,8 +55,7 @@ public class PlayerController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    public Response createPlayer(
-            @QueryParam("id") UUID id, @QueryParam("username") String username) {
+    public Response createPlayer(@QueryParam("id") UUID id, @QueryParam("username") String username) {
         PlayerDTO player = playerService.createPlayer(id, username);
         return Response.status(Response.Status.CREATED).entity(player).build();
     }

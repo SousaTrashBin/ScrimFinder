@@ -112,7 +112,9 @@ class TestDraft:
 
 class TestBuild:
     def test_build(self):
-        r = client.post("/api/v1/analysis/build", json={"champion": "Jinx", "items": ["Kraken Slayer", "Infinity Edge"]})
+        r = client.post(
+            "/api/v1/analysis/build", json={"champion": "Jinx", "items": ["Kraken Slayer", "Infinity Edge"]}
+        )
         assert r.status_code == 200
         assert 0 <= r.json()["score"] <= 100
 
