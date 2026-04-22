@@ -104,9 +104,6 @@ echo "deploying with Helm (including Traefik and Routing)..."
 helm dependency update k8s/charts/scrimfinder
 
 if helm plugin list | grep -q "diff"; then
-    echo "Temporarily installing Traefik CRDs for helm diff..."
-    kubectl apply -f https://raw.githubusercontent.com/traefik/traefik/v3.0/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml --server-side --force-conflicts
-    
     echo "--- PREVIEWING CHANGES (helm diff) ---"
     helm diff upgrade scrimfinder k8s/charts/scrimfinder \
         --namespace scrimfinder \
@@ -117,11 +114,8 @@ if helm plugin list | grep -q "diff"; then
         --set secrets.riotApiKey="$RIOT_API_KEY" \
         --set secrets.dbUser="$SCRIM_DB_USER" \
         --set secrets.dbPassword="$SCRIM_DB_PASSWORD" \
-        --allow-unreleased
-    
-    echo "Removing temporary Traefik CRDs to let Helm manage them..."
-    kubectl delete -f https://raw.githubusercontent.com/traefik/traefik/v3.0/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml
-    
+        --allow-unreleased \
+
     if [ "$CONFIRM_DEPLOY" = "true" ]; then
         echo "Proceeding with deployment..."
     else
@@ -131,9 +125,6 @@ fi
 
 echo "preparing namespace..."
 kubectl create namespace scrimfinder --dry-run=client -o yaml | kubectl apply -f -
-
-echo "ensuring Traefik CRDs are installed..."
-kubectl apply -f https://raw.githubusercontent.com/traefik/traefik/v3.0/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml
 
 echo "deploying with Helm..."
 helm upgrade --install scrimfinder k8s/charts/scrimfinder \
@@ -145,6 +136,7 @@ helm upgrade --install scrimfinder k8s/charts/scrimfinder \
     --set secrets.riotApiKey="$RIOT_API_KEY" \
     --set secrets.dbUser="$SCRIM_DB_USER" \
     --set secrets.dbPassword="$SCRIM_DB_PASSWORD" \
+    --force-conflicts \
     --wait \
     --timeout 10m
 
