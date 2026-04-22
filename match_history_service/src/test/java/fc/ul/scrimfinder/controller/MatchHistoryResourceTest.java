@@ -56,7 +56,7 @@ public class MatchHistoryResourceTest {
                     List.of(
                             new PlayerStatsDTO(
                                     new RiotId(
-                                            "iAN9q56BKIho6iQhsu-PriU3Rbb74rVqxKzODj6Wgc7D1usxgavMFszJNRY42m6PT_QuEZJBANY48Q",
+                                            "h_gAfdHVoI8vBJaIyyGOUqDJlXUGGePLUJdMpR1zoRVPdigrRKvMchFBAzIlOUpd4BLlr6Ba8BRSjw",
                                             "Maynter",
                                             "EUW",
                                             1301,
@@ -80,7 +80,7 @@ public class MatchHistoryResourceTest {
                                     1),
                             new PlayerStatsDTO(
                                     new RiotId(
-                                            "N9zxsfUy4YpTwaLhmPiDz7p8UWhSpbZ29gp_hO7SWuKkOHRp-Xv-y2ndPSTLcpoAtlsdrmOTLkN37w",
+                                            "OR5LGqOXhHVe8xj0IWrZHJWvOqLMVprQYTKbhawJQjzIFjDaFwCmnLc8Eid0rWTsZ6DRVCz65lsjrw",
                                             "Fentasm",
                                             "FENT",
                                             6278,
@@ -104,7 +104,7 @@ public class MatchHistoryResourceTest {
                                     2),
                             new PlayerStatsDTO(
                                     new RiotId(
-                                            "-hSICyvezYaKeUn7PTpx_sQyJ9LMd-Iy_Vd1b4Kd2gHyZA-iIjYJUzSbqO-3PBKqEfxwbtq359kRRA",
+                                            "aqzT2pS2aQuBrkKv4izgg99_X73edM43rJoSbOhEhWg1lThgMB4yDcQsU8hGtXVTZnQmAYOawLMxeA",
                                             "SlayderW",
                                             "EUWW",
                                             28,
@@ -128,7 +128,7 @@ public class MatchHistoryResourceTest {
                                     3),
                             new PlayerStatsDTO(
                                     new RiotId(
-                                            "PjjQmNQMnNeYTw7sRzUn9TetxzJNjl6oMQIsSoYTxsH6pEtXPhbmIXrCzNDacrX7rM0xuyjf21vHPQ",
+                                            "neqSH5XmjVkKkOki4MDq5Re0WwHMJ8BKsh_URZjThuWOINOoYvoe-YNU8Ll48ojGN5oCn4owcd2UQg",
                                             "KISS OF DEATH",
                                             "YEN",
                                             1455,
@@ -152,7 +152,7 @@ public class MatchHistoryResourceTest {
                                     4),
                             new PlayerStatsDTO(
                                     new RiotId(
-                                            "JhZRJwRDI54TIyBKZRAWg-M0G2nD94hREr41yEiMWeyn1uhKlzOxiMwg5uAX-Thh3HVTyxIUik8G8g",
+                                            "5GC_pKq053P0rngh7uTcjwB79V4vs1JoA3wzcUYgqlRr6tB-iNEF51CJnOQKrk4daGa5g8AdNezprw",
                                             "Last dance",
                                             "Hexom",
                                             1637,
@@ -176,7 +176,7 @@ public class MatchHistoryResourceTest {
                                     5),
                             new PlayerStatsDTO(
                                     new RiotId(
-                                            "3HX8rUcLhtXTxEqau81_a2GSHiu4QIXNnz4fmbjtKFb5LaUHXO5JKywCBD-hGh1QKS9pXuHXM8z_Xg",
+                                            "Yhpm3VDVVQ09nAF9qUANOLFyItHikNj54vxB1yMzHmqIEohkIKEAeX-al94bBnYWtmsYv5CN6W3BvQ",
                                             "baby kiin",
                                             "keem",
                                             6,
@@ -200,7 +200,7 @@ public class MatchHistoryResourceTest {
                                     -1),
                             new PlayerStatsDTO(
                                     new RiotId(
-                                            "HC30r4a0InZda3BFDNSMtGfSLdBgHhd4TpypUakJWMAuKDc1KJFs1rKgLEQ4ZYxlIT47A4Gurna6TA",
+                                            "avrrbs2xmpx-CjjNFWyRENlXRmLPTN4X-igl6r-I732hIPmTV_e5NlJ3W4qVJ58inDq4hY_6e5sqOA",
                                             "J1HUIV",
                                             "000",
                                             29,
@@ -224,7 +224,7 @@ public class MatchHistoryResourceTest {
                                     -2),
                             new PlayerStatsDTO(
                                     new RiotId(
-                                            "Z-zaiPM3Mr-hchiG4EYWCZWsswQljO8MRv9T7qWUJd97mE118wImcUerW-N_39Zwof5yjRlY2zHqyQ",
+                                            "CFcq57-yO1Shwn5cVI0nkIHWIGgzl-QV1g5qMAliHHZuFo_HBoX-S6ZjhidAKLenTr5ziJAHXxw-aQ",
                                             "Yoriichı",
                                             "EUW",
                                             5045,
@@ -248,7 +248,7 @@ public class MatchHistoryResourceTest {
                                     -3),
                             new PlayerStatsDTO(
                                     new RiotId(
-                                            "HsNHWkClaNLYjltBCQYa5mJ_UA9Nzm_QwWXbJBFN0kVsJIL5NV57eEgDmzGvie4v02FVRcZ20dZ4Ig",
+                                            "vyzwo-B74dAgHNsstNoWPioVU8bLh6kye-0xtdFTMQwM4Y-kCSZfwMpf29CadJJ1AvpYEPV5yNMicA",
                                             "KC NEXT ADKING",
                                             "EUW",
                                             29,
@@ -272,7 +272,7 @@ public class MatchHistoryResourceTest {
                                     -4),
                             new PlayerStatsDTO(
                                     new RiotId(
-                                            "69SHi68G5IHp3HnB8GahSVsh_UfAh0qu1FwKnV2WaRd-qQ5gcwOcHZ1aXfPasS51Q9Iv63S-QM9a7w",
+                                            "fwP-3K-Z_ghLAruQYlntd03YSdRCJeD7kaJQFujGJJpiwZ-ie9Rwkc9SmsiExqcnbnssXGmoAtyqHA",
                                             "berebooo",
                                             "TR1",
                                             3158,
@@ -305,16 +305,16 @@ public class MatchHistoryResourceTest {
         final String queueId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
         final Map<String, Integer> mmrDeltas =
                 Map.of(
-                        "iAN9q56BKIho6iQhsu-PriU3Rbb74rVqxKzODj6Wgc7D1usxgavMFszJNRY42m6PT_QuEZJBANY48Q", 1,
-                        "N9zxsfUy4YpTwaLhmPiDz7p8UWhSpbZ29gp_hO7SWuKkOHRp-Xv-y2ndPSTLcpoAtlsdrmOTLkN37w", 2,
-                        "-hSICyvezYaKeUn7PTpx_sQyJ9LMd-Iy_Vd1b4Kd2gHyZA-iIjYJUzSbqO-3PBKqEfxwbtq359kRRA", 3,
-                        "PjjQmNQMnNeYTw7sRzUn9TetxzJNjl6oMQIsSoYTxsH6pEtXPhbmIXrCzNDacrX7rM0xuyjf21vHPQ", 4,
-                        "JhZRJwRDI54TIyBKZRAWg-M0G2nD94hREr41yEiMWeyn1uhKlzOxiMwg5uAX-Thh3HVTyxIUik8G8g", 5,
-                        "3HX8rUcLhtXTxEqau81_a2GSHiu4QIXNnz4fmbjtKFb5LaUHXO5JKywCBD-hGh1QKS9pXuHXM8z_Xg", -1,
-                        "HC30r4a0InZda3BFDNSMtGfSLdBgHhd4TpypUakJWMAuKDc1KJFs1rKgLEQ4ZYxlIT47A4Gurna6TA", -2,
-                        "Z-zaiPM3Mr-hchiG4EYWCZWsswQljO8MRv9T7qWUJd97mE118wImcUerW-N_39Zwof5yjRlY2zHqyQ", -3,
-                        "HsNHWkClaNLYjltBCQYa5mJ_UA9Nzm_QwWXbJBFN0kVsJIL5NV57eEgDmzGvie4v02FVRcZ20dZ4Ig", -4,
-                        "69SHi68G5IHp3HnB8GahSVsh_UfAh0qu1FwKnV2WaRd-qQ5gcwOcHZ1aXfPasS51Q9Iv63S-QM9a7w", -5);
+                        "h_gAfdHVoI8vBJaIyyGOUqDJlXUGGePLUJdMpR1zoRVPdigrRKvMchFBAzIlOUpd4BLlr6Ba8BRSjw", 1,
+                        "OR5LGqOXhHVe8xj0IWrZHJWvOqLMVprQYTKbhawJQjzIFjDaFwCmnLc8Eid0rWTsZ6DRVCz65lsjrw", 2,
+                        "aqzT2pS2aQuBrkKv4izgg99_X73edM43rJoSbOhEhWg1lThgMB4yDcQsU8hGtXVTZnQmAYOawLMxeA", 3,
+                        "neqSH5XmjVkKkOki4MDq5Re0WwHMJ8BKsh_URZjThuWOINOoYvoe-YNU8Ll48ojGN5oCn4owcd2UQg", 4,
+                        "5GC_pKq053P0rngh7uTcjwB79V4vs1JoA3wzcUYgqlRr6tB-iNEF51CJnOQKrk4daGa5g8AdNezprw", 5,
+                        "Yhpm3VDVVQ09nAF9qUANOLFyItHikNj54vxB1yMzHmqIEohkIKEAeX-al94bBnYWtmsYv5CN6W3BvQ", -1,
+                        "avrrbs2xmpx-CjjNFWyRENlXRmLPTN4X-igl6r-I732hIPmTV_e5NlJ3W4qVJ58inDq4hY_6e5sqOA", -2,
+                        "CFcq57-yO1Shwn5cVI0nkIHWIGgzl-QV1g5qMAliHHZuFo_HBoX-S6ZjhidAKLenTr5ziJAHXxw-aQ", -3,
+                        "vyzwo-B74dAgHNsstNoWPioVU8bLh6kye-0xtdFTMQwM4Y-kCSZfwMpf29CadJJ1AvpYEPV5yNMicA", -4,
+                        "fwP-3K-Z_ghLAruQYlntd03YSdRCJeD7kaJQFujGJJpiwZ-ie9Rwkc9SmsiExqcnbnssXGmoAtyqHA", -5);
 
         when(trainingAdapterService.sendMatchForAnalysis(anyString())).thenReturn(true);
         when(detailFillingAdapterService.getMatch(any())).thenReturn(expectedMatchDTO);
@@ -338,16 +338,16 @@ public class MatchHistoryResourceTest {
         final String queueId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
         final Map<String, Integer> mmrDeltas =
                 Map.of(
-                        "iAN9q56BKIho6iQhsu-PriU3Rbb74rVqxKzODj6Wgc7D1usxgavMFszJNRY42m6PT_QuEZJBANY48Q", 1,
-                        "N9zxsfUy4YpTwaLhmPiDz7p8UWhSpbZ29gp_hO7SWuKkOHRp-Xv-y2ndPSTLcpoAtlsdrmOTLkN37w", 2,
-                        "-hSICyvezYaKeUn7PTpx_sQyJ9LMd-Iy_Vd1b4Kd2gHyZA-iIjYJUzSbqO-3PBKqEfxwbtq359kRRA", 3,
-                        "PjjQmNQMnNeYTw7sRzUn9TetxzJNjl6oMQIsSoYTxsH6pEtXPhbmIXrCzNDacrX7rM0xuyjf21vHPQ", 4,
-                        "JhZRJwRDI54TIyBKZRAWg-M0G2nD94hREr41yEiMWeyn1uhKlzOxiMwg5uAX-Thh3HVTyxIUik8G8g", 5,
-                        "3HX8rUcLhtXTxEqau81_a2GSHiu4QIXNnz4fmbjtKFb5LaUHXO5JKywCBD-hGh1QKS9pXuHXM8z_Xg", -1,
-                        "HC30r4a0InZda3BFDNSMtGfSLdBgHhd4TpypUakJWMAuKDc1KJFs1rKgLEQ4ZYxlIT47A4Gurna6TA", -2,
-                        "Z-zaiPM3Mr-hchiG4EYWCZWsswQljO8MRv9T7qWUJd97mE118wImcUerW-N_39Zwof5yjRlY2zHqyQ", -3,
-                        "HsNHWkClaNLYjltBCQYa5mJ_UA9Nzm_QwWXbJBFN0kVsJIL5NV57eEgDmzGvie4v02FVRcZ20dZ4Ig", -4,
-                        "69SHi68G5IHp3HnB8GahSVsh_UfAh0qu1FwKnV2WaRd-qQ5gcwOcHZ1aXfPasS51Q9Iv63S-QM9a7w", -5);
+                        "h_gAfdHVoI8vBJaIyyGOUqDJlXUGGePLUJdMpR1zoRVPdigrRKvMchFBAzIlOUpd4BLlr6Ba8BRSjw", 1,
+                        "OR5LGqOXhHVe8xj0IWrZHJWvOqLMVprQYTKbhawJQjzIFjDaFwCmnLc8Eid0rWTsZ6DRVCz65lsjrw", 2,
+                        "aqzT2pS2aQuBrkKv4izgg99_X73edM43rJoSbOhEhWg1lThgMB4yDcQsU8hGtXVTZnQmAYOawLMxeA", 3,
+                        "neqSH5XmjVkKkOki4MDq5Re0WwHMJ8BKsh_URZjThuWOINOoYvoe-YNU8Ll48ojGN5oCn4owcd2UQg", 4,
+                        "5GC_pKq053P0rngh7uTcjwB79V4vs1JoA3wzcUYgqlRr6tB-iNEF51CJnOQKrk4daGa5g8AdNezprw", 5,
+                        "Yhpm3VDVVQ09nAF9qUANOLFyItHikNj54vxB1yMzHmqIEohkIKEAeX-al94bBnYWtmsYv5CN6W3BvQ", -1,
+                        "avrrbs2xmpx-CjjNFWyRENlXRmLPTN4X-igl6r-I732hIPmTV_e5NlJ3W4qVJ58inDq4hY_6e5sqOA", -2,
+                        "CFcq57-yO1Shwn5cVI0nkIHWIGgzl-QV1g5qMAliHHZuFo_HBoX-S6ZjhidAKLenTr5ziJAHXxw-aQ", -3,
+                        "vyzwo-B74dAgHNsstNoWPioVU8bLh6kye-0xtdFTMQwM4Y-kCSZfwMpf29CadJJ1AvpYEPV5yNMicA", -4,
+                        "fwP-3K-Z_ghLAruQYlntd03YSdRCJeD7kaJQFujGJJpiwZ-ie9Rwkc9SmsiExqcnbnssXGmoAtyqHA", -5);
 
         when(trainingAdapterService.sendMatchForAnalysis(anyString())).thenReturn(true);
         when(detailFillingAdapterService.getMatch(any())).thenReturn(expectedMatchDTO);
