@@ -61,10 +61,10 @@ To format and test all services locally:
 
 ```bash
 # format java (spotless) and python (ruff)
-./format.sh
+./scripts/format.sh
 
 # run all unit and integration tests
-./test.sh
+./scripts/test.sh
 ```
 
 ### Deployment
