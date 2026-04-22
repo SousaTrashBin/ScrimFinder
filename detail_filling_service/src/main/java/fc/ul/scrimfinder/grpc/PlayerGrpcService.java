@@ -16,7 +16,7 @@ public class PlayerGrpcService implements ExternalPlayerFillingService {
     @Inject PlayerFillingService playerFillingService;
 
     @Override
-    @Timeout(2000)
+    @Timeout(7000)
     public Uni<PlayerResponse> getPlayer(PlayerRequest request) {
         return Uni.createFrom()
                 .item(

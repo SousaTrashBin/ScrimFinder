@@ -35,8 +35,8 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     @Transactional
-    public PlayerDTO createPlayer(String username) {
-        log.info("Attempting to create player with username: {}", username);
+    public PlayerDTO createPlayer(UUID id, String username) {
+        log.info("Attempting to create player with username: {} and id: {}", username, id);
         if (username == null || username.isBlank()) {
             log.error("Player creation failed: Username is null or blank");
             throw new IllegalArgumentException("Username is required");
@@ -48,6 +48,9 @@ public class PlayerServiceImpl implements PlayerService {
         }
 
         Player player = new Player();
+        if (id != null) {
+            player.setId(id);
+        }
         player.setUsername(username);
         playerRepository.persist(player);
         log.info("Player {} persisted locally with ID: {}", username, player.getId());
@@ -55,6 +58,8 @@ public class PlayerServiceImpl implements PlayerService {
         try {
             rankingServiceClient.registerPlayer(player.getId(), username);
             log.info("Player {} successfully registered in Ranking Service", username);
+        } catch (PlayerAlreadyExistsException e) {
+            log.warn("Player {} already exists in Ranking Service. Local creation finalized.", username);
         } catch (Exception e) {
             log.error("Failed to register player {} in Ranking Service: {}", username, e.getMessage());
             throw e;

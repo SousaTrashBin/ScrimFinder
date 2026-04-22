@@ -44,6 +44,10 @@ public class PlayerServiceImpl implements PlayerService {
     @Transactional
     public PlayerDTO createPlayer(UUID id, String username) {
         log.info("Creating player profile in Ranking Service. ID: {}, Username: {}", id, username);
+        if (playerRepository.findByIdOptional(id).isPresent()) {
+            log.warn("Player profile creation failed: ID {} already exists", id);
+            throw new PlayerAlreadyCreatedException("There's already a player created with that ID");
+        }
         if (playerRepository.find("discordUsername", username).count() > 0) {
             log.warn("Player profile creation failed: Discord username {} already exists", username);
             throw new PlayerAlreadyCreatedException(
@@ -74,7 +78,7 @@ public class PlayerServiceImpl implements PlayerService {
     @Override
     @Transactional
     @Retry(maxRetries = 3, delay = 500)
-    @Timeout(3000)
+    @Timeout(10000)
     public PlayerDTO linkLolAccount(
             UUID playerId, String puuid, String gameName, String tagLine, Region region) {
         log.info("Linking Riot account to player {}. Account: {}#{}", playerId, gameName, tagLine);
@@ -173,8 +177,8 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     @Transactional
-    @Retry(maxRetries = 2, delay = 500)
-    @Timeout(4000)
+    @Retry(maxRetries = 3, delay = 500)
+    @Timeout(10000)
     @CircuitBreaker(requestVolumeThreshold = 10, failureRatio = 0.5, delay = 5000)
     public PlayerDTO syncPlayerMMR(UUID playerId)
             throws PlayerNotFoundException, LeagueAccountNotLinkedException {

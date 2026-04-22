@@ -29,7 +29,7 @@ public class PlayerServiceTest {
     void testCreatePlayerGeneratesIdAndRegisters() {
         String username = "TestUser";
 
-        PlayerDTO player = playerService.createPlayer(username);
+        PlayerDTO player = playerService.createPlayer(null, username);
 
         assertNotNull(player.getId());
         assertEquals(username, player.getUsername());
@@ -42,14 +42,29 @@ public class PlayerServiceTest {
     }
 
     @Test
+    void testCreatePlayerWithSpecificId() {
+        String username = "SpecificIdUser";
+        java.util.UUID id = java.util.UUID.randomUUID();
+
+        PlayerDTO player = playerService.createPlayer(id, username);
+
+        assertEquals(id, player.getId());
+        assertEquals(username, player.getUsername());
+
+        // Verify it was persisted with exact ID
+        assertTrue(playerRepository.findByIdOptional(id).isPresent());
+        verify(rankingServiceClient, times(1)).registerPlayer(eq(id), eq(username));
+    }
+
+    @Test
     void testCreatePlayerDuplicateUsernameThrowsException() {
         String username = "DuplicateUser";
-        playerService.createPlayer(username);
+        playerService.createPlayer(null, username);
 
         assertThrows(
                 PlayerAlreadyExistsException.class,
                 () -> {
-                    playerService.createPlayer(username);
+                    playerService.createPlayer(null, username);
                 });
     }
 
@@ -58,7 +73,7 @@ public class PlayerServiceTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> {
-                    playerService.createPlayer(null);
+                    playerService.createPlayer(null, null);
                 });
     }
 
@@ -67,7 +82,7 @@ public class PlayerServiceTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> {
-                    playerService.createPlayer("   ");
+                    playerService.createPlayer(null, "   ");
                 });
     }
 }

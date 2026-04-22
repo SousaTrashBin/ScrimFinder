@@ -1,6 +1,7 @@
 package fc.ul.scrimfinder.client;
 
 import fc.ul.scrimfinder.exception.LeagueAccountNotLinkedException;
+import fc.ul.scrimfinder.exception.PlayerAlreadyExistsException;
 import fc.ul.scrimfinder.exception.PlayerNotFoundException;
 import fc.ul.scrimfinder.exception.QueueNotFoundException;
 import fc.ul.scrimfinder.util.ErrorResponse;
@@ -20,6 +21,7 @@ public class RankingServiceExceptionMapper implements ResponseExceptionMapper<Ru
                 case "PLAYER_NOT_FOUND" -> new PlayerNotFoundException(message);
                 case "QUEUE_NOT_FOUND" -> new QueueNotFoundException(message);
                 case "LEAGUE_ACCOUNT_NOT_LINKED" -> new LeagueAccountNotLinkedException(message);
+                case "PLAYER_ALREADY_EXISTS" -> new PlayerAlreadyExistsException(message);
                 default -> new RuntimeException("Remote service error: " + message);
             };
         } catch (Exception e) {
