@@ -59,12 +59,9 @@ public class PlayerRankingController {
             @PathParam("playerId") UUID playerId, @QueryParam("queueId") Optional<UUID> queueId) {
         var rankings = playerRankingService.getPlayerRanking(playerId, queueId);
 
-        if (queueId.isPresent()) {
-            if (rankings.isEmpty()) {
-                throw new PlayerNotFoundException(
-                        "Ranking not found for player " + playerId + " in queue " + queueId.get());
-            }
-            return Response.ok(rankings.get(0)).build();
+        if (queueId.isPresent() && rankings.isEmpty()) {
+            throw new PlayerNotFoundException(
+                    "Ranking not found for player " + playerId + " in queue " + queueId.get());
         }
 
         return Response.ok(rankings).build();

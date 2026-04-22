@@ -485,6 +485,14 @@ public class MatchmakingServiceImpl implements MatchmakingService {
                         .findByIdOptional(ticketId)
                         .orElseThrow(() -> new TicketNotFoundException("Ticket not found: " + ticketId));
         if (ticket.getLobby() == null) return null;
-        return lobbyMapper.toDTO(ticket.getLobby());
+
+        LobbyDTO lobbyDTO = lobbyMapper.toDTO(ticket.getLobby());
+
+        matchRepository
+                .find("lobby", ticket.getLobby())
+                .firstResultOptional()
+                .ifPresent(match -> lobbyDTO.setMatchId(match.getId()));
+
+        return lobbyDTO;
     }
 }

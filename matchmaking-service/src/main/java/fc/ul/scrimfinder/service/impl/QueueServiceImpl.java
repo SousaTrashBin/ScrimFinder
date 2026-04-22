@@ -20,6 +20,9 @@ public class QueueServiceImpl implements QueueService {
 
     @Inject QueueMapper queueMapper;
 
+    @Inject @org.eclipse.microprofile.rest.client.inject.RestClient
+    fc.ul.scrimfinder.client.RankingServiceClient rankingServiceClient;
+
     @Override
     @Transactional
     public QueueDTO createQueue(
@@ -41,6 +44,12 @@ public class QueueServiceImpl implements QueueService {
         queue.setMmrWindow(mmrWindow);
         queue.setRegion(region);
         queueRepository.persist(queue);
+
+        try {
+            rankingServiceClient.createQueue(id, name, 1000);
+        } catch (Exception e) {
+        }
+
         return queueMapper.toDTO(queue);
     }
 

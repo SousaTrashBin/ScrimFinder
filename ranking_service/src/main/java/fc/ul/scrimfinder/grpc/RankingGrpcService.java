@@ -2,6 +2,7 @@ package fc.ul.scrimfinder.grpc;
 
 import fc.ul.scrimfinder.service.PlayerRankingService;
 import io.quarkus.grpc.GrpcService;
+import io.smallrye.common.annotation.Blocking;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import java.util.HashMap;
@@ -9,6 +10,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @GrpcService
+@Blocking
 public class RankingGrpcService implements RankingService {
 
     @Inject PlayerRankingService playerRankingService;

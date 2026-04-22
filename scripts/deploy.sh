@@ -103,6 +103,12 @@ fi
 echo "deploying with Helm (including Traefik and Routing)..."
 helm dependency update k8s/charts/scrimfinder
 
+echo "preparing namespace..."
+kubectl create namespace scrimfinder --dry-run=client -o yaml | kubectl apply -f -
+
+echo "installing/updating Traefik CRDs..."
+kubectl apply -f https://raw.githubusercontent.com/traefik/traefik/v3.0/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml
+
 if helm plugin list | grep -q "diff"; then
     echo "--- PREVIEWING CHANGES (helm diff) ---"
     helm diff upgrade scrimfinder k8s/charts/scrimfinder \
@@ -122,9 +128,6 @@ if helm plugin list | grep -q "diff"; then
         echo "Check the diff above. To bypass this check in the future, set CONFIRM_DEPLOY=true."
     fi
 fi
-
-echo "preparing namespace..."
-kubectl create namespace scrimfinder --dry-run=client -o yaml | kubectl apply -f -
 
 echo "deploying with Helm..."
 helm upgrade --install scrimfinder k8s/charts/scrimfinder \

@@ -1,6 +1,7 @@
 package fc.ul.scrimfinder.grpc;
 
 import io.quarkus.grpc.GrpcService;
+import io.smallrye.common.annotation.Blocking;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import java.util.Map;
@@ -9,12 +10,13 @@ import java.util.stream.Collectors;
 import org.eclipse.microprofile.faulttolerance.Timeout;
 
 @GrpcService
+@Blocking
 public class MatchHistoryGrpcService implements MatchHistoryService {
 
     @Inject fc.ul.scrimfinder.service.MatchHistoryService matchHistoryService;
 
     @Override
-    @Timeout(2000)
+    @Timeout(5000)
     public Uni<SaveMatchMMRGainsResponse> saveMatchMMRGains(SaveMatchMMRGainsRequest request) {
         UUID queueId = UUID.fromString(request.getQueueId());
         Map<String, Integer> mmrGains =

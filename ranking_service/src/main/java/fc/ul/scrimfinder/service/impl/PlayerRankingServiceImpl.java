@@ -8,7 +8,6 @@ import fc.ul.scrimfinder.dto.request.CreatePlayerRequest;
 import fc.ul.scrimfinder.dto.request.MatchResultRequest;
 import fc.ul.scrimfinder.dto.response.PaginatedResponseDTO;
 import fc.ul.scrimfinder.dto.response.PlayerRankingDTO;
-import fc.ul.scrimfinder.exception.LeagueAccountNotLinkedException;
 import fc.ul.scrimfinder.exception.MMRAlreadyExistsException;
 import fc.ul.scrimfinder.exception.PlayerNotFoundException;
 import fc.ul.scrimfinder.exception.QueueNotFoundException;
@@ -21,12 +20,12 @@ import fc.ul.scrimfinder.repository.QueueRepository;
 import fc.ul.scrimfinder.repository.RiotAccountRepository;
 import fc.ul.scrimfinder.rest.client.ExternalGameClient;
 import fc.ul.scrimfinder.service.PlayerRankingService;
-import fc.ul.scrimfinder.util.MMRRuleType;
 import fc.ul.scrimfinder.util.Region;
 import io.quarkus.grpc.GrpcClient;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -40,80 +39,45 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 public class PlayerRankingServiceImpl implements PlayerRankingService {
 
     @Inject PlayerRankingRepository playerRankingRepository;
-
     @Inject PlayerRepository playerRepository;
-
     @Inject QueueRepository queueRepository;
-
     @Inject RiotAccountRepository riotAccountRepository;
-
     @Inject PlayerRankingMapper playerRankingMapper;
+
+    @Inject @RestClient ExternalGameClient externalGameClient;
 
     @Inject
     @GrpcClient("history-service")
     MatchHistoryService matchHistoryService;
 
-    @Inject @RestClient ExternalGameClient externalGameClient;
-
-    @Override
-    @Retry(maxRetries = 2, delay = 500)
-    @Timeout(2000)
-    public List<PlayerRankingDTO> getPlayerRanking(UUID playerId, Optional<UUID> queueId) {
-        Player player =
-                playerRepository
-                        .findByIdOptional(playerId)
-                        .orElseThrow(
-                                () -> {
-                                    log.error("\u001B[31m[ERROR]\u001B[0m Player not found: {}", playerId);
-                                    return new PlayerNotFoundException("Player not found");
-                                });
-
-        if (queueId.isPresent()) {
-            QueueEntity queue =
-                    queueRepository
-                            .findByIdOptional(queueId.get())
-                            .orElseThrow(
-                                    () -> {
-                                        log.error("\u001B[31m[ERROR]\u001B[0m Queue not found: {}", queueId.get());
-                                        return new QueueNotFoundException("Queue not found");
-                                    });
-            return playerRankingRepository
-                    .findByPlayerAndQueue(player, queue)
-                    .map(ranking -> List.of(playerRankingMapper.toDTO(ranking)))
-                    .orElse(Collections.emptyList());
-        }
-
-        return playerRankingRepository.find("player", player).list().stream()
-                .map(playerRankingMapper::toDTO)
-                .collect(Collectors.toList());
-    }
+    private static final int DEFAULT_INITIAL_MMR = 1000;
 
     @Override
     @Transactional
-    @Retry(maxRetries = 2, delay = 500)
-    @Timeout(5000)
-    @CircuitBreaker(requestVolumeThreshold = 5, failureRatio = 0.6, delay = 5000)
+    @Retry(maxRetries = 3, delay = 1000)
+    @Timeout(10000)
+    @CircuitBreaker(requestVolumeThreshold = 4)
     public Map<UUID, PlayerRankingDTO> processMatchResults(MatchResultRequest request) {
         log.info(
                 "\u001B[33m[PENDING]\u001B[0m Processing match results for game {} in queue {}",
                 request.gameId(),
                 request.queueId());
+
         QueueEntity queue =
                 queueRepository
                         .findByIdOptional(request.queueId())
                         .orElseThrow(
                                 () -> {
                                     log.error(
-                                            "\u001B[31m[ERROR]\u001B[0m Queue {} not found for match results",
+                                            "\u001B[31m[ERROR]\u001B[0m Queue {} not found during match processing",
                                             request.queueId());
-                                    return new QueueNotFoundException("Queue not found");
+                                    return new QueueNotFoundException("Queue not found: " + request.queueId());
                                 });
 
         var matchResult = externalGameClient.fetchMatchResult(request.gameId());
 
-        // Map puuid to won status from external API
         Map<String, Boolean> puuidWonStatus = new HashMap<>();
-        if (matchResult.players() != null) {
+        if (matchResult != null && matchResult.players() != null) {
             matchResult
                     .players()
                     .forEach(
@@ -125,7 +89,7 @@ public class PlayerRankingServiceImpl implements PlayerRankingService {
         }
 
         Map<UUID, PlayerRankingDTO> results = new HashMap<>();
-        Map<UUID, Integer> finalDeltas = new HashMap<>();
+        Map<String, Integer> stringDeltas = new HashMap<>();
 
         for (Map.Entry<String, MatchResultRequest.PlayerDelta> entry :
                 request.playerDeltas().entrySet()) {
@@ -155,11 +119,9 @@ public class PlayerRankingServiceImpl implements PlayerRankingService {
 
             int appliedDelta = won ? deltas.winDelta() : -deltas.lossDelta();
 
-            updatePlayerMMRInternal(player.getId(), queue, appliedDelta, won, results, finalDeltas);
+            updatePlayerMMRInternal(player.getId(), queue, appliedDelta, won, results);
+            stringDeltas.put(puuid, appliedDelta);
         }
-
-        Map<String, Integer> stringDeltas = new HashMap<>();
-        finalDeltas.forEach((id, delta) -> stringDeltas.put(id.toString(), delta));
 
         SaveMatchMMRGainsRequest gRpcRequest =
                 SaveMatchMMRGainsRequest.newBuilder()
@@ -168,28 +130,25 @@ public class PlayerRankingServiceImpl implements PlayerRankingService {
                         .putAllPlayerMMRGains(stringDeltas)
                         .build();
 
-        matchHistoryService
-                .saveMatchMMRGains(gRpcRequest)
-                .subscribe()
-                .with(
-                        response -> {
-                            if (response.getSuccess()) {
-                                log.info(
-                                        "\u001B[32m[STATE CHANGE]\u001B[0m MMR gains for game {} saved to History Service",
-                                        request.gameId());
-                            } else {
-                                log.error(
-                                        "\u001B[31m[ERROR]\u001B[0m History Service failed to save MMR gains for game {}: {}",
-                                        request.gameId(),
-                                        response.getMessage());
-                            }
-                        },
-                        failure -> {
-                            log.error(
-                                    "\u001B[31m[ERROR]\u001B[0m Failed to communicate with History Service for game {}: {}",
-                                    request.gameId(),
-                                    failure.getMessage());
-                        });
+        try {
+            var response =
+                    matchHistoryService.saveMatchMMRGains(gRpcRequest).await().atMost(Duration.ofSeconds(5));
+            if (response.getSuccess()) {
+                log.info(
+                        "\u001B[32m[STATE CHANGE]\u001B[0m MMR gains for game {} saved to History Service",
+                        request.gameId());
+            } else {
+                log.error(
+                        "\u001B[31m[ERROR]\u001B[0m History Service failed to save MMR gains for game {}: {}",
+                        request.gameId(),
+                        response.getMessage());
+            }
+        } catch (Exception failure) {
+            log.error(
+                    "\u001B[31m[ERROR]\u001B[0m Failed to communicate with History Service for game {}: {}",
+                    request.gameId(),
+                    failure.getMessage());
+        }
 
         return results;
     }
@@ -199,8 +158,7 @@ public class PlayerRankingServiceImpl implements PlayerRankingService {
             QueueEntity queue,
             int delta,
             boolean isWin,
-            Map<UUID, PlayerRankingDTO> results,
-            Map<UUID, Integer> playerDeltas) {
+            Map<UUID, PlayerRankingDTO> results) {
         Player player =
                 playerRepository
                         .findByIdOptional(playerId)
@@ -229,7 +187,6 @@ public class PlayerRankingServiceImpl implements PlayerRankingService {
 
         playerRankingRepository.persist(ranking);
         results.put(playerId, playerRankingMapper.toDTO(ranking));
-        playerDeltas.put(playerId, delta);
 
         log.info(
                 "\u001B[32m[STATE CHANGE]\u001B[0m MMR Update: Player {} (Queue {}): {} -> {} ({}{})",
@@ -244,44 +201,59 @@ public class PlayerRankingServiceImpl implements PlayerRankingService {
     @Override
     public PaginatedResponseDTO<PlayerRankingDTO> getQueueLeaderboard(
             int page, int size, Optional<UUID> queueId, Optional<Region> region) {
+        Optional<QueueEntity> queue =
+                queueId.map(
+                        id ->
+                                queueRepository
+                                        .findByIdOptional(id)
+                                        .orElseThrow(() -> new QueueNotFoundException("Queue not found: " + id)));
+        return playerRankingRepository.findLeaderboard(page, size, queue, region);
+    }
+
+    @Override
+    public List<PlayerRankingDTO> getPlayerRanking(UUID playerId, Optional<UUID> queueId) {
+        Player player =
+                playerRepository
+                        .findByIdOptional(playerId)
+                        .orElseThrow(() -> new PlayerNotFoundException("Player " + playerId + " not found"));
+
         if (queueId.isPresent()) {
             QueueEntity queue =
                     queueRepository
                             .findByIdOptional(queueId.get())
-                            .orElseThrow(() -> new QueueNotFoundException("Queue not found"));
-            return playerRankingRepository.findLeaderboard(page, size, Optional.of(queue), region);
+                            .orElseThrow(() -> new QueueNotFoundException("Queue not found: " + queueId.get()));
+
+            return playerRankingRepository
+                    .findByPlayerAndQueue(player, queue)
+                    .map(ranking -> List.of(playerRankingMapper.toDTO(ranking)))
+                    .orElse(Collections.emptyList());
         }
-        return playerRankingRepository.findLeaderboard(page, size, Optional.empty(), region);
+
+        return playerRankingRepository.find("player", player).list().stream()
+                .map(playerRankingMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
     @Override
     @Transactional
-    public PlayerRankingDTO populatePlayerMMR(
-            UUID playerId, CreatePlayerRequest createPlayerRequest) {
+    public PlayerRankingDTO populatePlayerMMR(UUID playerId, CreatePlayerRequest request) {
         Player player =
                 playerRepository
                         .findByIdOptional(playerId)
-                        .orElseThrow(() -> new PlayerNotFoundException("Player not found"));
+                        .orElseThrow(() -> new PlayerNotFoundException("Player " + playerId + " not found"));
 
         QueueEntity queue =
-                queueRepository
-                        .findByIdOptional(createPlayerRequest.queueId().get())
+                request
+                        .queueId()
+                        .flatMap(queueRepository::findByIdOptional)
                         .orElseThrow(() -> new QueueNotFoundException("Queue not found"));
 
-        if (playerRankingRepository.findByPlayerAndQueue(player, queue).isPresent()) {
-            throw new MMRAlreadyExistsException("MMR already exists for this player in this queue");
+        Optional<PlayerRanking> existing = playerRankingRepository.findByPlayerAndQueue(player, queue);
+        if (existing.isPresent()) {
+            return playerRankingMapper.toDTO(existing.get());
         }
 
-        if (player.getPrimaryAccount() == null) {
-            throw new LeagueAccountNotLinkedException("Player has no linked League of Legends account");
-        }
-
-        int initialMmr = queue.getInitialMMR();
-        if (queue.getMmrRuleType() == MMRRuleType.SOLOQ_RANK) {
-            initialMmr = player.getSoloqMMR();
-        } else if (queue.getMmrRuleType() == MMRRuleType.FLEX_RANK) {
-            initialMmr = player.getFlexMMR();
-        }
+        int initialMmr = DEFAULT_INITIAL_MMR;
 
         PlayerRanking ranking = new PlayerRanking();
         ranking.setPlayer(player);
