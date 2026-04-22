@@ -4,7 +4,7 @@ set -e
 echo "formatting ScrimFinder services..."
 
 echo "formatting java services ---"
-for service in matchmaking_service ranking_service match_history_service detail_filling_service; do
+for service in matchmaking-service ranking_service match_history_service detail_filling_service; do
     if [ -d "$service" ] && [ -f "$service/mvnw" ]; then
         echo "formatting $service..."
         (cd "$service" && ./mvnw spotless:apply -B -q)
