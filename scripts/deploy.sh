@@ -132,6 +132,9 @@ fi
 echo "preparing namespace..."
 kubectl create namespace scrimfinder --dry-run=client -o yaml | kubectl apply -f -
 
+echo "ensuring Traefik CRDs are installed..."
+kubectl apply -f https://raw.githubusercontent.com/traefik/traefik/v3.0/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml
+
 echo "deploying with Helm..."
 helm upgrade --install scrimfinder k8s/charts/scrimfinder \
     --namespace scrimfinder --create-namespace \
