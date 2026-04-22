@@ -17,7 +17,7 @@ spec:
       storage: {{ $.Values.infrastructure.postgres.storage }}
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ $dbName }}-db
   namespace: {{ $namespace }}
@@ -87,7 +87,7 @@ spec:
 {{- /* redis instances */ -}}
 {{- range $redisName := (list "matchmaking-redis" "filling-cache") }}
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ $redisName }}
   namespace: {{ $namespace }}
