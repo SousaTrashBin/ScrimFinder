@@ -210,4 +210,20 @@ public class PlayerController {
         var updatedRanking = playerService.syncPlayerMMR(playerId);
         return Response.ok(updatedRanking).build();
     }
+
+    @DELETE
+    @Path("/link")
+    @Operation(summary = "Unlink a League of Legends account using gameName and tagLine")
+    @APIResponses(
+            value = {
+                @APIResponse(
+                        responseCode = "204",
+                        description = "Account successfully unlinked or not found")
+            })
+    public Response unlinkLolAccount(
+            @QueryParam("gameName") @NotBlank String gameName,
+            @QueryParam("tagLine") @NotBlank String tagLine) {
+        playerService.unlinkLolAccount(gameName, tagLine);
+        return Response.noContent().build();
+    }
 }

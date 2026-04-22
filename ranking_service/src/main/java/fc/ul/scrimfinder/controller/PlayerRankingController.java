@@ -49,7 +49,7 @@ public class PlayerRankingController {
                                         schema = @Schema(implementation = PlayerRankingDTO.class))),
                 @APIResponse(
                         responseCode = "404",
-                        description = "Player or Queue not found",
+                        description = "Player ranking not found",
                         content =
                                 @Content(
                                         mediaType = "application/json",
@@ -68,43 +68,40 @@ public class PlayerRankingController {
     }
 
     @POST
-    @Path("/matches/results")
-    @Operation(
-            summary = "Process match results and update player rankings (Internal)",
-            description = "Batch update MMR for all participants after a match completion.")
+    @Path("/results")
+    @Operation(summary = "Process match results and update rankings (Internal)")
     @APIResponses(
             value = {
                 @APIResponse(
                         responseCode = "200",
-                        description = "Match results processed successfully",
+                        description = "Rankings successfully updated",
                         content =
                                 @Content(
                                         mediaType = "application/json",
-                                        schema = @Schema(implementation = Map.class))),
+                                        schema = @Schema(implementation = PlayerRankingDTO.class))),
                 @APIResponse(
                         responseCode = "400",
-                        description = "Invalid request payload",
+                        description = "Invalid request data",
                         content =
                                 @Content(
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class))),
                 @APIResponse(
                         responseCode = "404",
-                        description = "One or more players or queue not found",
+                        description = "Queue not found",
                         content =
                                 @Content(
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     public Response processMatchResults(@NotNull @Valid MatchResultRequest matchResultRequest) {
-        Map<UUID, PlayerRankingDTO> updatedRankings =
-                playerRankingService.processMatchResults(matchResultRequest);
+        var updatedRankings = playerRankingService.processMatchResults(matchResultRequest);
         return Response.ok(updatedRankings).build();
     }
 
     @POST
     @Path("/{playerId}/mmr")
-    @Operation(summary = "Initialize player MMR for a specific queue (Internal)")
+    @Operation(summary = "Initialize MMR for a player in a specific queue")
     @APIResponses(
             value = {
                 @APIResponse(

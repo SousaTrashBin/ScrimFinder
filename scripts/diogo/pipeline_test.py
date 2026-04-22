@@ -34,6 +34,11 @@ def create_and_link_players(queue_id, run_id):
         username = f"{name.replace(' ', '_').lower()}_{run_id}"
         
         try:
+            requests.delete(f"{RANKING_URL}/players/link", params={
+                "gameName": name,
+                "tagLine": tag
+            })
+            
             requests.post(f"{MATCHMAKING_URL}/players", params={"id": p_id, "username": username})
         except:
             pass 
@@ -44,11 +49,11 @@ def create_and_link_players(queue_id, run_id):
                 "gameName": name,
                 "tagLine": tag,
                 "region": "EUW"
-            })
+            }).raise_for_status()
             
             requests.post(f"{RANKING_URL}/players/{p_id}/mmr", json={
                 "queueId": queue_id
-            })
+            }).raise_for_status()
 
             players.append({"id": p_id, "username": username})
         except Exception as e:
@@ -75,7 +80,7 @@ def run_pipeline():
         print(f"FAILED: Queue creation failed. {e}")
         return
 
-    players = create_and_link_players(queue_id, run_id)
+    players = create_and_link_players(queue_id, run_id); time.sleep(2)
     if not players:
         return
 

@@ -10,6 +10,7 @@ import fc.ul.scrimfinder.grpc.PlayerRequest;
 import fc.ul.scrimfinder.grpc.PlayerResponse;
 import fc.ul.scrimfinder.mapper.PlayerMapper;
 import fc.ul.scrimfinder.repository.PlayerRepository;
+import fc.ul.scrimfinder.repository.RiotAccountRepository;
 import fc.ul.scrimfinder.service.PlayerService;
 import fc.ul.scrimfinder.util.MMRConverter;
 import fc.ul.scrimfinder.util.Region;
@@ -19,6 +20,7 @@ import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
@@ -32,6 +34,8 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Inject PlayerRepository playerRepository;
 
+    @Inject RiotAccountRepository riotAccountRepository;
+
     @Inject PlayerMapper playerMapper;
 
     @Inject
@@ -43,13 +47,13 @@ public class PlayerServiceImpl implements PlayerService {
     @Override
     @Transactional
     public PlayerDTO createPlayer(UUID id, String username) {
-        log.info("Creating player profile in Ranking Service. ID: {}, Username: {}", id, username);
+        log.info("\u001B[33m[PENDING]\u001B[0m Creating player profile in Ranking Service. ID: {}, Username: {}", id, username);
         if (playerRepository.findByIdOptional(id).isPresent()) {
-            log.warn("Player profile creation failed: ID {} already exists", id);
+            log.warn("\u001B[31m[ERROR]\u001B[0m Player profile creation failed: ID {} already exists", id);
             throw new PlayerAlreadyCreatedException("There's already a player created with that ID");
         }
         if (playerRepository.find("discordUsername", username).count() > 0) {
-            log.warn("Player profile creation failed: Discord username {} already exists", username);
+            log.warn("\u001B[31m[ERROR]\u001B[0m Player profile creation failed: Discord username {} already exists", username);
             throw new PlayerAlreadyCreatedException(
                     "There's already a player created with that discord username");
         }
@@ -57,19 +61,19 @@ public class PlayerServiceImpl implements PlayerService {
         player.setId(id);
         player.setDiscordUsername(username);
         playerRepository.persist(player);
-        log.info("Player profile created successfully for ID: {}", id);
+        log.info("\u001B[32m[SUCCESS]\u001B[0m Player profile created successfully for ID: {}", id);
         return playerMapper.toDTO(player);
     }
 
     @Override
     public PlayerDTO getPlayer(UUID id) {
-        log.debug("Fetching player profile with ID: {}", id);
+        log.debug("\u001B[34m[INFO]\u001B[0m Fetching player profile with ID: {}", id);
         Player player =
                 playerRepository
                         .findByIdOptional(id)
                         .orElseThrow(
                                 () -> {
-                                    log.warn("Player profile fetch failed: ID {} not found", id);
+                                    log.warn("\u001B[31m[ERROR]\u001B[0m Player profile fetch failed: ID {} not found", id);
                                     return new PlayerNotFoundException("Player not found: " + id);
                                 });
         return playerMapper.toDTO(player);
@@ -81,13 +85,13 @@ public class PlayerServiceImpl implements PlayerService {
     @Timeout(10000)
     public PlayerDTO linkLolAccount(
             UUID playerId, String puuid, String gameName, String tagLine, Region region) {
-        log.info("Linking Riot account to player {}. Account: {}#{}", playerId, gameName, tagLine);
+        log.info("\u001B[33m[PENDING]\u001B[0m Linking Riot account to player {}. Account: {}#{}", playerId, gameName, tagLine);
         Player player =
                 playerRepository
                         .findByIdOptional(playerId)
                         .orElseThrow(
                                 () -> {
-                                    log.warn("Link account failed: Player {} not found", playerId);
+                                    log.warn("\u001B[31m[ERROR]\u001B[0m Link account failed: Player {} not found", playerId);
                                     return new PlayerNotFoundException("Internal player not found");
                                 });
 
@@ -103,10 +107,10 @@ public class PlayerServiceImpl implements PlayerService {
                                             .build())
                             .await()
                             .indefinitely();
-            log.info("Verified Riot account {}#{} via External Service", gameName, tagLine);
+            log.info("\u001B[32m[SUCCESS]\u001B[0m Verified Riot account {}#{} via External Service", gameName, tagLine);
         } catch (Exception e) {
             log.error(
-                    "External service verification failed for {}#{}: {}", gameName, tagLine, e.getMessage());
+                    "\u001B[31m[ERROR]\u001B[0m External service verification failed for {}#{}: {}", gameName, tagLine, e.getMessage());
             throw new ExternalServiceUnavailableException(
                     "External service is currently unavailable or player not found. Please try again later.");
         }
@@ -115,7 +119,7 @@ public class PlayerServiceImpl implements PlayerService {
 
         if (player.getRiotAccounts().stream().anyMatch(acc -> acc.getPuuid().equals(effectivePuuid))) {
             log.warn(
-                    "Link account failed: Riot account {} already linked to player {}",
+                    "\u001B[33m[WARN]\u001B[0m Link account failed: Riot account {} already linked to player {}",
                     effectivePuuid,
                     playerId);
             throw new PlayerAlreadyCreatedException(
@@ -134,8 +138,8 @@ public class PlayerServiceImpl implements PlayerService {
         }
 
         player.getRiotAccounts().add(riotAccount);
-        playerRepository.persist(player);
-        log.info("Riot account linked successfully to player {}", playerId);
+        playerRepository.persistAndFlush(player);
+        log.info("\u001B[32m[SUCCESS]\u001B[0m Riot account linked successfully to player {}", playerId);
 
         return syncPlayerMMR(playerId);
     }
@@ -143,13 +147,13 @@ public class PlayerServiceImpl implements PlayerService {
     @Override
     @Transactional
     public PlayerDTO setPrimaryAccount(UUID playerId, String puuid) {
-        log.info("Setting primary account for player {}. New primary PUUID: {}", playerId, puuid);
+        log.info("\u001B[33m[PENDING]\u001B[0m Setting primary account for player {}. New primary PUUID: {}", playerId, puuid);
         Player player =
                 playerRepository
                         .findByIdOptional(playerId)
                         .orElseThrow(
                                 () -> {
-                                    log.warn("Set primary account failed: Player {} not found", playerId);
+                                    log.warn("\u001B[31m[ERROR]\u001B[0m Set primary account failed: Player {} not found", playerId);
                                     return new PlayerNotFoundException("Player not found");
                                 });
 
@@ -160,7 +164,7 @@ public class PlayerServiceImpl implements PlayerService {
                         .orElseThrow(
                                 () -> {
                                     log.warn(
-                                            "Set primary account failed: Account {} not linked to player {}",
+                                            "\u001B[31m[ERROR]\u001B[0m Set primary account failed: Account {} not linked to player {}",
                                             puuid,
                                             playerId);
                                     return new ExternalAccountNotFoundException(
@@ -171,7 +175,7 @@ public class PlayerServiceImpl implements PlayerService {
         newPrimary.setPrimary(true);
 
         playerRepository.persist(player);
-        log.info("Primary account updated for player {}", playerId);
+        log.info("\u001B[32m[SUCCESS]\u001B[0m Primary account updated for player {}", playerId);
         return syncPlayerMMR(playerId);
     }
 
@@ -182,19 +186,19 @@ public class PlayerServiceImpl implements PlayerService {
     @CircuitBreaker(requestVolumeThreshold = 10, failureRatio = 0.5, delay = 5000)
     public PlayerDTO syncPlayerMMR(UUID playerId)
             throws PlayerNotFoundException, LeagueAccountNotLinkedException {
-        log.info("Syncing MMR for player {}", playerId);
+        log.info("\u001B[33m[PENDING]\u001B[0m Syncing MMR for player {}", playerId);
         Player player =
                 playerRepository
                         .findByIdOptional(playerId)
                         .orElseThrow(
                                 () -> {
-                                    log.warn("Sync MMR failed: Player {} not found", playerId);
+                                    log.warn("\u001B[31m[ERROR]\u001B[0m Sync MMR failed: Player {} not found", playerId);
                                     return new PlayerNotFoundException("Player not found");
                                 });
 
         RiotAccount primaryAccount = player.getPrimaryAccount();
         if (primaryAccount == null) {
-            log.warn("Sync MMR failed: No primary account linked for player {}", playerId);
+            log.warn("\u001B[31m[ERROR]\u001B[0m Sync MMR failed: No primary account linked for player {}", playerId);
             throw new LeagueAccountNotLinkedException(
                     "Player must link a League of Legends account first");
         }
@@ -221,19 +225,41 @@ public class PlayerServiceImpl implements PlayerService {
                                                 parseDivision(entry.getRank()),
                                                 entry.getLeaguePoints());
                                 if ("RANKED_SOLO_5x5".equals(entry.getQueueType())) {
+                                    int oldMMR = player.getSoloqMMR();
                                     player.setSoloqMMR(mmrConverter.convertRankToMMR(rankDTO));
+                                    log.info("\u001B[34m[INFO]\u001B[0m Updated SOLOQ MMR for {}: {} -> {}", player.getDiscordUsername(), oldMMR, player.getSoloqMMR());
                                 } else if ("RANKED_FLEX_SR".equals(entry.getQueueType())) {
+                                    int oldMMR = player.getFlexMMR();
                                     player.setFlexMMR(mmrConverter.convertRankToMMR(rankDTO));
+                                    log.info("\u001B[34m[INFO]\u001B[0m Updated FLEX MMR for {}: {} -> {}", player.getDiscordUsername(), oldMMR, player.getFlexMMR());
                                 }
                             });
 
             playerRepository.persist(player);
-            log.info("MMR synced successfully for player {}", playerId);
+            log.info("\u001B[32m[SUCCESS]\u001B[0m MMR sync complete for player {}", playerId);
         } catch (Exception e) {
-            log.error("Failed to sync MMR for player {}: {}", playerId, e.getMessage());
+            log.error("\u001B[31m[ERROR]\u001B[0m Failed to sync MMR for player {}: {}", playerId, e.getMessage());
             throw e;
         }
         return playerMapper.toDTO(player);
+    }
+
+    @Override
+    @Transactional
+    public void unlinkLolAccount(String gameName, String tagLine) {
+        log.info("\u001B[33m[PENDING]\u001B[0m Unlinking Riot account {}#{}", gameName, tagLine);
+        Optional<RiotAccount> account = riotAccountRepository.find("gameName = ?1 and tagLine = ?2", gameName, tagLine).firstResultOptional();
+        
+        if (account.isPresent()) {
+            RiotAccount riotAccount = account.get();
+            Player player = riotAccount.getPlayer();
+            player.getRiotAccounts().remove(riotAccount);
+            riotAccountRepository.delete(riotAccount);
+            playerRepository.persistAndFlush(player);
+            log.info("\u001B[32m[SUCCESS]\u001B[0m Riot account {}#{} unlinked successfully", gameName, tagLine);
+        } else {
+            log.info("\u001B[34m[INFO]\u001B[0m Riot account {}#{} not found. Nothing to unlink.", gameName, tagLine);
+        }
     }
 
     private int parseDivision(String rank) {

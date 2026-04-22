@@ -19,4 +19,6 @@ public interface PlayerService {
 
     PlayerDTO syncPlayerMMR(UUID playerId)
             throws PlayerNotFoundException, LeagueAccountNotLinkedException;
+
+    void unlinkLolAccount(String gameName, String tagLine);
 }
