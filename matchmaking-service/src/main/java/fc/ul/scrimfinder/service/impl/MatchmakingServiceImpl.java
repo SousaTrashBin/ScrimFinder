@@ -173,11 +173,16 @@ public class MatchmakingServiceImpl implements MatchmakingService {
                 if (max.getMmr() - min.getMmr() <= queue.getMmrWindow()) {
                     List<MatchTicket> matched =
                             new ArrayList<>(tickets.subList(i, i + queue.getRequiredPlayers()));
+                    log.info(
+                            "\u001B[34m[INFO]\u001B[0m Found standard match within MMR window: {} to {}",
+                            min.getMmr(),
+                            max.getMmr());
                     createMatchProposal(queue, region, matched);
                     return;
                 }
             }
         } else {
+            log.info("\u001B[34m[INFO]\u001B[0m Found standard match (ANY mode)");
             createMatchProposal(queue, region, tickets.subList(0, queue.getRequiredPlayers()));
         }
     }
@@ -375,19 +380,32 @@ public class MatchmakingServiceImpl implements MatchmakingService {
     @Timeout(10000)
     @CircuitBreaker(requestVolumeThreshold = 5, failureRatio = 0.6, delay = 5000)
     public void completeMatch(UUID matchId) {
+        log.info("\u001B[33m[PENDING]\u001B[0m Completing match {}...", matchId);
         Match match =
                 matchRepository
                         .findByIdOptional(matchId)
-                        .orElseThrow(() -> new RuntimeException("Match not found"));
+                        .orElseThrow(
+                                () -> {
+                                    log.error("\u001B[31m[ERROR]\u001B[0m Match {} not found for completion", matchId);
+                                    return new RuntimeException("Match not found");
+                                });
 
         if (match.getExternalGameId() == null) {
+            log.error(
+                    "\u001B[31m[ERROR]\u001B[0m Match {} has no external game ID linked", matchId);
             throw new RuntimeException(
                     "Match must be linked with a valid League of Legends Game ID first.");
         }
 
         if (match.getState() == MatchState.COMPLETED) {
+            log.info("\u001B[34m[INFO]\u001B[0m Match {} is already COMPLETED", matchId);
             return;
         }
+
+        log.info(
+                "\u001B[34m[INFO]\u001B[0m Calculating MMR deltas for match {} (External ID: {})",
+                matchId,
+                match.getExternalGameId());
 
         List<MatchTicket> team1 =
                 match.getLobby().getTickets().stream()
@@ -415,6 +433,10 @@ public class MatchmakingServiceImpl implements MatchmakingService {
             deltas.put(t.getRiotPuuid(), new MatchResultRequest.PlayerDelta(winDelta, lossDelta));
         }
 
+        log.info(
+                "\u001B[34m[INFO]\u001B[0m Reporting results for match {} to Ranking Service via gRPC",
+                matchId);
+
         fc.ul.scrimfinder.grpc.MatchResultRequest gRpcRequest =
                 fc.ul.scrimfinder.grpc.MatchResultRequest.newBuilder()
                         .setGameId(match.getExternalGameId())
@@ -435,13 +457,23 @@ public class MatchmakingServiceImpl implements MatchmakingService {
             var response =
                     rankingGrpcService.reportMatchResults(gRpcRequest).await().atMost(Duration.ofSeconds(5));
             if (!response.getSuccess()) {
+                log.error(
+                        "\u001B[31m[ERROR]\u001B[0m Ranking Service failed to process results for match {}: {}",
+                        matchId,
+                        response.getMessage());
                 throw new RuntimeException("Ranking service reported failure: " + response.getMessage());
             }
             match.setState(MatchState.COMPLETED);
             match.setEndedAt(LocalDateTime.now());
             matchRepository.persist(match);
+            log.info(
+                    "\u001B[32m[SUCCESS]\u001B[0m Match {} successfully COMPLETED and results reported",
+                    matchId);
         } catch (Exception e) {
-            log.error("Failed to report match results for match {}: {}", matchId, e.getMessage());
+            log.error(
+                    "\u001B[31m[ERROR]\u001B[0m Failed to report match results for match {}: {}",
+                    matchId,
+                    e.getMessage());
             match.setState(MatchState.RESULT_REPORTING_FAILED);
             matchRepository.persist(match);
             throw new RuntimeException("Match results failed to sync. State: RESULT_REPORTING_FAILED", e);

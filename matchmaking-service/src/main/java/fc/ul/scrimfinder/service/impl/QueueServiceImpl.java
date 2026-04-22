@@ -12,7 +12,9 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @ApplicationScoped
 public class QueueServiceImpl implements QueueService {
 
@@ -34,6 +36,7 @@ public class QueueServiceImpl implements QueueService {
             MatchmakingMode mode,
             int mmrWindow,
             Region region) {
+        log.info("\u001B[33m[PENDING]\u001B[0m Creating queue: {} (ID: {})", name, id);
         Queue queue = new Queue();
         queue.setId(id);
         queue.setName(name);
@@ -47,7 +50,9 @@ public class QueueServiceImpl implements QueueService {
 
         try {
             rankingServiceClient.createQueue(id, name, 1000);
+            log.info("\u001B[32m[SUCCESS]\u001B[0m Queue {} registered in Ranking Service", id);
         } catch (Exception e) {
+            log.warn("\u001B[33m[WARN]\u001B[0m Could not register queue {} in Ranking Service: {}", id, e.getMessage());
         }
 
         return queueMapper.toDTO(queue);
@@ -55,6 +60,7 @@ public class QueueServiceImpl implements QueueService {
 
     @Override
     public QueueDTO getQueue(UUID id) {
+        log.debug("\u001B[34m[INFO]\u001B[0m Fetching queue: {}", id);
         Queue queue =
                 queueRepository
                         .findByIdOptional(id)
