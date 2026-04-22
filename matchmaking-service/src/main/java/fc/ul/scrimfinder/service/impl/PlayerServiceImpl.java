@@ -45,7 +45,8 @@ public class PlayerServiceImpl implements PlayerService {
             throw new IllegalArgumentException("Username is required");
         }
         if (playerRepository.find("username", username).firstResultOptional().isPresent()) {
-            log.warn("\u001B[33m[WARN]\u001B[0m Player creation failed: Username {} already exists", username);
+            log.warn(
+                    "\u001B[33m[WARN]\u001B[0m Player creation failed: Username {} already exists", username);
             throw new PlayerAlreadyExistsException(
                     "Player with username " + username + " already exists");
         }
@@ -63,7 +64,9 @@ public class PlayerServiceImpl implements PlayerService {
 
         try {
             rankingServiceClient.registerPlayer(player.getId(), username);
-            log.info("\u001B[32m[SUCCESS]\u001B[0m Player {} successfully registered in Ranking Service", username);
+            log.info(
+                    "\u001B[32m[SUCCESS]\u001B[0m Player {} successfully registered in Ranking Service",
+                    username);
         } catch (PlayerAlreadyExistsException e) {
             log.warn(
                     "\u001B[33m[WARN]\u001B[0m Player {} already exists in Ranking Service. Local creation finalized.",

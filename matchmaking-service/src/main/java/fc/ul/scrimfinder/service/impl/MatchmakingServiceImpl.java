@@ -386,13 +386,13 @@ public class MatchmakingServiceImpl implements MatchmakingService {
                         .findByIdOptional(matchId)
                         .orElseThrow(
                                 () -> {
-                                    log.error("\u001B[31m[ERROR]\u001B[0m Match {} not found for completion", matchId);
+                                    log.error(
+                                            "\u001B[31m[ERROR]\u001B[0m Match {} not found for completion", matchId);
                                     return new RuntimeException("Match not found");
                                 });
 
         if (match.getExternalGameId() == null) {
-            log.error(
-                    "\u001B[31m[ERROR]\u001B[0m Match {} has no external game ID linked", matchId);
+            log.error("\u001B[31m[ERROR]\u001B[0m Match {} has no external game ID linked", matchId);
             throw new RuntimeException(
                     "Match must be linked with a valid League of Legends Game ID first.");
         }

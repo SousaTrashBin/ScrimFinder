@@ -52,7 +52,10 @@ public class QueueServiceImpl implements QueueService {
             rankingServiceClient.createQueue(id, name, 1000);
             log.info("\u001B[32m[SUCCESS]\u001B[0m Queue {} registered in Ranking Service", id);
         } catch (Exception e) {
-            log.warn("\u001B[33m[WARN]\u001B[0m Could not register queue {} in Ranking Service: {}", id, e.getMessage());
+            log.warn(
+                    "\u001B[33m[WARN]\u001B[0m Could not register queue {} in Ranking Service: {}",
+                    id,
+                    e.getMessage());
         }
 
         return queueMapper.toDTO(queue);
