@@ -65,7 +65,7 @@ The Authentication Microservice (AMS) manages the user lifecycle:
 
 ---
 
-### 5. Technical Architecture Diagram
+## 5. Technical Architecture Diagram
 ![Technical Application Architecture](./app_technical_architecture.png)
 
 ---
