@@ -13,6 +13,7 @@ import fc.ul.scrimfinder.mapper.PlayerMatchStatsMapper;
 import fc.ul.scrimfinder.repository.MatchHistoryRepository;
 import fc.ul.scrimfinder.repository.PlayerMatchStatsRepository;
 import fc.ul.scrimfinder.repository.PlayerRepository;
+import fc.ul.scrimfinder.repository.ReplicaMatchHistoryReadRepository;
 import fc.ul.scrimfinder.service.DetailFillingAdapterService;
 import fc.ul.scrimfinder.service.MatchFilterSorterService;
 import fc.ul.scrimfinder.service.MatchHistoryService;
@@ -20,6 +21,8 @@ import fc.ul.scrimfinder.util.ColoredMessage;
 import fc.ul.scrimfinder.util.LogColor;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.transaction.Status;
+import jakarta.transaction.TransactionSynchronizationRegistry;
 import jakarta.transaction.Transactional;
 import java.util.Map;
 import java.util.Optional;
@@ -49,6 +52,8 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
     @Inject PlayerMapper playerMapper;
 
     @Inject PlayerMatchStatsMapper playerMatchStatsMapper;
+    @Inject ReplicaMatchHistoryReadRepository replicaReadRepository;
+    @Inject TransactionSynchronizationRegistry txSyncRegistry;
 
     @Inject Logger logger;
 
@@ -57,16 +62,34 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
         logger.info(
                 ColoredMessage.withColor(
                         "GET match by ID (from Read Replica): " + riotMatchId, LogColor.GREEN));
-        return readOnlyMatchHistoryRepository
-                .findByRiotMatchId(riotMatchId)
-                .map(matchMapper::matchToDto)
-                .orElseThrow(
-                        () -> {
-                            logger.warn(
-                                    ColoredMessage.withColor(
-                                            "Match does not exist in history: " + riotMatchId, LogColor.YELLOW));
-                            return new MatchNotFoundException("Match does not exist in history");
-                        });
+        if (isTransactionActive()) {
+            return readOnlyMatchHistoryRepository
+                    .findByRiotMatchId(riotMatchId)
+                    .map(matchMapper::matchToDto)
+                    .orElseThrow(() -> new MatchNotFoundException("Match does not exist in history"));
+        }
+        try {
+            return replicaReadRepository
+                    .findByRiotMatchId(riotMatchId)
+                    .orElseThrow(() -> new MatchNotFoundException("Match does not exist in history"));
+        } catch (MatchNotFoundException e) {
+            logger.warn(
+                    ColoredMessage.withColor(
+                            "Match does not exist in history: " + riotMatchId, LogColor.YELLOW));
+            throw e;
+        } catch (Exception replicaFailure) {
+            logger.warn(
+                    ColoredMessage.withColor(
+                            "Replica read failed for match "
+                                    + riotMatchId
+                                    + ", falling back to primary: "
+                                    + replicaFailure.getMessage(),
+                            LogColor.YELLOW));
+            return readOnlyMatchHistoryRepository
+                    .findByRiotMatchId(riotMatchId)
+                    .map(matchMapper::matchToDto)
+                    .orElseThrow(() -> new MatchNotFoundException("Match does not exist in history"));
+        }
     }
 
     @Override
@@ -77,7 +100,34 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
                                 "GET filtered matches (page=%d | size=%d) with filters: %s",
                                 page, size, filterParams),
                         LogColor.GREEN));
+        if (!isTransactionActive() && isEmptyFilter(filterParams)) {
+            try {
+                return replicaReadRepository.findAllPaged(page, size);
+            } catch (Exception replicaFailure) {
+                logger.warn(
+                        ColoredMessage.withColor(
+                                "Replica read failed for unfiltered matches, falling back to primary: "
+                                        + replicaFailure.getMessage(),
+                                LogColor.YELLOW));
+            }
+        }
         return matchFilterSorterService.filterSortMatches(page, size, filterParams);
+    }
+
+    private boolean isEmptyFilter(MatchFilters filters) {
+        return filters == null
+                || (filters.getQueueId() == null
+                        && (filters.getChampions() == null || filters.getChampions().isEmpty())
+                        && filters.getPatch() == null
+                        && filters.getTime() == null
+                        && (filters.getPlayers() == null || filters.getPlayers().isEmpty())
+                        && (filters.getTeams() == null || filters.getTeams().isEmpty())
+                        && (filters.getSortParams() == null || filters.getSortParams().isEmpty()));
+    }
+
+    private boolean isTransactionActive() {
+        int status = txSyncRegistry.getTransactionStatus();
+        return status == Status.STATUS_ACTIVE || status == Status.STATUS_MARKED_ROLLBACK;
     }
 
     @Override
