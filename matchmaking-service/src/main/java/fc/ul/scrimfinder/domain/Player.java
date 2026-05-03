@@ -16,6 +16,6 @@ public class Player {
 
     @Id private UUID id = UUID.randomUUID();
 
-    @Column(nullable = false, unique = true)
-    private String username;
+    @Column(name = "discord_username", nullable = false, unique = true)
+    private String discordUsername;
 }

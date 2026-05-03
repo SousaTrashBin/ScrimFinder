@@ -21,6 +21,7 @@ public class RankingServiceExceptionMapper implements ResponseExceptionMapper<Ru
                 case "PLAYER_NOT_FOUND" -> new PlayerNotFoundException(message);
                 case "QUEUE_NOT_FOUND" -> new QueueNotFoundException(message);
                 case "LEAGUE_ACCOUNT_NOT_LINKED" -> new LeagueAccountNotLinkedException(message);
+                case "PLAYER_RANKING_NOT_FOUND" -> new LeagueAccountNotLinkedException(message);
                 case "PLAYER_ALREADY_EXISTS" -> new PlayerAlreadyExistsException(message);
                 default -> new RuntimeException("Remote service error: " + message);
             };

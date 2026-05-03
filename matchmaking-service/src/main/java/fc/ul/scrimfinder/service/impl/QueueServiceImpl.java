@@ -20,10 +20,13 @@ public class QueueServiceImpl implements QueueService {
 
     @Inject QueueRepository queueRepository;
 
+    @Inject fc.ul.scrimfinder.repository.ReadOnlyQueueRepository readOnlyQueueRepository;
+
     @Inject QueueMapper queueMapper;
 
-    @Inject @org.eclipse.microprofile.rest.client.inject.RestClient
-    fc.ul.scrimfinder.client.RankingServiceClient rankingServiceClient;
+    @Inject
+    @io.quarkus.grpc.GrpcClient("ranking-service")
+    fc.ul.scrimfinder.grpc.RankingService rankingGrpcClient;
 
     @Override
     @Transactional
@@ -49,13 +52,34 @@ public class QueueServiceImpl implements QueueService {
         queueRepository.persist(queue);
 
         try {
-            rankingServiceClient.createQueue(id, name, 1000);
-            log.info("\u001B[32m[SUCCESS]\u001B[0m Queue {} registered in Ranking Service", id);
+            fc.ul.scrimfinder.grpc.CreateQueueRequest gRpcRequest =
+                    fc.ul.scrimfinder.grpc.CreateQueueRequest.newBuilder()
+                            .setQueueId(id.toString())
+                            .setName(name)
+                            .setInitialMMR(1000)
+                            .build();
+            var response =
+                    rankingGrpcClient
+                            .createQueue(gRpcRequest)
+                            .await()
+                            .atMost(java.time.Duration.ofSeconds(5));
+            if (response.getSuccess()) {
+                log.info(
+                        "\u001B[32m[SUCCESS]\u001B[0m Queue {} registered in Ranking Service via gRPC", id);
+            } else {
+                log.error(
+                        "\u001B[31m[ERROR]\u001B[0m Ranking service returned failure for {}: {}",
+                        id,
+                        response.getMessage());
+                throw new RuntimeException(
+                        "Failed to register queue in Ranking Service: " + response.getMessage());
+            }
         } catch (Exception e) {
-            log.warn(
-                    "\u001B[33m[WARN]\u001B[0m Could not register queue {} in Ranking Service: {}",
+            log.error(
+                    "\u001B[31m[ERROR]\u001B[0m Could not register queue {} in Ranking Service via gRPC: {}",
                     id,
                     e.getMessage());
+            throw new RuntimeException("Queue creation failed due to Ranking Service error", e);
         }
 
         return queueMapper.toDTO(queue);
@@ -63,9 +87,9 @@ public class QueueServiceImpl implements QueueService {
 
     @Override
     public QueueDTO getQueue(UUID id) {
-        log.debug("\u001B[34m[INFO]\u001B[0m Fetching queue: {}", id);
+        log.info("\u001B[34m[INFO]\u001B[0m Fetching queue (from Read Replica): {}", id);
         Queue queue =
-                queueRepository
+                readOnlyQueueRepository
                         .findByIdOptional(id)
                         .orElseThrow(() -> new QueueNotFoundException("Queue not found: " + id));
         return queueMapper.toDTO(queue);

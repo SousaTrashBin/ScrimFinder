@@ -28,6 +28,6 @@ public class Lobby {
     @OneToMany(mappedBy = "lobby", cascade = CascadeType.ALL)
     private List<MatchTicket> tickets = new ArrayList<>();
 
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 }

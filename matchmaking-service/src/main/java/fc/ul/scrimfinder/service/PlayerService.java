@@ -4,7 +4,7 @@ import fc.ul.scrimfinder.dto.response.PlayerDTO;
 import java.util.UUID;
 
 public interface PlayerService {
-    PlayerDTO createPlayer(UUID id, String username);
+    PlayerDTO createPlayer(UUID id, String discordUsername);
 
     PlayerDTO getPlayer(UUID id);
 }

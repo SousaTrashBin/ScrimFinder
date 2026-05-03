@@ -1,13 +1,20 @@
 package fc.ul.scrimfinder.controller;
 
+import fc.ul.scrimfinder.dto.request.CreatePlayerRequest;
+import fc.ul.scrimfinder.dto.response.LobbyDTO;
+import fc.ul.scrimfinder.dto.response.MatchTicketDTO;
 import fc.ul.scrimfinder.dto.response.PlayerDTO;
+import fc.ul.scrimfinder.service.MatchmakingService;
 import fc.ul.scrimfinder.service.PlayerService;
 import fc.ul.scrimfinder.util.ErrorResponse;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.util.List;
 import java.util.UUID;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
@@ -26,37 +33,37 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 public class PlayerController {
 
     @Inject PlayerService playerService;
+    @Inject MatchmakingService matchmakingService;
 
     @POST
-    @Operation(
-            summary = "Create a new player and register in Ranking Service",
-            description = "Atomic operation: rolls back local creation if remote registration fails.")
+    @Transactional
+    @Operation(summary = "Register a new player in the matchmaking platform")
     @APIResponses(
             value = {
                 @APIResponse(
                         responseCode = "201",
-                        description = "Player successfully created",
+                        description = "Player registered successfully",
                         content =
                                 @Content(
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = PlayerDTO.class))),
                 @APIResponse(
-                        responseCode = "409",
-                        description = "Player or Username already exists",
+                        responseCode = "400",
+                        description = "Invalid input or registration failed",
                         content =
                                 @Content(
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class))),
                 @APIResponse(
-                        responseCode = "500",
-                        description = "Remote service registration failed",
+                        responseCode = "409",
+                        description = "Player or Discord Username already exists",
                         content =
                                 @Content(
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    public Response createPlayer(@QueryParam("id") UUID id, @QueryParam("username") String username) {
-        PlayerDTO player = playerService.createPlayer(id, username);
+    public Response createPlayer(@Valid CreatePlayerRequest request) {
+        PlayerDTO player = playerService.createPlayer(request.id(), request.discordUsername());
         return Response.status(Response.Status.CREATED).entity(player).build();
     }
 
@@ -83,5 +90,55 @@ public class PlayerController {
     public Response getPlayer(@PathParam("id") UUID id) {
         PlayerDTO player = playerService.getPlayer(id);
         return Response.ok(player).build();
+    }
+
+    @GET
+    @Path("/{id}/tickets")
+    @Operation(summary = "Get all tickets for a player")
+    @APIResponses(
+            value = {
+                @APIResponse(
+                        responseCode = "200",
+                        description = "Player tickets retrieved",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = MatchTicketDTO.class))),
+                @APIResponse(
+                        responseCode = "404",
+                        description = "Player not found",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = ErrorResponse.class)))
+            })
+    public Response getPlayerTickets(@PathParam("id") UUID id) {
+        List<MatchTicketDTO> tickets = matchmakingService.getTicketsByPlayer(id);
+        return Response.ok(tickets).build();
+    }
+
+    @GET
+    @Path("/{id}/lobbies")
+    @Operation(summary = "Get all lobbies associated with a player's tickets")
+    @APIResponses(
+            value = {
+                @APIResponse(
+                        responseCode = "200",
+                        description = "Player lobbies retrieved",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = LobbyDTO.class))),
+                @APIResponse(
+                        responseCode = "404",
+                        description = "Player not found",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = ErrorResponse.class)))
+            })
+    public Response getPlayerLobbies(@PathParam("id") UUID id) {
+        List<LobbyDTO> lobbies = matchmakingService.getLobbiesByPlayer(id);
+        return Response.ok(lobbies).build();
     }
 }

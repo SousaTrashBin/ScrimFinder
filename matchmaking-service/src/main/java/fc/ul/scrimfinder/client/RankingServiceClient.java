@@ -1,6 +1,8 @@
 package fc.ul.scrimfinder.client;
 
 import fc.ul.scrimfinder.dto.external.PlayerRankingDTO;
+import fc.ul.scrimfinder.dto.request.LinkLolAccountRequest;
+import fc.ul.scrimfinder.dto.request.SetPrimaryAccountRequest;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import java.util.List;
@@ -14,43 +16,18 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 public interface RankingServiceClient {
 
     @GET
-    @Path("/players/{playerId}/queue")
+    @Path("/players/{playerId}/queue-rankings/{queueId}")
     @Produces(MediaType.APPLICATION_JSON)
     List<PlayerRankingDTO> getPlayerRanking(
-            @PathParam("playerId") UUID playerId, @QueryParam("queueId") UUID queueId);
-
-    @POST
-    @Path("/queue/{queueId}")
-    void createQueue(
-            @PathParam("queueId") UUID queueId,
-            @QueryParam("name") String name,
-            @QueryParam("initialMMR") int initialMMR);
-
-    @POST
-    @Path("/players")
-    void registerPlayer(@QueryParam("id") UUID id, @QueryParam("username") String username);
+            @PathParam("playerId") UUID playerId, @PathParam("queueId") UUID queueId);
 
     @PUT
     @Path("/players/{playerId}/link-lol-account")
-    void linkLolAccount(
-            @PathParam("playerId") UUID playerId,
-            @QueryParam("puuid") String puuid,
-            @QueryParam("gameName") String gameName,
-            @QueryParam("tagLine") String tagLine,
-            @QueryParam("region") fc.ul.scrimfinder.util.Region region);
-
-    @POST
-    @Path("/players/{playerId}/link")
-    void linkLolAccountAlias(
-            @PathParam("playerId") UUID playerId,
-            @QueryParam("puuid") String puuid,
-            @QueryParam("gameName") String gameName,
-            @QueryParam("tagLine") String tagLine,
-            @QueryParam("region") fc.ul.scrimfinder.util.Region region);
+    void linkLolAccount(@PathParam("playerId") UUID playerId, LinkLolAccountRequest request);
 
     @PUT
     @Path("/players/{playerId}/set-primary-account")
-    void setPrimaryAccount(@PathParam("playerId") UUID playerId, @QueryParam("puuid") String puuid);
+    void setPrimaryAccount(@PathParam("playerId") UUID playerId, SetPrimaryAccountRequest request);
 
     @POST
     @Path("/players/{playerId}/sync-mmr")

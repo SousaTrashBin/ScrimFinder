@@ -30,8 +30,12 @@ public class Match {
     @Column(name = "player_id")
     private Set<UUID> acceptedPlayerIds = new HashSet<>();
 
+    @Column(name = "external_game_id")
     private String externalGameId;
 
+    @Column(name = "started_at")
     private LocalDateTime startedAt;
+
+    @Column(name = "ended_at")
     private LocalDateTime endedAt;
 }

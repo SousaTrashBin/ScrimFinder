@@ -1,6 +1,5 @@
 package fc.ul.scrimfinder.service.impl;
 
-import fc.ul.scrimfinder.client.RankingServiceClient;
 import fc.ul.scrimfinder.domain.Player;
 import fc.ul.scrimfinder.dto.response.PlayerDTO;
 import fc.ul.scrimfinder.exception.PlayerAlreadyExistsException;
@@ -16,7 +15,6 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 @Slf4j
 @Blocking
@@ -27,7 +25,9 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Inject PlayerMapper playerMapper;
 
-    @Inject @RestClient RankingServiceClient rankingServiceClient;
+    @Inject
+    @GrpcClient("ranking-service")
+    fc.ul.scrimfinder.grpc.RankingService rankingGrpcClient;
 
     @Inject
     @GrpcClient("player-service")
@@ -35,46 +35,63 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     @Transactional
-    public PlayerDTO createPlayer(UUID id, String username) {
+    public PlayerDTO createPlayer(UUID id, String discordUsername) {
         log.info(
-                "\u001B[33m[PENDING]\u001B[0m Attempting to create player with username: {} and id: {}",
-                username,
+                "\u001B[33m[PENDING]\u001B[0m Attempting to create player with discordUsername: {} and id: {}",
+                discordUsername,
                 id);
-        if (username == null || username.isBlank()) {
-            log.error("\u001B[31m[ERROR]\u001B[0m Player creation failed: Username is null or blank");
-            throw new IllegalArgumentException("Username is required");
+        if (discordUsername == null || discordUsername.isBlank()) {
+            log.error(
+                    "\u001B[31m[ERROR]\u001B[0m Player creation failed: Discord Username is null or blank");
+            throw new IllegalArgumentException("Discord Username is required");
         }
-        if (playerRepository.find("username", username).firstResultOptional().isPresent()) {
+        if (playerRepository
+                .find("discordUsername", discordUsername)
+                .firstResultOptional()
+                .isPresent()) {
             log.warn(
-                    "\u001B[33m[WARN]\u001B[0m Player creation failed: Username {} already exists", username);
+                    "\u001B[33m[WARN]\u001B[0m Player creation failed: Discord Username {} already exists",
+                    discordUsername);
             throw new PlayerAlreadyExistsException(
-                    "Player with username " + username + " already exists");
+                    "Player with discord username " + discordUsername + " already exists");
         }
 
         Player player = new Player();
         if (id != null) {
             player.setId(id);
         }
-        player.setUsername(username);
+        player.setDiscordUsername(discordUsername);
         playerRepository.persist(player);
         log.info(
                 "\u001B[32m[SUCCESS]\u001B[0m Player {} persisted locally with ID: {}",
-                username,
+                discordUsername,
                 player.getId());
 
         try {
-            rankingServiceClient.registerPlayer(player.getId(), username);
-            log.info(
-                    "\u001B[32m[SUCCESS]\u001B[0m Player {} successfully registered in Ranking Service",
-                    username);
-        } catch (PlayerAlreadyExistsException e) {
-            log.warn(
-                    "\u001B[33m[WARN]\u001B[0m Player {} already exists in Ranking Service. Local creation finalized.",
-                    username);
+            fc.ul.scrimfinder.grpc.RegisterPlayerRequest gRpcRequest =
+                    fc.ul.scrimfinder.grpc.RegisterPlayerRequest.newBuilder()
+                            .setPlayerId(player.getId().toString())
+                            .setUsername(discordUsername)
+                            .build();
+            var response =
+                    rankingGrpcClient
+                            .registerPlayer(gRpcRequest)
+                            .await()
+                            .atMost(java.time.Duration.ofSeconds(5));
+            if (response.getSuccess()) {
+                log.info(
+                        "\u001B[32m[SUCCESS]\u001B[0m Player {} successfully registered in Ranking Service via gRPC",
+                        discordUsername);
+            } else {
+                log.warn(
+                        "\u001B[33m[WARN]\u001B[0m Ranking service returned failure for {}: {}",
+                        discordUsername,
+                        response.getMessage());
+            }
         } catch (Exception e) {
             log.error(
-                    "\u001B[31m[ERROR]\u001B[0m Failed to register player {} in Ranking Service: {}",
-                    username,
+                    "\u001B[31m[ERROR]\u001B[0m Failed to register player {} in Ranking Service via gRPC: {}",
+                    discordUsername,
                     e.getMessage());
             throw e;
         }

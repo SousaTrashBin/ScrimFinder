@@ -4,6 +4,7 @@ import fc.ul.scrimfinder.dto.request.JoinQueueRequest;
 import fc.ul.scrimfinder.dto.response.LobbyDTO;
 import fc.ul.scrimfinder.dto.response.MatchDTO;
 import fc.ul.scrimfinder.dto.response.MatchTicketDTO;
+import java.util.List;
 import java.util.UUID;
 
 public interface MatchmakingService {
@@ -12,6 +13,10 @@ public interface MatchmakingService {
     void leaveQueue(UUID ticketId);
 
     LobbyDTO getLobbyByTicket(UUID ticketId);
+
+    List<MatchTicketDTO> getTicketsByPlayer(UUID playerId);
+
+    List<LobbyDTO> getLobbiesByPlayer(UUID playerId);
 
     MatchDTO acceptMatch(UUID matchId, UUID playerId);
 
