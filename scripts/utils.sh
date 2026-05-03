@@ -16,13 +16,19 @@ case "$1" in
         echo "Calculating Helm diff for scrimfinder..."
         helm diff upgrade scrimfinder k8s/charts/scrimfinder \
             --namespace $NAMESPACE \
-            --set global.imageRegistry="${SCRIM_REGION}-docker.pkg.dev/${SCRIM_PROJECT_ID}/${SCRIM_REPO_NAME}" \
+            --set global.microservicesRegistry="${SCRIM_REGION}-docker.pkg.dev/${SCRIM_PROJECT_ID}/${SCRIM_REPO_NAME}" \
             --set global.region="${SCRIM_REGION}" \
             --set global.projectId="${SCRIM_PROJECT_ID}" \
             --set global.repoName="${SCRIM_REPO_NAME}" \
             --set secrets.riotApiKey="$RIOT_API_KEY" \
             --set secrets.dbUser="$SCRIM_DB_USER" \
             --set secrets.dbPassword="$SCRIM_DB_PASSWORD" \
+            --set secrets.redisPassword="${SCRIM_REDIS_PASSWORD:-redispassword}" \
+            --set secrets.rabbitmqUser="${SCRIM_RABBITMQ_USER:-user}" \
+            --set secrets.rabbitmqPassword="${SCRIM_RABBITMQ_PASSWORD:-rabbitmqpassword}" \
+            --set secrets.rabbitmqErlangCookie="${SCRIM_RABBITMQ_ERLANG_COOKIE:-erlangcookie}" \
+            --set global.rabbitmqHost="${SCRIM_RABBITMQ_HOST:-scrimfinder-rabbitmq-broker}" \
+            --set global.rabbitmqPort="${SCRIM_RABBITMQ_PORT:-5672}" \
             --allow-unreleased
         ;;
     "db-proxy")

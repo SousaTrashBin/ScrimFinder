@@ -17,46 +17,59 @@ spec:
       labels:
         app: {{ $name }}
     spec:
-      {{- with $.Values.global.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with $config.securityContext | default $.Values.global.podSecurityContext }}
-      securityContext:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       containers:
       - name: {{ $name }}
-        image: "{{ $.Values.global.imageRegistry }}/{{ $name }}:{{ $.Values.global.imageTag }}"
-        {{- with $config.containerSecurityContext | default $.Values.global.securityContext }}
-        securityContext:
-          {{- toYaml . | nindent 10 }}
-        {{- end }}
+        image: "{{ $.Values.global.microservicesRegistry }}/{{ $config.imageName }}:{{ $.Values.global.imageTag }}"
+        imagePullPolicy: {{ $.Values.global.imagePullPolicy | default "Always" }}
         ports:
         {{- range $config.ports }}
-        - containerPort: {{ .containerPort }}
-          name: {{ .name }}
+        - name: {{ .name }}
+          containerPort: {{ .containerPort }}
         {{- end }}
         env:
         {{- range $key, $val := $config.env }}
         - name: {{ $key }}
           value: {{ $val | quote }}
         {{- end }}
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: scrimfinder-secrets
+              key: db-user
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: scrimfinder-secrets
+              key: db-password
         - name: RIOT_API_KEY
           valueFrom:
             secretKeyRef:
               name: scrimfinder-secrets
               key: riot-api-key
-        - name: QUARKUS_DATASOURCE_USERNAME
+        - name: QUARKUS_REDIS_PASSWORD
           valueFrom:
             secretKeyRef:
               name: scrimfinder-secrets
-              key: db-user
-        - name: QUARKUS_DATASOURCE_PASSWORD
+              key: redis-password
+        - name: REDIS_PASSWORD
           valueFrom:
             secretKeyRef:
               name: scrimfinder-secrets
-              key: db-password
+              key: redis-password
+        - name: RABBITMQ_HOST
+          value: {{ $.Values.global.rabbitmqHost | quote }}
+        - name: RABBITMQ_PORT
+          value: {{ $.Values.global.rabbitmqPort | quote }}
+        - name: RABBITMQ_USER
+          valueFrom:
+            secretKeyRef:
+              name: scrimfinder-secrets
+              key: rabbitmq-user
+        - name: RABBITMQ_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: scrimfinder-secrets
+              key: rabbitmq-password
 
         resources:
           {{- toYaml $config.resources | nindent 10 }}
@@ -94,54 +107,12 @@ spec:
         - name: {{ $config.persistence.claimName }}
           mountPath: {{ $config.persistence.mountPath }}
         {{- end }}
-      {{- with $config.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with $config.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with $config.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       {{- if $config.persistence }}
       volumes:
       - name: {{ $config.persistence.claimName }}
         persistentVolumeClaim:
           claimName: {{ $config.persistence.claimName }}
       {{- end }}
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: {{ $name }}-hpa
-  namespace: {{ $.Values.global.namespace }}
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: {{ $name }}
-  minReplicas: {{ ($config.autoscaling).minReplicas | default 1 }}
-  maxReplicas: {{ ($config.autoscaling).maxReplicas | default 5 }}
-  metrics:
-  {{- if ($config.autoscaling).targetCPUUtilizationPercentage | default 70 }}
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: {{ ($config.autoscaling).targetCPUUtilizationPercentage | default 70 }}
-  {{- end }}
-  {{- if ($config.autoscaling).targetMemoryUtilizationPercentage }}
-  - type: Resource
-    resource:
-      name: memory
-      target:
-        type: Utilization
-        averageUtilization: {{ ($config.autoscaling).targetMemoryUtilizationPercentage }}
-  {{- end }}
 ---
 apiVersion: v1
 kind: Service
@@ -158,5 +129,27 @@ spec:
     targetPort: {{ .containerPort }}
   {{- end }}
 ---
+{{- if ($config.autoscaling).enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ $name }}-hpa
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ $name }}
+  minReplicas: {{ $config.autoscaling.minReplicas }}
+  maxReplicas: {{ $config.autoscaling.maxReplicas }}
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: {{ $config.autoscaling.targetCPUUtilizationPercentage }}
+---
+{{- end }}
 {{- end }}
 {{- end }}

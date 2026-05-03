@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scrimfinder-ranking-migrations
+  namespace: {{ .Values.global.namespace }}
+  annotations:
+    "helm.sh/hook": post-install,pre-upgrade
+    "helm.sh/hook-weight": "-10"
+    "helm.sh/hook-delete-policy": before-hook-creation
+data: {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scrimfinder-matchmaking-migrations
+  namespace: {{ .Values.global.namespace }}
+  annotations:
+    "helm.sh/hook": post-install,pre-upgrade
+    "helm.sh/hook-weight": "-10"
+    "helm.sh/hook-delete-policy": before-hook-creation
+data: {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scrimfinder-history-migrations
+  namespace: {{ .Values.global.namespace }}
+  annotations:
+    "helm.sh/hook": post-install,pre-upgrade
+    "helm.sh/hook-weight": "-10"
+    "helm.sh/hook-delete-policy": before-hook-creation
+data: {}
+---
+{{- $ns := .Values.global.namespace -}}
+{{- $jobs := list
+  (dict "name" "ranking" "db" "ranking" "host" "scrimfinder-ranking-db-primary" "cm" "scrimfinder-ranking-migrations")
+  (dict "name" "matchmaking" "db" "matchmaking" "host" "scrimfinder-matchmaking-db-primary" "cm" "scrimfinder-matchmaking-migrations")
+  (dict "name" "history" "db" "history" "host" "scrimfinder-history-db-primary" "cm" "scrimfinder-history-migrations")
+-}}
+{{- range $job := $jobs }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "scrimfinder-{{ $job.name }}-db-migrate"
+  namespace: {{ $ns }}
+  annotations:
+    "helm.sh/hook": post-install,pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: flyway
+        image: flyway/flyway:10
+        imagePullPolicy: IfNotPresent
+        args: ["migrate"]
+        env:
+        - name: FLYWAY_URL
+          value: "jdbc:postgresql://{{ $job.host }}:5432/{{ $job.db }}"
+        - name: FLYWAY_USER
+          valueFrom:
+            secretKeyRef:
+              name: scrimfinder-secrets
+              key: db-user
+        - name: FLYWAY_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: scrimfinder-secrets
+              key: db-password
+        - name: FLYWAY_CONNECT_RETRIES
+          value: "60"
+        - name: FLYWAY_LOCATIONS
+          value: "filesystem:/flyway/sql"
+        - name: FLYWAY_VALIDATE_ON_MIGRATE
+          value: "false"
+        volumeMounts:
+        - name: sql
+          mountPath: /flyway/sql
+      volumes:
+      - name: sql
+        configMap:
+          name: {{ $job.cm }}
+---
+{{- end }}
