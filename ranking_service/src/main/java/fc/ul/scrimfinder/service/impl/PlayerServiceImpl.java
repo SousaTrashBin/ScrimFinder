@@ -4,12 +4,14 @@ import fc.ul.scrimfinder.domain.Player;
 import fc.ul.scrimfinder.domain.RiotAccount;
 import fc.ul.scrimfinder.dto.response.PlayerDTO;
 import fc.ul.scrimfinder.dto.response.RankDTO;
+import fc.ul.scrimfinder.dto.response.RiotAccountDTO;
 import fc.ul.scrimfinder.exception.*;
 import fc.ul.scrimfinder.grpc.ExternalPlayerFillingService;
 import fc.ul.scrimfinder.grpc.PlayerRequest;
 import fc.ul.scrimfinder.grpc.PlayerResponse;
 import fc.ul.scrimfinder.mapper.PlayerMapper;
 import fc.ul.scrimfinder.repository.PlayerRepository;
+import fc.ul.scrimfinder.repository.ReadOnlyPlayerRepository;
 import fc.ul.scrimfinder.repository.RiotAccountRepository;
 import fc.ul.scrimfinder.service.PlayerService;
 import fc.ul.scrimfinder.util.MMRConverter;
@@ -34,6 +36,8 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Inject PlayerRepository playerRepository;
 
+    @Inject ReadOnlyPlayerRepository readOnlyPlayerRepository;
+
     @Inject RiotAccountRepository riotAccountRepository;
 
     @Inject PlayerMapper playerMapper;
@@ -46,26 +50,26 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     @Transactional
-    public PlayerDTO createPlayer(UUID id, String username) {
+    public PlayerDTO createPlayer(UUID id, String discordUsername) {
         log.info(
                 "\u001B[33m[PENDING]\u001B[0m Creating player profile in Ranking Service. ID: {}, Username: {}",
                 id,
-                username);
+                discordUsername);
         if (playerRepository.findByIdOptional(id).isPresent()) {
             log.warn(
                     "\u001B[31m[ERROR]\u001B[0m Player profile creation failed: ID {} already exists", id);
             throw new PlayerAlreadyCreatedException("There's already a player created with that ID");
         }
-        if (playerRepository.find("discordUsername", username).count() > 0) {
+        if (playerRepository.find("discordUsername", discordUsername).count() > 0) {
             log.warn(
                     "\u001B[31m[ERROR]\u001B[0m Player profile creation failed: Discord username {} already exists",
-                    username);
+                    discordUsername);
             throw new PlayerAlreadyCreatedException(
                     "There's already a player created with that discord username");
         }
         Player player = new Player();
         player.setId(id);
-        player.setDiscordUsername(username);
+        player.setDiscordUsername(discordUsername);
         playerRepository.persist(player);
         log.info("\u001B[32m[SUCCESS]\u001B[0m Player profile created successfully for ID: {}", id);
         return playerMapper.toDTO(player);
@@ -75,7 +79,7 @@ public class PlayerServiceImpl implements PlayerService {
     public PlayerDTO getPlayer(UUID id) {
         log.debug("\u001B[34m[INFO]\u001B[0m Fetching player profile with ID: {}", id);
         Player player =
-                playerRepository
+                readOnlyPlayerRepository
                         .findByIdOptional(id)
                         .orElseThrow(
                                 () -> {
@@ -85,6 +89,27 @@ public class PlayerServiceImpl implements PlayerService {
                                     return new PlayerNotFoundException("Player not found: " + id);
                                 });
         return playerMapper.toDTO(player);
+    }
+
+    @Override
+    public RiotAccountDTO getPrimaryAccount(UUID playerId) {
+        Player player =
+                readOnlyPlayerRepository
+                        .findByIdOptional(playerId)
+                        .orElseThrow(() -> new PlayerNotFoundException("Player not found: " + playerId));
+        RiotAccount primary = player.getPrimaryAccount();
+        if (primary == null) {
+            throw new LeagueAccountNotLinkedException(
+                    "Player must link a League of Legends account first");
+        }
+
+        return new RiotAccountDTO(
+                primary.getId(),
+                primary.getPuuid(),
+                primary.getGameName(),
+                primary.getTagLine(),
+                primary.getRegion(),
+                primary.isPrimary());
     }
 
     @Override

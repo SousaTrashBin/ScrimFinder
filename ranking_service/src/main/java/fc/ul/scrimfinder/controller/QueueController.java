@@ -4,11 +4,9 @@ import fc.ul.scrimfinder.dto.request.UpdateQueueRequest;
 import fc.ul.scrimfinder.dto.response.QueueDTO;
 import fc.ul.scrimfinder.service.QueueService;
 import fc.ul.scrimfinder.util.ErrorResponse;
-import fc.ul.scrimfinder.util.MMRRuleType;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -28,42 +26,29 @@ public class QueueController {
 
     @Inject QueueService queueService;
 
-    @POST
+    @GET
     @Path("/{queueId}")
-    @Operation(
-            summary = "Create a new queue configuration (Internal)",
-            description = "Initializes a queue with specific MMR rules and base values.")
+    @Operation(summary = "Get queue details")
     @APIResponses(
             value = {
                 @APIResponse(
-                        responseCode = "201",
-                        description = "Queue successfully created",
+                        responseCode = "200",
+                        description = "Queue found",
                         content =
                                 @Content(
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = QueueDTO.class))),
                 @APIResponse(
-                        responseCode = "400",
-                        description = "Invalid initial MMR parameter",
-                        content =
-                                @Content(
-                                        mediaType = "application/json",
-                                        schema = @Schema(implementation = ErrorResponse.class))),
-                @APIResponse(
-                        responseCode = "409",
-                        description = "Queue with this ID already exists",
+                        responseCode = "404",
+                        description = "Queue not found",
                         content =
                                 @Content(
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    public Response createQueue(
-            @PathParam("queueId") UUID queueId,
-            @QueryParam("name") String name,
-            @QueryParam("rule") @DefaultValue("NONE") MMRRuleType MMRRuleType,
-            @QueryParam("initialMMR") @Positive @DefaultValue("1000") int initialMMR) {
-        var queue = queueService.createQueue(queueId, name, MMRRuleType, initialMMR);
-        return Response.status(Response.Status.CREATED).entity(queue).build();
+    public Response getQueue(@PathParam("queueId") UUID queueId) {
+        var queue = queueService.getQueue(queueId);
+        return Response.ok(queue).build();
     }
 
     @PUT

@@ -1,11 +1,14 @@
 package fc.ul.scrimfinder.controller;
 
+import fc.ul.scrimfinder.dto.request.LinkLolAccountRequest;
+import fc.ul.scrimfinder.dto.request.SetPrimaryAccountRequest;
 import fc.ul.scrimfinder.dto.response.PlayerDTO;
+import fc.ul.scrimfinder.dto.response.RiotAccountDTO;
 import fc.ul.scrimfinder.service.PlayerService;
 import fc.ul.scrimfinder.util.ErrorResponse;
-import fc.ul.scrimfinder.util.Region;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.inject.Inject;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
@@ -30,31 +33,6 @@ public class PlayerController {
 
     @Inject PlayerService playerService;
 
-    @POST
-    @Operation(summary = "Register a new player in the system (Internal)")
-    @APIResponses(
-            value = {
-                @APIResponse(
-                        responseCode = "201",
-                        description = "Player successfully created",
-                        content =
-                                @Content(
-                                        mediaType = "application/json",
-                                        schema = @Schema(implementation = PlayerDTO.class))),
-                @APIResponse(
-                        responseCode = "409",
-                        description = "Username already exists",
-                        content =
-                                @Content(
-                                        mediaType = "application/json",
-                                        schema = @Schema(implementation = ErrorResponse.class)))
-            })
-    public Response createPlayer(
-            @QueryParam("id") @NotNull UUID id, @QueryParam("username") @NotBlank String username) {
-        var player = playerService.createPlayer(id, username);
-        return Response.status(Response.Status.CREATED).entity(player).build();
-    }
-
     @GET
     @Path("/{playerId}")
     @Operation(summary = "Get player details")
@@ -78,6 +56,38 @@ public class PlayerController {
     public Response getPlayer(@PathParam("playerId") @NotNull UUID playerId) {
         var player = playerService.getPlayer(playerId);
         return Response.ok(player).build();
+    }
+
+    @GET
+    @Path("/{playerId}/primary-account")
+    @Operation(summary = "Get the primary linked Riot account for a player")
+    @APIResponses(
+            value = {
+                @APIResponse(
+                        responseCode = "200",
+                        description = "Primary account found",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = RiotAccountDTO.class))),
+                @APIResponse(
+                        responseCode = "400",
+                        description = "No League of Legends account linked",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = ErrorResponse.class))),
+                @APIResponse(
+                        responseCode = "404",
+                        description = "Player not found",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = ErrorResponse.class)))
+            })
+    public Response getPrimaryAccount(@PathParam("playerId") @NotNull UUID playerId) {
+        RiotAccountDTO account = playerService.getPrimaryAccount(playerId);
+        return Response.ok(account).build();
     }
 
     @PUT
@@ -109,48 +119,11 @@ public class PlayerController {
             })
     public Response linkLolAccount(
             @PathParam("playerId") @NotNull UUID playerId,
-            @QueryParam("puuid") String puuid,
-            @QueryParam("gameName") @NotBlank String gameName,
-            @QueryParam("tagLine") @NotBlank String tagLine,
-            @QueryParam("region") @NotNull Region region) {
-        var updatedPlayer = playerService.linkLolAccount(playerId, puuid, gameName, tagLine, region);
+            @Valid @NotNull LinkLolAccountRequest request) {
+        var updatedPlayer =
+                playerService.linkLolAccount(
+                        playerId, request.puuid(), request.gameName(), request.tagLine(), request.region());
         return Response.ok(updatedPlayer).build();
-    }
-
-    @POST
-    @Path("/{playerId}/link")
-    @Operation(summary = "Link a League of Legends account to a player (Alias for /link-lol-account)")
-    @APIResponses(
-            value = {
-                @APIResponse(
-                        responseCode = "200",
-                        description = "Account successfully linked",
-                        content =
-                                @Content(
-                                        mediaType = "application/json",
-                                        schema = @Schema(implementation = PlayerDTO.class))),
-                @APIResponse(
-                        responseCode = "400",
-                        description = "Invalid account info or already linked",
-                        content =
-                                @Content(
-                                        mediaType = "application/json",
-                                        schema = @Schema(implementation = ErrorResponse.class))),
-                @APIResponse(
-                        responseCode = "404",
-                        description = "Player not found",
-                        content =
-                                @Content(
-                                        mediaType = "application/json",
-                                        schema = @Schema(implementation = ErrorResponse.class)))
-            })
-    public Response linkLolAccountAlias(
-            @PathParam("playerId") @NotNull UUID playerId,
-            @QueryParam("puuid") String puuid,
-            @QueryParam("gameName") @NotBlank String gameName,
-            @QueryParam("tagLine") @NotBlank String tagLine,
-            @QueryParam("region") @NotNull Region region) {
-        return linkLolAccount(playerId, puuid, gameName, tagLine, region);
     }
 
     @PUT
@@ -174,8 +147,9 @@ public class PlayerController {
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     public Response setPrimaryAccount(
-            @PathParam("playerId") @NotNull UUID playerId, @QueryParam("puuid") @NotBlank String puuid) {
-        var updatedPlayer = playerService.setPrimaryAccount(playerId, puuid);
+            @PathParam("playerId") @NotNull UUID playerId,
+            @Valid @NotNull SetPrimaryAccountRequest request) {
+        var updatedPlayer = playerService.setPrimaryAccount(playerId, request.puuid());
         return Response.ok(updatedPlayer).build();
     }
 
@@ -212,8 +186,8 @@ public class PlayerController {
     }
 
     @DELETE
-    @Path("/link")
-    @Operation(summary = "Unlink a League of Legends account using gameName and tagLine")
+    @Path("/links/{gameName}/{tagLine}")
+    @Operation(summary = "Unlink a League of Legends account")
     @APIResponses(
             value = {
                 @APIResponse(
@@ -221,8 +195,8 @@ public class PlayerController {
                         description = "Account successfully unlinked or not found")
             })
     public Response unlinkLolAccount(
-            @QueryParam("gameName") @NotBlank String gameName,
-            @QueryParam("tagLine") @NotBlank String tagLine) {
+            @PathParam("gameName") @NotBlank String gameName,
+            @PathParam("tagLine") @NotBlank String tagLine) {
         playerService.unlinkLolAccount(gameName, tagLine);
         return Response.noContent().build();
     }

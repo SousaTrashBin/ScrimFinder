@@ -28,6 +28,42 @@ public class LeaderboardController {
     @Inject PlayerRankingService playerRankingService;
 
     @GET
+    @Operation(summary = "Get global leaderboard with pagination")
+    @APIResponses(
+            value = {
+                @APIResponse(
+                        responseCode = "200",
+                        description = "Successfully retrieved the leaderboard",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = PaginatedResponseDTO.class))),
+                @APIResponse(
+                        responseCode = "400",
+                        description = "Invalid pagination parameters",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = ErrorResponse.class))),
+                @APIResponse(
+                        responseCode = "404",
+                        description = "Queue not found",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = ErrorResponse.class)))
+            })
+    public Response getGlobalLeaderboard(
+            @QueryParam("page") @DefaultValue("0") int page,
+            @QueryParam("size") @DefaultValue("20") @Min(0) @Max(100) int size,
+            @QueryParam("region") Optional<Region> region) {
+        var leaderboard =
+                playerRankingService.getQueueLeaderboard(page, size, Optional.empty(), region);
+        return Response.ok(leaderboard).build();
+    }
+
+    @GET
+    @Path("/queues/{queueId}")
     @Operation(summary = "Get queue leaderboard with pagination")
     @APIResponses(
             value = {
@@ -54,11 +90,12 @@ public class LeaderboardController {
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     public Response getQueueLeaderboard(
+            @PathParam("queueId") UUID queueId,
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("size") @DefaultValue("20") @Min(0) @Max(100) int size,
-            @QueryParam("queueId") Optional<UUID> queueId,
             @QueryParam("region") Optional<Region> region) {
-        var leaderboard = playerRankingService.getQueueLeaderboard(page, size, queueId, region);
+        var leaderboard =
+                playerRankingService.getQueueLeaderboard(page, size, Optional.of(queueId), region);
         return Response.ok(leaderboard).build();
     }
 }

@@ -16,8 +16,6 @@ import fc.ul.scrimfinder.dto.request.CreatePlayerRequest;
 import fc.ul.scrimfinder.dto.request.MatchResultRequest;
 import fc.ul.scrimfinder.exception.LeagueAccountNotLinkedException;
 import fc.ul.scrimfinder.exception.MMRAlreadyExistsException;
-import fc.ul.scrimfinder.grpc.MatchHistoryService;
-import fc.ul.scrimfinder.grpc.SaveMatchMMRGainsResponse;
 import fc.ul.scrimfinder.repository.PlayerRankingRepository;
 import fc.ul.scrimfinder.repository.PlayerRepository;
 import fc.ul.scrimfinder.repository.QueueRepository;
@@ -27,7 +25,6 @@ import fc.ul.scrimfinder.util.Region;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
-import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import java.util.HashMap;
 import java.util.List;
@@ -44,10 +41,6 @@ public class PlayerRankingServiceTest {
     @Inject PlayerRepository playerRepository;
     @Inject QueueRepository queueRepository;
     @Inject PlayerRankingRepository playerRankingRepository;
-
-    @InjectMock
-    @io.quarkus.grpc.GrpcClient("history-service")
-    MatchHistoryService matchHistoryService;
 
     @InjectMock @RestClient ExternalGameClient externalGameClient;
 
@@ -81,10 +74,6 @@ public class PlayerRankingServiceTest {
 
         when(externalGameClient.fetchMatchResult("GAME_1")).thenReturn(gameResult);
 
-        when(matchHistoryService.saveMatchMMRGains(any()))
-                .thenReturn(
-                        Uni.createFrom().item(SaveMatchMMRGainsResponse.newBuilder().setSuccess(true).build()));
-
         playerRankingService.processMatchResults(request);
 
         PlayerRanking r1 = playerRankingRepository.findByPlayerAndQueue(p1, queue).orElseThrow();
@@ -94,8 +83,6 @@ public class PlayerRankingServiceTest {
         assertEquals(1, r1.getWins());
         assertEquals(980, r2.getMmr());
         assertEquals(1, r2.getLosses());
-
-        verify(matchHistoryService).saveMatchMMRGains(any());
     }
 
     @Test

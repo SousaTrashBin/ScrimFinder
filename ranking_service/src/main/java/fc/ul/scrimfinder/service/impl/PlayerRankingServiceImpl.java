@@ -4,6 +4,7 @@ import fc.ul.scrimfinder.domain.Player;
 import fc.ul.scrimfinder.domain.PlayerRanking;
 import fc.ul.scrimfinder.domain.QueueEntity;
 import fc.ul.scrimfinder.domain.RiotAccount;
+import fc.ul.scrimfinder.dto.internal.HistoryAddMatchEvent;
 import fc.ul.scrimfinder.dto.request.CreatePlayerRequest;
 import fc.ul.scrimfinder.dto.request.MatchResultRequest;
 import fc.ul.scrimfinder.dto.response.PaginatedResponseDTO;
@@ -12,8 +13,6 @@ import fc.ul.scrimfinder.exception.LeagueAccountNotLinkedException;
 import fc.ul.scrimfinder.exception.MMRAlreadyExistsException;
 import fc.ul.scrimfinder.exception.PlayerNotFoundException;
 import fc.ul.scrimfinder.exception.QueueNotFoundException;
-import fc.ul.scrimfinder.grpc.MatchHistoryService;
-import fc.ul.scrimfinder.grpc.SaveMatchMMRGainsRequest;
 import fc.ul.scrimfinder.mapper.PlayerRankingMapper;
 import fc.ul.scrimfinder.repository.PlayerRankingRepository;
 import fc.ul.scrimfinder.repository.PlayerRepository;
@@ -22,17 +21,17 @@ import fc.ul.scrimfinder.repository.RiotAccountRepository;
 import fc.ul.scrimfinder.rest.client.ExternalGameClient;
 import fc.ul.scrimfinder.service.PlayerRankingService;
 import fc.ul.scrimfinder.util.Region;
-import io.quarkus.grpc.GrpcClient;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.faulttolerance.Timeout;
+import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 @Slf4j
@@ -40,6 +39,10 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 public class PlayerRankingServiceImpl implements PlayerRankingService {
 
     @Inject PlayerRankingRepository playerRankingRepository;
+
+    @Inject
+    fc.ul.scrimfinder.repository.ReadOnlyPlayerRankingRepository readOnlyPlayerRankingRepository;
+
     @Inject PlayerRepository playerRepository;
     @Inject QueueRepository queueRepository;
     @Inject RiotAccountRepository riotAccountRepository;
@@ -48,8 +51,10 @@ public class PlayerRankingServiceImpl implements PlayerRankingService {
     @Inject @RestClient ExternalGameClient externalGameClient;
 
     @Inject
-    @GrpcClient("history-service")
-    MatchHistoryService matchHistoryService;
+    @Channel("history-add-match-events")
+    Emitter<String> historyAddMatchEmitter;
+
+    @Inject com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     private static final int DEFAULT_INITIAL_MMR = 1000;
 
@@ -130,31 +135,21 @@ public class PlayerRankingServiceImpl implements PlayerRankingService {
             stringDeltas.put(puuid, appliedDelta);
         }
 
-        log.info(
-                "\u001B[34m[INFO]\u001B[0m MMR calculations complete. Syncing with History Service via gRPC...");
-        SaveMatchMMRGainsRequest gRpcRequest =
-                SaveMatchMMRGainsRequest.newBuilder()
-                        .setGameId(request.gameId())
-                        .setQueueId(request.queueId().toString())
-                        .putAllPlayerMMRGains(stringDeltas)
-                        .build();
-
         try {
-            var response =
-                    matchHistoryService.saveMatchMMRGains(gRpcRequest).await().atMost(Duration.ofSeconds(5));
-            if (response.getSuccess()) {
-                log.info(
-                        "\u001B[32m[SUCCESS]\u001B[0m Match {} results successfully propagated to Ranking and History Services",
-                        request.gameId());
-            } else {
-                log.error(
-                        "\u001B[31m[ERROR]\u001B[0m History Service failed to save results: {}",
-                        response.getMessage());
-            }
+            log.info(
+                    "\u001B[34m[INFO]\u001B[0m MMR calculations complete. Publishing history sync event via RabbitMQ...");
+            HistoryAddMatchEvent event =
+                    new HistoryAddMatchEvent(request.gameId(), request.queueId().toString(), stringDeltas);
+            historyAddMatchEmitter.send(objectMapper.writeValueAsString(event));
+            log.info(
+                    "\u001B[32m[SUCCESS]\u001B[0m Match {} results successfully propagated to Ranking and queued for History Service",
+                    request.gameId());
         } catch (Exception failure) {
             log.error(
-                    "\u001B[31m[ERROR]\u001B[0m gRPC communication failure with History Service: {}",
+                    "\u001B[31m[ERROR]\u001B[0m RabbitMQ publish failure for History Service: {}",
                     failure.getMessage());
+            throw new RuntimeException(
+                    "Failed to publish match results event to History Service", failure);
         }
 
         return results;
@@ -216,30 +211,23 @@ public class PlayerRankingServiceImpl implements PlayerRankingService {
                                 queueRepository
                                         .findByIdOptional(id)
                                         .orElseThrow(() -> new QueueNotFoundException("Queue not found: " + id)));
-        return playerRankingRepository.findLeaderboard(page, size, queue, region);
+        log.info("\u001B[34m[INFO]\u001B[0m Fetching leaderboard (from Read Replica)");
+        return readOnlyPlayerRankingRepository.findLeaderboard(page, size, queue, region);
     }
 
     @Override
     @Transactional
     public List<PlayerRankingDTO> getPlayerRanking(UUID playerId, Optional<UUID> queueId) {
-        Player player =
-                playerRepository
-                        .findByIdOptional(playerId)
-                        .orElseThrow(() -> new PlayerNotFoundException("Player " + playerId + " not found"));
-
+        log.info(
+                "\u001B[34m[INFO]\u001B[0m GET player ranking (from Read Replica) for player: {}",
+                playerId);
         if (queueId.isPresent()) {
-            QueueEntity queue =
-                    queueRepository
-                            .findByIdOptional(queueId.get())
-                            .orElseThrow(() -> new QueueNotFoundException("Queue not found: " + queueId.get()));
-
-            return playerRankingRepository
-                    .findByPlayerAndQueue(player, queue)
-                    .map(ranking -> List.of(playerRankingMapper.toDTO(ranking)))
-                    .orElse(Collections.emptyList());
+            return readOnlyPlayerRankingRepository.findByPlayerAndQueue(playerId, queueId.get()).stream()
+                    .map(playerRankingMapper::toDTO)
+                    .collect(Collectors.toList());
         }
 
-        return playerRankingRepository.find("player", player).list().stream()
+        return readOnlyPlayerRankingRepository.findByPlayerId(playerId).stream()
                 .map(playerRankingMapper::toDTO)
                 .collect(Collectors.toList());
     }

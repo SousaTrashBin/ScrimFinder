@@ -17,16 +17,16 @@ public class Player {
     @Column(nullable = false, updatable = false)
     private UUID id = UUID.randomUUID();
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "discord_username", nullable = false, unique = true)
     private String discordUsername;
 
     @OneToMany(mappedBy = "player", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RiotAccount> riotAccounts = new ArrayList<>();
 
-    @Column(nullable = false)
+    @Column(name = "soloq_mmr", nullable = false)
     private Integer soloqMMR = 1000;
 
-    @Column(nullable = false)
+    @Column(name = "flex_mmr", nullable = false)
     private Integer flexMMR = 1000;
 
     public RiotAccount getPrimaryAccount() {

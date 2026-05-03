@@ -17,10 +17,10 @@ public class RiotAccount {
     @Column(nullable = false, unique = true)
     private String puuid;
 
-    @Column(nullable = false)
+    @Column(name = "game_name", nullable = false)
     private String gameName;
 
-    @Column(nullable = false)
+    @Column(name = "tag_line", nullable = false)
     private String tagLine;
 
     @Enumerated(EnumType.STRING)

@@ -6,7 +6,7 @@ import java.util.UUID;
 public record PlayerRankingDTO(
         UUID id,
         UUID playerId,
-        String username,
+        String discordUsername,
         String lolAccountPPUID,
         Region region,
         UUID queueId,
