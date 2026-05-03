@@ -5,6 +5,7 @@ import fc.ul.scrimfinder.dto.response.QueueDTO;
 import fc.ul.scrimfinder.exception.QueueNotFoundException;
 import fc.ul.scrimfinder.mapper.QueueMapper;
 import fc.ul.scrimfinder.repository.QueueRepository;
+import fc.ul.scrimfinder.repository.ReplicaMatchmakingReadRepository;
 import fc.ul.scrimfinder.service.QueueService;
 import fc.ul.scrimfinder.util.MatchmakingMode;
 import fc.ul.scrimfinder.util.Region;
@@ -20,7 +21,7 @@ public class QueueServiceImpl implements QueueService {
 
     @Inject QueueRepository queueRepository;
 
-    @Inject fc.ul.scrimfinder.repository.ReadOnlyQueueRepository readOnlyQueueRepository;
+    @Inject ReplicaMatchmakingReadRepository replicaReadRepository;
 
     @Inject QueueMapper queueMapper;
 
@@ -88,10 +89,22 @@ public class QueueServiceImpl implements QueueService {
     @Override
     public QueueDTO getQueue(UUID id) {
         log.info("\u001B[34m[INFO]\u001B[0m Fetching queue (from Read Replica): {}", id);
-        Queue queue =
-                readOnlyQueueRepository
-                        .findByIdOptional(id)
-                        .orElseThrow(() -> new QueueNotFoundException("Queue not found: " + id));
-        return queueMapper.toDTO(queue);
+        try {
+            return replicaReadRepository
+                    .findQueueById(id)
+                    .orElseThrow(() -> new QueueNotFoundException("Queue not found: " + id));
+        } catch (QueueNotFoundException e) {
+            throw e;
+        } catch (Exception replicaFailure) {
+            log.warn(
+                    "\u001B[33m[WARN]\u001B[0m Replica read failed for queue {}, falling back to primary: {}",
+                    id,
+                    replicaFailure.getMessage());
+            Queue queue =
+                    queueRepository
+                            .findByIdOptional(id)
+                            .orElseThrow(() -> new QueueNotFoundException("Queue not found: " + id));
+            return queueMapper.toDTO(queue);
+        }
     }
 }

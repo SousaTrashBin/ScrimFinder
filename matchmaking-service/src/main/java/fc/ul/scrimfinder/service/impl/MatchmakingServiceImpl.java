@@ -44,6 +44,7 @@ public class MatchmakingServiceImpl implements MatchmakingService {
     @Inject PlayerRepository playerRepository;
 
     @Inject ReadOnlyPlayerRepository readOnlyPlayerRepository;
+    @Inject ReplicaMatchmakingReadRepository replicaReadRepository;
 
     @Inject QueueRepository queueRepository;
     @Inject MatchTicketRepository ticketRepository;
@@ -582,38 +583,101 @@ public class MatchmakingServiceImpl implements MatchmakingService {
 
     @Override
     public LobbyDTO getLobbyByTicket(UUID ticketId) {
-        MatchTicket ticket =
-                readOnlyTicketRepository
-                        .findByIdOptional(ticketId)
-                        .orElseThrow(() -> new TicketNotFoundException("Ticket not found: " + ticketId));
-        if (ticket.getLobby() == null) return null;
-
-        return toLobbyDTOWithMatchId(ticket.getLobby());
+        if (isTransactionActive()) {
+            MatchTicket ticket =
+                    readOnlyTicketRepository
+                            .findByIdOptional(ticketId)
+                            .orElseThrow(() -> new TicketNotFoundException("Ticket not found: " + ticketId));
+            if (ticket.getLobby() == null) return null;
+            return toLobbyDTOWithMatchId(ticket.getLobby());
+        }
+        try {
+            return replicaReadRepository
+                    .findLobbyByTicketId(ticketId)
+                    .orElseThrow(() -> new TicketNotFoundException("Ticket not found: " + ticketId));
+        } catch (TicketNotFoundException e) {
+            throw e;
+        } catch (Exception replicaFailure) {
+            log.warn(
+                    "\u001B[33m[WARN]\u001B[0m Replica read failed for lobby by ticket {}, falling back to primary: {}",
+                    ticketId,
+                    replicaFailure.getMessage());
+            MatchTicket ticket =
+                    readOnlyTicketRepository
+                            .findByIdOptional(ticketId)
+                            .orElseThrow(() -> new TicketNotFoundException("Ticket not found: " + ticketId));
+            if (ticket.getLobby() == null) return null;
+            return toLobbyDTOWithMatchId(ticket.getLobby());
+        }
     }
 
     @Override
     public List<MatchTicketDTO> getTicketsByPlayer(UUID playerId) {
-        if (readOnlyPlayerRepository.findByIdOptional(playerId).isEmpty()) {
-            throw new PlayerNotFoundException("Player not found: " + playerId);
+        if (isTransactionActive()) {
+            if (readOnlyPlayerRepository.findByIdOptional(playerId).isEmpty()) {
+                throw new PlayerNotFoundException("Player not found: " + playerId);
+            }
+            return readOnlyTicketRepository.findByPlayerId(playerId).stream()
+                    .map(ticketMapper::toDTO)
+                    .toList();
         }
-
-        return readOnlyTicketRepository.findByPlayerId(playerId).stream()
-                .map(ticketMapper::toDTO)
-                .toList();
+        try {
+            if (!replicaReadRepository.playerExists(playerId)) {
+                throw new PlayerNotFoundException("Player not found: " + playerId);
+            }
+            return replicaReadRepository.findTicketsByPlayerId(playerId);
+        } catch (PlayerNotFoundException e) {
+            throw e;
+        } catch (Exception replicaFailure) {
+            log.warn(
+                    "\u001B[33m[WARN]\u001B[0m Replica read failed for tickets by player {}, falling back to primary: {}",
+                    playerId,
+                    replicaFailure.getMessage());
+            if (readOnlyPlayerRepository.findByIdOptional(playerId).isEmpty()) {
+                throw new PlayerNotFoundException("Player not found: " + playerId);
+            }
+            return readOnlyTicketRepository.findByPlayerId(playerId).stream()
+                    .map(ticketMapper::toDTO)
+                    .toList();
+        }
     }
 
     @Override
     public List<LobbyDTO> getLobbiesByPlayer(UUID playerId) {
-        if (readOnlyPlayerRepository.findByIdOptional(playerId).isEmpty()) {
-            throw new PlayerNotFoundException("Player not found: " + playerId);
+        if (isTransactionActive()) {
+            if (readOnlyPlayerRepository.findByIdOptional(playerId).isEmpty()) {
+                throw new PlayerNotFoundException("Player not found: " + playerId);
+            }
+            return readOnlyTicketRepository.findByPlayerId(playerId).stream()
+                    .map(MatchTicket::getLobby)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .map(this::toLobbyDTOWithMatchId)
+                    .toList();
         }
+        try {
+            if (!replicaReadRepository.playerExists(playerId)) {
+                throw new PlayerNotFoundException("Player not found: " + playerId);
+            }
+            return replicaReadRepository.findLobbiesByPlayerId(playerId);
+        } catch (PlayerNotFoundException e) {
+            throw e;
+        } catch (Exception replicaFailure) {
+            log.warn(
+                    "\u001B[33m[WARN]\u001B[0m Replica read failed for lobbies by player {}, falling back to primary: {}",
+                    playerId,
+                    replicaFailure.getMessage());
+            if (readOnlyPlayerRepository.findByIdOptional(playerId).isEmpty()) {
+                throw new PlayerNotFoundException("Player not found: " + playerId);
+            }
 
-        return readOnlyTicketRepository.findByPlayerId(playerId).stream()
-                .map(MatchTicket::getLobby)
-                .filter(Objects::nonNull)
-                .distinct()
-                .map(this::toLobbyDTOWithMatchId)
-                .toList();
+            return readOnlyTicketRepository.findByPlayerId(playerId).stream()
+                    .map(MatchTicket::getLobby)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .map(this::toLobbyDTOWithMatchId)
+                    .toList();
+        }
     }
 
     private LobbyDTO toLobbyDTOWithMatchId(Lobby lobby) {
@@ -640,5 +704,10 @@ public class MatchmakingServiceImpl implements MatchmakingService {
                         }
                     }
                 });
+    }
+
+    private boolean isTransactionActive() {
+        int status = txSyncRegistry.getTransactionStatus();
+        return status == Status.STATUS_ACTIVE || status == Status.STATUS_MARKED_ROLLBACK;
     }
 }
