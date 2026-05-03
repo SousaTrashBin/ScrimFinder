@@ -87,69 +87,15 @@ class TrainingServiceServicer(_BaseServicer):
         )
 
         try:
-            # 1. Fetch raw Riot JSON from detail_filling_service
-            raw = _fetch_raw_match(match_id)
-            print(f"[gRPC] Successfully fetched raw match {match_id}", flush=True)
-
-            # 2. Validate
-            from training_service.ingestion.feature_extractor import validate_riot_match
-
-            valid, reason = validate_riot_match(raw)
-            if not valid:
-                print(f"[gRPC] Validation failed for {match_id}: {reason}", flush=True)
-                return ForwardMatchResponse(
-                    success=False,
-                    message=f"Invalid match JSON: {reason}",
-                    game_id=match_id,
-                )
-
-            # 3. Store raw game
-            db.insert_game(match_id, raw, source=source)
-
-            # 4. Extract features
-            from training_service.ingestion.feature_extractor import extract
-
-            features = extract(raw)
-
-            draft_ok = build_ok = perf_ok = False
-
-            # Store draft features
-            if features.get("draft") and features["draft"].get("valid"):
-                db.upsert_features(
-                    match_id, "draft", [features["draft"]], ["draft_raw"]
-                )
-                draft_ok = True
-
-            # Store build features (one per player)
-            if features.get("build"):
-                db.upsert_features(
-                    match_id,
-                    "build",
-                    features["build"],
-                    [f"player_{i}" for i in range(len(features["build"]))],
-                )
-                build_ok = True
-
-            # Store performance features (one per player)
-            if features.get("performance"):
-                db.upsert_features(
-                    match_id,
-                    "performance",
-                    features["performance"],
-                    [f"player_{i}" for i in range(len(features["performance"]))],
-                )
-                perf_ok = True
-
-            print(f"[gRPC] Successfully processed match {match_id}", flush=True)
+            result = process_match_for_training(match_id=match_id, source=source)
             return ForwardMatchResponse(
-                success=True,
-                message=f"Match {match_id} ingested and features extracted.",
+                success=result["success"],
+                message=result["message"],
                 game_id=match_id,
-                draft_ok=draft_ok,
-                build_ok=build_ok,
-                perf_ok=perf_ok,
+                draft_ok=result["draft_ok"],
+                build_ok=result["build_ok"],
+                perf_ok=result["perf_ok"],
             )
-
         except Exception as e:
             print(f"[gRPC] Error processing match {match_id}: {e}", flush=True)
             import traceback
@@ -279,6 +225,61 @@ def start_background_server():
         daemon=True,
     )
     thread.start()
+
+
+def process_match_for_training(match_id: str, source: str = "matchmaking") -> dict:
+    """Shared ingestion path used by gRPC and async consumers."""
+    raw = _fetch_raw_match(match_id)
+    print(f"[training] Successfully fetched raw match {match_id}", flush=True)
+
+    from training_service.ingestion.feature_extractor import (
+        extract,
+        validate_riot_match,
+    )
+
+    valid, reason = validate_riot_match(raw)
+    if not valid:
+        print(f"[training] Validation failed for {match_id}: {reason}", flush=True)
+        return {
+            "success": False,
+            "message": f"Invalid match JSON: {reason}",
+            "draft_ok": False,
+            "build_ok": False,
+            "perf_ok": False,
+        }
+
+    db.insert_game(match_id, raw, source=source)
+    features = extract(raw)
+
+    draft_ok = build_ok = perf_ok = False
+    if features.get("draft") and features["draft"].get("valid"):
+        db.upsert_features(match_id, "draft", [features["draft"]], ["draft_raw"])
+        draft_ok = True
+    if features.get("build"):
+        db.upsert_features(
+            match_id,
+            "build",
+            features["build"],
+            [f"player_{i}" for i in range(len(features["build"]))],
+        )
+        build_ok = True
+    if features.get("performance"):
+        db.upsert_features(
+            match_id,
+            "performance",
+            features["performance"],
+            [f"player_{i}" for i in range(len(features["performance"]))],
+        )
+        perf_ok = True
+
+    print(f"[training] Successfully processed match {match_id}", flush=True)
+    return {
+        "success": True,
+        "message": f"Match {match_id} ingested and features extracted.",
+        "draft_ok": draft_ok,
+        "build_ok": build_ok,
+        "perf_ok": perf_ok,
+    }
 
 
 # ── Standalone entry point ────────────────────────────────────

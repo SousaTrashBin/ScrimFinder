@@ -1,0 +1,51 @@
+### Microservices Test Suite
+@host = 34.159.166.34
+
+@playerId = 1e2d3c4b-5a6f-7e8d-9c0b-1a2d3c4b5a6f
+@queueId = d290f1ee-6c54-4b01-90e6-d701748f0851
+
+### 1. Matchmaking Service - Create/Sync Player
+# Registers the player in Matchmaking with the same ID as Ranking
+POST http://{{host}}/api/v1/matchmaking/players?id={{playerId}}&username=SousaTest
+Content-Type: application/json
+
+###
+
+### 2. Ranking Service - Create Queue
+POST http://{{host}}/api/v1/ranking/queue/{{queueId}}?name=SoloQ&initialMMR=1200
+Content-Type: application/json
+
+###
+
+### 3. Matchmaking Service - Create Queue
+POST http://{{host}}/api/v1/matchmaking/queues/{{queueId}}?name=SoloQ&requiredPlayers=10&region=EUW
+Content-Type: application/json
+
+###
+
+### 4. Ranking Service - Link LoL Account
+POST http://{{host}}/api/v1/ranking/players/{{playerId}}/link?gameName=sousa&tagLine=balls&region=EUW
+Content-Type: application/json
+
+###
+
+### 5. Ranking Service - Sync MMR
+POST http://{{host}}/api/v1/ranking/players/{{playerId}}/sync-mmr
+Content-Type: application/json
+
+###
+
+### 6. Matchmaking Service - Join Queue
+POST http://{{host}}/api/v1/matchmaking/tickets
+Content-Type: application/json
+
+{
+    "playerId": "{{playerId}}",
+    "queueId": "{{queueId}}",
+    "role": "TOP"
+}
+
+###
+
+### 7. Ranking Service - Get Player Ranking
+GET http://{{host}}/api/v1/ranking/players/{{playerId}}/queue?queueId={{queueId}}

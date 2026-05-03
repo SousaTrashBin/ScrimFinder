@@ -16,10 +16,16 @@ init_db()
 async def lifespan(app: FastAPI):
     print("LIFESPAN STARTED", flush=True)
     from training_service.grpc_server import start_background_server, stop_server
+    from training_service.rabbitmq_consumer import (
+        start_background_consumer,
+        stop_consumer,
+    )
 
     start_background_server()
+    start_background_consumer()
     yield
     print("LIFESPAN ENDED - Stopping gRPC", flush=True)
+    stop_consumer()
     stop_server(grace=1)
 
 

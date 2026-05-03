@@ -1,73 +1,228 @@
-### ScrimFinder Manual API Tests
-@baseUrl = http://34.159.128.218/api/v1
+@baseUrl = http://35.198.117.103/api/v1
 @matchmakingUrl = {{baseUrl}}/matchmaking
 @rankingUrl = {{baseUrl}}/ranking
 @historyUrl = {{baseUrl}}/history
 
-@queueId = 33e4ab83-5dde-4bb3-9113-53725c799a60
-@playerId = 480f88c1-7246-5cd4-9d5a-3561a9b85e64
-@riotMatchId = EUW1_7824036381
+@p1 = 00000000-0000-0000-0000-000000000001
+@p2 = 00000000-0000-0000-0000-000000000002
+@p3 = 00000000-0000-0000-0000-000000000003
+@p4 = 00000000-0000-0000-0000-000000000004
+@p5 = 00000000-0000-0000-0000-000000000005
+@p6 = 00000000-0000-0000-0000-000000000006
+@p7 = 00000000-0000-0000-0000-000000000007
+@p8 = 00000000-0000-0000-0000-000000000008
+@p9 = 00000000-0000-0000-0000-000000000009
+@p10 = 00000000-0000-0000-0000-000000000012
+@queueId = 00000000-0000-0000-0000-000000000011
 
 ### 1. Create a Matchmaking Queue
-# NOTE: This now automatically syncs with the Ranking Service
 POST {{matchmakingUrl}}/queues/{{queueId}}
-    ?name=Manual E2E Queue
+    ?name=ManualTestQueue
     &requiredPlayers=10
     &region=EUW
-    &mode=NORMAL
+    &mode=RANK_BASED
 
-### 2. Create a Player Profile
-# Registers the user in both Matchmaking and Ranking DBs
-POST {{matchmakingUrl}}/players
-    ?id={{playerId}}
-    &username=manual_test_user
+### 2. Create Player Profiles
+POST {{matchmakingUrl}}/players?id={{p1}}&username=zezin
+###
+POST {{matchmakingUrl}}/players?id={{p2}}&username=smokyy
+###
+POST {{matchmakingUrl}}/players?id={{p3}}&username=zer0guts
+###
+POST {{matchmakingUrl}}/players?id={{p4}}&username=nyften
+###
+POST {{matchmakingUrl}}/players?id={{p5}}&username=dark188
+###
+POST {{matchmakingUrl}}/players?id={{p6}}&username=peterpan3000
+###
+POST {{matchmakingUrl}}/players?id={{p7}}&username=metroarcher
+###
+POST {{matchmakingUrl}}/players?id={{p8}}&username=propably_high_rn
+###
+POST {{matchmakingUrl}}/players?id={{p9}}&username=ispeakdespacito
+###
+POST {{matchmakingUrl}}/players?id={{p10}}&username=50_shades_of_mf
 
-### 3. Link LoL Account to Player
-# Links the internal ID to a real Riot account
-POST {{rankingUrl}}/players/{{playerId}}/link
-    ?gameName=Simoes88
-    &tagLine=nr1
-    &region=EUW
+### 3. Unlink and Link LoL Accounts
+DELETE {{rankingUrl}}/players/link?gameName=Zezin&tagLine=JPND
+###
+POST {{rankingUrl}}/players/{{p1}}/link?gameName=Zezin&tagLine=JPND&region=EUW
+###
+DELETE {{rankingUrl}}/players/link?gameName=Smøkyy&tagLine=EUW
+###
+POST {{rankingUrl}}/players/{{p2}}/link?gameName=Smøkyy&tagLine=EUW&region=EUW
+###
+DELETE {{rankingUrl}}/players/link?gameName=Zer0Guts&tagLine=EUW
+###
+POST {{rankingUrl}}/players/{{p3}}/link?gameName=Zer0Guts&tagLine=EUW&region=EUW
+###
+DELETE {{rankingUrl}}/players/link?gameName=Nyften&tagLine=EUW
+###
+POST {{rankingUrl}}/players/{{p4}}/link?gameName=Nyften&tagLine=EUW&region=EUW
+###
+DELETE {{rankingUrl}}/players/link?gameName=Dark188&tagLine=EUW
+###
+POST {{rankingUrl}}/players/{{p5}}/link?gameName=Dark188&tagLine=EUW&region=EUW
+###
+DELETE {{rankingUrl}}/players/link?gameName=Peterpan3000&tagLine=EUW
+###
+POST {{rankingUrl}}/players/{{p6}}/link?gameName=Peterpan3000&tagLine=EUW&region=EUW
+###
+DELETE {{rankingUrl}}/players/link?gameName=MetroArcher&tagLine=EUW
+###
+POST {{rankingUrl}}/players/{{p7}}/link?gameName=MetroArcher&tagLine=EUW&region=EUW
+###
+DELETE {{rankingUrl}}/players/link?gameName=propably%20high%20rn&tagLine=EUW
+###
+POST {{rankingUrl}}/players/{{p8}}/link?gameName=propably%20high%20rn&tagLine=EUW&region=EUW
+###
+DELETE {{rankingUrl}}/players/link?gameName=iSpeakDespacito&tagLine=EUW
+###
+POST {{rankingUrl}}/players/{{p9}}/link?gameName=iSpeakDespacito&tagLine=EUW&region=EUW
+###
+DELETE {{rankingUrl}}/players/link?gameName=50%20Shades%20of%20MF&tagLine=EUW
+###
+POST {{rankingUrl}}/players/{{p10}}/link?gameName=50%20Shades%20of%20MF&tagLine=EUW&region=EUW
 
 ### 4. Initialize MMR for the Queue
-# CRITICAL: Ranking Service needs a record for this specific queue before joining
-POST {{rankingUrl}}/players/{{playerId}}/mmr
+POST {{rankingUrl}}/players/{{p1}}/mmr
 Content-Type: application/json
 
-{
-    "queueId": "{{queueId}}"
-}
+{"queueId": "{{queueId}}"}
+###
+POST {{rankingUrl}}/players/{{p2}}/mmr
+Content-Type: application/json
+
+{"queueId": "{{queueId}}"}
+###
+POST {{rankingUrl}}/players/{{p3}}/mmr
+Content-Type: application/json
+
+{"queueId": "{{queueId}}"}
+###
+POST {{rankingUrl}}/players/{{p4}}/mmr
+Content-Type: application/json
+
+{"queueId": "{{queueId}}"}
+###
+POST {{rankingUrl}}/players/{{p5}}/mmr
+Content-Type: application/json
+
+{"queueId": "{{queueId}}"}
+###
+POST {{rankingUrl}}/players/{{p6}}/mmr
+Content-Type: application/json
+
+{"queueId": "{{queueId}}"}
+###
+POST {{rankingUrl}}/players/{{p7}}/mmr
+Content-Type: application/json
+
+{"queueId": "{{queueId}}"}
+###
+POST {{rankingUrl}}/players/{{p8}}/mmr
+Content-Type: application/json
+
+{"queueId": "{{queueId}}"}
+###
+POST {{rankingUrl}}/players/{{p9}}/mmr
+Content-Type: application/json
+
+{"queueId": "{{queueId}}"}
+###
+POST {{rankingUrl}}/players/{{p10}}/mmr
+Content-Type: application/json
+
+{"queueId": "{{queueId}}"}
 
 ### 5. Join Queue
-# @name joinQueue
+# @name joinQueue1
 POST {{matchmakingUrl}}/tickets
 Content-Type: application/json
 
-{
-    "playerId": "{{playerId}}",
-    "queueId": "{{queueId}}"
-}
+{"playerId": "{{p1}}", "queueId": "{{queueId}}"}
+###
+POST {{matchmakingUrl}}/tickets
+Content-Type: application/json
+
+{"playerId": "{{p2}}", "queueId": "{{queueId}}"}
+###
+POST {{matchmakingUrl}}/tickets
+Content-Type: application/json
+
+{"playerId": "{{p3}}", "queueId": "{{queueId}}"}
+###
+POST {{matchmakingUrl}}/tickets
+Content-Type: application/json
+
+{"playerId": "{{p4}}", "queueId": "{{queueId}}"}
+###
+POST {{matchmakingUrl}}/tickets
+Content-Type: application/json
+
+{"playerId": "{{p5}}", "queueId": "{{queueId}}"}
+###
+POST {{matchmakingUrl}}/tickets
+Content-Type: application/json
+
+{"playerId": "{{p6}}", "queueId": "{{queueId}}"}
+###
+POST {{matchmakingUrl}}/tickets
+Content-Type: application/json
+
+{"playerId": "{{p7}}", "queueId": "{{queueId}}"}
+###
+POST {{matchmakingUrl}}/tickets
+Content-Type: application/json
+
+{"playerId": "{{p8}}", "queueId": "{{queueId}}"}
+###
+POST {{matchmakingUrl}}/tickets
+Content-Type: application/json
+
+{"playerId": "{{p9}}", "queueId": "{{queueId}}"}
+###
+POST {{matchmakingUrl}}/tickets
+Content-Type: application/json
+
+{"playerId": "{{p10}}", "queueId": "{{queueId}}"}
 
 ### 6. Check Lobby Status (Poll until matched)
-# Use the 'matchId' field from the response to proceed
-GET {{matchmakingUrl}}/tickets/{{joinQueue.response.body.id}}/lobby
+# @name getLobby
+GET {{matchmakingUrl}}/tickets/c8c2c2c2-dfc8-4e25-81c8-23706f64753d/lobby
 
-### 7. Accept the Match
-# Replace YOUR_MATCH_UUID with the matchId returned in Step 6
-POST {{matchmakingUrl}}/tickets/matches/YOUR_MATCH_UUID/accept
-    ?playerId={{playerId}}
+### 7. Accept the Match (All 10 players)
+@matchId = 02207661-701a-40ba-b2ee-fb1e58b825d2
+
+POST {{matchmakingUrl}}/tickets/matches/{{matchId}}/accept?playerId={{p1}}
+###
+POST {{matchmakingUrl}}/tickets/matches/{{matchId}}/accept?playerId={{p2}}
+###
+POST {{matchmakingUrl}}/tickets/matches/{{matchId}}/accept?playerId={{p3}}
+###
+POST {{matchmakingUrl}}/tickets/matches/{{matchId}}/accept?playerId={{p4}}
+###
+POST {{matchmakingUrl}}/tickets/matches/{{matchId}}/accept?playerId={{p5}}
+###
+POST {{matchmakingUrl}}/tickets/matches/{{matchId}}/accept?playerId={{p6}}
+###
+POST {{matchmakingUrl}}/tickets/matches/{{matchId}}/accept?playerId={{p7}}
+###
+POST {{matchmakingUrl}}/tickets/matches/{{matchId}}/accept?playerId={{p8}}
+###
+POST {{matchmakingUrl}}/tickets/matches/{{matchId}}/accept?playerId={{p9}}
+###
+POST {{matchmakingUrl}}/tickets/matches/{{matchId}}/accept?playerId={{p10}}
 
 ### 8. Link Match to Riot ID (External ID)
-# Replace YOUR_MATCH_UUID with the matchId from Step 6
-PUT {{matchmakingUrl}}/tickets/matches/YOUR_MATCH_UUID/link
+@riotMatchId = EUW1_7836018871
+PUT {{matchmakingUrl}}/tickets/matches/{{matchId}}/link
     ?externalGameId={{riotMatchId}}
 
 ### 9. Complete Match
-# This triggers the gRPC pipeline to Ranking -> History
-POST {{matchmakingUrl}}/tickets/matches/YOUR_MATCH_UUID/complete
+POST {{matchmakingUrl}}/tickets/matches/{{matchId}}/complete
 
-### 10. Verify MMR Update
-GET {{rankingUrl}}/players/{{playerId}}/queue?queueId={{queueId}}
-
-### 11. Verify in Match History Service
+### 10. Verify Results
+GET {{rankingUrl}}/players/{{p1}}/queue?queueId={{queueId}}
+###
 GET {{historyUrl}}/matches/{{riotMatchId}}

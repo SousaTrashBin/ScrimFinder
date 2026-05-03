@@ -1,8 +1,9 @@
 import requests
 import uuid
 import time
+import os
 
-BASE_URL = "http://34.159.128.218"
+BASE_URL = os.environ.get("BASE_URL", "http://34.159.21.93")
 MATCHMAKING_URL = f"{BASE_URL}/api/v1/matchmaking"
 RANKING_URL = f"{BASE_URL}/api/v1/ranking"
 HISTORY_URL = f"{BASE_URL}/api/v1/history"
@@ -33,26 +34,28 @@ def create_and_link_players(queue_id, run_id):
         username = f"{name.replace(' ', '_').lower()}_{run_id}"
 
         try:
-            requests.delete(
-                f"{RANKING_URL}/players/link", params={"gameName": name, "tagLine": tag}
-            )
+            requests.delete(f"{RANKING_URL}/players/links/{name}/{tag}")
 
             requests.post(
-                f"{MATCHMAKING_URL}/players", params={"id": p_id, "username": username}
+                f"{MATCHMAKING_URL}/players",
+                json={"id": p_id, "discordUsername": username},
             )
         except Exception:
             pass
 
         try:
             print(f"  - Linking {name}#{tag} to {username}")
-            requests.post(
-                f"{RANKING_URL}/players/{p_id}/link",
-                params={"gameName": name, "tagLine": tag, "region": "EUW"},
+            requests.put(
+                f"{RANKING_URL}/players/{p_id}/link-lol-account",
+                json={
+                    "puuid": None,
+                    "gameName": name,
+                    "tagLine": tag,
+                    "region": "EUW",
+                },
             ).raise_for_status()
 
-            requests.post(
-                f"{RANKING_URL}/players/{p_id}/mmr", json={"queueId": queue_id}
-            ).raise_for_status()
+            requests.post(f"{RANKING_URL}/players/{p_id}/sync-mmr").raise_for_status()
 
             players.append({"id": p_id, "username": username})
         except Exception as e:
@@ -72,12 +75,16 @@ def run_pipeline():
     print(f"[1/8] Creating Standard Queue (ID: {queue_id})")
     try:
         resp = requests.post(
-            f"{MATCHMAKING_URL}/queues/{queue_id}",
-            params={
+            f"{MATCHMAKING_URL}/queues",
+            json={
+                "id": queue_id,
                 "name": f"Final Test {run_id}",
+                "namespace": None,
                 "requiredPlayers": 10,
-                "region": "EUW",
+                "isRoleQueue": False,
                 "mode": "NORMAL",
+                "mmrWindow": 200,
+                "region": "EUW",
             },
         )
         resp.raise_for_status()
@@ -126,8 +133,7 @@ def run_pipeline():
     for p in players:
         try:
             requests.post(
-                f"{MATCHMAKING_URL}/tickets/matches/{match_id}/accept",
-                params={"playerId": p["id"]},
+                f"{MATCHMAKING_URL}/tickets/matches/{match_id}/players/{p['id']}/accept",
             ).raise_for_status()
         except Exception as e:
             print(f"FAILED: Acceptance failed for {p['username']}. {e}")
@@ -138,7 +144,7 @@ def run_pipeline():
     try:
         requests.put(
             f"{MATCHMAKING_URL}/tickets/matches/{match_id}/link",
-            params={"externalGameId": riot_match_id},
+            json={"externalGameId": riot_match_id},
         ).raise_for_status()
     except Exception as e:
         print(f"FAILED: Linking match failed. {e}")
@@ -171,8 +177,7 @@ def run_pipeline():
 
     try:
         rank_resp = requests.get(
-            f"{RANKING_URL}/players/{players[0]['id']}/queue",
-            params={"queueId": queue_id},
+            f"{RANKING_URL}/players/{players[0]['id']}/queue-rankings/{queue_id}",
         )
         if rank_resp.status_code == 200:
             rankings = rank_resp.json()
