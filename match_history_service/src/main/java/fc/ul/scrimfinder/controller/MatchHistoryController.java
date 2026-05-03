@@ -11,8 +11,6 @@ import jakarta.validation.constraints.*;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import java.util.Map;
-import java.util.UUID;
 import org.eclipse.microprofile.faulttolerance.Timeout;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
@@ -112,91 +110,5 @@ public class MatchHistoryController {
         PaginatedResponseDTO<MatchDTO> matches =
                 matchHistoryService.getMatches(page, size, filterParams);
         return Response.ok(matches).build();
-    }
-
-    @POST
-    @Path("/{riotMatchId}")
-    @Operation(
-            summary = "Add a finished match to history based on the corresponding match in Riot's API")
-    @APIResponses(
-            value = {
-                @APIResponse(
-                        responseCode = "201",
-                        description = "Match history successfully created",
-                        content =
-                                @Content(
-                                        mediaType = "application/json",
-                                        schema = @Schema(implementation = MatchDTO.class))),
-                @APIResponse(
-                        responseCode = "400",
-                        description = "Match already exists in the history",
-                        content =
-                                @Content(
-                                        mediaType = "application/json",
-                                        schema = @Schema(implementation = ErrorResponse.class))),
-                @APIResponse(
-                        responseCode = "404",
-                        description =
-                                "Match not found or player not found in the match for the provided MMR delta",
-                        content =
-                                @Content(
-                                        mediaType = "application/json",
-                                        schema = @Schema(implementation = ErrorResponse.class))),
-                @APIResponse(
-                        responseCode = "408",
-                        description = "Request timeout",
-                        content =
-                                @Content(
-                                        mediaType = "application/json",
-                                        schema = @Schema(implementation = ErrorResponse.class))),
-            })
-    @Timeout(15000)
-    public Response addMatchById(
-            @PathParam("riotMatchId") @NotBlank String riotMatchId,
-            @QueryParam("queueId") @NotNull UUID queueId,
-            @Size(min = 10, max = 10, message = "The match must have 10 players")
-                    Map<String, Integer> playerMMRGains) {
-        MatchDTO addedMatch = matchHistoryService.addMatchById(riotMatchId, queueId, playerMMRGains);
-        return Response.status(Response.Status.CREATED).entity(addedMatch).build();
-    }
-
-    @DELETE
-    @Path("/{riotMatchId}")
-    @Operation(summary = "Delete a match from history (Internal)")
-    @APIResponses(
-            value = {
-                @APIResponse(
-                        responseCode = "200",
-                        description = "Match history successfully deleted",
-                        content =
-                                @Content(
-                                        mediaType = "application/json",
-                                        schema = @Schema(implementation = MatchDTO.class))),
-                @APIResponse(
-                        responseCode = "400",
-                        description = "Invalid match ID provided",
-                        content =
-                                @Content(
-                                        mediaType = "application/json",
-                                        schema = @Schema(implementation = ErrorResponse.class))),
-                @APIResponse(
-                        responseCode = "404",
-                        description = "Match not found",
-                        content =
-                                @Content(
-                                        mediaType = "application/json",
-                                        schema = @Schema(implementation = ErrorResponse.class))),
-                @APIResponse(
-                        responseCode = "408",
-                        description = "Request timeout",
-                        content =
-                                @Content(
-                                        mediaType = "application/json",
-                                        schema = @Schema(implementation = ErrorResponse.class))),
-            })
-    @Timeout(2000)
-    public Response deleteMatchById(@PathParam("riotMatchId") @NotBlank String riotMatchId) {
-        MatchDTO deletedMatch = matchHistoryService.deleteMatchById(riotMatchId);
-        return Response.ok(deletedMatch).build();
     }
 }

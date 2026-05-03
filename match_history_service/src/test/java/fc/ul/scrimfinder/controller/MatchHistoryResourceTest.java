@@ -42,6 +42,8 @@ public class MatchHistoryResourceTest {
 
     @InjectMock DetailFillingAdapterService detailFillingAdapterService;
 
+    @jakarta.inject.Inject fc.ul.scrimfinder.service.MatchHistoryService matchHistoryService;
+
     final ObjectMapper MAPPER = new ObjectMapper();
 
     final String riotMatchId = "EUW1_7779779801";
@@ -319,48 +321,7 @@ public class MatchHistoryResourceTest {
         when(trainingAdapterService.sendMatchForAnalysis(anyString())).thenReturn(true);
         when(detailFillingAdapterService.getMatch(any())).thenReturn(expectedMatchDTO);
 
-        given()
-                .contentType(ContentType.JSON)
-                .pathParam("riotMatchId", riotMatchId)
-                .queryParam("queueId", queueId)
-                .body(mmrDeltas)
-                .when()
-                .post(String.format("%s/{riotMatchId}", path))
-                .then()
-                .statusCode(201)
-                .body(is(MAPPER.writeValueAsString(expectedMatchDTO)));
-    }
-
-    @Test
-    @Order(2)
-    public void testAddMatchAlreadyExists() throws JsonProcessingException {
-        final String path = "/matches";
-        final String queueId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
-        final Map<String, Integer> mmrDeltas =
-                Map.of(
-                        "h_gAfdHVoI8vBJaIyyGOUqDJlXUGGePLUJdMpR1zoRVPdigrRKvMchFBAzIlOUpd4BLlr6Ba8BRSjw", 1,
-                        "OR5LGqOXhHVe8xj0IWrZHJWvOqLMVprQYTKbhawJQjzIFjDaFwCmnLc8Eid0rWTsZ6DRVCz65lsjrw", 2,
-                        "aqzT2pS2aQuBrkKv4izgg99_X73edM43rJoSbOhEhWg1lThgMB4yDcQsU8hGtXVTZnQmAYOawLMxeA", 3,
-                        "neqSH5XmjVkKkOki4MDq5Re0WwHMJ8BKsh_URZjThuWOINOoYvoe-YNU8Ll48ojGN5oCn4owcd2UQg", 4,
-                        "5GC_pKq053P0rngh7uTcjwB79V4vs1JoA3wzcUYgqlRr6tB-iNEF51CJnOQKrk4daGa5g8AdNezprw", 5,
-                        "Yhpm3VDVVQ09nAF9qUANOLFyItHikNj54vxB1yMzHmqIEohkIKEAeX-al94bBnYWtmsYv5CN6W3BvQ", -1,
-                        "avrrbs2xmpx-CjjNFWyRENlXRmLPTN4X-igl6r-I732hIPmTV_e5NlJ3W4qVJ58inDq4hY_6e5sqOA", -2,
-                        "CFcq57-yO1Shwn5cVI0nkIHWIGgzl-QV1g5qMAliHHZuFo_HBoX-S6ZjhidAKLenTr5ziJAHXxw-aQ", -3,
-                        "vyzwo-B74dAgHNsstNoWPioVU8bLh6kye-0xtdFTMQwM4Y-kCSZfwMpf29CadJJ1AvpYEPV5yNMicA", -4,
-                        "fwP-3K-Z_ghLAruQYlntd03YSdRCJeD7kaJQFujGJJpiwZ-ie9Rwkc9SmsiExqcnbnssXGmoAtyqHA", -5);
-
-        when(trainingAdapterService.sendMatchForAnalysis(anyString())).thenReturn(true);
-        when(detailFillingAdapterService.getMatch(any())).thenReturn(expectedMatchDTO);
-
-        given()
-                .contentType(ContentType.JSON)
-                .pathParam("riotMatchId", riotMatchId)
-                .queryParam("queueId", queueId)
-                .body(mmrDeltas)
-                .when()
-                .post(String.format("%s/{riotMatchId}", path))
-                .then()
-                .statusCode(400);
+        matchHistoryService.addMatchById(riotMatchId, UUID.fromString(queueId), mmrDeltas);
     }
 
     @Test
@@ -542,21 +503,5 @@ public class MatchHistoryResourceTest {
                 .then()
                 .statusCode(200)
                 .body(is(MAPPER.writeValueAsString(expectedResponse)));
-    }
-
-    @Test
-    @Order(9)
-    public void testDeleteMatchEndpoint() throws JsonProcessingException {
-        final String path = "/matches/{riotMatchId}";
-
-        given()
-                .pathParam("riotMatchId", riotMatchId)
-                .when()
-                .delete(path)
-                .then()
-                .statusCode(200)
-                .body(is(MAPPER.writeValueAsString(expectedMatchDTO)));
-
-        given().pathParam("riotMatchId", riotMatchId).when().get(path).then().statusCode(404);
     }
 }

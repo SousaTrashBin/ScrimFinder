@@ -17,7 +17,7 @@ public class MatchHistoryGrpcService implements MatchHistoryService {
 
     @Override
     @Timeout(5000)
-    public Uni<SaveMatchMMRGainsResponse> saveMatchMMRGains(SaveMatchMMRGainsRequest request) {
+    public Uni<AddMatchResponse> addMatch(AddMatchRequest request) {
         UUID queueId = UUID.fromString(request.getQueueId());
         Map<String, Integer> mmrGains =
                 request.getPlayerMMRGainsMap().entrySet().stream()
@@ -27,16 +27,37 @@ public class MatchHistoryGrpcService implements MatchHistoryService {
             matchHistoryService.addMatchById(request.getGameId(), queueId, mmrGains);
             return Uni.createFrom()
                     .item(
-                            SaveMatchMMRGainsResponse.newBuilder()
+                            AddMatchResponse.newBuilder()
                                     .setSuccess(true)
                                     .setMessage("Match history and MMR gains saved successfully")
                                     .build());
         } catch (Exception e) {
             return Uni.createFrom()
                     .item(
-                            SaveMatchMMRGainsResponse.newBuilder()
+                            AddMatchResponse.newBuilder()
                                     .setSuccess(false)
                                     .setMessage("Error saving match history: " + e.getMessage())
+                                    .build());
+        }
+    }
+
+    @Override
+    @Timeout(5000)
+    public Uni<DeleteMatchResponse> deleteMatch(DeleteMatchRequest request) {
+        try {
+            matchHistoryService.deleteMatchById(request.getGameId());
+            return Uni.createFrom()
+                    .item(
+                            DeleteMatchResponse.newBuilder()
+                                    .setSuccess(true)
+                                    .setMessage("Match history deleted successfully")
+                                    .build());
+        } catch (Exception e) {
+            return Uni.createFrom()
+                    .item(
+                            DeleteMatchResponse.newBuilder()
+                                    .setSuccess(false)
+                                    .setMessage("Error deleting match history: " + e.getMessage())
                                     .build());
         }
     }

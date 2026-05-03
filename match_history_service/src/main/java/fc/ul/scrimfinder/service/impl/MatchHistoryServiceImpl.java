@@ -16,7 +16,6 @@ import fc.ul.scrimfinder.repository.PlayerRepository;
 import fc.ul.scrimfinder.service.DetailFillingAdapterService;
 import fc.ul.scrimfinder.service.MatchFilterSorterService;
 import fc.ul.scrimfinder.service.MatchHistoryService;
-import fc.ul.scrimfinder.service.TrainingAdapterService;
 import fc.ul.scrimfinder.util.ColoredMessage;
 import fc.ul.scrimfinder.util.LogColor;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -34,9 +33,12 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
 
     @Inject DetailFillingAdapterService detailFillingAdapterService;
 
-    @Inject TrainingAdapterService trainingAdapterService;
+    @Inject TrainingSyncOutboxService trainingSyncOutboxService;
 
     @Inject MatchHistoryRepository matchHistoryRepository;
+
+    @Inject
+    fc.ul.scrimfinder.repository.ReadOnlyMatchHistoryRepository readOnlyMatchHistoryRepository;
 
     @Inject PlayerRepository playerRepository;
 
@@ -52,8 +54,10 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
 
     @Override
     public MatchDTO getMatchById(String riotMatchId) {
-        logger.info(ColoredMessage.withColor("GET match by ID: " + riotMatchId, LogColor.GREEN));
-        return matchHistoryRepository
+        logger.info(
+                ColoredMessage.withColor(
+                        "GET match by ID (from Read Replica): " + riotMatchId, LogColor.GREEN));
+        return readOnlyMatchHistoryRepository
                 .findByRiotMatchId(riotMatchId)
                 .map(matchMapper::matchToDto)
                 .orElseThrow(
@@ -144,24 +148,18 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
                         });
 
         matchHistoryRepository.persist(match); // cascade to all player stats as well
+        trainingSyncOutboxService.enqueue(riotMatchId);
 
-        try {
-            if (!trainingAdapterService.sendMatchForAnalysis(riotMatchId)) {
-                logger.warn(
-                        ColoredMessage.withColor(
-                                String.format("Failed to send match %s to the training service", riotMatchId),
-                                LogColor.YELLOW));
-            } else {
-                logger.info(
-                        ColoredMessage.withColor(
-                                String.format("Match %s sent to the training service", riotMatchId),
-                                LogColor.GREEN));
-            }
-        } catch (Exception x) {
+        if (!trainingSyncOutboxService.processSinglePending(riotMatchId)) {
             logger.warn(
                     ColoredMessage.withColor(
-                            String.format("Failed to send match %s to the training service", riotMatchId),
+                            String.format(
+                                    "Match %s saved locally, training sync queued for retry via outbox", riotMatchId),
                             LogColor.YELLOW));
+        } else {
+            logger.info(
+                    ColoredMessage.withColor(
+                            String.format("Match %s sent to the training service", riotMatchId), LogColor.GREEN));
         }
         return matchDTO;
     }
