@@ -17,6 +17,7 @@ import fc.ul.scrimfinder.mapper.PlayerRankingMapper;
 import fc.ul.scrimfinder.repository.PlayerRankingRepository;
 import fc.ul.scrimfinder.repository.PlayerRepository;
 import fc.ul.scrimfinder.repository.QueueRepository;
+import fc.ul.scrimfinder.repository.ReplicaPlayerRankingReadRepository;
 import fc.ul.scrimfinder.repository.RiotAccountRepository;
 import fc.ul.scrimfinder.rest.client.ExternalGameClient;
 import fc.ul.scrimfinder.service.PlayerRankingService;
@@ -40,8 +41,7 @@ public class PlayerRankingServiceImpl implements PlayerRankingService {
 
     @Inject PlayerRankingRepository playerRankingRepository;
 
-    @Inject
-    fc.ul.scrimfinder.repository.ReadOnlyPlayerRankingRepository readOnlyPlayerRankingRepository;
+    @Inject ReplicaPlayerRankingReadRepository replicaReadRepository;
 
     @Inject PlayerRepository playerRepository;
     @Inject QueueRepository queueRepository;
@@ -202,7 +202,7 @@ public class PlayerRankingServiceImpl implements PlayerRankingService {
     }
 
     @Override
-    @Transactional
+    @Transactional(Transactional.TxType.NOT_SUPPORTED)
     public PaginatedResponseDTO<PlayerRankingDTO> getQueueLeaderboard(
             int page, int size, Optional<UUID> queueId, Optional<Region> region) {
         Optional<QueueEntity> queue =
@@ -212,24 +212,41 @@ public class PlayerRankingServiceImpl implements PlayerRankingService {
                                         .findByIdOptional(id)
                                         .orElseThrow(() -> new QueueNotFoundException("Queue not found: " + id)));
         log.info("\u001B[34m[INFO]\u001B[0m Fetching leaderboard (from Read Replica)");
-        return readOnlyPlayerRankingRepository.findLeaderboard(page, size, queue, region);
+        try {
+            return replicaReadRepository.findLeaderboard(
+                    page, size, queue.map(QueueEntity::getId), region);
+        } catch (Exception replicaFailure) {
+            log.warn(
+                    "\u001B[33m[WARN]\u001B[0m Replica read failed for leaderboard, falling back to primary: {}",
+                    replicaFailure.getMessage());
+            return playerRankingRepository.findLeaderboard(page, size, queue, region);
+        }
     }
 
     @Override
-    @Transactional
+    @Transactional(Transactional.TxType.NOT_SUPPORTED)
     public List<PlayerRankingDTO> getPlayerRanking(UUID playerId, Optional<UUID> queueId) {
         log.info(
                 "\u001B[34m[INFO]\u001B[0m GET player ranking (from Read Replica) for player: {}",
                 playerId);
-        if (queueId.isPresent()) {
-            return readOnlyPlayerRankingRepository.findByPlayerAndQueue(playerId, queueId.get()).stream()
+        try {
+            if (queueId.isPresent()) {
+                return replicaReadRepository.findByPlayerAndQueue(playerId, queueId.get());
+            }
+            return replicaReadRepository.findByPlayerId(playerId);
+        } catch (Exception replicaFailure) {
+            log.warn(
+                    "\u001B[33m[WARN]\u001B[0m Replica read failed for player ranking, falling back to primary: {}",
+                    replicaFailure.getMessage());
+            if (queueId.isPresent()) {
+                return playerRankingRepository.findByPlayerAndQueue(playerId, queueId.get()).stream()
+                        .map(playerRankingMapper::toDTO)
+                        .collect(Collectors.toList());
+            }
+            return playerRankingRepository.findByPlayerId(playerId).stream()
                     .map(playerRankingMapper::toDTO)
                     .collect(Collectors.toList());
         }
-
-        return readOnlyPlayerRankingRepository.findByPlayerId(playerId).stream()
-                .map(playerRankingMapper::toDTO)
-                .collect(Collectors.toList());
     }
 
     @Override
