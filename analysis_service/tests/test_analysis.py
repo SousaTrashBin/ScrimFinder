@@ -93,7 +93,10 @@ class TestBuild:
         assert r.status_code == 503
 
     def test_schema(self):
-        assert client.post("/api/v1/analysis/build", json={"champion": "Jinx", "items": ["Infinity Edge"]}).status_code == 503
+        assert (
+            client.post("/api/v1/analysis/build", json={"champion": "Jinx", "items": ["Infinity Edge"]}).status_code
+            == 503
+        )
 
     def test_no_items(self):
         assert client.post("/api/v1/analysis/build", json={"champion": "Jinx", "items": []}).status_code == 422

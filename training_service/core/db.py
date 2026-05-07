@@ -397,7 +397,9 @@ def list_models(concern=None, active_only=False):
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
     with get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute(f"SELECT * FROM models {where} ORDER BY created_at DESC", params)
+            cur.execute(
+                f"SELECT * FROM models {where} ORDER BY created_at DESC", params
+            )
             rows = _many(cur)
     return [_model_row(r) for r in rows]
 

@@ -65,7 +65,9 @@ class TestGames:
         assert r1.json()["id"] == r2.json()["id"]
 
     def test_ingest_explicit_id(self):
-        r = client.post("/api/v1/training/games", json={"id": "MY_ID", "data": {"x": 1}})
+        r = client.post(
+            "/api/v1/training/games", json={"id": "MY_ID", "data": {"x": 1}}
+        )
         assert r.json()["id"] == "MY_ID"
 
     def test_batch(self):
@@ -200,7 +202,9 @@ class TestTrainingJobs:
 
     def test_invalid_concern(self):
         assert (
-            client.post("/api/v1/training/jobs", json={"concern": "invalid"}).status_code
+            client.post(
+                "/api/v1/training/jobs", json={"concern": "invalid"}
+            ).status_code
             == 422
         )
 
