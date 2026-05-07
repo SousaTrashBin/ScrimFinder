@@ -2,11 +2,12 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import JSONResponse
 
 from training_service.core.config import cfg
 from training_service.core.db import count_games, init_db, list_models
-from training_service.routers import datasets, features, games, models, training
+from training_service.routers import features, games, models, training
 
 cfg.ensure_dirs()
 init_db()
@@ -32,25 +33,38 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="ScrimFinder Training Service",
     description=(
-        "Game ingestion, feature extraction, dataset management, ML training and model registry.\n\n"
+        "Game ingestion, feature extraction, ML training and model registry.\n\n"
         "**Student:** Rodrigo Neto (fc59850)"
     ),
     version="1.0.0",
     lifespan=lifespan,
-    docs_url="/api/v1/training/q/docs",
-    openapi_url="/api/v1/training/q/openapi.json",
+    root_path="/api/v1/training",
+    docs_url="/docs",
+    openapi_url="/openapi.json",
 )
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
 )
-app.include_router(games.router, prefix="/api/v1/training")
-app.include_router(features.router, prefix="/api/v1/training")
-app.include_router(datasets.router, prefix="/api/v1/training")
-app.include_router(training.router, prefix="/api/v1/training")
-app.include_router(models.router, prefix="/api/v1/training")
+app.include_router(games.router)
+app.include_router(features.router)
+app.include_router(training.router)
+app.include_router(models.router)
 
 
-@app.get("/api/v1/training/", tags=["System"])
+@app.get("/api/v1/training/openapi.json", include_in_schema=False)
+def prefixed_openapi():
+    return app.openapi()
+
+
+@app.get("/api/v1/training/docs", include_in_schema=False)
+def prefixed_docs():
+    return get_swagger_ui_html(
+        openapi_url="/api/v1/training/openapi.json",
+        title="ScrimFinder Training Service - Swagger UI",
+    )
+
+
+@app.get("/", tags=["System"])
 def root():
     return {
         "service": "ScrimFinder Training Service",
@@ -61,9 +75,9 @@ def root():
     }
 
 
-@app.get("/api/v1/training/q/health/live", tags=["System"])
-@app.get("/api/v1/training/q/health/ready", tags=["System"])
-@app.get("/api/v1/training/health", tags=["System"])
+@app.get("/q/health/live", tags=["System"])
+@app.get("/q/health/ready", tags=["System"])
+@app.get("/health", tags=["System"])
 def health():
     return {"status": "ok"}
 

@@ -1,4 +1,4 @@
-services:
+cleservices:
   traefik:
     image: traefik:v3.6.2
     command:
@@ -44,6 +44,18 @@ services:
       POSTGRES_DB: history
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres -d history" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  ml-db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ml
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d ml" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -142,7 +154,7 @@ services:
     environment:
       - PYTHONPATH=/app
       - LEAGUE_DB=/app/dataset/league_data.db
-      - PLATFORM_DB=/app/ml_data/platform.db
+      - PLATFORM_DB_DSN=postgresql://postgres:postgres@ml-db:5432/ml
       - MODELS_DIR=/app/ml_data/models
       - GAMES_DIR=/app/ml_data/games
       - DATASETS_DIR=/app/ml_data/datasets
@@ -157,6 +169,8 @@ services:
       - "traefik.http.routers.training.rule=PathPrefix(`/api/v1/training`)"
       - "traefik.http.services.training.loadbalancer.server.port=8000"
     depends_on:
+      ml-db:
+        condition: service_healthy
       redis:
         condition: service_healthy
       detail-filling-service:
@@ -170,7 +184,6 @@ services:
     environment:
       - PYTHONPATH=/app
       - LEAGUE_DB=/app/dataset/league_data.db
-      - PLATFORM_DB=/app/ml_data/platform.db
       - MODELS_DIR=/app/ml_data/models
       - MODEL_RELOAD_INTERVAL=60
       - TRAINING_GRPC_URL=training-service:50051

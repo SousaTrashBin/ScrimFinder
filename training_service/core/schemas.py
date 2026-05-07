@@ -76,6 +76,23 @@ class BatchIngestResponse(BaseModel):
     errors: list[dict]
 
 
+class LeagueImportRequest(BaseModel):
+    limit: int = Field(
+        100,
+        ge=1,
+        le=10000,
+        description="Maximum number of LEAGUE_DB matches to copy into ml-db.",
+    )
+    offset: int = Field(0, ge=0)
+    match_type: Optional[str] = None
+
+
+class LeagueImportResponse(BaseModel):
+    imported: int
+    skipped: int
+    errors: list[dict]
+
+
 class FeatureExtractRequest(BaseModel):
     game_id: Optional[str] = None
     raw_data: Optional[dict] = None
@@ -146,9 +163,6 @@ class DatasetListResponse(BaseModel):
 class TrainingJobCreate(BaseModel):
     concern: Concern
     algorithm: Algorithm = Algorithm.AUTO
-    dataset_id: Optional[str] = Field(
-        None, description="Leave empty to train from EUW DB directly."
-    )
     sample: Optional[float] = Field(None, ge=0.01, le=1.0)
     limit: Optional[int] = Field(None, ge=1000)
     match_type: Optional[str] = None
@@ -158,7 +172,6 @@ class TrainingJobResponse(BaseModel):
     id: str
     concern: str
     algorithm: str
-    dataset_id: Optional[str]
     status: str
     progress: int
     stage: str
@@ -179,7 +192,6 @@ class ModelMeta(BaseModel):
     id: int
     concern: str
     algorithm: str
-    dataset_id: Optional[str]
     version: str
     metrics: dict
     hyperparams: dict

@@ -110,7 +110,7 @@ class TrainingServiceServicer(_BaseServicer):
     def GetActiveModel(self, request, context):
         """
         Return metadata for the active model of a concern.
-        Called by analysis_service instead of reading platform.db directly.
+        Called by analysis_service instead of sharing metadata storage.
         """
         from training_service.training_service_pb2 import GetActiveModelResponse
 

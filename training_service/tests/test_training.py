@@ -8,11 +8,18 @@ import tempfile
 import time
 from pathlib import Path
 
+import pytest
+
 _TMP = Path(tempfile.mkdtemp(prefix="train_test_"))
-os.environ["PLATFORM_DB"] = str(_TMP / "platform.db")
 os.environ["MODELS_DIR"] = str(_TMP / "models")
 os.environ["GAMES_DIR"] = str(_TMP / "games")
 os.environ["DATASETS_DIR"] = str(_TMP / "datasets")
+if not os.environ.get("TEST_PLATFORM_DB_DSN"):
+    pytest.skip(
+        "Set TEST_PLATFORM_DB_DSN to run training_service PostgreSQL integration tests.",
+        allow_module_level=True,
+    )
+os.environ["PLATFORM_DB_DSN"] = os.environ["TEST_PLATFORM_DB_DSN"]
 
 from fastapi.testclient import TestClient  # noqa: E402
 
@@ -42,7 +49,7 @@ class TestSystem:
         assert client.get("/api/v1/training/").json()["status"] == "ok"
 
     def test_docs(self):
-        assert client.get("/api/v1/training/q/docs").status_code == 200
+        assert client.get("/api/v1/training/docs").status_code == 200
 
 
 class TestGames:
@@ -150,41 +157,6 @@ class TestFeatures:
         assert client.get("/api/v1/training/features/NOPE_XYZ").status_code == 404
 
 
-class TestDatasets:
-    def test_create(self):
-        r = client.post(
-            "/api/v1/training/datasets",
-            json={"name": "Test DS", "concern": "draft", "filters": {}},
-        )
-        assert r.status_code == 201
-        assert r.json()["id"].startswith("ds_")
-
-    def test_build(self):
-        r = client.post(
-            "/api/v1/training/datasets/build",
-            json={"name": "Built DS", "concern": "build", "filters": {}},
-        )
-        assert r.status_code == 202
-
-    def test_list(self):
-        assert "datasets" in client.get("/api/v1/training/datasets").json()
-
-    def test_get_404(self):
-        assert client.get("/api/v1/training/datasets/ds_nope").status_code == 404
-
-    def test_delete(self):
-        r = client.post(
-            "/api/v1/training/datasets",
-            json={"name": "Del DS", "concern": "draft", "filters": {}},
-        )
-        ds_id = r.json()["id"]
-        assert client.delete(f"/api/v1/training/datasets/{ds_id}").status_code == 204
-        assert client.get(f"/api/v1/training/datasets/{ds_id}").status_code == 404
-
-    def test_delete_404(self):
-        assert client.delete("/api/v1/training/datasets/ds_nope").status_code == 404
-
-
 class TestTrainingJobs:
     def test_create(self):
         r = client.post(
@@ -234,16 +206,6 @@ class TestTrainingJobs:
             ).status_code
             == 422
         )
-
-    def test_dataset_not_found(self):
-        assert (
-            client.post(
-                "/api/v1/training/jobs",
-                json={"concern": "draft", "dataset_id": "ds_nope"},
-            ).status_code
-            == 404
-        )
-
 
 class TestModels:
     def test_list(self):

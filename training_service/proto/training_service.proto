@@ -19,7 +19,7 @@ service TrainingService {
   rpc ForwardMatch (ForwardMatchRequest) returns (ForwardMatchResponse) {}
 
   // Called by analysis_service to get the active model for a concern.
-  // Replaces the shared platform.db volume once gRPC is fully wired.
+  // Replaces direct metadata storage access from analysis_service.
   rpc GetActiveModel (GetActiveModelRequest) returns (GetActiveModelResponse) {}
 
   // Called by analysis_service to check Training Service health.
@@ -36,7 +36,7 @@ message ForwardMatchRequest {
 message ForwardMatchResponse {
   bool   success     = 1;
   string message     = 2;
-  string game_id     = 3;      // internal game ID stored in platform.db
+  string game_id     = 3;      // internal game ID stored by training_service
   bool   draft_ok    = 4;      // draft features extracted successfully
   bool   build_ok    = 5;      // build features extracted successfully
   bool   perf_ok     = 6;      // performance features extracted successfully

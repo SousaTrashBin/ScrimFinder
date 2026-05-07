@@ -99,6 +99,19 @@ history-db:
     persistence:
       size: 10Gi
 
+ml-db:
+  architecture: standalone
+  auth:
+    database: ml
+    username: postgres
+    existingSecret: scrimfinder-secrets
+    secretKeys:
+      adminPasswordKey: db-password
+      userPasswordKey: db-password
+  primary:
+    persistence:
+      size: 5Gi
+
 matchmaking-redis:
   architecture: standalone
   auth:
@@ -254,12 +267,19 @@ services:
       targetMemoryUtilizationPercentage: 80
     env:
       DETAIL_FILLING_URL: "http://detail-filling-service:8080/api/v1/riot"
+      PLATFORM_DB_DSN: "postgresql://postgres:postgres@scrimfinder-ml-db-primary:5432/ml"
+      MODELS_DIR: "/app/ml_data/models"
+      GAMES_DIR: "/app/ml_data/games"
+      DATASETS_DIR: "/app/ml_data/datasets"
     healthType: "http"
     healthPath: "/api/v1/training/q/health"
     persistence:
       enabled: true
-      mountPath: /app/data
+      mountPath: /app/ml_data
       claimName: ai-storage-pvc
+    waitFor:
+      host: "scrimfinder-ml-db-primary"
+      port: 5432
   
   analysis-service:
     imageName: "analysis-service"
@@ -281,9 +301,6 @@ services:
       targetMemoryUtilizationPercentage: 80
     env:
       TRAINING_GRPC_URL: "training-service:50051"
+      MODELS_DIR: "/app/ml_data/models"
     healthType: "http"
     healthPath: "/api/v1/analysis/q/health"
-    persistence:
-      enabled: true
-      mountPath: /app/data
-      claimName: ai-storage-pvc

@@ -11,7 +11,6 @@ services:
     environment:
       - PYTHONPATH=/app
       - LEAGUE_DB=/app/dataset/league_data.db
-      - PLATFORM_DB=/app/data/platform.db
       - MODELS_DIR=/app/data/models
       - MODEL_RELOAD_INTERVAL=60
       - TRAINING_GRPC_URL=scrimfinder_training:50051

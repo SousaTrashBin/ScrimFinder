@@ -8,8 +8,8 @@ class _Config:
     LEAGUE_DB: str = os.environ.get(
         "LEAGUE_DB", str(_HERE.parent / "dataset" / "league_data.db")
     )
-    PLATFORM_DB: str = os.environ.get(
-        "PLATFORM_DB", str(_HERE / "data" / "platform.db")
+    PLATFORM_DB_DSN: str = os.environ.get(
+        "PLATFORM_DB_DSN", "postgresql://postgres:postgres@localhost:5432/ml"
     )
     MODELS_DIR: str = os.environ.get("MODELS_DIR", str(_HERE / "data" / "models"))
     GAMES_DIR: str = os.environ.get("GAMES_DIR", str(_HERE / "data" / "games"))
@@ -21,7 +21,6 @@ class _Config:
             self.MODELS_DIR,
             self.GAMES_DIR,
             self.DATASETS_DIR,
-            str(Path(self.PLATFORM_DB).parent),
         ]:
             Path(d).mkdir(parents=True, exist_ok=True)
 

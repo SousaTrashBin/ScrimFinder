@@ -1,17 +1,34 @@
 import json
-import sqlite3
+import threading
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
+from psycopg2.extras import Json
+from psycopg2.pool import ThreadedConnectionPool
+
 from training_service.core.config import cfg
+
+_POOL: ThreadedConnectionPool | None = None
+_POOL_LOCK = threading.Lock()
+
+
+def _get_pool() -> ThreadedConnectionPool:
+    global _POOL
+    if _POOL is None:
+        with _POOL_LOCK:
+            if _POOL is None:
+                _POOL = ThreadedConnectionPool(
+                    minconn=1,
+                    maxconn=10,
+                    dsn=cfg.PLATFORM_DB_DSN,
+                )
+    return _POOL
 
 
 @contextmanager
 def get_conn():
-    conn = sqlite3.connect(cfg.PLATFORM_DB, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA foreign_keys=ON")
+    pool = _get_pool()
+    conn = pool.getconn()
     try:
         yield conn
         conn.commit()
@@ -19,56 +36,108 @@ def get_conn():
         conn.rollback()
         raise
     finally:
-        conn.close()
+        pool.putconn(conn)
 
 
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
 
+def _cols(cursor):
+    return [c.name for c in cursor.description]
+
+
+def _one(cursor):
+    row = cursor.fetchone()
+    if row is None:
+        return None
+    return dict(zip(_cols(cursor), row))
+
+
+def _many(cursor):
+    cols = _cols(cursor)
+    return [dict(zip(cols, row)) for row in cursor.fetchall()]
+
+
+def _json(v, default=None):
+    if v is None:
+        return {} if default is None else default
+    if isinstance(v, str):
+        return json.loads(v)
+    return v
+
+
+def _iso(v):
+    return v.isoformat() if hasattr(v, "isoformat") else v
+
+
+def _normalize_timestamps(d):
+    for key, value in list(d.items()):
+        if key.endswith("_at") and value is not None:
+            d[key] = _iso(value)
+    return d
+
+
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS games (
-    id TEXT PRIMARY KEY, source TEXT NOT NULL DEFAULT 'manual',
-    patch TEXT, match_type TEXT, duration_sec INTEGER, platform TEXT,
-    raw_json TEXT NOT NULL, ingested_at TEXT NOT NULL);
-CREATE INDEX IF NOT EXISTS idx_games_patch      ON games(patch);
-CREATE INDEX IF NOT EXISTS idx_games_match_type ON games(match_type);
-CREATE INDEX IF NOT EXISTS idx_games_source     ON games(source);
+    id           TEXT PRIMARY KEY,
+    source       TEXT NOT NULL DEFAULT 'manual',
+    patch        TEXT,
+    match_type   TEXT,
+    duration_sec INTEGER,
+    platform     TEXT,
+    raw_json     JSONB NOT NULL,
+    ingested_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_games_patch       ON games(patch);
+CREATE INDEX IF NOT EXISTS idx_games_match_type  ON games(match_type);
+CREATE INDEX IF NOT EXISTS idx_games_source      ON games(source);
+
 CREATE TABLE IF NOT EXISTS features (
-    game_id TEXT NOT NULL, concern TEXT NOT NULL,
-    feature_vector TEXT NOT NULL, feature_names TEXT NOT NULL,
-    schema_version TEXT NOT NULL DEFAULT '1', extracted_at TEXT NOT NULL,
+    game_id        TEXT NOT NULL,
+    concern        TEXT NOT NULL,
+    feature_vector JSONB NOT NULL,
+    feature_names  JSONB NOT NULL,
+    schema_version TEXT NOT NULL DEFAULT '1',
+    extracted_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (game_id, concern),
-    FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE);
+    FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+);
 CREATE INDEX IF NOT EXISTS idx_features_concern ON features(concern);
-CREATE TABLE IF NOT EXISTS datasets (
-    id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT,
-    concern TEXT NOT NULL, filters TEXT NOT NULL DEFAULT '{}',
-    game_count INTEGER NOT NULL DEFAULT 0, row_count INTEGER NOT NULL DEFAULT 0,
-    file_path TEXT, status TEXT NOT NULL DEFAULT 'pending',
-    created_at TEXT NOT NULL, built_at TEXT);
-CREATE TABLE IF NOT EXISTS dataset_games (
-    dataset_id TEXT NOT NULL, game_id TEXT NOT NULL,
-    PRIMARY KEY (dataset_id, game_id),
-    FOREIGN KEY (dataset_id) REFERENCES datasets(id) ON DELETE CASCADE,
-    FOREIGN KEY (game_id)    REFERENCES games(id)    ON DELETE CASCADE);
+
 CREATE TABLE IF NOT EXISTS models (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    concern TEXT NOT NULL, algorithm TEXT NOT NULL DEFAULT 'gbm',
-    dataset_id TEXT, version TEXT NOT NULL, file_path TEXT NOT NULL,
-    metrics TEXT NOT NULL DEFAULT '{}', hyperparams TEXT NOT NULL DEFAULT '{}',
-    feature_names TEXT, is_active INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL, activated_at TEXT,
-    FOREIGN KEY (dataset_id) REFERENCES datasets(id));
+    id            SERIAL PRIMARY KEY,
+    concern       TEXT NOT NULL,
+    algorithm     TEXT NOT NULL DEFAULT 'gbm',
+    dataset_id    TEXT,
+    version       TEXT NOT NULL,
+    file_path     TEXT NOT NULL,
+    metrics       JSONB NOT NULL DEFAULT '{}',
+    hyperparams   JSONB NOT NULL DEFAULT '{}',
+    feature_names JSONB,
+    is_active     BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    activated_at  TIMESTAMPTZ
+);
 CREATE INDEX IF NOT EXISTS idx_models_concern_active ON models(concern, is_active);
+
 CREATE TABLE IF NOT EXISTS training_jobs (
-    id TEXT PRIMARY KEY, concern TEXT NOT NULL, algorithm TEXT NOT NULL DEFAULT 'auto',
-    dataset_id TEXT, status TEXT NOT NULL DEFAULT 'PENDING',
-    progress INTEGER NOT NULL DEFAULT 0, stage TEXT NOT NULL DEFAULT 'Queued',
-    filters TEXT NOT NULL DEFAULT '{}', metrics TEXT, model_id INTEGER, error TEXT,
-    created_at TEXT NOT NULL, started_at TEXT, completed_at TEXT,
-    FOREIGN KEY (dataset_id) REFERENCES datasets(id),
-    FOREIGN KEY (model_id)   REFERENCES models(id));
+    id           TEXT PRIMARY KEY,
+    concern      TEXT NOT NULL,
+    algorithm    TEXT NOT NULL DEFAULT 'auto',
+    dataset_id   TEXT,
+    status       TEXT NOT NULL DEFAULT 'PENDING',
+    progress     INTEGER NOT NULL DEFAULT 0,
+    stage        TEXT NOT NULL DEFAULT 'Queued',
+    filters      JSONB NOT NULL DEFAULT '{}',
+    metrics      JSONB,
+    model_id     INTEGER,
+    error        TEXT,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    started_at   TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+    FOREIGN KEY (model_id) REFERENCES models(id)
+);
 CREATE INDEX IF NOT EXISTS idx_jobs_concern ON training_jobs(concern);
 CREATE INDEX IF NOT EXISTS idx_jobs_status  ON training_jobs(status);
 """
@@ -77,12 +146,15 @@ CREATE INDEX IF NOT EXISTS idx_jobs_status  ON training_jobs(status);
 def init_db():
     cfg.ensure_dirs()
     with get_conn() as conn:
-        conn.executescript(_SCHEMA)
+        with conn.cursor() as cur:
+            cur.execute(_SCHEMA)
 
 
 def count_games():
     with get_conn() as conn:
-        return conn.execute("SELECT COUNT(*) FROM games").fetchone()[0]
+        with conn.cursor() as cur:
+            cur.execute("SELECT COUNT(*) FROM games")
+            return cur.fetchone()[0]
 
 
 def insert_game(game_id, raw, source="manual"):
@@ -91,143 +163,136 @@ def insert_game(game_id, raw, source="manual"):
     duration_sec = raw.get("duration_sec") or raw.get("gameDuration")
     platform = raw.get("platform") or raw.get("platformId")
     with get_conn() as conn:
-        conn.execute(
-            "INSERT OR REPLACE INTO games (id,source,patch,match_type,duration_sec,platform,raw_json,ingested_at) "
-            "VALUES (?,?,?,?,?,?,?,?)",
-            (
-                game_id,
-                source,
-                patch,
-                match_type,
-                duration_sec,
-                platform,
-                json.dumps(raw),
-                now_iso(),
-            ),
-        )
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO games
+                    (id, source, patch, match_type, duration_sec, platform, raw_json, ingested_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, now())
+                ON CONFLICT (id) DO UPDATE SET
+                    source = EXCLUDED.source,
+                    patch = EXCLUDED.patch,
+                    match_type = EXCLUDED.match_type,
+                    duration_sec = EXCLUDED.duration_sec,
+                    platform = EXCLUDED.platform,
+                    raw_json = EXCLUDED.raw_json,
+                    ingested_at = now()
+                """,
+                (game_id, source, patch, match_type, duration_sec, platform, Json(raw)),
+            )
 
 
 def get_game(game_id):
     with get_conn() as conn:
-        row = conn.execute("SELECT * FROM games WHERE id=?", (game_id,)).fetchone()
+        with conn.cursor() as cur:
+            cur.execute("SELECT * FROM games WHERE id=%s", (game_id,))
+            row = _one(cur)
     if row is None:
         return None
-    d = dict(row)
-    d["raw_json"] = json.loads(d["raw_json"])
-    return d
+    row["raw_json"] = _json(row["raw_json"])
+    return _normalize_timestamps(row)
 
 
 def list_games(source=None, patch=None, match_type=None, limit=50, offset=0):
     clauses, params = [], []
     if source:
-        clauses.append("source=?")
+        clauses.append("source=%s")
         params.append(source)
     if patch:
-        clauses.append("patch=?")
+        clauses.append("patch=%s")
         params.append(patch)
     if match_type:
-        clauses.append("match_type=?")
+        clauses.append("match_type=%s")
         params.append(match_type)
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
     with get_conn() as conn:
-        total = conn.execute(f"SELECT COUNT(*) FROM games {where}", params).fetchone()[
-            0
-        ]
-        rows = conn.execute(
-            "SELECT id,source,patch,match_type,duration_sec,ingested_at "
-            f"FROM games {where} ORDER BY ingested_at DESC LIMIT ? OFFSET ?",
-            params + [limit, offset],
-        ).fetchall()
-    return [dict(r) for r in rows], total
+        with conn.cursor() as cur:
+            cur.execute(f"SELECT COUNT(*) FROM games {where}", params)
+            total = cur.fetchone()[0]
+            cur.execute(
+                "SELECT id,source,patch,match_type,duration_sec,ingested_at "
+                f"FROM games {where} ORDER BY ingested_at DESC LIMIT %s OFFSET %s",
+                params + [limit, offset],
+            )
+            rows = _many(cur)
+    return [_normalize_timestamps(r) for r in rows], total
+
+
+def delete_game(game_id):
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM games WHERE id=%s", (game_id,))
+            return cur.rowcount > 0
 
 
 def upsert_features(game_id, concern, vector, names, schema_version="1"):
     with get_conn() as conn:
-        conn.execute(
-            "INSERT OR REPLACE INTO features "
-            "(game_id,concern,feature_vector,feature_names,schema_version,extracted_at) "
-            "VALUES (?,?,?,?,?,?)",
-            (
-                game_id,
-                concern,
-                json.dumps(vector),
-                json.dumps(names),
-                schema_version,
-                now_iso(),
-            ),
-        )
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO features
+                    (game_id, concern, feature_vector, feature_names, schema_version, extracted_at)
+                VALUES (%s, %s, %s, %s, %s, now())
+                ON CONFLICT (game_id, concern) DO UPDATE SET
+                    feature_vector = EXCLUDED.feature_vector,
+                    feature_names = EXCLUDED.feature_names,
+                    schema_version = EXCLUDED.schema_version,
+                    extracted_at = now()
+                """,
+                (game_id, concern, Json(vector), Json(names), schema_version),
+            )
 
 
 def get_features(game_id, concern=None):
     with get_conn() as conn:
-        if concern:
-            rows = conn.execute(
-                "SELECT * FROM features WHERE game_id=? AND concern=?",
-                (game_id, concern),
-            ).fetchall()
-        else:
-            rows = conn.execute(
-                "SELECT * FROM features WHERE game_id=?", (game_id,)
-            ).fetchall()
+        with conn.cursor() as cur:
+            if concern:
+                cur.execute(
+                    "SELECT * FROM features WHERE game_id=%s AND concern=%s",
+                    (game_id, concern),
+                )
+            else:
+                cur.execute("SELECT * FROM features WHERE game_id=%s", (game_id,))
+            rows = _many(cur)
     result = []
-    for r in rows:
-        d = dict(r)
-        d["feature_vector"] = json.loads(d["feature_vector"])
-        d["feature_names"] = json.loads(d["feature_names"])
-        result.append(d)
+    for row in rows:
+        row["feature_vector"] = _json(row["feature_vector"], [])
+        row["feature_names"] = _json(row["feature_names"], [])
+        result.append(_normalize_timestamps(row))
     return result
+
+
+def delete_features(game_id, concern=None):
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            if concern:
+                cur.execute(
+                    "DELETE FROM features WHERE game_id=%s AND concern=%s",
+                    (game_id, concern),
+                )
+            else:
+                cur.execute("DELETE FROM features WHERE game_id=%s", (game_id,))
+            return cur.rowcount
 
 
 def insert_dataset(ds_id, name, concern, filters, description=""):
-    with get_conn() as conn:
-        conn.execute(
-            "INSERT INTO datasets (id,name,description,concern,filters,status,created_at) "
-            "VALUES (?,?,?,?,?,'pending',?)",
-            (ds_id, name, description, concern, json.dumps(filters), now_iso()),
-        )
+    raise NotImplementedError("Dataset metadata storage is out of scope for ml-db.")
 
 
 def update_dataset_status(ds_id, status, game_count=0, row_count=0, file_path=None):
-    with get_conn() as conn:
-        conn.execute(
-            "UPDATE datasets SET status=?,game_count=?,row_count=?,file_path=?,built_at=? WHERE id=?",
-            (status, game_count, row_count, file_path, now_iso(), ds_id),
-        )
+    raise NotImplementedError("Dataset metadata storage is out of scope for ml-db.")
 
 
 def get_dataset(ds_id):
-    with get_conn() as conn:
-        row = conn.execute("SELECT * FROM datasets WHERE id=?", (ds_id,)).fetchone()
-    if row is None:
-        return None
-    d = dict(row)
-    d["filters"] = json.loads(d["filters"])
-    return d
+    return None
 
 
 def list_datasets(concern=None):
-    with get_conn() as conn:
-        if concern:
-            rows = conn.execute(
-                "SELECT * FROM datasets WHERE concern=? ORDER BY created_at DESC",
-                (concern,),
-            ).fetchall()
-        else:
-            rows = conn.execute(
-                "SELECT * FROM datasets ORDER BY created_at DESC"
-            ).fetchall()
-    result = []
-    for r in rows:
-        d = dict(r)
-        d["filters"] = json.loads(d["filters"])
-        result.append(d)
-    return result
+    return []
 
 
 def delete_dataset(ds_id):
-    with get_conn() as conn:
-        cur = conn.execute("DELETE FROM datasets WHERE id=?", (ds_id,))
-    return cur.rowcount > 0
+    return False
 
 
 def register_model(
@@ -241,152 +306,179 @@ def register_model(
     feature_names=None,
 ):
     with get_conn() as conn:
-        cur = conn.execute(
-            "INSERT INTO models (concern,algorithm,dataset_id,version,file_path,metrics,"
-            "hyperparams,feature_names,is_active,created_at) VALUES (?,?,?,?,?,?,?,?,0,?)",
-            (
-                concern,
-                algorithm,
-                dataset_id,
-                version,
-                file_path,
-                json.dumps(metrics),
-                json.dumps(hyperparams or {}),
-                json.dumps(feature_names or []),
-                now_iso(),
-            ),
-        )
-    return cur.lastrowid
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO models
+                    (concern, algorithm, dataset_id, version, file_path, metrics,
+                     hyperparams, feature_names, is_active, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, FALSE, now())
+                RETURNING id
+                """,
+                (
+                    concern,
+                    algorithm,
+                    dataset_id,
+                    version,
+                    file_path,
+                    Json(metrics),
+                    Json(hyperparams or {}),
+                    Json(feature_names or []),
+                ),
+            )
+            return cur.fetchone()[0]
 
 
 def activate_model(model_id):
     with get_conn() as conn:
-        row = conn.execute(
-            "SELECT concern FROM models WHERE id=?", (model_id,)
-        ).fetchone()
-        if row is None:
-            raise ValueError(f"No model id={model_id}")
-        conn.execute(
-            "UPDATE models SET is_active=0 WHERE concern=? AND is_active=1",
-            (row["concern"],),
-        )
-        conn.execute(
-            "UPDATE models SET is_active=1,activated_at=? WHERE id=?",
-            (now_iso(), model_id),
-        )
+        with conn.cursor() as cur:
+            cur.execute("SELECT concern FROM models WHERE id=%s", (model_id,))
+            row = cur.fetchone()
+            if row is None:
+                raise ValueError(f"No model id={model_id}")
+            concern = row[0]
+            cur.execute(
+                "UPDATE models SET is_active=FALSE WHERE concern=%s AND is_active=TRUE",
+                (concern,),
+            )
+            cur.execute(
+                "UPDATE models SET is_active=TRUE, activated_at=now() WHERE id=%s",
+                (model_id,),
+            )
 
 
 def deactivate_model(model_id):
     with get_conn() as conn:
-        conn.execute("UPDATE models SET is_active=0 WHERE id=?", (model_id,))
+        with conn.cursor() as cur:
+            cur.execute("UPDATE models SET is_active=FALSE WHERE id=%s", (model_id,))
+
+
+def delete_model(model_id):
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM models WHERE id=%s", (model_id,))
+            return cur.rowcount > 0
+
+
+def _model_row(row):
+    if row is None:
+        return None
+    for field in ("metrics", "hyperparams", "feature_names"):
+        row[field] = _json(row[field], [] if field == "feature_names" else {})
+    row["is_active"] = bool(row["is_active"])
+    return _normalize_timestamps(row)
 
 
 def get_active_model(concern):
     with get_conn() as conn:
-        row = conn.execute(
-            "SELECT * FROM models WHERE concern=? AND is_active=1", (concern,)
-        ).fetchone()
-    if row is None:
-        return None
-    d = dict(row)
-    for f in ("metrics", "hyperparams", "feature_names"):
-        d[f] = json.loads(d[f]) if d[f] else {}
-    d["is_active"] = bool(d["is_active"])
-    return d
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT * FROM models WHERE concern=%s AND is_active=TRUE", (concern,)
+            )
+            row = _one(cur)
+    return _model_row(row)
 
 
 def get_model_by_id(model_id):
     with get_conn() as conn:
-        row = conn.execute("SELECT * FROM models WHERE id=?", (model_id,)).fetchone()
-    if row is None:
-        return None
-    d = dict(row)
-    for f in ("metrics", "hyperparams", "feature_names"):
-        d[f] = json.loads(d[f]) if d[f] else {}
-    d["is_active"] = bool(d["is_active"])
-    return d
+        with conn.cursor() as cur:
+            cur.execute("SELECT * FROM models WHERE id=%s", (model_id,))
+            row = _one(cur)
+    return _model_row(row)
 
 
 def list_models(concern=None, active_only=False):
     clauses, params = [], []
     if concern:
-        clauses.append("concern=?")
+        clauses.append("concern=%s")
         params.append(concern)
     if active_only:
-        clauses.append("is_active=1")
+        clauses.append("is_active=TRUE")
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
     with get_conn() as conn:
-        rows = conn.execute(
-            f"SELECT * FROM models {where} ORDER BY created_at DESC", params
-        ).fetchall()
-    result = []
-    for r in rows:
-        d = dict(r)
-        for f in ("metrics", "hyperparams", "feature_names"):
-            d[f] = json.loads(d[f]) if d[f] else {}
-        d["is_active"] = bool(d["is_active"])
-        result.append(d)
-    return result
+        with conn.cursor() as cur:
+            cur.execute(f"SELECT * FROM models {where} ORDER BY created_at DESC", params)
+            rows = _many(cur)
+    return [_model_row(r) for r in rows]
 
 
 def create_job(job_id, concern, algorithm="auto", dataset_id=None, filters=None):
     with get_conn() as conn:
-        conn.execute(
-            "INSERT INTO training_jobs (id,concern,algorithm,dataset_id,filters,created_at) VALUES (?,?,?,?,?,?)",
-            (
-                job_id,
-                concern,
-                algorithm,
-                dataset_id,
-                json.dumps(filters or {}),
-                now_iso(),
-            ),
-        )
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO training_jobs
+                    (id, concern, algorithm, dataset_id, filters, created_at)
+                VALUES (%s, %s, %s, %s, %s, now())
+                """,
+                (job_id, concern, algorithm, dataset_id, Json(filters or {})),
+            )
+
+
+_JOB_COLUMNS = {
+    "concern",
+    "algorithm",
+    "dataset_id",
+    "status",
+    "progress",
+    "stage",
+    "filters",
+    "metrics",
+    "model_id",
+    "error",
+    "started_at",
+    "completed_at",
+}
 
 
 def update_job(job_id, **kwargs):
     sets, params = [], []
-    for k, v in kwargs.items():
-        sets.append(f"{k}=?")
-        params.append(json.dumps(v) if isinstance(v, (dict, list)) else v)
+    for key, value in kwargs.items():
+        if key not in _JOB_COLUMNS:
+            raise ValueError(f"Unknown training_jobs column '{key}'")
+        sets.append(f"{key}=%s")
+        params.append(Json(value) if isinstance(value, (dict, list)) else value)
     if not sets:
         return
     params.append(job_id)
     with get_conn() as conn:
-        conn.execute(f"UPDATE training_jobs SET {', '.join(sets)} WHERE id=?", params)
+        with conn.cursor() as cur:
+            cur.execute(
+                f"UPDATE training_jobs SET {', '.join(sets)} WHERE id=%s",
+                params,
+            )
+
+
+def _job_row(row):
+    if row is None:
+        return None
+    for field in ("filters", "metrics"):
+        row[field] = _json(row[field])
+    return _normalize_timestamps(row)
 
 
 def get_job(job_id):
     with get_conn() as conn:
-        row = conn.execute(
-            "SELECT * FROM training_jobs WHERE id=?", (job_id,)
-        ).fetchone()
-    if row is None:
-        return None
-    d = dict(row)
-    for f in ("filters", "metrics"):
-        d[f] = json.loads(d[f]) if d[f] else {}
-    return d
+        with conn.cursor() as cur:
+            cur.execute("SELECT * FROM training_jobs WHERE id=%s", (job_id,))
+            row = _one(cur)
+    return _job_row(row)
 
 
 def list_jobs(concern=None, status=None, limit=100):
     clauses, params = [], []
     if concern:
-        clauses.append("concern=?")
+        clauses.append("concern=%s")
         params.append(concern)
     if status:
-        clauses.append("status=?")
+        clauses.append("status=%s")
         params.append(status)
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
     with get_conn() as conn:
-        rows = conn.execute(
-            f"SELECT * FROM training_jobs {where} ORDER BY created_at DESC LIMIT ?",
-            params + [limit],
-        ).fetchall()
-    result = []
-    for r in rows:
-        d = dict(r)
-        for f in ("filters", "metrics"):
-            d[f] = json.loads(d[f]) if d[f] else {}
-        result.append(d)
-    return result
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT * FROM training_jobs {where} ORDER BY created_at DESC LIMIT %s",
+                params + [limit],
+            )
+            rows = _many(cur)
+    return [_job_row(r) for r in rows]

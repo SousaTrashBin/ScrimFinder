@@ -226,27 +226,23 @@ def _generate_tips(stats: dict, percentiles: dict, role: str) -> list[Improvemen
 def analyze_draft(body: DraftAnalysisRequest) -> DraftAnalysisResponse:
     from analysis_service.champion.queries import get_champion_id
 
-    mv = _model_version("draft")
     prob_blue = 0.5
     prob_red = 0.5
 
-    try:
-        artifact, mv = _load_artifact("draft")
-        mlb = artifact["mlb"]
-        clf = artifact["model"]
+    artifact, mv = _load_artifact("draft")
+    mlb = artifact["mlb"]
+    clf = artifact["model"]
 
-        def resolve(team) -> list[int]:
-            return [cid for c in team.champions if (cid := get_champion_id(c.name)) is not None]
+    def resolve(team) -> list[int]:
+        return [cid for c in team.champions if (cid := get_champion_id(c.name)) is not None]
 
-        blue_ids = resolve(body.team_blue)
-        red_ids = resolve(body.team_red)
+    blue_ids = resolve(body.team_blue)
+    red_ids = resolve(body.team_red)
 
-        if len(blue_ids) == 5 and len(red_ids) == 5:
-            X = np.hstack([mlb.transform([blue_ids]), mlb.transform([red_ids])]).astype(np.float32)
-            prob_red = round(float(clf.predict_proba(X)[0][1]), 4)
-            prob_blue = round(1.0 - prob_red, 4)
-    except HTTPException:
-        pass
+    if len(blue_ids) == 5 and len(red_ids) == 5:
+        X = np.hstack([mlb.transform([blue_ids]), mlb.transform([red_ids])]).astype(np.float32)
+        prob_red = round(float(clf.predict_proba(X)[0][1]), 4)
+        prob_blue = round(1.0 - prob_red, 4)
 
     return DraftAnalysisResponse(
         blue_win_probability=prob_blue,
@@ -281,43 +277,36 @@ def analyze_draft(body: DraftAnalysisRequest) -> DraftAnalysisResponse:
 def analyze_build(body: BuildAnalysisRequest) -> BuildAnalysisResponse:
     from analysis_service.champion.queries import get_champion_id, get_item_ids
 
-    mv = _model_version("build")
     score = 50
     win_rate = None
 
-    try:
-        artifact, mv = _load_artifact("build")
-        clf = artifact["model"]
-        encoders = artifact["encoders"]
-        item_mlb = encoders["item_mlb"]
-        rune_mlb = encoders["rune_mlb"]
-        pos_le = encoders["pos_le"]
-        champ_le = encoders["champ_le"]
+    artifact, mv = _load_artifact("build")
+    clf = artifact["model"]
+    encoders = artifact["encoders"]
+    item_mlb = encoders["item_mlb"]
+    rune_mlb = encoders["rune_mlb"]
+    pos_le = encoders["pos_le"]
+    champ_le = encoders["champ_le"]
 
-        cid = get_champion_id(body.champion)
-        role_str = body.role.value if body.role else "BOT"
-        pos_db = _ROLE_TO_DB.get(role_str, "BOTTOM")
+    cid = get_champion_id(body.champion)
+    role_str = body.role.value if body.role else "BOT"
+    pos_db = _ROLE_TO_DB.get(role_str, "BOTTOM")
 
-        if cid is not None:
-            # Resolve item names → IDs (as strings to match training)
-            item_ids = [str(i) for i in get_item_ids(body.items)]
-            item_enc = item_mlb.transform([item_ids])
-            rune_enc = rune_mlb.transform([[]])  # no runes provided via API yet
+    if cid is not None:
+        item_ids = [str(i) for i in get_item_ids(body.items)]
+        item_enc = item_mlb.transform([item_ids])
+        rune_enc = rune_mlb.transform([[]])
 
-            try:
-                pos_enc = pos_le.transform([pos_db]).reshape(-1, 1)
-                champ_enc = champ_le.transform([cid]).reshape(-1, 1)
-                numeric = np.array([[0, 0, 0]], dtype=np.float32)
-                X = np.hstack([item_enc, rune_enc, pos_enc, champ_enc, numeric]).astype(np.float32)
-                win_prob = float(clf.predict_proba(X)[0][1])
-                win_rate = round(win_prob, 4)
-                score = int(win_prob * 100)
-            except Exception:
-                # Unknown champion or position — keep defaults
-                pass
-
-    except HTTPException:
-        pass
+        try:
+            pos_enc = pos_le.transform([pos_db]).reshape(-1, 1)
+            champ_enc = champ_le.transform([cid]).reshape(-1, 1)
+            numeric = np.array([[0, 0, 0]], dtype=np.float32)
+            X = np.hstack([item_enc, rune_enc, pos_enc, champ_enc, numeric]).astype(np.float32)
+            win_prob = float(clf.predict_proba(X)[0][1])
+            win_rate = round(win_prob, 4)
+            score = int(win_prob * 100)
+        except Exception:
+            pass
 
     strengths, weaknesses = _eval_build(body.items, body.enemy_composition)
     return BuildAnalysisResponse(
@@ -351,15 +340,9 @@ def analyze_player(body: PlayerAnalysisRequest) -> PlayerAnalysisResponse:
         query_player_stats,
     )
 
-    mv = _model_version("performance")
-
     # ── Load performance model for percentile lookup ──────────
-    percentiles = {}
-    try:
-        artifact, mv = _load_artifact("performance")
-        percentiles = artifact["percentiles"]
-    except HTTPException:
-        pass
+    artifact, mv = _load_artifact("performance")
+    percentiles = artifact["percentiles"]
 
     # ── Query player stats from LEAGUE_DB ────────────────────
     try:
@@ -464,19 +447,11 @@ def analyze_game(body: GameAnalysisRequest) -> GameAnalysisResponse:
     else:
         raise HTTPException(status_code=422, detail="Provide game_id or raw_data.")
 
-    mv = _model_version("performance")
-
     # ── Load performance model ────────────────────────────────
-    pipe = None
-    pos_le = None
-    champ_le = None
-    try:
-        artifact, mv = _load_artifact("performance")
-        pipe = artifact["pipeline"]
-        pos_le = artifact["encoders"]["pos_le"]
-        champ_le = artifact["encoders"]["champ_le"]
-    except HTTPException:
-        pass
+    artifact, mv = _load_artifact("performance")
+    pipe = artifact["pipeline"]
+    pos_le = artifact["encoders"]["pos_le"]
+    champ_le = artifact["encoders"]["champ_le"]
 
     # ── Parse participants ────────────────────────────────────
     participants = raw.get("participants", [])

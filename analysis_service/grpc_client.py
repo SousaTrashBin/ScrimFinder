@@ -3,10 +3,7 @@ analysis_service/grpc_client.py
 gRPC client for the Analysis Service.
 
 Calls the Training Service to get active model metadata,
-replacing the direct platform.db reads once gRPC is fully wired.
-
-Falls back to direct DB reads if Training Service is unreachable,
-so the Analysis Service degrades gracefully if Training is down.
+with no direct database fallback.
 """
 
 import json
@@ -126,23 +123,11 @@ def health_check_grpc() -> dict:
 
 def get_active_model(concern: str) -> dict | None:
     """
-    Get active model metadata.
+    Get active model metadata from Training Service.
 
-    Strategy:
-      1. Try gRPC (Training Service) — fast, always up-to-date
-      2. Fall back to direct platform.db read — works even if Training is down
-
-    This ensures Analysis Service degrades gracefully.
+    If Training is unavailable, fail fast and let callers return 503.
     """
-    # Try gRPC first
     result = get_active_model_grpc(concern)
-    if result is not None:
-        return result
-
-    # Fallback: read platform.db directly
-    try:
-        from analysis_service.core import db
-
-        return db.get_active_model(concern)
-    except Exception:
+    if result is None:
         return None
+    return result

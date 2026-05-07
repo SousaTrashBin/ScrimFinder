@@ -123,11 +123,4 @@ def get_features(game_id: str = Path(...), concern: Optional[Concern] = Query(No
 def delete_features(game_id: str = Path(...), concern: Optional[Concern] = Query(None)):
     if db.get_game(game_id) is None:
         raise HTTPException(status_code=404, detail=f"Game '{game_id}' not found.")
-    with db.get_conn() as conn:
-        if concern:
-            conn.execute(
-                "DELETE FROM features WHERE game_id=? AND concern=?",
-                (game_id, concern.value),
-            )
-        else:
-            conn.execute("DELETE FROM features WHERE game_id=?", (game_id,))
+    db.delete_features(game_id, concern.value if concern else None)

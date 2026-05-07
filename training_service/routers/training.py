@@ -23,7 +23,6 @@ def _resp(r):
         id=r["id"],
         concern=r["concern"],
         algorithm=r["algorithm"],
-        dataset_id=r.get("dataset_id"),
         status=r["status"],
         progress=r["progress"],
         stage=r["stage"],
@@ -37,7 +36,7 @@ def _resp(r):
     )
 
 
-def _run(job_id, concern, algorithm, dataset_id, filters, cancel):
+def _run(job_id, concern, algorithm, filters, cancel):
     import importlib
 
     def report(pct, stage):
@@ -120,17 +119,6 @@ def _run(job_id, concern, algorithm, dataset_id, filters, cancel):
     responses={404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
 )
 def create_job(body: TrainingJobCreate):
-    if body.dataset_id:
-        ds = db.get_dataset(body.dataset_id)
-        if ds is None:
-            raise HTTPException(
-                status_code=404, detail=f"Dataset '{body.dataset_id}' not found."
-            )
-        if ds["status"] != "ready":
-            raise HTTPException(
-                status_code=409,
-                detail=f"Dataset status is '{ds['status']}', must be 'ready'.",
-            )
     filters = {
         k: v
         for k, v in {
@@ -141,9 +129,7 @@ def create_job(body: TrainingJobCreate):
         if v is not None
     }
     job_id = "job_" + uuid.uuid4().hex[:12]
-    db.create_job(
-        job_id, body.concern.value, body.algorithm.value, body.dataset_id, filters
-    )
+    db.create_job(job_id, body.concern.value, body.algorithm.value, None, filters)
     cancel = threading.Event()
     _cancel_flags[job_id] = cancel
     threading.Thread(
@@ -152,7 +138,6 @@ def create_job(body: TrainingJobCreate):
             job_id,
             body.concern.value,
             body.algorithm.value,
-            body.dataset_id,
             filters,
             cancel,
         ),

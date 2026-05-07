@@ -1,4 +1,19 @@
 services:
+  ml-db:
+    image: postgres:15
+    container_name: scrimfinder_ml_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ml
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d ml" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - scrimfinder_net
+
   training:
     build: .
     container_name: scrimfinder_training
@@ -12,12 +27,15 @@ services:
     environment:
       - PYTHONPATH=/app
       - LEAGUE_DB=/app/dataset/league_data.db
-      - PLATFORM_DB=/app/data/platform.db
+      - PLATFORM_DB_DSN=postgresql://postgres:postgres@ml-db:5432/ml
       - MODELS_DIR=/app/data/models
       - GAMES_DIR=/app/data/games
       - DATASETS_DIR=/app/data/datasets
       - MODEL_RELOAD_INTERVAL=60
       - GRPC_PORT=50051
+    depends_on:
+      ml-db:
+        condition: service_healthy
     networks:
       - scrimfinder_net
 

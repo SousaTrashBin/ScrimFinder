@@ -13,7 +13,6 @@ def _meta(r):
         id=r["id"],
         concern=r["concern"],
         algorithm=r["algorithm"],
-        dataset_id=r.get("dataset_id"),
         version=r["version"],
         metrics=r.get("metrics") or {},
         hyperparams=r.get("hyperparams") or {},
@@ -96,5 +95,4 @@ def delete_model(model_id: int = Path(...)):
             status_code=409,
             detail="Cannot delete an active model. Deactivate it first.",
         )
-    with db.get_conn() as conn:
-        conn.execute("DELETE FROM models WHERE id=?", (model_id,))
+    db.delete_model(model_id)

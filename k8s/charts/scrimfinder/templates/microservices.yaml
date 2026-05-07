@@ -1,5 +1,5 @@
 {{- range $name, $config := .Values.services }}
-{{- if $config.ports }}
+{{- if and ($config.ports) (ne $config.enabled false) }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -17,6 +17,15 @@ spec:
       labels:
         app: {{ $name }}
     spec:
+      {{- if $config.waitFor }}
+      initContainers:
+      - name: wait-for-dependencies
+        image: busybox:1.36
+        command:
+        - sh
+        - -c
+        - until nc -z {{ $config.waitFor.host }} {{ $config.waitFor.port }}; do echo waiting for {{ $config.waitFor.host }}:{{ $config.waitFor.port }}; sleep 2; done
+      {{- end }}
       containers:
       - name: {{ $name }}
         image: "{{ $.Values.global.microservicesRegistry }}/{{ $config.imageName }}:{{ $.Values.global.imageTag }}"
