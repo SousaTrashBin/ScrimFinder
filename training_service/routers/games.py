@@ -119,8 +119,16 @@ def _league_game_rows(body: LeagueImportRequest):
                 stat_rows = conn.execute(
                     f"SELECT * FROM player_stats WHERE {ps_match_col}=?", (match_id,)
                 ).fetchall()
-                items = _fetch_grouped(conn, "player_items", match_id) if items_by_match else {}
-                runes = _fetch_grouped(conn, "player_runes", match_id) if runes_by_match else {}
+                items = (
+                    _fetch_grouped(conn, "player_items", match_id)
+                    if items_by_match
+                    else {}
+                )
+                runes = (
+                    _fetch_grouped(conn, "player_runes", match_id)
+                    if runes_by_match
+                    else {}
+                )
                 for stat in stat_rows:
                     participant = dict(stat)
                     puuid = str(participant.get("puuid"))
@@ -178,7 +186,9 @@ def import_league_games(body: LeagueImportRequest):
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(status_code=503, detail=f"LEAGUE_DB unavailable: {exc}") from exc
+        raise HTTPException(
+            status_code=503, detail=f"LEAGUE_DB unavailable: {exc}"
+        ) from exc
 
     for game_id, raw in rows:
         try:
