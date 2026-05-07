@@ -57,6 +57,23 @@ jobs:
           'training_service',
         ]
 
+    # Start a Postgres container for training_service
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: testdb
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: pass
+        ports:
+          - 5432:5432
+        # Wait until postgres is healthy before starting the job
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v6
       - name: set up Python 3.11
@@ -75,10 +92,21 @@ jobs:
 
       - name: lint with ruff
         run: |
-          ruff check ${{ matrix.service }}
-          ruff format --check ${{ matrix.service }}
+          # Note: we check the subdirectory directly to avoid path issues
+          cd ${{ matrix.service }}
+          ruff check .
+          ruff format --check .
 
       - name: run tests with pytest
+        env:
+          # This is the key! It tells the tests where to find the service above
+          TEST_PLATFORM_DB_DSN: "postgresql://user:pass@localhost:5432/testdb"
+          # Mocking other required dirs if needed
+          MODELS_DIR: ./models
+          GAMES_DIR: ./games
+          DATASETS_DIR: ./datasets
         run: |
           cd ${{ matrix.service }}
+          # Create dummy directories so the app doesn't crash on init
+          mkdir -p models games datasets
           pytest
