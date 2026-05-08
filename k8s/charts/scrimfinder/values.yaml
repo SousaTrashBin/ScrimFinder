@@ -1,0 +1,289 @@
+global:
+  namespace: scrimfinder
+  imageTag: "latest"
+  # Registry for microservices only
+  microservicesRegistry: "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}"
+  rabbitmqHost: "scrimfinder-rabbitmq-broker"
+  rabbitmqPort: "5672"
+  podSecurityContext: {}
+  securityContext: {}
+  security:
+    allowInsecureImages: true
+
+secrets:
+  riotApiKey: "REPLACE_ME"
+  dbUser: "postgres"
+  dbPassword: "REPLACE_ME"
+  redisPassword: "redispassword"
+  rabbitmqUser: "user"
+  rabbitmqPassword: "rabbitmqpassword"
+  rabbitmqErlangCookie: "erlangcookie"
+
+traefik:
+  installCRDs: false
+
+  fullnameOverride: scrimfinder-traefik
+
+  deployment:
+    kind: Deployment
+    replicas: 1
+
+  providers:
+    kubernetesCRD:
+      enabled: true
+    kubernetesIngress:
+      enabled: true
+
+  service:
+    enabled: true
+    type: LoadBalancer
+
+  ports:
+    web:
+      port: 8000
+      expose:
+        default: true
+      exposedPort: 80
+
+matchmaking-db:
+  architecture: replication
+  auth:
+    database: matchmaking
+    username: postgres
+    existingSecret: scrimfinder-secrets
+    secretKeys:
+      adminPasswordKey: db-password
+      userPasswordKey: db-password
+      replicationPasswordKey: db-password
+  primary:
+    persistence:
+      size: 10Gi
+  readReplicas:
+    count: 2
+    persistence:
+      size: 10Gi
+
+ranking-db:
+  architecture: replication
+  auth:
+    database: ranking
+    username: postgres
+    existingSecret: scrimfinder-secrets
+    secretKeys:
+      adminPasswordKey: db-password
+      userPasswordKey: db-password
+      replicationPasswordKey: db-password
+  primary:
+    persistence:
+      size: 10Gi
+  readReplicas:
+    count: 2
+    persistence:
+      size: 10Gi
+
+history-db:
+  architecture: replication
+  auth:
+    database: history
+    username: postgres
+    existingSecret: scrimfinder-secrets
+    secretKeys:
+      adminPasswordKey: db-password
+      userPasswordKey: db-password
+      replicationPasswordKey: db-password
+  primary:
+    persistence:
+      size: 10Gi
+  readReplicas:
+    count: 2
+    persistence:
+      size: 10Gi
+
+matchmaking-redis:
+  architecture: standalone
+  auth:
+    enabled: true
+    existingSecret: scrimfinder-secrets
+    existingSecretPasswordKey: redis-password
+  master:
+    persistence:
+      size: 1Gi
+
+filling-cache:
+  architecture: standalone
+  auth:
+    enabled: true
+    existingSecret: scrimfinder-secrets
+    existingSecretPasswordKey: redis-password
+  master:
+    persistence:
+      size: 1Gi
+
+rabbitmq-broker:
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/rabbitmq
+    tag: 4.1.3-debian-12-r1
+  auth:
+    existingPasswordSecret: scrimfinder-secrets
+    existingSecretPasswordKey: rabbitmq-password
+    existingErlangSecret: scrimfinder-secrets
+    existingSecretErlangKey: rabbitmq-erlang-cookie
+  persistence:
+    size: 2Gi
+
+infrastructure:
+  aiStorage:
+    storage: 1Gi
+
+services:
+  matchmaking-service:
+    imageName: "matchmaking-service"
+    ports:
+      - name: http
+        containerPort: 8080
+      - name: grpc
+        containerPort: 9000
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "256Mi"
+      limits:
+        cpu: "800m"
+        memory: "512Mi"
+    env:
+      DB_URL: "jdbc:postgresql://scrimfinder-matchmaking-db-primary:5432/matchmaking"
+      READ_DB_URL: "jdbc:postgresql://scrimfinder-matchmaking-db-read:5432/matchmaking"
+      QUARKUS_REDIS_HOSTS: "redis://scrimfinder-matchmaking-redis-master:6379"
+      RANKING_SVC_HOST: "ranking-service"
+      RANKING_SVC_PORT: "9001"
+      RANKING_SERVICE_URL: "http://ranking-service:8080"
+      PLAYER_FILLING_SVC_HOST: "detail-filling-service"
+      PLAYER_FILLING_SVC_PORT: "9000"
+    healthPath: "/api/v1/matchmaking/q/health"
+  
+  ranking-service:
+    imageName: "ranking-service"
+    ports:
+      - name: http
+        containerPort: 8080
+      - name: grpc
+        containerPort: 9001
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "256Mi"
+      limits:
+        cpu: "800m"
+        memory: "512Mi"
+    env:
+      DB_URL: "jdbc:postgresql://scrimfinder-ranking-db-primary:5432/ranking"
+      READ_DB_URL: "jdbc:postgresql://scrimfinder-ranking-db-read:5432/ranking"
+      PLAYER_FILLING_SVC_HOST: "detail-filling-service"
+      PLAYER_FILLING_SVC_PORT: "9000"
+      MATCH_HISTORY_SVC_HOST: "match-history-service"
+      MATCH_HISTORY_SVC_PORT: "9002"
+      DETAIL_FILLING_SERVICE_URL: "http://detail-filling-service:8080"
+      MATCH_HISTORY_SERVICE_URL: "http://match-history-service:8080"
+    healthPath: "/api/v1/ranking/q/health"
+  
+  match-history-service:
+    imageName: "match-history-service"
+    ports:
+      - name: http
+        containerPort: 8080
+      - name: grpc
+        containerPort: 9002
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "256Mi"
+      limits:
+        cpu: "800m"
+        memory: "512Mi"
+    env:
+      DB_URL: "jdbc:postgresql://scrimfinder-history-db-primary:5432/history"
+      READ_DB_URL: "jdbc:postgresql://scrimfinder-history-db-read:5432/history"
+      TRAINING_SVC_HOST: "training-service"
+      TRAINING_SVC_RPC_PORT: "50051"
+      PLAYER_FILLING_SVC_HOST: "detail-filling-service"
+      PLAYER_FILLING_SVC_PORT: "9000"
+      PLAYER_FILLING_SVC_URL: "http://detail-filling-service:8080/api/v1/riot"
+    healthPath: "/api/v1/history/q/health"
+  
+  detail-filling-service:
+    imageName: "detail-filling-service"
+    ports:
+      - name: http
+        containerPort: 8080
+      - name: grpc
+        containerPort: 9000
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "256Mi"
+      limits:
+        cpu: "800m"
+        memory: "512Mi"
+    env:
+      QUARKUS_REDIS_HOSTS: "redis://scrimfinder-filling-cache-master:6379"
+      REDIS_URL: "redis://scrimfinder-filling-cache-master:6379"
+      TRAINING_SVC_HOST: "training-service"
+      TRAINING_SVC_RPC_PORT: "50051"
+    healthPath: "/api/v1/riot/q/health"
+  
+  training-service:
+    imageName: "training-service"
+    ports:
+      - name: http
+        containerPort: 8000
+      - name: grpc
+        containerPort: 50051
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "512Mi"
+      limits:
+        cpu: "2000m"
+        memory: "2Gi"
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 80
+      targetMemoryUtilizationPercentage: 80
+    env:
+      DETAIL_FILLING_URL: "http://detail-filling-service:8080/api/v1/riot"
+    healthType: "http"
+    healthPath: "/api/v1/training/q/health"
+    persistence:
+      enabled: true
+      mountPath: /app/data
+      claimName: ai-storage-pvc
+  
+  analysis-service:
+    imageName: "analysis-service"
+    ports:
+      - name: http
+        containerPort: 8001
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "512Mi"
+      limits:
+        cpu: "1000m"
+        memory: "1Gi"
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 80
+      targetMemoryUtilizationPercentage: 80
+    env:
+      TRAINING_GRPC_URL: "training-service:50051"
+    healthType: "http"
+    healthPath: "/api/v1/analysis/q/health"
+    persistence:
+      enabled: true
+      mountPath: /app/data
+      claimName: ai-storage-pvc

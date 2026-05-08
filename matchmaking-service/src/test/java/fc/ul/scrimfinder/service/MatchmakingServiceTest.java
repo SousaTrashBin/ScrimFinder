@@ -15,6 +15,7 @@ import fc.ul.scrimfinder.dto.request.JoinQueueRequest;
 import fc.ul.scrimfinder.grpc.MatchResultResponse;
 import fc.ul.scrimfinder.grpc.RankingService;
 import fc.ul.scrimfinder.repository.*;
+import fc.ul.scrimfinder.service.impl.MatchResultSyncSagaService;
 import fc.ul.scrimfinder.util.*;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.TestTransaction;
@@ -53,6 +54,7 @@ public class MatchmakingServiceTest {
     @InjectMock RedisMatchmakingRepository redisRepository;
 
     @InjectMock DistributedLockService lockService;
+    @InjectMock MatchResultSyncSagaService matchResultSyncSagaService;
 
     private List<UUID> mockRedisTickets = new ArrayList<>();
 
@@ -66,6 +68,7 @@ public class MatchmakingServiceTest {
                 .thenReturn(
                         Uni.createFrom()
                                 .item(MatchResultResponse.newBuilder().setSuccess(true).setMessage("OK").build()));
+        when(matchResultSyncSagaService.processNow(any(UUID.class))).thenReturn(true);
 
         doAnswer(
                         invocation -> {
@@ -193,8 +196,10 @@ public class MatchmakingServiceTest {
         matchmakingService.completeMatch(match.getId());
 
         match = matchRepository.findById(match.getId());
-        assertEquals(MatchState.COMPLETED, match.getState());
-        verify(rankingGrpcService, times(1)).reportMatchResults(any());
+        assertTrue(
+                match.getState() == MatchState.IN_PROGRESS || match.getState() == MatchState.COMPLETED);
+        verify(matchResultSyncSagaService, times(1)).enqueueIfMissing(any(), any());
+        verify(matchResultSyncSagaService, times(1)).processNow(eq(match.getId()));
     }
 
     @Test
@@ -202,30 +207,30 @@ public class MatchmakingServiceTest {
         Queue queue = createQueue("Quick Queue", 2, MatchmakingMode.NORMAL);
         Player p1 = createPlayer("P1");
         Player p2 = createPlayer("P2");
-        mockRanking(p1.getId(), queue.getId(), Region.EUW, 1000);
-        mockRanking(p2.getId(), queue.getId(), Region.EUW, 1000);
+        UUID queueId = queue.getId();
+        UUID p1Id = p1.getId();
+        UUID p2Id = p2.getId();
+        mockRanking(p1Id, queueId, Region.EUW, 1000);
+        mockRanking(p2Id, queueId, Region.EUW, 1000);
 
-        var t1 = matchmakingService.joinQueue(new JoinQueueRequest(p1.getId(), queue.getId(), null));
-        var t2 = matchmakingService.joinQueue(new JoinQueueRequest(p2.getId(), queue.getId(), null));
+        matchmakingService.joinQueue(new JoinQueueRequest(p1Id, queueId, null));
+        matchmakingService.joinQueue(new JoinQueueRequest(p2Id, queueId, null));
 
         Match match = matchRepository.findAll().firstResult();
-        matchmakingService.acceptMatch(match.getId(), p1.getId());
-        matchmakingService.acceptMatch(match.getId(), p2.getId());
+        matchmakingService.acceptMatch(match.getId(), p1Id);
+        matchmakingService.acceptMatch(match.getId(), p2Id);
         matchmakingService.linkMatch(match.getId(), "GAME_123");
 
-        // Mock failure
         final UUID finalMatchId = match.getId();
-        when(rankingGrpcService.reportMatchResults(any()))
-                .thenReturn(Uni.createFrom().failure(new RuntimeException("gRPC error")));
+        when(matchResultSyncSagaService.processNow(eq(finalMatchId))).thenReturn(false);
 
-        assertThrows(
-                RuntimeException.class,
-                () -> {
-                    matchmakingService.completeMatch(finalMatchId);
-                });
-
-        match = matchRepository.findById(match.getId());
-        assertEquals(MatchState.RESULT_REPORTING_FAILED, match.getState());
+        RuntimeException ex =
+                assertThrows(
+                        RuntimeException.class,
+                        () -> {
+                            matchmakingService.completeMatch(finalMatchId);
+                        });
+        assertTrue(ex.getMessage().contains("RESULT_REPORTING_FAILED"));
     }
 
     @Test
@@ -269,7 +274,7 @@ public class MatchmakingServiceTest {
 
     private Player createPlayer(String username) {
         Player player = new Player();
-        player.setUsername(username);
+        player.setDiscordUsername(username + "_" + UUID.randomUUID());
         playerRepository.persist(player);
         return player;
     }

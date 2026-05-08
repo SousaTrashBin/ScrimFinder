@@ -28,10 +28,10 @@ public class PlayerMatchStats {
     @JoinColumn(name = "player_id", referencedColumnName = "id", nullable = false)
     private Player player;
 
-    @Column(name = "summonerIcon", nullable = false)
+    @Column(name = "summoner_icon", nullable = false)
     private Integer summonerIcon;
 
-    @Column(name = "summonerLevel", nullable = false)
+    @Column(name = "summoner_level", nullable = false)
     private Integer summonerLevel;
 
     @Column(name = "kills", nullable = false)

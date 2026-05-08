@@ -7,16 +7,26 @@ option java_package = "fc.ul.scrimfinder.grpc";
 option java_outer_classname = "MatchHistoryProto";
 
 service MatchHistoryService {
-  rpc SaveMatchMMRGains (SaveMatchMMRGainsRequest) returns (SaveMatchMMRGainsResponse) {}
+  rpc AddMatch (AddMatchRequest) returns (AddMatchResponse) {}
+  rpc DeleteMatch (DeleteMatchRequest) returns (DeleteMatchResponse) {}
 }
 
-message SaveMatchMMRGainsRequest {
+message AddMatchRequest {
   string gameId = 1;
   string queueId = 2;
   map<string, int32> playerMMRGains = 3;
 }
 
-message SaveMatchMMRGainsResponse {
+message AddMatchResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message DeleteMatchRequest {
+  string gameId = 1;
+}
+
+message DeleteMatchResponse {
   bool success = 1;
   string message = 2;
 }

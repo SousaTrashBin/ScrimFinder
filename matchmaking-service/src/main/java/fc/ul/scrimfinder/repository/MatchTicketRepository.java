@@ -13,4 +13,8 @@ public class MatchTicketRepository implements PanacheRepositoryBase<MatchTicket,
         return list(
                 "queue.id = ?1 and status = ?2 order by createdAt asc", queueId, TicketStatus.IN_QUEUE);
     }
+
+    public List<MatchTicket> findByPlayerId(UUID playerId) {
+        return list("player.id = ?1 order by createdAt desc", playerId);
+    }
 }

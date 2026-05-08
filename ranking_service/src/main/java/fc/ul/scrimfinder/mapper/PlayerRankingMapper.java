@@ -9,7 +9,7 @@ import org.mapstruct.Mapping;
 public interface PlayerRankingMapper {
 
     @Mapping(source = "player.id", target = "playerId")
-    @Mapping(source = "player.discordUsername", target = "username")
+    @Mapping(source = "player.discordUsername", target = "discordUsername")
     @Mapping(
             target = "lolAccountPPUID",
             expression =

@@ -40,7 +40,7 @@ from analysis_service.core.schemas import (
     TipCategory,
 )
 
-router = APIRouter(prefix="/analysis", tags=["Analysis"])
+router = APIRouter(tags=["Analysis"])
 _ERR = {503: {"model": ErrorResponse}, 404: {"model": ErrorResponse}}
 
 # Position mapping — API role values → DB stored values

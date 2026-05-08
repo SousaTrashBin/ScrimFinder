@@ -3,11 +3,14 @@ package fc.ul.scrimfinder.controller;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import fc.ul.scrimfinder.dto.request.JoinQueueRequest;
+import fc.ul.scrimfinder.dto.response.MatchDTO;
 import fc.ul.scrimfinder.dto.response.MatchTicketDTO;
 import fc.ul.scrimfinder.service.MatchmakingService;
+import fc.ul.scrimfinder.util.MatchState;
 import fc.ul.scrimfinder.util.TicketStatus;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -58,11 +61,15 @@ public class MatchmakingResourceTest {
     void testAcceptMatchEndpoint() {
         UUID mid = UUID.randomUUID();
         UUID pid = UUID.randomUUID();
+        MatchDTO match = new MatchDTO();
+        match.setId(mid);
+        match.setState(MatchState.PENDING_ACCEPTANCE);
+        when(matchmakingService.acceptMatch(eq(mid), eq(pid))).thenReturn(match);
+
         given()
                 .contentType(MediaType.APPLICATION_JSON)
-                .queryParam("playerId", pid.toString())
                 .when()
-                .post("/tickets/matches/" + mid + "/accept")
+                .post("/tickets/matches/" + mid + "/players/" + pid + "/accept")
                 .then()
                 .statusCode(200);
     }

@@ -12,6 +12,7 @@ import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -23,6 +24,14 @@ public class PlayerRankingRepository implements PanacheRepositoryBase<PlayerRank
 
     public Optional<PlayerRanking> findByPlayerAndQueue(Player player, QueueEntity queue) {
         return find("player = ?1 and queue = ?2", player, queue).firstResultOptional();
+    }
+
+    public List<PlayerRanking> findByPlayerId(UUID playerId) {
+        return list("player.id", playerId);
+    }
+
+    public List<PlayerRanking> findByPlayerAndQueue(UUID playerId, UUID queueId) {
+        return list("player.id = ?1 and queue.id = ?2", playerId, queueId);
     }
 
     public PaginatedResponseDTO<PlayerRankingDTO> findLeaderboard(

@@ -16,15 +16,20 @@ init_db()
 async def lifespan(app: FastAPI):
     print("LIFESPAN STARTED", flush=True)
     from training_service.grpc_server import start_background_server, stop_server
+    from training_service.rabbitmq_consumer import (
+        start_background_consumer,
+        stop_consumer,
+    )
 
     start_background_server()
+    start_background_consumer()
     yield
     print("LIFESPAN ENDED - Stopping gRPC", flush=True)
+    stop_consumer()
     stop_server(grace=1)
 
 
 app = FastAPI(
-    root_path="/api/v1/training",
     title="ScrimFinder Training Service",
     description=(
         "Game ingestion, feature extraction, dataset management, ML training and model registry.\n\n"
@@ -32,20 +37,20 @@ app = FastAPI(
     ),
     version="1.0.0",
     lifespan=lifespan,
-    docs_url="/q/docs",
-    openapi_url="/q/openapi.json",
+    docs_url="/api/v1/training/q/docs",
+    openapi_url="/api/v1/training/q/openapi.json",
 )
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
 )
-app.include_router(games.router)
-app.include_router(features.router)
-app.include_router(datasets.router)
-app.include_router(training.router)
-app.include_router(models.router)
+app.include_router(games.router, prefix="/api/v1/training")
+app.include_router(features.router, prefix="/api/v1/training")
+app.include_router(datasets.router, prefix="/api/v1/training")
+app.include_router(training.router, prefix="/api/v1/training")
+app.include_router(models.router, prefix="/api/v1/training")
 
 
-@app.get("/", tags=["System"])
+@app.get("/api/v1/training/", tags=["System"])
 def root():
     return {
         "service": "ScrimFinder Training Service",
@@ -56,7 +61,9 @@ def root():
     }
 
 
-@app.get("/health", tags=["System"])
+@app.get("/api/v1/training/q/health/live", tags=["System"])
+@app.get("/api/v1/training/q/health/ready", tags=["System"])
+@app.get("/api/v1/training/health", tags=["System"])
 def health():
     return {"status": "ok"}
 

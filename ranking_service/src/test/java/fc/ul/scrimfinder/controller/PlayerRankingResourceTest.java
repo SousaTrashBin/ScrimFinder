@@ -32,10 +32,10 @@ public class PlayerRankingResourceTest {
 
         given()
                 .when()
-                .get("/players/" + pid + "/queue?queueId=" + qid)
+                .get("/players/" + pid + "/queue-rankings/" + qid)
                 .then()
                 .statusCode(200)
-                .body("playerId", is(pid.toString()))
-                .body("mmr", is(1200));
+                .body("[0].playerId", is(pid.toString()))
+                .body("[0].mmr", is(1200));
     }
 }

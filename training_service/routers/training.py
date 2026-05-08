@@ -14,7 +14,7 @@ from training_service.core.schemas import (
     TrainingJobResponse,
 )
 
-router = APIRouter(prefix="/training/jobs", tags=["Training"])
+router = APIRouter(prefix="/jobs", tags=["Training"])
 _cancel_flags: dict = {}
 
 

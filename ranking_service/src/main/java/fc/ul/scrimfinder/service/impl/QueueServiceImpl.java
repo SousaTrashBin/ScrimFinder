@@ -45,6 +45,16 @@ public class QueueServiceImpl implements QueueService {
 
     @Override
     @Transactional
+    public QueueDTO getQueue(UUID queueId) throws QueueNotFoundException {
+        QueueEntity queue =
+                queueRepository
+                        .findByIdOptional(queueId)
+                        .orElseThrow(() -> new QueueNotFoundException("Queue not found"));
+        return queueMapper.toDTO(queue);
+    }
+
+    @Override
+    @Transactional
     public QueueDTO updateQueue(UUID queueId, @NotNull @Valid UpdateQueueRequest updateDTO) {
         QueueEntity queue =
                 queueRepository

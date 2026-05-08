@@ -40,11 +40,12 @@ public class MatchTicket {
     @Column(nullable = false)
     private int mmr;
 
-    @Column private String riotPuuid;
+    @Column(name = "riot_puuid")
+    private String riotPuuid;
 
     @Column private Integer team;
 
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     @ManyToOne

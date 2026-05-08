@@ -17,28 +17,42 @@ import threading
 TRAINING_GRPC_URL = os.environ.get("TRAINING_GRPC_URL", "localhost:50051")
 
 _channel = None
-_stub = None
 _lock = threading.Lock()
 
 
-def _get_stub():
-    """Lazy-initialise the gRPC stub."""
-    global _channel, _stub
+def _get_channel():
+    """Lazy-initialise the gRPC channel."""
+    global _channel
     with _lock:
-        if _stub is not None:
-            return _stub
+        if _channel is not None:
+            return _channel
         try:
             import grpc
 
-            from analysis_service import training_service_pb2_grpc
-
             _channel = grpc.insecure_channel(TRAINING_GRPC_URL)
-            _stub = training_service_pb2_grpc.TrainingServiceStub(_channel)
-            return _stub
+            return _channel
         except ImportError:
             return None
         except Exception:
             return None
+
+
+def _call_unary(method_paths: list[str], request, response_parser, timeout: int = 5):
+    """Call unary gRPC endpoint trying multiple method paths for compatibility."""
+    channel = _get_channel()
+    if channel is None:
+        return None
+    for method in method_paths:
+        try:
+            unary = channel.unary_unary(
+                method,
+                request_serializer=lambda m: m.SerializeToString(),
+                response_deserializer=response_parser,
+            )
+            return unary(request, timeout=timeout)
+        except Exception:
+            continue
+    return None
 
 
 def get_active_model_grpc(concern: str) -> dict | None:
@@ -50,15 +64,20 @@ def get_active_model_grpc(concern: str) -> dict | None:
       found, model_id, concern, algorithm, version,
       file_path, metrics_json, activated_at
     """
-    stub = _get_stub()
-    if stub is None:
-        return None
-
     try:
         from analysis_service import training_service_pb2
 
         request = training_service_pb2.GetActiveModelRequest(concern=concern)
-        response = stub.GetActiveModel(request, timeout=5)
+        response = _call_unary(
+            [
+                "/fc.ul.scrimfinder.grpc.TrainingService/GetActiveModel",
+                "/scrimfinder.TrainingService/GetActiveModel",
+            ],
+            request,
+            training_service_pb2.GetActiveModelResponse.FromString,
+        )
+        if response is None:
+            return None
 
         if not response.found:
             return None
@@ -82,14 +101,19 @@ def health_check_grpc() -> dict:
     Check if the Training Service is healthy via gRPC.
     Returns dict with healthy, message, games_ingested, active_models.
     """
-    stub = _get_stub()
-    if stub is None:
-        return {"healthy": False, "message": "gRPC stub not available"}
-
     try:
         from analysis_service import training_service_pb2
 
-        response = stub.HealthCheck(training_service_pb2.HealthCheckRequest(), timeout=5)
+        response = _call_unary(
+            [
+                "/fc.ul.scrimfinder.grpc.TrainingService/HealthCheck",
+                "/scrimfinder.TrainingService/HealthCheck",
+            ],
+            training_service_pb2.HealthCheckRequest(),
+            training_service_pb2.HealthCheckResponse.FromString,
+        )
+        if response is None:
+            return {"healthy": False, "message": "gRPC unavailable"}
         return {
             "healthy": response.healthy,
             "message": response.message,

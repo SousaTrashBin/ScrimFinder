@@ -14,26 +14,27 @@ from analysis_service.routers import analysis
 cfg.ensure_dirs()
 
 app = FastAPI(
-    root_path="/api/v1/analysis",
     title="ScrimFinder Analysis Service",
     description="""
     Real-time draft, build, player performance and champion analysis.\n
     \n**Student:** Rodrigo Neto (fc59850)
     """,
     version="1.0.0",
-    docs_url="/q/docs",
-    openapi_url="/q/openapi.json",
+    docs_url="/api/v1/analysis/q/docs",
+    openapi_url="/api/v1/analysis/q/openapi.json",
 )
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
-app.include_router(analysis.router)
+app.include_router(analysis.router, prefix="/api/v1/analysis")
 
 
-@app.get("/", tags=["System"])
+@app.get("/api/v1/analysis/", tags=["System"])
 def root():
     return {"service": "ScrimFinder Analysis Service", "version": "1.0.0", "status": "ok"}
 
 
-@app.get("/health", tags=["System"])
+@app.get("/api/v1/analysis/q/health/live", tags=["System"])
+@app.get("/api/v1/analysis/q/health/ready", tags=["System"])
+@app.get("/api/v1/analysis/health", tags=["System"])
 def health():
     return {"status": "ok"}
 

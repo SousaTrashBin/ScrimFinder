@@ -13,6 +13,7 @@ import fc.ul.scrimfinder.exception.LeagueAccountNotLinkedException;
 import fc.ul.scrimfinder.exception.PlayerNotFoundException;
 import fc.ul.scrimfinder.exception.QueueNotFoundException;
 import fc.ul.scrimfinder.exception.TicketNotFoundException;
+import fc.ul.scrimfinder.grpc.InitializePlayerMMRRequest;
 import fc.ul.scrimfinder.mapper.LobbyMapper;
 import fc.ul.scrimfinder.mapper.MatchMapper;
 import fc.ul.scrimfinder.mapper.MatchTicketMapper;
@@ -21,6 +22,9 @@ import fc.ul.scrimfinder.service.MatchmakingService;
 import fc.ul.scrimfinder.util.*;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.transaction.Status;
+import jakarta.transaction.Synchronization;
+import jakarta.transaction.TransactionSynchronizationRegistry;
 import jakarta.transaction.Transactional;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -38,10 +42,20 @@ public class MatchmakingServiceImpl implements MatchmakingService {
 
     private static final int K_FACTOR = 40;
     @Inject PlayerRepository playerRepository;
+
+    @Inject ReadOnlyPlayerRepository readOnlyPlayerRepository;
+    @Inject ReplicaMatchmakingReadRepository replicaReadRepository;
+
     @Inject QueueRepository queueRepository;
     @Inject MatchTicketRepository ticketRepository;
+
+    @Inject ReadOnlyMatchTicketRepository readOnlyTicketRepository;
+
     @Inject LobbyRepository lobbyRepository;
     @Inject MatchRepository matchRepository;
+
+    @Inject ReadOnlyMatchRepository readOnlyMatchRepository;
+
     @Inject RedisMatchmakingRepository redisRepository;
     @Inject DistributedLockService lockService;
     @Inject MatchTicketMapper ticketMapper;
@@ -51,7 +65,11 @@ public class MatchmakingServiceImpl implements MatchmakingService {
 
     @Inject
     @io.quarkus.grpc.GrpcClient("ranking-service")
-    fc.ul.scrimfinder.grpc.RankingService rankingGrpcService;
+    fc.ul.scrimfinder.grpc.RankingService rankingGrpcClient;
+
+    @Inject MatchFailureStateService matchFailureStateService;
+    @Inject MatchResultSyncSagaService matchResultSyncSagaService;
+    @Inject TransactionSynchronizationRegistry txSyncRegistry;
 
     @Override
     @Transactional
@@ -81,15 +99,51 @@ public class MatchmakingServiceImpl implements MatchmakingService {
                                     return new QueueNotFoundException("Queue not found: " + request.getQueueId());
                                 });
 
-        List<PlayerRankingDTO> rankings =
-                rankingServiceClient.getPlayerRanking(player.getId(), queue.getId());
+        List<PlayerRankingDTO> rankings = null;
+        try {
+            rankings = rankingServiceClient.getPlayerRanking(player.getId(), queue.getId());
+        } catch (LeagueAccountNotLinkedException e) {
+            log.info(
+                    "\u001B[34m[INFO]\u001B[0m Queue ranking missing for player {} in queue {}. Trying bootstrap.",
+                    player.getId(),
+                    queue.getId());
+        }
 
         if (rankings == null || rankings.isEmpty()) {
-            log.error(
-                    "\u001B[31m[ERROR]\u001B[0m No linked League account found for player {}",
-                    player.getId());
-            throw new LeagueAccountNotLinkedException(
-                    "A valid League Account with a region must be linked before joining the queue.");
+            log.info(
+                    "\u001B[34m[INFO]\u001B[0m Missing queue ranking for player {} in queue {}. Bootstrapping ranking.",
+                    player.getId(),
+                    queue.getId());
+            try {
+                var grpcResponse =
+                        rankingGrpcClient
+                                .initializePlayerMMR(
+                                        InitializePlayerMMRRequest.newBuilder()
+                                                .setPlayerId(player.getId().toString())
+                                                .setQueueId(queue.getId().toString())
+                                                .build())
+                                .await()
+                                .indefinitely();
+                if (!grpcResponse.getSuccess()) {
+                    log.warn(
+                            "\u001B[33m[WARN]\u001B[0m Queue ranking bootstrap RPC returned failure for player {}: {}",
+                            player.getId(),
+                            grpcResponse.getMessage());
+                }
+            } catch (RuntimeException e) {
+                log.warn(
+                        "\u001B[33m[WARN]\u001B[0m Queue ranking bootstrap call failed for player {}: {}. Re-checking ranking.",
+                        player.getId(),
+                        e.getMessage());
+            }
+            rankings = rankingServiceClient.getPlayerRanking(player.getId(), queue.getId());
+            if (rankings == null || rankings.isEmpty()) {
+                log.error(
+                        "\u001B[31m[ERROR]\u001B[0m Queue ranking bootstrap failed for player {}",
+                        player.getId());
+                throw new LeagueAccountNotLinkedException(
+                        "A valid League Account with a region must be linked before joining the queue.");
+            }
         }
 
         PlayerRankingDTO ranking = rankings.get(0);
@@ -173,11 +227,16 @@ public class MatchmakingServiceImpl implements MatchmakingService {
                 if (max.getMmr() - min.getMmr() <= queue.getMmrWindow()) {
                     List<MatchTicket> matched =
                             new ArrayList<>(tickets.subList(i, i + queue.getRequiredPlayers()));
+                    log.info(
+                            "\u001B[34m[INFO]\u001B[0m Found standard match within MMR window: {} to {}",
+                            min.getMmr(),
+                            max.getMmr());
                     createMatchProposal(queue, region, matched);
                     return;
                 }
             }
         } else {
+            log.info("\u001B[34m[INFO]\u001B[0m Found standard match (ANY mode)");
             createMatchProposal(queue, region, tickets.subList(0, queue.getRequiredPlayers()));
         }
     }
@@ -231,6 +290,9 @@ public class MatchmakingServiceImpl implements MatchmakingService {
             if (!redisRepository.removeTicket(queue.getId(), region, t.getRole(), t.getId())) {
                 return;
             }
+            registerRollbackCompensation(
+                    () ->
+                            redisRepository.addTicket(queue.getId(), region, t.getRole(), t.getId(), t.getMmr()));
         }
 
         Lobby lobby = new Lobby();
@@ -270,6 +332,11 @@ public class MatchmakingServiceImpl implements MatchmakingService {
         match.setLobby(lobby);
         match.setState(MatchState.PENDING_ACCEPTANCE);
         matchRepository.persist(match);
+        matchResultSyncSagaService.recordLifecycle(
+                match.getId(),
+                "MATCH_PROPOSAL_CREATED",
+                "SUCCESS",
+                "Match created and waiting for acceptance");
 
         log.info(
                 "\u001B[32m[STATE CHANGE]\u001B[0m Match Proposal Created: Match {} (Lobby {}) for {} tickets",
@@ -300,6 +367,17 @@ public class MatchmakingServiceImpl implements MatchmakingService {
             throw new RuntimeException("Match is not in acceptance phase");
         }
 
+        boolean belongsToMatch =
+                match.getLobby().getTickets().stream()
+                        .anyMatch(t -> t.getPlayer().getId().equals(playerId));
+        if (!belongsToMatch) {
+            log.warn(
+                    "\u001B[33m[WARN]\u001B[0m Player {} attempted to accept match {} without a ticket in that lobby",
+                    playerId,
+                    matchId);
+            throw new PlayerNotFoundException("Player is not part of this match");
+        }
+
         match.getAcceptedPlayerIds().add(playerId);
         matchRepository.persist(match);
 
@@ -307,6 +385,8 @@ public class MatchmakingServiceImpl implements MatchmakingService {
             match.setState(MatchState.IN_PROGRESS);
             match.setStartedAt(LocalDateTime.now());
             matchRepository.persist(match);
+            matchResultSyncSagaService.recordLifecycle(
+                    match.getId(), "MATCH_ACCEPTED", "SUCCESS", "All required players accepted the match");
             log.info("\u001B[32m[STATE CHANGE]\u001B[0m Match {} is now IN_PROGRESS", matchId);
         }
 
@@ -328,6 +408,8 @@ public class MatchmakingServiceImpl implements MatchmakingService {
 
         match.setState(MatchState.CANCELLED);
         match.setEndedAt(LocalDateTime.now());
+        matchResultSyncSagaService.recordLifecycle(
+                match.getId(), "MATCH_DECLINED", "SUCCESS", "Match cancelled after player decline");
         log.info(
                 "\u001B[32m[STATE CHANGE]\u001B[0m Match {} CANCELLED by player {}", matchId, playerId);
 
@@ -340,6 +422,10 @@ public class MatchmakingServiceImpl implements MatchmakingService {
                 t.setTeam(null);
                 redisRepository.addTicket(
                         match.getLobby().getQueue().getId(), t.getRegion(), t.getRole(), t.getId(), t.getMmr());
+                registerRollbackCompensation(
+                        () ->
+                                redisRepository.removeTicket(
+                                        match.getLobby().getQueue().getId(), t.getRegion(), t.getRole(), t.getId()));
             }
             ticketRepository.persist(t);
         }
@@ -363,6 +449,8 @@ public class MatchmakingServiceImpl implements MatchmakingService {
                                 });
         match.setExternalGameId(externalGameId);
         matchRepository.persist(match);
+        matchResultSyncSagaService.recordLifecycle(
+                match.getId(), "MATCH_LINKED", "SUCCESS", "External game id linked: " + externalGameId);
         log.info(
                 "\u001B[32m[STATE CHANGE]\u001B[0m Match {} successfully linked to {}",
                 matchId,
@@ -375,19 +463,32 @@ public class MatchmakingServiceImpl implements MatchmakingService {
     @Timeout(10000)
     @CircuitBreaker(requestVolumeThreshold = 5, failureRatio = 0.6, delay = 5000)
     public void completeMatch(UUID matchId) {
+        log.info("\u001B[33m[PENDING]\u001B[0m Completing match {}...", matchId);
         Match match =
                 matchRepository
                         .findByIdOptional(matchId)
-                        .orElseThrow(() -> new RuntimeException("Match not found"));
+                        .orElseThrow(
+                                () -> {
+                                    log.error(
+                                            "\u001B[31m[ERROR]\u001B[0m Match {} not found for completion", matchId);
+                                    return new RuntimeException("Match not found");
+                                });
 
         if (match.getExternalGameId() == null) {
+            log.error("\u001B[31m[ERROR]\u001B[0m Match {} has no external game ID linked", matchId);
             throw new RuntimeException(
                     "Match must be linked with a valid League of Legends Game ID first.");
         }
 
         if (match.getState() == MatchState.COMPLETED) {
+            log.info("\u001B[34m[INFO]\u001B[0m Match {} is already COMPLETED", matchId);
             return;
         }
+
+        log.info(
+                "\u001B[34m[INFO]\u001B[0m Calculating MMR deltas for match {} (External ID: {})",
+                matchId,
+                match.getExternalGameId());
 
         List<MatchTicket> team1 =
                 match.getLobby().getTickets().stream()
@@ -415,35 +516,29 @@ public class MatchmakingServiceImpl implements MatchmakingService {
             deltas.put(t.getRiotPuuid(), new MatchResultRequest.PlayerDelta(winDelta, lossDelta));
         }
 
-        fc.ul.scrimfinder.grpc.MatchResultRequest gRpcRequest =
-                fc.ul.scrimfinder.grpc.MatchResultRequest.newBuilder()
-                        .setGameId(match.getExternalGameId())
-                        .setQueueId(match.getLobby().getQueue().getId().toString())
-                        .putAllPlayerDeltas(
-                                deltas.entrySet().stream()
-                                        .collect(
-                                                Collectors.toMap(
-                                                        Map.Entry::getKey,
-                                                        entry ->
-                                                                fc.ul.scrimfinder.grpc.PlayerDelta.newBuilder()
-                                                                        .setWinDelta(entry.getValue().winDelta())
-                                                                        .setLossDelta(entry.getValue().lossDelta())
-                                                                        .build())))
-                        .build();
+        log.info("\u001B[34m[INFO]\u001B[0m Enqueuing result sync saga step for match {}", matchId);
+        matchResultSyncSagaService.enqueueIfMissing(match, deltas);
+        matchResultSyncSagaService.recordLifecycle(
+                matchId, "RESULT_SYNC_ENQUEUED", "SUCCESS", "Ranking result sync event persisted");
 
         try {
-            var response =
-                    rankingGrpcService.reportMatchResults(gRpcRequest).await().atMost(Duration.ofSeconds(5));
-            if (!response.getSuccess()) {
-                throw new RuntimeException("Ranking service reported failure: " + response.getMessage());
+            boolean synced = matchResultSyncSagaService.processNow(matchId);
+            if (!synced) {
+                matchFailureStateService.markResultReportingFailed(matchId);
+                matchResultSyncSagaService.recordLifecycle(
+                        matchId, "RESULT_SYNC", "RETRY_SCHEDULED", "Initial sync failed, retry is scheduled");
+                throw new RuntimeException(
+                        "Match results queued for retry. Current state: RESULT_REPORTING_FAILED");
             }
-            match.setState(MatchState.COMPLETED);
-            match.setEndedAt(LocalDateTime.now());
-            matchRepository.persist(match);
+            log.info(
+                    "\u001B[32m[SUCCESS]\u001B[0m Match {} successfully COMPLETED and results reported",
+                    matchId);
         } catch (Exception e) {
-            log.error("Failed to report match results for match {}: {}", matchId, e.getMessage());
-            match.setState(MatchState.RESULT_REPORTING_FAILED);
-            matchRepository.persist(match);
+            log.error(
+                    "\u001B[31m[ERROR]\u001B[0m Failed to report match results for match {}: {}",
+                    matchId,
+                    e.getMessage());
+            matchFailureStateService.markResultReportingFailed(matchId);
             throw new RuntimeException("Match results failed to sync. State: RESULT_REPORTING_FAILED", e);
         }
     }
@@ -468,6 +563,14 @@ public class MatchmakingServiceImpl implements MatchmakingService {
             ticketRepository.persist(ticket);
             redisRepository.removeTicket(
                     ticket.getQueue().getId(), ticket.getRegion(), ticket.getRole(), ticket.getId());
+            registerRollbackCompensation(
+                    () ->
+                            redisRepository.addTicket(
+                                    ticket.getQueue().getId(),
+                                    ticket.getRegion(),
+                                    ticket.getRole(),
+                                    ticket.getId(),
+                                    ticket.getMmr()));
             log.info(
                     "\u001B[32m[STATE CHANGE]\u001B[0m Ticket {} CANCELLED: Player left queue", ticketId);
         } else {
@@ -480,11 +583,131 @@ public class MatchmakingServiceImpl implements MatchmakingService {
 
     @Override
     public LobbyDTO getLobbyByTicket(UUID ticketId) {
-        MatchTicket ticket =
-                ticketRepository
-                        .findByIdOptional(ticketId)
-                        .orElseThrow(() -> new TicketNotFoundException("Ticket not found: " + ticketId));
-        if (ticket.getLobby() == null) return null;
-        return lobbyMapper.toDTO(ticket.getLobby());
+        if (isTransactionActive()) {
+            MatchTicket ticket =
+                    readOnlyTicketRepository
+                            .findByIdOptional(ticketId)
+                            .orElseThrow(() -> new TicketNotFoundException("Ticket not found: " + ticketId));
+            if (ticket.getLobby() == null) return null;
+            return toLobbyDTOWithMatchId(ticket.getLobby());
+        }
+        try {
+            return replicaReadRepository
+                    .findLobbyByTicketId(ticketId)
+                    .orElseThrow(() -> new TicketNotFoundException("Ticket not found: " + ticketId));
+        } catch (TicketNotFoundException e) {
+            throw e;
+        } catch (Exception replicaFailure) {
+            log.warn(
+                    "\u001B[33m[WARN]\u001B[0m Replica read failed for lobby by ticket {}, falling back to primary: {}",
+                    ticketId,
+                    replicaFailure.getMessage());
+            MatchTicket ticket =
+                    readOnlyTicketRepository
+                            .findByIdOptional(ticketId)
+                            .orElseThrow(() -> new TicketNotFoundException("Ticket not found: " + ticketId));
+            if (ticket.getLobby() == null) return null;
+            return toLobbyDTOWithMatchId(ticket.getLobby());
+        }
+    }
+
+    @Override
+    public List<MatchTicketDTO> getTicketsByPlayer(UUID playerId) {
+        if (isTransactionActive()) {
+            if (readOnlyPlayerRepository.findByIdOptional(playerId).isEmpty()) {
+                throw new PlayerNotFoundException("Player not found: " + playerId);
+            }
+            return readOnlyTicketRepository.findByPlayerId(playerId).stream()
+                    .map(ticketMapper::toDTO)
+                    .toList();
+        }
+        try {
+            if (!replicaReadRepository.playerExists(playerId)) {
+                throw new PlayerNotFoundException("Player not found: " + playerId);
+            }
+            return replicaReadRepository.findTicketsByPlayerId(playerId);
+        } catch (PlayerNotFoundException e) {
+            throw e;
+        } catch (Exception replicaFailure) {
+            log.warn(
+                    "\u001B[33m[WARN]\u001B[0m Replica read failed for tickets by player {}, falling back to primary: {}",
+                    playerId,
+                    replicaFailure.getMessage());
+            if (readOnlyPlayerRepository.findByIdOptional(playerId).isEmpty()) {
+                throw new PlayerNotFoundException("Player not found: " + playerId);
+            }
+            return readOnlyTicketRepository.findByPlayerId(playerId).stream()
+                    .map(ticketMapper::toDTO)
+                    .toList();
+        }
+    }
+
+    @Override
+    public List<LobbyDTO> getLobbiesByPlayer(UUID playerId) {
+        if (isTransactionActive()) {
+            if (readOnlyPlayerRepository.findByIdOptional(playerId).isEmpty()) {
+                throw new PlayerNotFoundException("Player not found: " + playerId);
+            }
+            return readOnlyTicketRepository.findByPlayerId(playerId).stream()
+                    .map(MatchTicket::getLobby)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .map(this::toLobbyDTOWithMatchId)
+                    .toList();
+        }
+        try {
+            if (!replicaReadRepository.playerExists(playerId)) {
+                throw new PlayerNotFoundException("Player not found: " + playerId);
+            }
+            return replicaReadRepository.findLobbiesByPlayerId(playerId);
+        } catch (PlayerNotFoundException e) {
+            throw e;
+        } catch (Exception replicaFailure) {
+            log.warn(
+                    "\u001B[33m[WARN]\u001B[0m Replica read failed for lobbies by player {}, falling back to primary: {}",
+                    playerId,
+                    replicaFailure.getMessage());
+            if (readOnlyPlayerRepository.findByIdOptional(playerId).isEmpty()) {
+                throw new PlayerNotFoundException("Player not found: " + playerId);
+            }
+
+            return readOnlyTicketRepository.findByPlayerId(playerId).stream()
+                    .map(MatchTicket::getLobby)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .map(this::toLobbyDTOWithMatchId)
+                    .toList();
+        }
+    }
+
+    private LobbyDTO toLobbyDTOWithMatchId(Lobby lobby) {
+        LobbyDTO lobbyDTO = lobbyMapper.toDTO(lobby);
+
+        readOnlyMatchRepository
+                .find("lobby", lobby)
+                .firstResultOptional()
+                .ifPresent(match -> lobbyDTO.setMatchId(match.getId()));
+
+        return lobbyDTO;
+    }
+
+    private void registerRollbackCompensation(Runnable compensation) {
+        txSyncRegistry.registerInterposedSynchronization(
+                new Synchronization() {
+                    @Override
+                    public void beforeCompletion() {}
+
+                    @Override
+                    public void afterCompletion(int status) {
+                        if (status != Status.STATUS_COMMITTED) {
+                            compensation.run();
+                        }
+                    }
+                });
+    }
+
+    private boolean isTransactionActive() {
+        int status = txSyncRegistry.getTransactionStatus();
+        return status == Status.STATUS_ACTIVE || status == Status.STATUS_MARKED_ROLLBACK;
     }
 }

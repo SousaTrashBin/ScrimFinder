@@ -20,10 +20,10 @@ public class QueueEntity {
     private String name;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "mmr_rule_type", nullable = false)
     private MMRRuleType mmrRuleType;
 
-    @Column(nullable = false)
+    @Column(name = "initial_mmr", nullable = false)
     private int initialMMR = 1000;
 
     @Column(nullable = false)

@@ -24,16 +24,16 @@ public class Queue {
 
     @Column private String namespace;
 
-    @Column(nullable = false)
+    @Column(name = "required_players", nullable = false)
     private int requiredPlayers = 10;
 
-    @Column(nullable = false)
+    @Column(name = "is_role_queue", nullable = false)
     private boolean isRoleQueue = false;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private MatchmakingMode mode = MatchmakingMode.NORMAL;
 
-    @Column(nullable = false)
+    @Column(name = "mmr_window", nullable = false)
     private int mmrWindow = 200;
 }

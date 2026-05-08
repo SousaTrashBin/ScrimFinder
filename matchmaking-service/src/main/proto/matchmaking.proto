@@ -8,6 +8,40 @@ option java_outer_classname = "MatchmakingProto";
 
 service RankingService {
   rpc ReportMatchResults (MatchResultRequest) returns (MatchResultResponse);
+  rpc RegisterPlayer (RegisterPlayerRequest) returns (RegisterPlayerResponse);
+  rpc CreateQueue (CreateQueueRequest) returns (CreateQueueResponse);
+  rpc InitializePlayerMMR (InitializePlayerMMRRequest) returns (InitializePlayerMMRResponse);
+}
+
+message RegisterPlayerRequest {
+  string playerId = 1;
+  string username = 2;
+}
+
+message RegisterPlayerResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message CreateQueueRequest {
+  string queueId = 1;
+  string name = 2;
+  int32 initialMMR = 3;
+}
+
+message CreateQueueResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message InitializePlayerMMRRequest {
+  string playerId = 1;
+  string queueId = 2;
+}
+
+message InitializePlayerMMRResponse {
+  bool success = 1;
+  string message = 2;
 }
 
 message MatchResultRequest {

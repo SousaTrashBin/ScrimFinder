@@ -18,6 +18,14 @@ public class GlobalExceptionHandler {
     }
 
     @ServerExceptionMapper
+    public RestResponse<ErrorResponse> mapException(PlayerRankingNotFoundException x) {
+        log.warn("PlayerRankingNotFoundException: {}", x.getMessage());
+        return RestResponse.status(
+                Response.Status.NOT_FOUND,
+                ErrorResponse.builder().code("PLAYER_RANKING_NOT_FOUND").message(x.getMessage()).build());
+    }
+
+    @ServerExceptionMapper
     public RestResponse<ErrorResponse> mapException(QueueNotFoundException x) {
         log.warn("QueueNotFoundException: {}", x.getMessage());
         return RestResponse.status(

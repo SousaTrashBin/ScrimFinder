@@ -116,7 +116,8 @@ public class PlayerServiceTest {
         PlayerDTO result = playerService.linkLolAccount(pid, "puuid-123", "Name", "TAG", Region.EUW);
 
         assertNotNull(result);
-        verify(playerRepository, times(2)).persist(p);
+        verify(playerRepository, times(1)).persistAndFlush(p);
+        verify(playerRepository, times(1)).persist(p);
         assertEquals(1, p.getRiotAccounts().size());
         assertTrue(p.getRiotAccounts().get(0).isPrimary());
     }

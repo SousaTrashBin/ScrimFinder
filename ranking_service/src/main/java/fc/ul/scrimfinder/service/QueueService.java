@@ -13,6 +13,8 @@ public interface QueueService {
     QueueDTO createQueue(UUID queueId, String name, MMRRuleType MMRRuleType, @Positive int initialMMR)
             throws QueueNotFoundException;
 
+    QueueDTO getQueue(UUID queueId) throws QueueNotFoundException;
+
     QueueDTO updateQueue(UUID queueId, @NotNull @Valid UpdateQueueRequest updateDTO)
             throws QueueNotFoundException;
 

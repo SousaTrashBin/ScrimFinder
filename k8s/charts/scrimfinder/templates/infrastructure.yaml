@@ -1,0 +1,14 @@
+{{- $namespace := .Values.global.namespace -}}
+
+{{- /* shared AI Storage */ -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ai-storage-pvc
+  namespace: {{ $namespace }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.infrastructure.aiStorage.storage }}

@@ -128,7 +128,7 @@ public class MatchmakingServiceEdgeCasesTest {
 
     private Player createPlayer(String username) {
         Player player = new Player();
-        player.setUsername(username);
+        player.setDiscordUsername(username);
         playerRepository.persist(player);
         return player;
     }

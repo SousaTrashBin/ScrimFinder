@@ -9,6 +9,7 @@ import lombok.Data;
 @Data
 public class LobbyDTO {
     private UUID id;
+    private UUID matchId;
     private UUID queueId;
     private Region region;
     private List<MatchTicketDTO> tickets;

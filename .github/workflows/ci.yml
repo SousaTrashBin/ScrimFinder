@@ -15,7 +15,7 @@ jobs:
       fail-fast: true
       matrix:
         service: [
-          'matchmaking_service',
+          'matchmaking-service',
           'ranking_service',
           'match_history_service',
           'detail_filling_service'

@@ -1,6 +1,7 @@
 package fc.ul.scrimfinder.controller;
 
 import fc.ul.scrimfinder.dto.request.JoinQueueRequest;
+import fc.ul.scrimfinder.dto.request.LinkMatchRequest;
 import fc.ul.scrimfinder.dto.response.LobbyDTO;
 import fc.ul.scrimfinder.dto.response.MatchDTO;
 import fc.ul.scrimfinder.dto.response.MatchTicketDTO;
@@ -8,6 +9,7 @@ import fc.ul.scrimfinder.service.MatchmakingService;
 import fc.ul.scrimfinder.util.ErrorResponse;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -110,7 +112,7 @@ public class MatchmakingController {
     }
 
     @POST
-    @Path("/matches/{matchId}/accept")
+    @Path("/matches/{matchId}/players/{playerId}/accept")
     @Operation(summary = "Accept a match proposal")
     @APIResponses(
             value = {
@@ -130,13 +132,13 @@ public class MatchmakingController {
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     public Response acceptMatch(
-            @PathParam("matchId") UUID matchId, @QueryParam("playerId") UUID playerId) {
+            @PathParam("matchId") UUID matchId, @PathParam("playerId") UUID playerId) {
         MatchDTO match = matchmakingService.acceptMatch(matchId, playerId);
         return Response.ok(match).build();
     }
 
     @POST
-    @Path("/matches/{matchId}/decline")
+    @Path("/matches/{matchId}/players/{playerId}/decline")
     @Operation(
             summary = "Decline a match proposal",
             description = "If declined, the match is cancelled and the decliner's ticket is removed.")
@@ -152,7 +154,7 @@ public class MatchmakingController {
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     public Response declineMatch(
-            @PathParam("matchId") UUID matchId, @QueryParam("playerId") UUID playerId) {
+            @PathParam("matchId") UUID matchId, @PathParam("playerId") UUID playerId) {
         matchmakingService.declineMatch(matchId, playerId);
         return Response.noContent().build();
     }
@@ -172,8 +174,8 @@ public class MatchmakingController {
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     public Response linkMatch(
-            @PathParam("matchId") UUID matchId, @QueryParam("externalGameId") String externalGameId) {
-        matchmakingService.linkMatch(matchId, externalGameId);
+            @PathParam("matchId") UUID matchId, @Valid @NotNull LinkMatchRequest request) {
+        matchmakingService.linkMatch(matchId, request.externalGameId());
         return Response.ok().build();
     }
 

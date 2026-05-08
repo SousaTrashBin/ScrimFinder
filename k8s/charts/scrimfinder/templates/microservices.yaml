@@ -1,0 +1,155 @@
+{{- range $name, $config := .Values.services }}
+{{- if $config.ports }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  {{- if not ($config.autoscaling).enabled }}
+  replicas: {{ $config.replicas | default 1 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: {{ $name }}
+  template:
+    metadata:
+      labels:
+        app: {{ $name }}
+    spec:
+      containers:
+      - name: {{ $name }}
+        image: "{{ $.Values.global.microservicesRegistry }}/{{ $config.imageName }}:{{ $.Values.global.imageTag }}"
+        imagePullPolicy: {{ $.Values.global.imagePullPolicy | default "Always" }}
+        ports:
+        {{- range $config.ports }}
+        - name: {{ .name }}
+          containerPort: {{ .containerPort }}
+        {{- end }}
+        env:
+        {{- range $key, $val := $config.env }}
+        - name: {{ $key }}
+          value: {{ $val | quote }}
+        {{- end }}
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: scrimfinder-secrets
+              key: db-user
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: scrimfinder-secrets
+              key: db-password
+        - name: RIOT_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: scrimfinder-secrets
+              key: riot-api-key
+        - name: QUARKUS_REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: scrimfinder-secrets
+              key: redis-password
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: scrimfinder-secrets
+              key: redis-password
+        - name: RABBITMQ_HOST
+          value: {{ $.Values.global.rabbitmqHost | quote }}
+        - name: RABBITMQ_PORT
+          value: {{ $.Values.global.rabbitmqPort | quote }}
+        - name: RABBITMQ_USER
+          valueFrom:
+            secretKeyRef:
+              name: scrimfinder-secrets
+              key: rabbitmq-user
+        - name: RABBITMQ_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: scrimfinder-secrets
+              key: rabbitmq-password
+
+        resources:
+          {{- toYaml $config.resources | nindent 10 }}
+        {{- if eq ($config.healthType | default "http") "http" }}
+        livenessProbe:
+          httpGet:
+            path: {{ $config.healthPath }}/live
+            port: {{ $config.healthPort | default (index $config.ports 0).containerPort }}
+          initialDelaySeconds: 90
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: {{ $config.healthPath }}/ready
+            port: {{ $config.healthPort | default (index $config.ports 0).containerPort }}
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 5
+        {{- else if eq $config.healthType "tcp" }}
+        livenessProbe:
+          tcpSocket:
+            port: {{ $config.healthPort | default (index $config.ports 0).containerPort }}
+          initialDelaySeconds: 90
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          tcpSocket:
+            port: {{ $config.healthPort | default (index $config.ports 0).containerPort }}
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 5
+        {{- end }}
+        {{- if $config.persistence }}
+        volumeMounts:
+        - name: {{ $config.persistence.claimName }}
+          mountPath: {{ $config.persistence.mountPath }}
+        {{- end }}
+      {{- if $config.persistence }}
+      volumes:
+      - name: {{ $config.persistence.claimName }}
+        persistentVolumeClaim:
+          claimName: {{ $config.persistence.claimName }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  selector:
+    app: {{ $name }}
+  ports:
+  {{- range $config.ports }}
+  - name: {{ .name }}
+    port: {{ .containerPort }}
+    targetPort: {{ .containerPort }}
+  {{- end }}
+---
+{{- if ($config.autoscaling).enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ $name }}-hpa
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ $name }}
+  minReplicas: {{ $config.autoscaling.minReplicas }}
+  maxReplicas: {{ $config.autoscaling.maxReplicas }}
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: {{ $config.autoscaling.targetCPUUtilizationPercentage }}
+---
+{{- end }}
+{{- end }}
+{{- end }}
