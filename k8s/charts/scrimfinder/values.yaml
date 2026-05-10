@@ -19,6 +19,28 @@ secrets:
   rabbitmqPassword: "rabbitmqpassword"
   rabbitmqErlangCookie: "erlangcookie"
 
+application:
+  metadata:
+    name: scrimfinder
+    namespace: argocd
+  spec:
+    project: default
+    source:
+      repoURL: "https://github.com/SousaTrashBin/ScrimFinder.git"
+      targetRevision: main
+      path: k8s/charts/scrimfinder
+      helm:
+        releaseName: scrimfinder
+        valueFiles:
+          - values.yaml
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: scrimfinder
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+
 traefik:
   installCRDs: false
 

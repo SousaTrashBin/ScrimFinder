@@ -146,6 +146,11 @@ kubectl create namespace "$SCRIM_NAMESPACE" --dry-run=client -o yaml | kubectl a
 echo "installing/updating Traefik CRDs explicitly..."
 helm show crds traefik/traefik | kubectl apply --server-side --force-conflicts -f -
 
+echo "deploying Argo CD..."
+kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
+kubectl apply -n argocd --server-side --force-conflicts -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
+
 echo "updating Helm dependencies..."
 helm dependency update k8s/charts/scrimfinder
 
@@ -247,7 +252,34 @@ while [ -z "$EXTERNAL_IP" ]; do
     [ -z "$EXTERNAL_IP" ] && sleep 10
 done
 
-echo "deployment complete! Traefik External IP/Hostname: $EXTERNAL_IP"
+echo "waiting for Argo CD LoadBalancer External IP/Hostname..."
+
+EXTERNAL_ARGOCD_IP=""
+
+while [ -z "$EXTERNAL_ARGOCD_IP" ]; do
+    echo "waiting for argocd IP..."
+
+    EXTERNAL_ARGOCD_IP=$(kubectl get svc argocd-server \
+        -n argocd \
+        -o=jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+
+    if [ -z "$EXTERNAL_ARGOCD_IP" ]; then
+        echo "checking for Hostname..."
+
+        EXTERNAL_ARGOCD_IP=$(kubectl get svc argocd-server \
+            -n argocd \
+            -o=jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+    fi
+
+    [ -z "$EXTERNAL_ARGOCD_IP" ] && sleep 10
+done
+
+INITIAL_ARGOCD_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secret \
+    -o jsonpath="{.data.password}" | base64 -d)
 
 echo "verifying service health with internal smoke tests..."
 helm test scrimfinder --namespace "$SCRIM_NAMESPACE"
+
+echo "deployment complete!"
+echo "Traefik External IP/Hostname: $EXTERNAL_IP"
+echo "Argo CD External IP/Hostname: ${EXTERNAL_ARGOCD_IP}; username: admin; initial password: $INITIAL_ARGOCD_PASSWORD"

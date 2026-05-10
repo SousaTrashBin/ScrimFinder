@@ -26,11 +26,13 @@ echo "setting active GCP project to $PROJECT_ID..."
 gcloud config set project "$PROJECT_ID" --quiet
 
 cleanup_k8s_resources() {
-    echo "attempting Helm uninstall..."
+    echo "deleting kubernetes resources..."
     helm uninstall scrimfinder -n "$SCRIM_NAMESPACE" --wait || true
+    kubectl delete all --all -n argocd --wait=true --timeout=1m || true
 
-    echo "deleting namespace $SCRIM_NAMESPACE (if present)..."
-    kubectl delete namespace "$SCRIM_NAMESPACE" --ignore-not-found=true --wait=true --timeout=5m || true
+    echo "deleting namespaces argocd and $SCRIM_NAMESPACE (if present)..."
+    kubectl delete namespace argocd --ignore-not-found=true --wait=true --timeout=1m || true
+    kubectl delete namespace "$SCRIM_NAMESPACE" --ignore-not-found=true --wait=true --timeout=1m || true
 }
 
 if gcloud container clusters describe "$CLUSTER_NAME" --zone "$ZONE" --project "$PROJECT_ID" >/dev/null 2>&1; then
@@ -39,8 +41,12 @@ if gcloud container clusters describe "$CLUSTER_NAME" --zone "$ZONE" --project "
 
     cleanup_k8s_resources
 
-    echo "deleting GKE cluster: $CLUSTER_NAME..."
-    gcloud container clusters delete "$CLUSTER_NAME" --zone "$ZONE" --project "$PROJECT_ID" --quiet
+    if [ "${SKIP_CLUSTER_SHUTDOWN:-false}" != "true" ]; then
+        echo "deleting GKE cluster: $CLUSTER_NAME..."
+        gcloud container clusters delete "$CLUSTER_NAME" --zone "$ZONE" --project "$PROJECT_ID" --quiet
+    else
+      echo "skipping cluster deletion (change SKIP_CLUSTER_SHUTDOWN to false to delete the cluster as well)"
+    fi
 else
     echo "cluster $CLUSTER_NAME not found or already deleted."
 fi
