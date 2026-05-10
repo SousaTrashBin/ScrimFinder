@@ -1,37 +1,39 @@
 #!/bin/bash
 set -e
 
-REQUIRED_VARS="SCRIM_PROJECT_ID SCRIM_REGION SCRIM_REPO_NAME SCRIM_ENV_TAG SCRIM_CLUSTER_NAME"
+# We only need the stack name and project ID for a clean Pulumi destroy
+REQUIRED_VARS="SCRIM_PULUMI_STACK SCRIM_PROJECT_ID"
 
 for var in $REQUIRED_VARS; do
-    if [ -z "$(eval echo \$$var)" ]; then
-        echo "error: $var is not set. please set it in your system environment."
+    if [ -z "$(eval echo \${$var:-})" ]; then
+        echo "error: $var is not set."
         exit 1
     fi
 done
 
-PROJECT_ID="$SCRIM_PROJECT_ID"
-REGION="$SCRIM_REGION"
-REPO_NAME="$SCRIM_REPO_NAME"
-ENV_TAG="$SCRIM_ENV_TAG"
-CLUSTER_NAME="$SCRIM_CLUSTER_NAME"
+PULUMI_STACK="${SCRIM_PULUMI_STACK}"
+PULUMI_DIR="$(cd "$(dirname "$0")/../infrastructure/pulumi" && pwd)"
 
-ZONE="${REGION}-a"
+echo "Starting shutdown for stack: $PULUMI_STACK..."
 
-echo "setting active GCP project to $PROJECT_ID..."
-gcloud config set project "$PROJECT_ID" --quiet
-
-if gcloud container clusters describe "$CLUSTER_NAME" --zone "$ZONE" > /dev/null 2>&1; then
-    echo "fetching GKE credentials..."
-    gcloud container clusters get-credentials "$CLUSTER_NAME" --zone "$ZONE" --project "$PROJECT_ID"
-
-    echo "deleting Kubernetes resources with Helm..."
+# 1. Clean up Kubernetes resources first (Optional but good practice)
+# This ensures LoadBalancers and PVs are detached before the cluster vanishes
+if command -v helm &>/dev/null && command -v kubectl &>/dev/null; then
+    echo "Uninstalling Helm release..."
     helm uninstall scrimfinder -n scrimfinder || true
-    
-    echo "deleting GKE cluster: $CLUSTER_NAME..."
-    gcloud container clusters delete "$CLUSTER_NAME" --zone "$ZONE" --project "$PROJECT_ID" --quiet
-else
-    echo "cluster $CLUSTER_NAME not found or already deleted."
 fi
 
-echo "shutdown complete!"
+# 2. Use Pulumi to tear down the infrastructure
+echo "Destroying infrastructure via Pulumi..."
+(
+    cd "$PULUMI_DIR"
+    # Ensure venv is active for the automation
+    [ -d venv ] && source venv/bin/activate || source venv/Scripts/activate
+
+    pulumi stack select "$PULUMI_STACK"
+    # --yes avoids interactive prompts
+    # --remove-pending-state helps if a previous update crashed
+    pulumi destroy --yes --stack "$PULUMI_STACK"
+)
+
+echo "Shutdown complete! Infrastructure destroyed and Pulumi state updated."
