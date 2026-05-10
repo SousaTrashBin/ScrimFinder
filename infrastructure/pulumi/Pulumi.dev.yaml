@@ -1,5 +1,5 @@
 config:
-  gcp:project: REPLACE_WITH_YOUR_PROJECT_ID
+  gcp:project: hellocloud-489215
   gcp:region: europe-west1
   scrimfinder:cluster_name: scrimfinder-dev
   scrimfinder:zone_suffix: "a"
