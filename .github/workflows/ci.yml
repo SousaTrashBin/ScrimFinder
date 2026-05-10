@@ -99,7 +99,6 @@ jobs:
 
       - name: run tests with pytest
         env:
-          # This is the key! It tells the tests where to find the service above
           TEST_PLATFORM_DB_DSN: "postgresql://user:pass@localhost:5432/testdb"
           # Mocking other required dirs if needed
           MODELS_DIR: ./models

@@ -1,0 +1,39 @@
+name: scrimfinder-gke
+runtime:
+  name: python
+  options:
+    virtualenv: venv
+description: Provisions the ScrimFinder GKE cluster, VPC, node pool, Artifact Registry, and Workload Identity on GCP.
+
+config:
+  gcp:project:
+    description: GCP project ID
+  gcp:region:
+    description: GCP region (e.g. europe-west1)
+  scrimfinder:cluster_name:
+    default: scrimfinder
+  scrimfinder:zone_suffix:
+    default: "a"
+  scrimfinder:node_machine_type:
+    default: e2-standard-4
+  scrimfinder:node_count:
+    type: integer
+    default: 1
+  scrimfinder:min_nodes:
+    type: integer
+    default: 1
+  scrimfinder:max_nodes:
+    type: integer
+    default: 3
+  scrimfinder:disk_size_gb:
+    type: integer
+    default: 40
+  scrimfinder:repo_name:
+    default: scrimfinder
+  scrimfinder:enable_spot:
+    type: boolean
+    default: true
+  scrimfinder:gke_channel:
+    default: REGULAR
+  scrimfinder:master_cidr:
+    default: "0.0.0.0/0"
