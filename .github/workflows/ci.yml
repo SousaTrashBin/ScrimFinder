@@ -99,13 +99,15 @@ jobs:
 
       - name: run tests with pytest
         env:
-          TEST_PLATFORM_DB_DSN: "postgresql://user:pass@localhost:5432/testdb"
-          # Mocking other required dirs if needed
+          PLATFORM_DB_HOST: localhost
+          PLATFORM_DB_PORT: "5432"
+          PLATFORM_DB_NAME: testdb
+          PLATFORM_DB_USER: user
+          PLATFORM_DB_PASSWORD: pass
           MODELS_DIR: ./models
           GAMES_DIR: ./games
           DATASETS_DIR: ./datasets
         run: |
           cd ${{ matrix.service }}
-          # Create dummy directories so the app doesn't crash on init
           mkdir -p models games datasets
           pytest
