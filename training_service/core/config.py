@@ -11,7 +11,7 @@ class _Config:
         "PLATFORM_DB_DSN",
         os.environ.get(
             "TEST_PLATFORM_DB_DSN",
-            "host={h} port={p} dbname={db} user={u} password={pw}"
+            "host={h} port={p} dbname={db} user={u} password={pw}",
         ),
     )
 
