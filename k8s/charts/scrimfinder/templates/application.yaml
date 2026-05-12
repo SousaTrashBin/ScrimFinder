@@ -22,7 +22,7 @@ spec:
         rotationPollInterval: 2m
   destination:
     server: https://kubernetes.default.svc
-    namespace: kube-system
+    namespace: {{ .Values.global.namespace }}
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
@@ -55,7 +55,7 @@ spec:
     targetRevision: main
   destination:
     server: https://kubernetes.default.svc
-    namespace: kube-system
+    namespace: {{ .Values.global.namespace }}
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
