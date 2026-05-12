@@ -9,12 +9,9 @@ class _Config:
     # Accept full DSN or build from parts — same pattern ops uses for other DBs.
     PLATFORM_DB_DSN: str = os.environ.get(
         "PLATFORM_DB_DSN",
-        "host={h} port={p} dbname={db} user={u} password={pw}".format(
-            h=os.environ.get("PLATFORM_DB_HOST", "localhost"),
-            p=os.environ.get("PLATFORM_DB_PORT", "5432"),
-            db=os.environ.get("PLATFORM_DB_NAME", "platform"),
-            u=os.environ.get("PLATFORM_DB_USER", "postgres"),
-            pw=os.environ.get("PLATFORM_DB_PASSWORD", "postgres"),
+        os.environ.get(
+            "TEST_PLATFORM_DB_DSN",
+            "host={h} port={p} dbname={db} user={u} password={pw}"
         ),
     )
 

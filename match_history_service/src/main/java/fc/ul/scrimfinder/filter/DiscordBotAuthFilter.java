@@ -3,45 +3,43 @@ package fc.ul.scrimfinder.filter;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.Response;
-import lombok.extern.slf4j.Slf4j;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.jboss.resteasy.reactive.server.ServerRequestFilter;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.HexFormat;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import lombok.extern.slf4j.Slf4j;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.jboss.resteasy.reactive.server.ServerRequestFilter;
 
 /**
  * DiscordBotAuthFilter
  *
- * Validates requests originating from the Discord bot using HMAC-SHA256.
+ * <p>Validates requests originating from the Discord bot using HMAC-SHA256.
  *
- * Required headers on every bot request:
- *   X-Bot-Signature  — HexFormat HMAC-SHA256(secret, accountId + ":" + timestamp)
- *   X-Account-Id     — The Discord account ID the action is performed for
- *   X-Timestamp      — Unix epoch seconds (UTC) of when the request was signed
+ * <p>Required headers on every bot request: X-Bot-Signature — HexFormat HMAC-SHA256(secret,
+ * accountId + ":" + timestamp) X-Account-Id — The Discord account ID the action is performed for
+ * X-Timestamp — Unix epoch seconds (UTC) of when the request was signed
  *
- * Requests without these headers are passed through untouched — normal client
- * requests (validated by Istio JWT policy) do not carry bot headers.
+ * <p>Requests without these headers are passed through untouched — normal client requests
+ * (validated by Istio JWT policy) do not carry bot headers.
  *
- * Replay protection: requests older than REPLAY_WINDOW_SECONDS are rejected.
+ * <p>Replay protection: requests older than REPLAY_WINDOW_SECONDS are rejected.
  *
- * Config property: scrimfinder.discord.bot-secret (injected via K8s secret,
- * mapped to DISCORD_BOT_SECRET env var in application.properties).
+ * <p>Config property: scrimfinder.discord.bot-secret (injected via K8s secret, mapped to
+ * DISCORD_BOT_SECRET env var in application.properties).
  */
 @Slf4j
 @ApplicationScoped
 public class DiscordBotAuthFilter {
 
-    private static final String HEADER_SIGNATURE  = "X-Bot-Signature";
+    private static final String HEADER_SIGNATURE = "X-Bot-Signature";
     private static final String HEADER_ACCOUNT_ID = "X-Account-Id";
-    private static final String HEADER_TIMESTAMP  = "X-Timestamp";
-    private static final String HMAC_ALGORITHM    = "HmacSHA256";
-    private static final long   REPLAY_WINDOW_SECONDS = 30L;
+    private static final String HEADER_TIMESTAMP = "X-Timestamp";
+    private static final String HMAC_ALGORITHM = "HmacSHA256";
+    private static final long REPLAY_WINDOW_SECONDS = 30L;
 
     @ConfigProperty(name = "scrimfinder.discord.bot-secret")
     String botSecret;
@@ -50,7 +48,7 @@ public class DiscordBotAuthFilter {
     public void filter(ContainerRequestContext ctx) {
         String signature = ctx.getHeaderString(HEADER_SIGNATURE);
         String accountId = ctx.getHeaderString(HEADER_ACCOUNT_ID);
-        String timestamp  = ctx.getHeaderString(HEADER_TIMESTAMP);
+        String timestamp = ctx.getHeaderString(HEADER_TIMESTAMP);
 
         // Not a bot request — let Istio JWT policy handle it
         if (signature == null && accountId == null && timestamp == null) {
@@ -81,7 +79,7 @@ public class DiscordBotAuthFilter {
         }
 
         // HMAC-SHA256 verification
-        String payload  = accountId + ":" + timestamp;
+        String payload = accountId + ":" + timestamp;
         String expected = hmac(payload);
 
         if (!constantTimeEquals(expected, signature)) {
@@ -107,8 +105,8 @@ public class DiscordBotAuthFilter {
     }
 
     /**
-     * Constant-time string comparison to prevent timing attacks.
-     * Compares hex strings character by character without short-circuiting.
+     * Constant-time string comparison to prevent timing attacks. Compares hex strings character by
+     * character without short-circuiting.
      */
     private static boolean constantTimeEquals(String a, String b) {
         if (a.length() != b.length()) return false;
@@ -121,10 +119,9 @@ public class DiscordBotAuthFilter {
 
     private static void abort(ContainerRequestContext ctx, String message) {
         ctx.abortWith(
-            Response.status(Response.Status.UNAUTHORIZED)
-                .entity("{\"code\":\"BOT_AUTH_FAILED\",\"message\":\"" + message + "\"}")
-                .header("Content-Type", "application/json")
-                .build()
-        );
+                Response.status(Response.Status.UNAUTHORIZED)
+                        .entity("{\"code\":\"BOT_AUTH_FAILED\",\"message\":\"" + message + "\"}")
+                        .header("Content-Type", "application/json")
+                        .build());
     }
 }
