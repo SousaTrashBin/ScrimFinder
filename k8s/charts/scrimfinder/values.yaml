@@ -18,6 +18,13 @@ secrets:
   rabbitmqUser: "user"
   rabbitmqPassword: "rabbitmqpassword"
   rabbitmqErlangCookie: "erlangcookie"
+  jwtSecret: "REPLACE_ME"
+  discordBotSecret: "REPLACE_ME"
+  platformDbPassword: "REPLACE_ME"
+  jwtDbPassword: "REPLACE_ME"
+  # RS256 key pair — generate with: openssl genrsa 2048 | tee private.pem && openssl rsa -in private.pem -pubout -out public.pem
+  jwtPrivateKey: ""
+  jwtPublicKey: ""
 
 traefik:
   installCRDs: false
@@ -99,19 +106,6 @@ history-db:
     persistence:
       size: 10Gi
 
-ml-db:
-  architecture: standalone
-  auth:
-    database: ml
-    username: postgres
-    existingSecret: scrimfinder-secrets
-    secretKeys:
-      adminPasswordKey: db-password
-      userPasswordKey: db-password
-  primary:
-    persistence:
-      size: 5Gi
-
 matchmaking-redis:
   architecture: standalone
   auth:
@@ -145,6 +139,33 @@ rabbitmq-broker:
   persistence:
     size: 2Gi
 
+
+platform-db:
+  architecture: standalone
+  auth:
+    database: platform
+    username: postgres
+    existingSecret: scrimfinder-secrets
+    secretKeys:
+      adminPasswordKey: platform-db-password
+      userPasswordKey: platform-db-password
+  primary:
+    persistence:
+      size: 5Gi
+
+jwt-db:
+  architecture: standalone
+  auth:
+    database: jwt_manager
+    username: postgres
+    existingSecret: scrimfinder-secrets
+    secretKeys:
+      adminPasswordKey: jwt-db-password
+      userPasswordKey: jwt-db-password
+  primary:
+    persistence:
+      size: 2Gi
+
 infrastructure:
   aiStorage:
     storage: 1Gi
@@ -159,11 +180,11 @@ services:
         containerPort: 9000
     resources:
       requests:
-        cpu: "100m"
-        memory: "256Mi"
+        cpu: "500m"
+        memory: "1Gi"
       limits:
-        cpu: "800m"
-        memory: "512Mi"
+        cpu: "500m"
+        memory: "1Gi"
     env:
       DB_URL: "jdbc:postgresql://scrimfinder-matchmaking-db-primary:5432/matchmaking"
       READ_DB_URL: "jdbc:postgresql://scrimfinder-matchmaking-db-read:5432/matchmaking"
@@ -173,8 +194,10 @@ services:
       RANKING_SERVICE_URL: "http://ranking-service:8080"
       PLAYER_FILLING_SVC_HOST: "detail-filling-service"
       PLAYER_FILLING_SVC_PORT: "9000"
+    envFromSecrets:
+      DISCORD_BOT_SECRET: discord-bot-secret
     healthPath: "/api/v1/matchmaking/q/health"
-  
+
   ranking-service:
     imageName: "ranking-service"
     ports:
@@ -184,11 +207,11 @@ services:
         containerPort: 9001
     resources:
       requests:
-        cpu: "100m"
-        memory: "256Mi"
+        cpu: "500m"
+        memory: "1Gi"
       limits:
-        cpu: "800m"
-        memory: "512Mi"
+        cpu: "500m"
+        memory: "1Gi"
     env:
       DB_URL: "jdbc:postgresql://scrimfinder-ranking-db-primary:5432/ranking"
       READ_DB_URL: "jdbc:postgresql://scrimfinder-ranking-db-read:5432/ranking"
@@ -199,7 +222,7 @@ services:
       DETAIL_FILLING_SERVICE_URL: "http://detail-filling-service:8080"
       MATCH_HISTORY_SERVICE_URL: "http://match-history-service:8080"
     healthPath: "/api/v1/ranking/q/health"
-  
+
   match-history-service:
     imageName: "match-history-service"
     ports:
@@ -209,11 +232,11 @@ services:
         containerPort: 9002
     resources:
       requests:
-        cpu: "100m"
-        memory: "256Mi"
+        cpu: "500m"
+        memory: "1Gi"
       limits:
-        cpu: "800m"
-        memory: "512Mi"
+        cpu: "500m"
+        memory: "1Gi"
     env:
       DB_URL: "jdbc:postgresql://scrimfinder-history-db-primary:5432/history"
       READ_DB_URL: "jdbc:postgresql://scrimfinder-history-db-read:5432/history"
@@ -223,7 +246,7 @@ services:
       PLAYER_FILLING_SVC_PORT: "9000"
       PLAYER_FILLING_SVC_URL: "http://detail-filling-service:8080/api/v1/riot"
     healthPath: "/api/v1/history/q/health"
-  
+
   detail-filling-service:
     imageName: "detail-filling-service"
     ports:
@@ -233,18 +256,18 @@ services:
         containerPort: 9000
     resources:
       requests:
-        cpu: "100m"
-        memory: "256Mi"
+        cpu: "500m"
+        memory: "1Gi"
       limits:
-        cpu: "800m"
-        memory: "512Mi"
+        cpu: "500m"
+        memory: "1Gi"
     env:
       QUARKUS_REDIS_HOSTS: "redis://scrimfinder-filling-cache-master:6379"
       REDIS_URL: "redis://scrimfinder-filling-cache-master:6379"
       TRAINING_SVC_HOST: "training-service"
       TRAINING_SVC_RPC_PORT: "50051"
     healthPath: "/api/v1/riot/q/health"
-  
+
   training-service:
     imageName: "training-service"
     ports:
@@ -254,11 +277,11 @@ services:
         containerPort: 50051
     resources:
       requests:
-        cpu: "200m"
-        memory: "512Mi"
+        cpu: "2000m"
+        memory: "4Gi"
       limits:
         cpu: "2000m"
-        memory: "2Gi"
+        memory: "4Gi"
     autoscaling:
       enabled: true
       minReplicas: 1
@@ -267,20 +290,45 @@ services:
       targetMemoryUtilizationPercentage: 80
     env:
       DETAIL_FILLING_URL: "http://detail-filling-service:8080/api/v1/riot"
-      PLATFORM_DB_DSN: "postgresql://postgres:postgres@scrimfinder-ml-db-primary:5432/ml"
-      MODELS_DIR: "/app/ml_data/models"
-      GAMES_DIR: "/app/ml_data/games"
-      DATASETS_DIR: "/app/ml_data/datasets"
+      PLATFORM_DB_HOST: "scrimfinder-platform-db-primary"
+      PLATFORM_DB_PORT: "5432"
+      PLATFORM_DB_NAME: "platform"
+      PLATFORM_DB_USER: "postgres"
     healthType: "http"
     healthPath: "/api/v1/training/q/health"
     persistence:
       enabled: true
-      mountPath: /app/ml_data
+      mountPath: /app/data
       claimName: ai-storage-pvc
-    waitFor:
-      host: "scrimfinder-ml-db-primary"
-      port: 5432
-  
+
+
+  jwt-manager:
+    imageName: "jwt-manager"
+    ports:
+      - name: http
+        containerPort: 8002
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "256Mi"
+      limits:
+        cpu: "250m"
+        memory: "256Mi"
+    env:
+      JWT_DB_HOST: "scrimfinder-jwt-db-primary"
+      JWT_DB_PORT: "5432"
+      JWT_DB_NAME: "jwt_manager"
+      JWT_DB_USER: "postgres"
+      REDIS_URL: "redis://scrimfinder-matchmaking-redis-master:6379/2"
+      JWT_ISSUER: "scrimfinder/jwt-manager"
+    envFromSecrets:
+      JWT_SECRET: jwt-secret
+      JWT_DB_PASSWORD: jwt-db-password
+      JWT_PRIVATE_KEY: jwt-private-key
+      JWT_PUBLIC_KEY: jwt-public-key
+    healthType: "http"
+    healthPath: "/api/v1/auth/q/health"
+
   analysis-service:
     imageName: "analysis-service"
     ports:
@@ -288,11 +336,11 @@ services:
         containerPort: 8001
     resources:
       requests:
-        cpu: "200m"
-        memory: "512Mi"
+        cpu: "1000m"
+        memory: "2Gi"
       limits:
         cpu: "1000m"
-        memory: "1Gi"
+        memory: "2Gi"
     autoscaling:
       enabled: true
       minReplicas: 1
@@ -301,6 +349,9 @@ services:
       targetMemoryUtilizationPercentage: 80
     env:
       TRAINING_GRPC_URL: "training-service:50051"
-      MODELS_DIR: "/app/ml_data/models"
     healthType: "http"
     healthPath: "/api/v1/analysis/q/health"
+    persistence:
+      enabled: true
+      mountPath: /app/data
+      claimName: ai-storage-pvc
