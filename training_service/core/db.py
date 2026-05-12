@@ -31,7 +31,7 @@ def _get_pool() -> ThreadedConnectionPool:
     with _pool_lock:
         if _pool is None:
             _pool = ThreadedConnectionPool(
-                minconn=1, maxconn=10, dsn=cfg.PLATFORM_DB_DSN
+                minconn=1, maxconn=10, **cfg.PLATFORM_DB_KWARGS
             )
     return _pool
 
