@@ -51,6 +51,7 @@ spec:
   backoffLimit: 0
   template:
     spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
       restartPolicy: Never
       containers:
       - name: flyway
@@ -79,9 +80,18 @@ spec:
         volumeMounts:
         - name: sql
           mountPath: /flyway/sql
+        - name: secrets
+          mountPath: /mnt/secrets
+          readOnly: true
       volumes:
       - name: sql
         configMap:
           name: {{ $job.cm }}
+      - name: secrets
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: gcp-scrimfinder
 ---
 {{- end }}

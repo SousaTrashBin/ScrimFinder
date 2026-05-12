@@ -17,6 +17,7 @@ spec:
       labels:
         app: {{ $name }}
     spec:
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
       containers:
       - name: {{ $name }}
         image: "{{ $.Values.global.microservicesRegistry }}/{{ $config.imageName }}:{{ $.Values.global.imageTag }}"
@@ -102,17 +103,26 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 5
         {{- end }}
-        {{- if $config.persistence }}
         volumeMounts:
+          {{- if $config.persistence }}
         - name: {{ $config.persistence.claimName }}
           mountPath: {{ $config.persistence.mountPath }}
-        {{- end }}
-      {{- if $config.persistence }}
+          {{- end }}
+        - name: secrets
+          mountPath: /mnt/secrets
+          readOnly: true
       volumes:
+        {{- if $config.persistence }}
       - name: {{ $config.persistence.claimName }}
         persistentVolumeClaim:
           claimName: {{ $config.persistence.claimName }}
-      {{- end }}
+        {{- end }}
+      - name: secrets
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: gcp-scrimfinder
 ---
 apiVersion: v1
 kind: Service

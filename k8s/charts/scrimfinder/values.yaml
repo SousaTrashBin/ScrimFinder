@@ -2,9 +2,11 @@ global:
   namespace: scrimfinder
   imageTag: "latest"
   # Registry for microservices only
+  projectID: "${PROJECT_ID}"
   microservicesRegistry: "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}"
   rabbitmqHost: "scrimfinder-rabbitmq-broker"
   rabbitmqPort: "5672"
+  serviceAccountName: scrimfinder
   podSecurityContext: {}
   securityContext: {}
   security:

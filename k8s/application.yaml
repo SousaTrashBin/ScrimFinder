@@ -1,3 +1,56 @@
+# from https://oneuptime.com/blog/post/2026-02-26-argocd-csi-secrets-store-driver/view
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: secrets-store-csi-driver
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://kubernetes-sigs.github.io/secrets-store-csi-driver/charts
+    chart: secrets-store-csi-driver
+    targetRevision: 1.4.0
+    helm:
+      values: |
+        syncSecret:
+          enabled: true  # Enable syncing to K8s Secrets
+        enableSecretRotation: true
+        rotationPollInterval: 2m
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+  ignoreDifferences:
+    - group: ""
+      kind: Secret
+      name: scrimfinder-secrets
+      jsonPointers:
+        - /data
+        - /metadata/labels
+---
+# from https://oneuptime.com/blog/post/2026-02-26-argocd-csi-secrets-store-driver/view
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gcp-csi-provider
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/GoogleCloudPlatform/secrets-store-csi-driver-provider-gcp
+    path: deploy
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -21,5 +74,5 @@ spec:
       - CreateNamespace=true
     automated:
       prune: true
-      selfHeal: false
+      selfHeal: true
   
