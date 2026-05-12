@@ -106,6 +106,13 @@ gcloud iam service-accounts create $SECRETS_SERVICE_ACCOUNT \
     --display-name="secrets-service-account" || true
 
 SECRETS="RIOT_API_KEY|${RIOT_API_KEY}"
+SECRETS+=" DB_USER|${SCRIM_DB_USER}"
+SECRETS+=" DB_PASSWORD|${SCRIM_DB_PASSWORD}"
+SECRETS+=" REDIS_PASSWORD|${SCRIM_REDIS_PASSWORD}"
+SECRETS+=" DB_USER|${SCRIM_DB_USER}"
+SECRETS+=" RABBITMQ_USER|${SCRIM_RABBITMQ_USER}"
+SECRETS+=" RABBITMQ_PASSWORD|${SCRIM_RABBITMQ_PASSWORD}"
+SECRETS+=" RABBITMQ_ERLANG_COOKIE|${SCRIM_RABBITMQ_ERLANG_COOKIE}"
 
 for NAME_SECRET in ${SECRETS}; do
     (
@@ -226,17 +233,11 @@ kubectl apply -n argocd --server-side --force-conflicts -f k8s/application.yaml
 
 COMMON_SET_ARGS=(
     --set "global.namespace=$SCRIM_NAMESPACE"
+    --set "global.projectID=$PROJECT_ID"
     --set "global.microservicesRegistry=${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}"
     --set "global.region=${REGION}"
     --set "global.projectId=${PROJECT_ID}"
     --set "global.repoName=${REPO_NAME}"
-    --set "secrets.riotApiKey=${RIOT_API_KEY}"
-    --set "secrets.dbUser=${SCRIM_DB_USER}"
-    --set "secrets.dbPassword=${SCRIM_DB_PASSWORD}"
-    --set "secrets.redisPassword=${SCRIM_REDIS_PASSWORD}"
-    --set "secrets.rabbitmqUser=${SCRIM_RABBITMQ_USER}"
-    --set "secrets.rabbitmqPassword=${SCRIM_RABBITMQ_PASSWORD}"
-    --set "secrets.rabbitmqErlangCookie=${SCRIM_RABBITMQ_ERLANG_COOKIE}"
     --set "global.rabbitmqHost=${SCRIM_RABBITMQ_HOST}"
     --set "global.rabbitmqPort=${SCRIM_RABBITMQ_PORT}"
 )
