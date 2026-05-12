@@ -54,15 +54,3 @@ spec:
     automated:
       prune: true
       selfHeal: true
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: argocd-cm
-  namespace: argocd
-data:
-  resource.customizations.health.secrets-store.csi.x-k8s.io_SecretProviderClass: |
-    hs = {}
-    hs.status = "Healthy"
-    hs.message = "SecretProviderClass is configured"
-    return hs
