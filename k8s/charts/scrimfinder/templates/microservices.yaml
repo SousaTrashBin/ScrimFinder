@@ -90,13 +90,13 @@ spec:
           initialDelaySeconds: 90
           periodSeconds: 10
           timeoutSeconds: 5
-        readinessProbe:
-          httpGet:
-            path: {{ $config.healthPath }}/ready
-            port: {{ $config.healthPort | default (index $config.ports 0).containerPort }}
-          initialDelaySeconds: 20
-          periodSeconds: 10
-          timeoutSeconds: 5
+#        readinessProbe:
+#          httpGet:
+#            path: {{ $config.healthPath }}/ready
+#            port: {{ $config.healthPort | default (index $config.ports 0).containerPort }}
+#          initialDelaySeconds: 20
+#          periodSeconds: 10
+#          timeoutSeconds: 5
         {{- else if eq $config.healthType "tcp" }}
         livenessProbe:
           tcpSocket:
@@ -104,12 +104,12 @@ spec:
           initialDelaySeconds: 90
           periodSeconds: 10
           timeoutSeconds: 5
-        readinessProbe:
-          tcpSocket:
-            port: {{ $config.healthPort | default (index $config.ports 0).containerPort }}
-          initialDelaySeconds: 20
-          periodSeconds: 10
-          timeoutSeconds: 5
+#        readinessProbe:
+#          tcpSocket:
+#            port: {{ $config.healthPort | default (index $config.ports 0).containerPort }}
+#          initialDelaySeconds: 20
+#          periodSeconds: 10
+#          timeoutSeconds: 5
         {{- end }}
         {{- if $config.persistence }}
         volumeMounts:
