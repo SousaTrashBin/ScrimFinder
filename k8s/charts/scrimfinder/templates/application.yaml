@@ -1,22 +1,31 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: {{ .Values.application.metadata.name }}
-  namespace: {{ .Values.application.metadata.namespace }}
+  name: scrimfinder
+  namespace: argocd
 spec:
-  project: {{ .Values.application.spec.project }}
-  source:
-    repoURL: {{ .Values.application.spec.source.repoURL }}
-    targetRevision: {{ .Values.application.spec.source.targetRevision }}
-    path: {{ .Values.application.spec.source.path }}
-    helm:
-      releaseName: {{ .Values.application.spec.source.helm.releaseName }}
-      valueFiles: {{ .Values.application.spec.source.helm.valueFiles }}
+  project: default
+  sources:
+    - repoURL: "https://traefik.github.io/charts"
+      targetRevision: 35.2.0
+      chart: traefik
+      helm:
+        valueFiles:
+          - values.yaml
+    - repoURL: "https://github.com/SousaTrashBin/ScrimFinder.git"
+      targetRevision: work/bruno
+      path: k8s/charts/scrimfinder
+      helm:
+        releaseName: scrimfinder
+        valueFiles:
+          - values.yaml
   destination:
-    server: {{ .Values.application.spec.destination.server }}
-    namespace: {{ .Values.application.spec.destination.namespace }}
+    server: https://kubernetes.default.svc
+    namespace: scrimfinder
   syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
     automated:
-      prune: {{ .Values.application.spec.syncPolicy.automated.prune }}
-      selfHeal: {{ .Values.application.spec.syncPolicy.automated.selfHeal }}
+      prune: true
+      selfHeal: true
   

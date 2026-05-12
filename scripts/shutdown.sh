@@ -25,21 +25,38 @@ DELETE_ORPHAN_PVC_DISKS="${SCRIM_DELETE_ORPHAN_PVC_DISKS:-false}"
 echo "setting active GCP project to $PROJECT_ID..."
 gcloud config set project "$PROJECT_ID" --quiet
 
-cleanup_k8s_resources() {
-    echo "deleting kubernetes resources..."
-    helm uninstall scrimfinder -n "$SCRIM_NAMESPACE" --wait || true
-    kubectl delete all --all -n argocd --wait=true --timeout=1m || true
+cleanup_resources() {
+    echo "deleting serverless functions..."
+    SERVERLESS_FUNCTIONS="detail-filling-service|getFilledMatch detail-filling-service|getRawMatchData detail-filling-service|getFilledPlayer"
+    for SERVICE_FUNCTION in ${SERVERLESS_FUNCTIONS}; do
+        (
+            FUNCTION=${SERVICE_FUNCTION##*|}
+            gcloud functions delete "${FUNCTION}" --region="${REGION}" || true
+        ) &
+    done
+    wait
 
-    echo "deleting namespaces argocd and $SCRIM_NAMESPACE (if present)..."
+    echo "deleting Argo CD resources..."
+    kubectl patch app scrimfinder  -p '{"metadata": {"finalizers": ["resources-finalizer.argocd.argoproj.io"]}}' --type merge || true
+    kubectl delete app scrimfinder --wait=true --timeout=3m || true
+    kubectl delete -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml --wait=true --timeout=1m || true
     kubectl delete namespace argocd --ignore-not-found=true --wait=true --timeout=1m || true
-    kubectl delete namespace "$SCRIM_NAMESPACE" --ignore-not-found=true --wait=true --timeout=1m || true
+
+    echo "deleting secrets..."
+    SECRETS="RIOT_API_KEY"
+    for SECRET in ${SECRETS}; do
+        gcloud secrets delete "${SECRET}" &
+    done
+    wait
+    SECRETS_SERVICE_ACCOUNT_EMAIL="secrets-service-account@${PROJECT_ID}.iam.gserviceaccount.com"
+    gcloud iam service-accounts delete "${SECRETS_SERVICE_ACCOUNT_EMAIL}" || true
 }
 
 if gcloud container clusters describe "$CLUSTER_NAME" --zone "$ZONE" --project "$PROJECT_ID" >/dev/null 2>&1; then
     echo "fetching GKE credentials..."
     gcloud container clusters get-credentials "$CLUSTER_NAME" --zone "$ZONE" --project "$PROJECT_ID"
 
-    cleanup_k8s_resources
+    cleanup_resources
 
     if [ "${SKIP_CLUSTER_SHUTDOWN:-false}" != "true" ]; then
         echo "deleting GKE cluster: $CLUSTER_NAME..."

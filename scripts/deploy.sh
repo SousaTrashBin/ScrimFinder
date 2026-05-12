@@ -28,14 +28,17 @@ SCRIM_RABBITMQ_PORT="${SCRIM_RABBITMQ_PORT:-5672}"
 echo "checking GCP configuration..."
 gcloud config set project "$PROJECT_ID" --quiet
 
-if ! gcloud services list --enabled --filter="name:container.googleapis.com" | grep -q "container.googleapis.com"; then
-    echo "enabling required Google Cloud APIs..."
-    gcloud services enable \
-        artifactregistry.googleapis.com \
-        container.googleapis.com \
-        compute.googleapis.com \
-        iam.googleapis.com
-fi
+echo "enabling required Google Cloud APIs..."
+gcloud services enable \
+    artifactregistry.googleapis.com \
+    container.googleapis.com \
+    compute.googleapis.com \
+    iam.googleapis.com \
+    cloudfunctions.googleapis.com \
+    cloudbuild.googleapis.com \
+    run.googleapis.com \
+    eventarc.googleapis.com \
+    secretmanager.googleapis.com
 
 ZONE="${REGION}-a"
 EXPECTED_CONTEXT="gke_${PROJECT_ID}_${ZONE}_${CLUSTER_NAME}"
@@ -93,6 +96,35 @@ else
     echo "already connected to the correct GKE cluster ($EXPECTED_CONTEXT)."
 fi
 
+echo "creating secrets for Google Cloud..."
+
+SECRETS_SERVICE_ACCOUNT=secrets-service-account
+SECRETS_SERVICE_ACCOUNT_EMAIL="${SECRETS_SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com"
+
+gcloud iam service-accounts create $SECRETS_SERVICE_ACCOUNT \
+    --description="A Service Account with access to all ScrimFinder secrets" \
+    --display-name="secrets-service-account" || true
+
+SECRETS="RIOT_API_KEY|${RIOT_API_KEY}"
+
+for NAME_SECRET in ${SECRETS}; do
+    (
+        NAME=${NAME_SECRET%%|*}
+        SECRET=${NAME_SECRET##*|}
+
+        echo -n "${SECRET}" | gcloud secrets create "${NAME}" \
+            --data-file=- \
+            --replication-policy="automatic" || true
+
+        gcloud secrets add-iam-policy-binding "${NAME}" \
+            --member="serviceAccount:${SECRETS_SERVICE_ACCOUNT_EMAIL}" \
+            --role="roles/secretmanager.secretAccessor"
+    ) &
+done
+
+wait
+echo "done creating secrets."
+
 echo "authenticating Docker to Artifact Registry..."
 gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
 
@@ -106,7 +138,7 @@ if ! gcloud artifacts repositories describe "$REPO_NAME" --location="$REGION" > 
 fi
 
 if [ -z "${SERVICES:-}" ]; then
-    SERVICES="matchmaking-service ranking_service match_history_service detail_filling_service training_service analysis_service"
+    SERVICES="matchmaking-service ranking_service match_history_service training_service analysis_service"
 fi
 
 if [ "${SKIP_BUILD:-false}" != "true" ]; then
@@ -135,24 +167,61 @@ else
     echo "skipping build phase."
 fi
 
-echo "deploying with Helm, Traefik, and routing..."
+echo "packaging services with serverless functions..."
 
-helm repo add traefik https://traefik.github.io/charts
-helm repo update
+SERVERLESS_SERVICES="detail_filling_service"
 
-echo "preparing namespace..."
-kubectl create namespace "$SCRIM_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+for SERVICE in ${SERVERLESS_SERVICES}; do
+    cd "${SERVICE}"
+    mvn clean package
+    cd ..
+done
 
-echo "installing/updating Traefik CRDs explicitly..."
-helm show crds traefik/traefik | kubectl apply --server-side --force-conflicts -f -
+echo "deploying serverless functions in parallel..."
+
+SERVERLESS_FUNCTIONS="detail_filling_service|getFilledMatch|RIOT_API_KEY"
+SERVERLESS_FUNCTIONS+=" detail_filling_service|getRawMatchData|RIOT_API_KEY"
+SERVERLESS_FUNCTIONS+=" detail_filling_service|getFilledPlayer|RIOT_API_KEY"
+
+for SERVICE_FUNCTION in ${SERVERLESS_FUNCTIONS}; do
+    (
+        SERVICE=${SERVICE_FUNCTION%%|*}
+        temp=${SERVICE_FUNCTION#*|}
+        FUNCTION=${temp%%|*}
+        SECRETS=${temp##*|}
+
+        gcloud functions deploy "${FUNCTION}" \
+            --region="${REGION}" \
+            --entry-point=io.quarkus.gcp.functions.http.QuarkusHttpFunction \
+            --runtime=java21 \
+            --trigger-http \
+            --allow-unauthenticated \
+            --source="${SERVICE}"/target/deployment \
+            --min-instances=0 \
+            --max-instances=30 \
+            --memory=512Mi \
+            --cpu=800m \
+            --service-account="${SECRETS_SERVICE_ACCOUNT_EMAIL}" \
+            --set-secrets 'RIOT_API_KEY=RIOT_API_KEY:latest' # from Google Cloud secret manager
+    ) &
+done
+
+wait
+echo "all serverless functions done deploying."
+
+echo "functions info:"
+
+for SERVICE_FUNCTION in ${SERVERLESS_FUNCTIONS}; do
+    temp=${SERVICE_FUNCTION#*|}
+    FUNCTION=${temp%%|*}
+    gcloud functions describe "${FUNCTION}" --region="${REGION}" #--format="value(serviceConfig.uri)"
+done
 
 echo "deploying Argo CD..."
+
 kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
 kubectl apply -n argocd --server-side --force-conflicts -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
-
-echo "updating Helm dependencies..."
-helm dependency update k8s/charts/scrimfinder
 
 COMMON_SET_ARGS=(
     --set "global.namespace=$SCRIM_NAMESPACE"
@@ -170,65 +239,6 @@ COMMON_SET_ARGS=(
     --set "global.rabbitmqHost=${SCRIM_RABBITMQ_HOST}"
     --set "global.rabbitmqPort=${SCRIM_RABBITMQ_PORT}"
 )
-
-HELM_DIFF_ARGS=(
-    --namespace "$SCRIM_NAMESPACE"
-    "${COMMON_SET_ARGS[@]}"
-)
-
-HELM_UPGRADE_ARGS=(
-    --namespace "$SCRIM_NAMESPACE"
-    --create-namespace
-    --skip-crds
-    "${COMMON_SET_ARGS[@]}"
-)
-
-if helm plugin list | grep -q "diff"; then
-    echo "--- PREVIEWING CHANGES (helm diff) ---"
-
-    helm diff upgrade scrimfinder k8s/charts/scrimfinder \
-        "${HELM_DIFF_ARGS[@]}" \
-        --allow-unreleased
-
-    if [ "${CONFIRM_DEPLOY:-false}" = "true" ]; then
-        echo "proceeding with deployment..."
-    else
-        echo "check the diff above."
-        echo "to bypass this check in the future, set CONFIRM_DEPLOY=true."
-    fi
-fi
-
-echo "checking Helm release state..."
-
-HELM_STATUS=$(helm status scrimfinder -n "$SCRIM_NAMESPACE" 2>/dev/null | grep "STATUS:" | awk '{print $2}' || echo "NOT_FOUND")
-
-if [[ "$HELM_STATUS" == "pending-install" || "$HELM_STATUS" == "pending-upgrade" || "$HELM_STATUS" == "pending-rollback" ]]; then
-    echo "detected stuck Helm release ($HELM_STATUS). clearing lock..."
-
-    LATEST_REVISION=$(helm history scrimfinder -n "$SCRIM_NAMESPACE" --max 1 2>/dev/null | tail -n 1 | awk '{print $1}')
-
-    if [ -n "$LATEST_REVISION" ] && [ "$LATEST_REVISION" != "REVISION" ]; then
-        kubectl delete secret "sh.helm.release.v1.scrimfinder.v${LATEST_REVISION}" -n "$SCRIM_NAMESPACE"
-    fi
-fi
-
-echo "deploying with Helm..."
-
-set +e
-HELM_OUTPUT=$(helm upgrade --install scrimfinder k8s/charts/scrimfinder \
-    "${HELM_UPGRADE_ARGS[@]}" \
-    --wait \
-    --timeout 10m 2>&1)
-HELM_RC=$?
-set -e
-
-if [ $HELM_RC -ne 0 ]; then
-    echo "$HELM_OUTPUT"
-    echo "helm deployment failed."
-    exit $HELM_RC
-else
-    echo "$HELM_OUTPUT"
-fi
 
 echo "waiting for Traefik LoadBalancer External IP/Hostname..."
 

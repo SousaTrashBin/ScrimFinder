@@ -4,9 +4,9 @@ metadata:
   name: scrimfinder-ranking-migrations
   namespace: {{ .Values.global.namespace }}
   annotations:
-    "helm.sh/hook": post-install,pre-upgrade
-    "helm.sh/hook-weight": "-10"
-    "helm.sh/hook-delete-policy": before-hook-creation
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-10"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 data: {}
 ---
 apiVersion: v1
@@ -15,9 +15,9 @@ metadata:
   name: scrimfinder-matchmaking-migrations
   namespace: {{ .Values.global.namespace }}
   annotations:
-    "helm.sh/hook": post-install,pre-upgrade
-    "helm.sh/hook-weight": "-10"
-    "helm.sh/hook-delete-policy": before-hook-creation
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-10"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 data: {}
 ---
 apiVersion: v1
@@ -26,9 +26,9 @@ metadata:
   name: scrimfinder-history-migrations
   namespace: {{ .Values.global.namespace }}
   annotations:
-    "helm.sh/hook": post-install,pre-upgrade
-    "helm.sh/hook-weight": "-10"
-    "helm.sh/hook-delete-policy": before-hook-creation
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-10"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 data: {}
 ---
 {{- $ns := .Values.global.namespace -}}
@@ -44,9 +44,9 @@ metadata:
   name: "scrimfinder-{{ $job.name }}-db-migrate"
   namespace: {{ $ns }}
   annotations:
-    "helm.sh/hook": post-install,pre-upgrade
-    "helm.sh/hook-weight": "-5"
-    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-5"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
 spec:
   backoffLimit: 0
   template:
