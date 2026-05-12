@@ -224,8 +224,10 @@ for SERVICE_FUNCTION in ${SERVERLESS_FUNCTIONS}; do
     gcloud functions describe "${FUNCTION}" --region="${REGION}" #--format="value(serviceConfig.uri)"
 done
 
-echo "deploying Argo CD..."
+echo "updating Helm dependencies..."
+helm dependency update k8s/charts/scrimfinder
 
+echo "deploying Argo CD..."
 kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
 kubectl apply -n argocd --server-side --force-conflicts -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'

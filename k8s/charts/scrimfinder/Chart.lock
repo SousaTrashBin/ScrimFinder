@@ -20,5 +20,8 @@ dependencies:
 - name: rabbitmq
   repository: oci://registry-1.docker.io/bitnamicharts
   version: 16.0.14
-digest: sha256:0c24930a9e97f3320af30fd87d4cdea5282da444f47ac01c62415a38845c24f2
-generated: "2026-05-02T23:37:07.224283+01:00"
+- name: secrets-store-csi-driver
+  repository: https://kubernetes-sigs.github.io/secrets-store-csi-driver/charts
+  version: 1.6.0
+digest: sha256:99e60e56d1b54dc69b326e43faac0279d393834e602daefffdd726fde8d1debb
+generated: "2026-05-12T17:17:35.8908822+01:00"
