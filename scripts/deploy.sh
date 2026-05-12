@@ -222,6 +222,7 @@ echo "deploying Argo CD..."
 kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
 kubectl apply -n argocd --server-side --force-conflicts -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
+kubectl apply -n argocd --server-side --force-conflicts -f k8s/application.yaml
 
 COMMON_SET_ARGS=(
     --set "global.namespace=$SCRIM_NAMESPACE"

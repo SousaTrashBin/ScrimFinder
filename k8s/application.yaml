@@ -6,12 +6,6 @@ metadata:
 spec:
   project: default
   sources:
-    - repoURL: "https://traefik.github.io/charts"
-      targetRevision: 35.2.0
-      chart: traefik
-      helm:
-        valueFiles:
-          - values.yaml
     - repoURL: "https://github.com/SousaTrashBin/ScrimFinder.git"
       targetRevision: work/bruno
       path: k8s/charts/scrimfinder
@@ -27,5 +21,5 @@ spec:
       - CreateNamespace=true
     automated:
       prune: true
-      selfHeal: true
+      selfHeal: false
   
