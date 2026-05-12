@@ -4,6 +4,10 @@ kind: Application
 metadata:
   name: secrets-store-csi-driver
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-15"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 spec:
   project: default
   source:
@@ -39,6 +43,10 @@ kind: Application
 metadata:
   name: gcp-csi-provider
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-15"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreatioIn
 spec:
   project: default
   source:
