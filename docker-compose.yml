@@ -1,4 +1,4 @@
-cleservices:
+services:
   traefik:
     image: traefik:v3.6.2
     command:
@@ -44,18 +44,6 @@ cleservices:
       POSTGRES_DB: history
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres -d history" ]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  ml-db:
-    image: postgres:15
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: ml
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres -d ml" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -146,6 +134,62 @@ cleservices:
       redis:
         condition: service_healthy
 
+
+  jwt-db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: jwt_manager
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d jwt_manager"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  platform-db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: platform
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  jwt-manager:
+    build:
+      context: ./jwt_manager
+      dockerfile: Dockerfile
+    command: uvicorn jwt_manager.main:app --host 0.0.0.0 --port 8002
+    environment:
+      - PYTHONPATH=/app
+      - JWT_DB_HOST=jwt-db
+      - JWT_DB_PORT=5432
+      - JWT_DB_NAME=jwt_manager
+      - JWT_DB_USER=postgres
+      - JWT_DB_PASSWORD=postgres
+      - REDIS_URL=redis://redis:6379/2
+      - JWT_SECRET=${JWT_SECRET:-changeme_in_production}
+      - JWT_ISSUER=scrimfinder/jwt-manager
+      - JWT_KEY_ID=scrimfinder-key-v1
+      # RS256 keys: leave empty for dev (throwaway pair generated at startup)
+      - JWT_PRIVATE_KEY=
+      - JWT_PUBLIC_KEY=
+      - ACCESS_TOKEN_TTL_SECONDS=3600
+      - REFRESH_TOKEN_TTL_SECONDS=604800
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jwt.rule=PathPrefix(`/api/v1/auth`)"
+      - "traefik.http.services.jwt.loadbalancer.server.port=8002"
+    depends_on:
+      jwt-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   training-service:
     build:
       context: ./training_service
@@ -154,7 +198,7 @@ cleservices:
     environment:
       - PYTHONPATH=/app
       - LEAGUE_DB=/app/dataset/league_data.db
-      - PLATFORM_DB_DSN=postgresql://postgres:postgres@ml-db:5432/ml
+      - PLATFORM_DB_DSN=host=platform-db port=5432 dbname=platform user=postgres password=postgres
       - MODELS_DIR=/app/ml_data/models
       - GAMES_DIR=/app/ml_data/games
       - DATASETS_DIR=/app/ml_data/datasets
@@ -169,7 +213,7 @@ cleservices:
       - "traefik.http.routers.training.rule=PathPrefix(`/api/v1/training`)"
       - "traefik.http.services.training.loadbalancer.server.port=8000"
     depends_on:
-      ml-db:
+      platform-db:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -184,6 +228,7 @@ cleservices:
     environment:
       - PYTHONPATH=/app
       - LEAGUE_DB=/app/dataset/league_data.db
+      - PLATFORM_DB_DSN=host=platform-db port=5432 dbname=platform user=postgres password=postgres
       - MODELS_DIR=/app/ml_data/models
       - MODEL_RELOAD_INTERVAL=60
       - TRAINING_GRPC_URL=training-service:50051
