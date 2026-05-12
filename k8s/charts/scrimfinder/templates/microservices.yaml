@@ -118,7 +118,7 @@ spec:
         {{- end }}
       - name: secrets
         csi:
-          driver: secrets-store-csi-driver
+          driver: secrets-store.csi.k8s.io
           readOnly: true
           volumeAttributes:
             secretProviderClass: gcp-scrimfinder

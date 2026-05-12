@@ -221,7 +221,7 @@ echo "functions info:"
 for SERVICE_FUNCTION in ${SERVERLESS_FUNCTIONS}; do
     temp=${SERVICE_FUNCTION#*|}
     FUNCTION=${temp%%|*}
-    gcloud functions describe "${FUNCTION}" --region="${REGION}" #--format="value(serviceConfig.uri)"
+    gcloud functions describe "${FUNCTION}" --region="${REGION}" --format="value(url)"
 done
 
 echo "updating Helm dependencies..."

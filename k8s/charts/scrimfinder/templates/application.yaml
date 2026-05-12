@@ -3,7 +3,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: secrets-store-csi-driver
-  namespace: {{ .Values.global.namespace }}
+  namespace: argocd
   annotations:
     argocd.argoproj.io/hook: PreSync
     argocd.argoproj.io/sync-wave: "-15"
@@ -22,7 +22,7 @@ spec:
         rotationPollInterval: 2m
   destination:
     server: https://kubernetes.default.svc
-    namespace: {{ .Values.global.namespace }}
+    namespace: kube-system
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
@@ -42,7 +42,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: gcp-csi-provider
-  namespace: {{ .Values.global.namespace }}
+  namespace: argocd
   annotations:
     argocd.argoproj.io/hook: PreSync
     argocd.argoproj.io/sync-wave: "-15"
@@ -55,7 +55,7 @@ spec:
     targetRevision: main
   destination:
     server: https://kubernetes.default.svc
-    namespace: {{ .Values.global.namespace }}
+    namespace: kube-system
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
