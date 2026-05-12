@@ -5,14 +5,14 @@ metadata:
   namespace: argocd
 spec:
   project: default
-  sources:
-    - repoURL: "https://github.com/SousaTrashBin/ScrimFinder.git"
-      targetRevision: work/bruno
-      path: k8s/charts/scrimfinder
-      helm:
-        releaseName: scrimfinder
-        valueFiles:
-          - values.yaml
+  source:
+    repoURL: "https://github.com/SousaTrashBin/ScrimFinder.git"
+    targetRevision: work/bruno
+    path: k8s/charts/scrimfinder
+    helm:
+      releaseName: scrimfinder
+      valueFiles:
+        - values.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: scrimfinder
