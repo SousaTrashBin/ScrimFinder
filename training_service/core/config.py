@@ -1,19 +1,39 @@
 import os
+import re
 from pathlib import Path
 
 _HERE = Path(__file__).resolve().parent.parent
 
 
+def _parse_postgres_uri(uri: str) -> str:
+    """Convert postgresql:// URI to libpq key-value DSN format."""
+    if not uri.startswith("postgresql://"):
+        return uri  # Already key-value format
+    # postgresql://user:pass@host:port/dbname
+    match = re.match(r"postgresql://([^:]+):([^@]+)@([^:]+):(\d+)/(.+)", uri)
+    if not match:
+        raise ValueError(f"Cannot parse PostgreSQL URI: {uri}")
+    user, password, host, port, dbname = match.groups()
+    return f"host={host} port={port} dbname={dbname} user={user} password={password}"
+
+
 class _Config:
-    # ── PostgreSQL DSN for platform metadata DB ───────────────────────────────
-    # Accept full DSN or build from parts — same pattern ops uses for other DBs.
-    PLATFORM_DB_DSN: str = os.environ.get(
-        "PLATFORM_DB_DSN",
+    PLATFORM_DB_DSN: str = _parse_postgres_uri(
         os.environ.get(
-            "TEST_PLATFORM_DB_DSN",
-            "host={h} port={p} dbname={db} user={u} password={pw}",
-        ),
+            "PLATFORM_DB_DSN",
+            os.environ.get(
+                "TEST_PLATFORM_DB_DSN",
+                "host={h} port={p} dbname={db} user={u} password={pw}".format(
+                    h=os.environ.get("PLATFORM_DB_HOST", "localhost"),
+                    p=os.environ.get("PLATFORM_DB_PORT", "5432"),
+                    db=os.environ.get("PLATFORM_DB_NAME", "platform"),
+                    u=os.environ.get("PLATFORM_DB_USER", "postgres"),
+                    pw=os.environ.get("PLATFORM_DB_PASSWORD", "postgres"),
+                ),
+            ),
+        )
     )
+    # ... rest unchanged
 
     # ── Read-only 78 GB SQLite league dataset ─────────────────────────────────
     LEAGUE_DB: str = os.environ.get(
