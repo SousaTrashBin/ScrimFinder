@@ -118,7 +118,7 @@ spec:
         {{- end }}
       - name: secrets
         csi:
-          driver: secrets-store.csi.k8s.io
+          driver: secrets-store-csi-driver
           readOnly: true
           volumeAttributes:
             secretProviderClass: gcp-csi-provider
