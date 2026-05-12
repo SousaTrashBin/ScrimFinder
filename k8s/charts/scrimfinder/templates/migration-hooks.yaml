@@ -51,7 +51,6 @@ spec:
   backoffLimit: 0
   template:
     spec:
-      serviceAccountName: {{ .Values.global.serviceAccountName }}
       restartPolicy: Never
       containers:
       - name: flyway
