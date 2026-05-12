@@ -121,7 +121,7 @@ spec:
           driver: secrets-store-csi-driver
           readOnly: true
           volumeAttributes:
-            secretProviderClass: gcp-csi-provider
+            secretProviderClass: gcp-scrimfinder
 ---
 apiVersion: v1
 kind: Service
