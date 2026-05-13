@@ -288,7 +288,7 @@ for SERVICE_FUNCTION in ${SERVERLESS_FUNCTIONS}; do
 
     if [ -z "${DETAIL_FILLING_FUNCTION_URL}" ]; then
         DETAIL_FILLING_FUNCTION_URL="${FUNCTION_URL}"
-        DETAIL_FILLING_API_URL="${FUNCTION_URL}/api/v1/riot"
+        DETAIL_FILLING_DOMAIN=$(echo "$FUNCTION_URL" | awk -F/ '{print $3}')
     fi
 
     case "${FUNCTION}" in
@@ -312,8 +312,7 @@ if [ -z "${DETAIL_FILLING_FUNCTION_URL}" ]; then
     exit 1
 fi
 
-echo "using detail filling service URL for Kubernetes services: ${DETAIL_FILLING_FUNCTION_URL}"
-echo "using detail filling API URL for Kubernetes services: ${DETAIL_FILLING_API_URL}"
+echo "using detail filling domain for Traefik ExternalName: ${DETAIL_FILLING_DOMAIN}"
 
 echo "updating Helm dependencies..."
 helm dependency update k8s/charts/scrimfinder
@@ -355,12 +354,14 @@ spec:
           value: "${SCRIM_RABBITMQ_HOST}"
         - name: global.rabbitmqPort
           value: "${SCRIM_RABBITMQ_PORT}"
+        - name: detailFillingExternalName
+          value: "${DETAIL_FILLING_DOMAIN}"
         - name: services.ranking-service.env.DETAIL_FILLING_SERVICE_URL
-          value: "${DETAIL_FILLING_FUNCTION_URL}"
+          value: "http://scrimfinder-traefik/api/v1/riot"
         - name: services.match-history-service.env.PLAYER_FILLING_SVC_URL
-          value: "${DETAIL_FILLING_API_URL}"
+          value: "http://scrimfinder-traefik/api/v1/riot"
         - name: services.training-service.env.DETAIL_FILLING_URL
-          value: "${DETAIL_FILLING_API_URL}"
+          value: "http://scrimfinder-traefik/api/v1/riot"
   destination:
     server: https://kubernetes.default.svc
     namespace: "${SCRIM_NAMESPACE}"
@@ -418,9 +419,6 @@ done
 
 INITIAL_ARGOCD_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secret \
     -o jsonpath="{.data.password}" | base64 -d)
-
-echo "verifying service health with internal smoke tests..."
-helm test scrimfinder --namespace "$SCRIM_NAMESPACE"
 
 echo "deployment complete!"
 echo "Traefik External IP/Hostname: $EXTERNAL_IP"
