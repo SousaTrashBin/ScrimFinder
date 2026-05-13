@@ -6,7 +6,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
-@Path("/api/v1/riot/players")
+@Path("/players")
 @RegisterRestClient(configKey = "scrimfinder-external-api")
 public interface ExternalPlayerClient {
 
