@@ -1,99 +1,94 @@
-from typing import Optional
-
 from fastapi import APIRouter, HTTPException, Path
 
 from training_service.core import db
-from training_service.core.schemas import ErrorResponse, ModelListResponse, ModelMeta
+from training_service.core.schemas import (
+    ErrorResponse,
+    FeatureExtractRequest,
+    FeatureExtractResponse,
+    FeatureVector,
+)
 
 router = APIRouter(prefix="/features", tags=["Features"])
 
 
-def _meta(r) -> ModelMeta:
-    return ModelMeta(
-        id=r["id"],
-        concern=r["concern"],
-        algorithm=r["algorithm"],
-        dataset_id=r.get("dataset_id"),
-        version=r["version"],
-        metrics=r.get("metrics") or {},
-        hyperparams=r.get("hyperparams") or {},
-        is_active=bool(r["is_active"]),
-        created_at=str(r["created_at"]),
-        activated_at=str(r["activated_at"]) if r.get("activated_at") else None,
-    )
+@router.post(
+    "/extract",
+    response_model=FeatureExtractResponse,
+    summary="Extract features from a game",
+    responses={404: {"model": ErrorResponse}, 422: {"model": ErrorResponse}},
+)
+def extract(body: FeatureExtractRequest):
+    """
+    Extract features for one or more concerns.
 
+    - If `game_id` is provided, reads the game from DB.
+    - If `raw_data` is provided, uses it directly.
+    - If `store=True`, persists features to DB.
+    """
+    from training_service.core.feature_engineering import extract_features
 
-@router.get("", response_model=ModelListResponse, summary="List all models")
-def list_models(concern: Optional[str] = None, active_only: bool = False):
-    return ModelListResponse(
-        models=[
-            _meta(r) for r in db.list_models(concern=concern, active_only=active_only)
-        ]
-    )
+    raw = None
+    if body.game_id:
+        game = db.get_game(body.game_id)
+        if game is None:
+            raise HTTPException(
+                status_code=404, detail=f"Game '{body.game_id}' not found."
+            )
+        raw = game["raw_json"]
+    elif body.raw_data:
+        raw = body.raw_data
+    else:
+        raise HTTPException(
+            status_code=422, detail="Provide either game_id or raw_data."
+        )
 
+    results = []
+    for concern in body.concerns:
+        vector, names = extract_features(raw, concern)
+        if body.store:
+            game_id = (
+                body.game_id or raw.get("matchId") or raw.get("match_id") or "inline"
+            )
+            db.upsert_features(game_id, concern.value, vector, names)
+        results.append(
+            FeatureVector(
+                game_id=body.game_id
+                or raw.get("matchId")
+                or raw.get("match_id")
+                or "inline",
+                concern=concern.value,
+                feature_vector=vector,
+                feature_names=names,
+                schema_version="1",
+                extracted_at="now",
+            )
+        )
 
-@router.get("/active", response_model=ModelListResponse, summary="List active models")
-def list_active():
-    return ModelListResponse(
-        models=[_meta(r) for r in db.list_models(active_only=True)]
+    return FeatureExtractResponse(
+        game_id=body.game_id or raw.get("matchId") or raw.get("match_id") or "inline",
+        features=results,
+        stored=body.store,
     )
 
 
 @router.get(
-    "/{model_id}",
-    response_model=ModelMeta,
-    summary="Get model metadata",
+    "/{game_id}",
+    response_model=FeatureVector,
+    summary="Get stored features for a game",
     responses={404: {"model": ErrorResponse}},
 )
-def get_model(model_id: int = Path(...)):
-    row = db.get_model_by_id(model_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail=f"Model id={model_id} not found.")
-    return _meta(row)
-
-
-@router.post(
-    "/{model_id}/activate",
-    response_model=ModelMeta,
-    summary="Activate a model",
-    responses={404: {"model": ErrorResponse}},
-)
-def activate(model_id: int = Path(...)):
-    if db.get_model_by_id(model_id) is None:
-        raise HTTPException(status_code=404, detail=f"Model id={model_id} not found.")
-    try:
-        db.activate_model(model_id)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    return _meta(db.get_model_by_id(model_id))
-
-
-@router.post(
-    "/{model_id}/deactivate",
-    response_model=ModelMeta,
-    summary="Deactivate a model",
-    responses={404: {"model": ErrorResponse}},
-)
-def deactivate(model_id: int = Path(...)):
-    if db.get_model_by_id(model_id) is None:
-        raise HTTPException(status_code=404, detail=f"Model id={model_id} not found.")
-    db.deactivate_model(model_id)
-    return _meta(db.get_model_by_id(model_id))
-
-
-@router.delete(
-    "/{model_id}",
-    status_code=204,
-    summary="Delete a model",
-    responses={404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
-)
-def delete_model(model_id: int = Path(...)):
-    row = db.get_model_by_id(model_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail=f"Model id={model_id} not found.")
-    if row["is_active"]:
+def get_features(game_id: str = Path(...)):
+    rows = db.get_features(game_id)
+    if not rows:
         raise HTTPException(
-            status_code=409,
-            detail="Cannot delete an active model. Deactivate it first.",
+            status_code=404, detail=f"No features found for game '{game_id}'."
         )
-    db.delete_model(model_id)
+    r = rows[0]
+    return FeatureVector(
+        game_id=r["game_id"],
+        concern=r["concern"],
+        feature_vector=r.get("feature_vector") or [],
+        feature_names=r.get("feature_names") or [],
+        schema_version=r.get("schema_version", "1"),
+        extracted_at=str(r["extracted_at"]) if r.get("extracted_at") else None,
+    )
