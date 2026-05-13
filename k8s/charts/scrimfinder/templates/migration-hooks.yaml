@@ -51,6 +51,7 @@ spec:
   backoffLimit: 0
   template:
     spec:
+      serviceAccountName: {{ $.Values.global.secretsServiceAccountName | default "scrimfinder-secrets-reader" }}
       restartPolicy: Never
       containers:
       - name: flyway

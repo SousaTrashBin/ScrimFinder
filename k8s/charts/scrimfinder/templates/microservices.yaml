@@ -17,6 +17,7 @@ spec:
       labels:
         app: {{ $name }}
     spec:
+      serviceAccountName: {{ $.Values.global.secretsServiceAccountName | default "scrimfinder-secrets-reader" }}
       containers:
       - name: {{ $name }}
         image: "{{ $.Values.global.microservicesRegistry }}/{{ $config.imageName }}:{{ $.Values.global.imageTag }}"
