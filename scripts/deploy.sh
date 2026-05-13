@@ -375,6 +375,7 @@ config:
 EOF
 
 echo "waiting for Traefik LoadBalancer External IP/Hostname..."
+echo "this might take a few minutes..."
 
 EXTERNAL_IP=""
 

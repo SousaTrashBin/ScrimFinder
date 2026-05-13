@@ -39,11 +39,12 @@ cleanup_resources() {
     echo "deleting Argo CD resources..."
     kubectl patch app scrimfinder  -p '{"metadata": {"finalizers": ["resources-finalizer.argocd.argoproj.io"]}}' --type merge || true
     kubectl delete app scrimfinder --wait=true --timeout=3m || true
-    kubectl delete -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml --wait=true --timeout=1m || true
+    kubectl delete -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml --wait=false --timeout=1m || true
     kubectl delete namespace argocd --ignore-not-found=true --wait=true --timeout=1m || true
 
-    echo "deleting Grafana Alloy resources..."
-    helm uninstall grafana || true
+    echo "deleting Grafana Beyla resources..."
+    helm uninstall beyla || true
+    kubectl delete namespace beyla --ignore-not-found=true --wait=true --timeout=1m || true
 
     echo "deleting secrets..."
     SECRETS="riot-api-key db-user db-password redis-password rabbitmq-user rabbitmq-password rabbitmq-erlang-cookie"
