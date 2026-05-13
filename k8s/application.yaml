@@ -13,6 +13,31 @@ spec:
       releaseName: scrimfinder
       valueFiles:
         - values.yaml
+      parameters:
+        - name: global.namespace
+          value: "${SCRIM_NAMESPACE}"
+        - name: global.projectID
+          value: "${PROJECT_ID}"
+        - name: global.microservicesRegistry
+          value: "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}"
+        - name: global.region
+          value: "${REGION}"
+        - name: global.projectId
+          value: "${PROJECT_ID}"
+        - name: global.repoName
+          value: "${REPO_NAME}"
+        - name: global.rabbitmqHost
+          value: "${SCRIM_RABBITMQ_HOST}"
+        - name: global.rabbitmqPort
+          value: "${SCRIM_RABBITMQ_PORT}"
+        - name: detailFillingExternalName
+          value: "${DETAIL_FILLING_DOMAIN}"
+        - name: services.ranking-service.env.DETAIL_FILLING_SERVICE_URL
+          value: "http://scrimfinder-traefik/api/v1/riot"
+        - name: services.match-history-service.env.PLAYER_FILLING_SVC_URL
+          value: "http://scrimfinder-traefik/api/v1/riot"
+        - name: services.training-service.env.DETAIL_FILLING_URL
+          value: "http://scrimfinder-traefik/api/v1/riot"
   destination:
     server: https://kubernetes.default.svc
     namespace: scrimfinder
@@ -22,4 +47,166 @@ spec:
     automated:
       prune: true
       selfHeal: true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana-k8s-monitoring
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: scrimfinder
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    chart: k8s-monitoring
+    targetRevision: ^4
+    helm:
+      releaseName: grafana-k8s-monitoring
+      valuesObject:
+        cluster:
+          name: scrimfinder
+        destinations:
+          grafana-cloud-metrics:
+            type: prometheus
+            url: https://prometheus-prod-68-prod-eu-west-6.grafana.net./api/prom/push
+            auth:
+              type: basic
+              username: "3144210"
+              password: token
+          grafana-cloud-logs:
+            type: loki
+            url: https://logs-prod-043.grafana.net./loki/api/v1/push
+            auth:
+              type: basic
+              username: "1567780"
+              password: token
+          gc-otlp-endpoint:
+            type: otlp
+            url: https://otlp-gateway-prod-eu-west-6.grafana.net./otlp
+            protocol: http
+            auth:
+              type: basic
+              username: "1609991"
+              password: token
+            metrics:
+              enabled: true
+            logs:
+              enabled: true
+            traces:
+              enabled: true
+          grafana-cloud-profiles:
+            type: pyroscope
+            url: https://profiles-prod-029.grafana.net.:443
+            auth:
+              type: basic
+              username: "1609991"
+              password: token
+        clusterMetrics:
+          enabled: true
+          collector: alloy-metrics
+        hostMetrics:
+          enabled: true
+          collector: alloy-metrics
+          linuxHosts:
+            enabled: true
+          windowsHosts:
+            enabled: true
+          energyMetrics:
+            enabled: true
+        costMetrics:
+          enabled: true
+          collector: alloy-metrics
+        annotationAutodiscovery:
+          enabled: true
+          collector: alloy-metrics
+        prometheusOperatorObjects:
+          enabled: true
+          collector: alloy-metrics
+        clusterEvents:
+          enabled: true
+          collector: alloy-singleton
+        nodeLogs:
+          enabled: true
+          collector: alloy-logs
+        podLogsViaLoki:
+          enabled: true
+          collector: alloy-logs
+        applicationObservability:
+          enabled: true
+          collector: alloy-receiver
+          receivers:
+            otlp:
+              grpc:
+                enabled: true
+                port: 4317
+              http:
+                enabled: true
+                port: 4318
+            zipkin:
+              enabled: true
+              port: 9411
+        autoInstrumentation:
+          enabled: true
+          collector: alloy-metrics
+          beyla:
+            deliverTracesToApplicationObservability: true
+        profiling:
+          enabled: true
+          collector: alloy-profiles
+        collectors:
+          alloy-metrics:
+            presets:
+              - clustered
+              - statefulset
+          alloy-singleton:
+            presets:
+              - singleton
+          alloy-logs:
+            presets:
+              - filesystem-log-reader
+              - daemonset
+          alloy-receiver:
+            presets:
+              - deployment
+          alloy-profiles:
+            presets:
+              - privileged
+              - daemonset
+        collectorCommon:
+          alloy:
+            remoteConfig:
+              enabled: true
+              url: https://fleet-management-prod-029.grafana.net
+              auth:
+                type: basic
+                username: "1609991"
+                password: token
+        telemetryServices:
+          kube-state-metrics:
+            deploy: true
+          node-exporter:
+            deploy: true
+          windows-exporter:
+            deploy: true
+          opencost:
+            deploy: true
+            metricsSource: grafana-cloud-metrics
+            opencost:
+              exporter:
+                defaultClusterId: scrimfinder
+              prometheus:
+                existingSecretName: grafana-cloud-metrics-grafana-k8s-monitoring
+                external:
+                  url: https://prometheus-prod-68-prod-eu-west-6.grafana.net./api/prom
+          kepler:
+            deploy: true
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+
   

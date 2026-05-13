@@ -42,14 +42,18 @@ cleanup_resources() {
     kubectl delete -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml --wait=true --timeout=1m || true
     kubectl delete namespace argocd --ignore-not-found=true --wait=true --timeout=1m || true
 
+    echo "deleting Grafana Alloy resources..."
+    helm uninstall grafana || true
+
     echo "deleting secrets..."
-    SECRETS="RIOT_API_KEY"
+    SECRETS="riot-api-key db-user db-password redis-password rabbitmq-user rabbitmq-password rabbitmq-erlang-cookie"
     for SECRET in ${SECRETS}; do
         gcloud secrets delete "${SECRET}" &
     done
     wait
     SECRETS_SERVICE_ACCOUNT_EMAIL="secrets-service-account@${PROJECT_ID}.iam.gserviceaccount.com"
-    gcloud iam service-accounts delete "${SECRETS_SERVICE_ACCOUNT_EMAIL}" || true
+    (gcloud iam service-accounts delete "${SECRETS_SERVICE_ACCOUNT_EMAIL}" || true) &
+    wait
 }
 
 if gcloud container clusters describe "$CLUSTER_NAME" --zone "$ZONE" --project "$PROJECT_ID" >/dev/null 2>&1; then

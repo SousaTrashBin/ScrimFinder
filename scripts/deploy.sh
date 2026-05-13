@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-REQUIRED_VARS="SCRIM_PROJECT_ID SCRIM_REGION SCRIM_REPO_NAME SCRIM_ENV_TAG SCRIM_CLUSTER_NAME RIOT_API_KEY SCRIM_DB_USER SCRIM_DB_PASSWORD"
+REQUIRED_VARS="SCRIM_PROJECT_ID SCRIM_REGION SCRIM_REPO_NAME SCRIM_ENV_TAG SCRIM_CLUSTER_NAME RIOT_API_KEY SCRIM_DB_USER SCRIM_DB_PASSWORD SCRIM_GRAFANA_TOKEN"
 
 for var in $REQUIRED_VARS; do
     if [ -z "$(eval echo \${$var:-})" ]; then
@@ -142,7 +142,8 @@ gcloud iam service-accounts add-iam-policy-binding "${SECRETS_SERVICE_ACCOUNT_EM
     --role="roles/iam.workloadIdentityUser" \
     --quiet || true
 
-SECRETS="riot-api-key|${RIOT_API_KEY}"
+SECRETS="RIOT_API_KEY|${RIOT_API_KEY}"
+SECRETS+=" riot-api-key|${RIOT_API_KEY}"
 SECRETS+=" db-user|${SCRIM_DB_USER}"
 SECRETS+=" db-password|${SCRIM_DB_PASSWORD}"
 SECRETS+=" redis-password|${SCRIM_REDIS_PASSWORD}"
@@ -227,9 +228,9 @@ done
 
 echo "deploying serverless functions in parallel..."
 
-SERVERLESS_FUNCTIONS="detail_filling_service|getFilledMatch|RIOT_API_KEY"
-SERVERLESS_FUNCTIONS+=" detail_filling_service|getRawMatchData|RIOT_API_KEY"
-SERVERLESS_FUNCTIONS+=" detail_filling_service|getFilledPlayer|RIOT_API_KEY"
+SERVERLESS_FUNCTIONS="detail_filling_service|getFilledMatch|riot_api_key"
+SERVERLESS_FUNCTIONS+=" detail_filling_service|getRawMatchData|riot_api_key"
+SERVERLESS_FUNCTIONS+=" detail_filling_service|getFilledPlayer|riot_api_key"
 
 SERVERLESS_DEPLOY_PIDS=()
 SERVERLESS_DEPLOY_NAMES=()
@@ -318,59 +319,59 @@ echo "updating Helm dependencies..."
 helm dependency update k8s/charts/scrimfinder
 
 echo "deploying Argo CD..."
+
+export SCRIM_NAMESPACE="${SCRIM_NAMESPACE}"
+export PROJECT_ID="${PROJECT_ID}"
+export REGION="${REGION}"
+export REPO_NAME="${REPO_NAME}"
+export SCRIM_RABBITMQ_HOST="${SCRIM_RABBITMQ_HOST}"
+export SCRIM_RABBITMQ_PORT="${SCRIM_RABBITMQ_PORT}"
+export DETAIL_FILLING_DOMAIN="${DETAIL_FILLING_DOMAIN}"
+
 kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
 kubectl apply -n argocd --server-side --force-conflicts -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
-kubectl apply -n argocd --server-side --force-conflicts -f - <<EOF
-apiVersion: argoproj.io/v1alpha1
-kind: Application
+
+if command -v envsubst >/dev/null 2>&1; then
+    envsubst < k8s/application.yaml | kubectl apply -n argocd --server-side --force-conflicts -f -
+else
+    echo "warning: envsubst not found. applying manifests without variable substitution..."
+    kubectl apply -n argocd --server-side --force-conflicts -f k8s/application.yaml
+fi
+
+echo "instrumenting app with Grafana Alloy to send metrics to Grafana Cloud..."
+
+kubectl get ns beyla >/dev/null 2>&1 || kubectl create ns beyla && helm repo add grafana https://grafana.github.io/helm-charts && \
+  helm repo update && \
+  { kubectl apply -f - <<'EOF'
+apiVersion: v1
+kind: Secret
 metadata:
-  name: scrimfinder
-  namespace: argocd
-spec:
-  project: default
-  source:
-    repoURL: "https://github.com/SousaTrashBin/ScrimFinder.git"
-    targetRevision: work/bruno
-    path: k8s/charts/scrimfinder
-    helm:
-      releaseName: scrimfinder
-      valueFiles:
-        - values.yaml
-      parameters:
-        - name: global.namespace
-          value: "${SCRIM_NAMESPACE}"
-        - name: global.projectID
-          value: "${PROJECT_ID}"
-        - name: global.microservicesRegistry
-          value: "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}"
-        - name: global.region
-          value: "${REGION}"
-        - name: global.projectId
-          value: "${PROJECT_ID}"
-        - name: global.repoName
-          value: "${REPO_NAME}"
-        - name: global.rabbitmqHost
-          value: "${SCRIM_RABBITMQ_HOST}"
-        - name: global.rabbitmqPort
-          value: "${SCRIM_RABBITMQ_PORT}"
-        - name: detailFillingExternalName
-          value: "${DETAIL_FILLING_DOMAIN}"
-        - name: services.ranking-service.env.DETAIL_FILLING_SERVICE_URL
-          value: "http://scrimfinder-traefik/api/v1/riot"
-        - name: services.match-history-service.env.PLAYER_FILLING_SVC_URL
-          value: "http://scrimfinder-traefik/api/v1/riot"
-        - name: services.training-service.env.DETAIL_FILLING_URL
-          value: "http://scrimfinder-traefik/api/v1/riot"
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: "${SCRIM_NAMESPACE}"
-  syncPolicy:
-    syncOptions:
-      - CreateNamespace=true
-    automated:
-      prune: true
-      selfHeal: true
+  name: grafana-secret
+  namespace: beyla
+type: Opaque
+stringData:
+  otlp-headers: "Authorization=Basic ${SCRIM_GRAFANA_TOKEN}"
+EOF
+} && echo "secret created" && \
+helm upgrade --install --atomic --timeout 300s beyla grafana/beyla \
+  --namespace beyla --create-namespace \
+  --values - <<'EOF'
+config:
+  data:
+    discovery:
+      instrument:
+        - k8s_namespace: production
+        - k8s_namespace: staging
+    routes:
+      unmatched: heuristic
+    env:
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://grafana-k8s-monitoring-alloy-receiver.scrimfinder.svc.cluster.local:4317"
+    envValueFrom:
+      OTEL_EXPORTER_OTLP_HEADERS:
+        secretKeyRef:
+          name: grafana-secret
+          key: otlp-headers
 EOF
 
 echo "waiting for Traefik LoadBalancer External IP/Hostname..."
