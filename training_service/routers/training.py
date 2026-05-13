@@ -30,9 +30,9 @@ def _resp(r):
         metrics=r.get("metrics"),
         model_id=r.get("model_id"),
         error=r.get("error"),
-        created_at=r["created_at"],
-        started_at=r.get("started_at"),
-        completed_at=r.get("completed_at"),
+        created_at=str(r["created_at"]) if r.get("created_at") else None,
+        started_at=str(r["started_at"]) if r.get("started_at") else None,
+        completed_at=str(r["completed_at"]) if r.get("completed_at") else None,
     )
 
 
@@ -183,7 +183,7 @@ def cancel_job(job_id: str = Path(...)):
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found.")
     if row["status"] not in ("PENDING", "RUNNING"):
         raise HTTPException(
-            status_code=409, detail=f"Job is '{row['status']}' â€” cannot cancel."
+            status_code=409, detail=f"Job is '{row['status']}' — cannot cancel."
         )
     ev = _cancel_flags.get(job_id)
     if ev:

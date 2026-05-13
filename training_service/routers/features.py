@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException, Path
 from training_service.core import db
 from training_service.core.schemas import ErrorResponse, ModelListResponse, ModelMeta
 
-router = APIRouter(prefix="/models", tags=["Models"])
+router = APIRouter(prefix="/features", tags=["Features"])
 
 
 def _meta(r) -> ModelMeta:
