@@ -9,6 +9,15 @@ spec:
     burst: 50
 ---
 apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: detail-filling-prefix
+  namespace: {{ .Values.global.namespace }}
+spec:
+  addPrefix:
+    prefix: /getFilledPlayer
+---
+apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
   name: scrimfinder-routes
@@ -50,6 +59,7 @@ spec:
           scheme: https
           passHostHeader: false
       middlewares:
+        - name: detail-filling-prefix
         - name: api-ratelimit
     - match: PathPrefix(`/api/v1/training`)
       kind: Rule

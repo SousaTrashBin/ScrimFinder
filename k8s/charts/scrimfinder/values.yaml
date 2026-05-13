@@ -34,8 +34,10 @@ traefik:
   providers:
     kubernetesCRD:
       enabled: true
+      allowExternalNameServices: true
     kubernetesIngress:
       enabled: true
+      allowExternalNameServices: true
 
   service:
     enabled: true
