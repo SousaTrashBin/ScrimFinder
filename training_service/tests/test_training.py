@@ -1,25 +1,31 @@
 """
-Tests for the Training Service.
-Run: docker exec scrimfinder_training pytest tests/test_training.py -v -m "not slow"
+training_service/tests/test_training.py  —  Integration tests
+
+Requires a live PostgreSQL instance. The CI workflow provides one via the
+`services.postgres` block and injects individual PLATFORM_DB_* env vars.
+
+Run locally:
+    PLATFORM_DB_HOST=localhost PLATFORM_DB_NAME=testdb \
+    PLATFORM_DB_USER=user PLATFORM_DB_PASSWORD=pass \
+    pytest training_service/tests/test_training.py -v -m "not slow"
 """
 
 import os
-import tempfile
 import time
-from pathlib import Path
 
 import pytest
 
-_TMP = Path(tempfile.mkdtemp(prefix="train_test_"))
-os.environ["MODELS_DIR"] = str(_TMP / "models")
-os.environ["GAMES_DIR"] = str(_TMP / "games")
-os.environ["DATASETS_DIR"] = str(_TMP / "datasets")
-if not os.environ.get("TEST_PLATFORM_DB_DSN"):
+# ── Skip entire module if no DB is configured ─────────────────────────────────
+# Accept either individual vars (CI workflow) or a full DSN string.
+_has_db = bool(
+    os.environ.get("PLATFORM_DB_HOST") or os.environ.get("PLATFORM_DB_DSN")
+)
+if not _has_db:
     pytest.skip(
-        "Set TEST_PLATFORM_DB_DSN to run training_service PostgreSQL integration tests.",
+        "No PostgreSQL configured. Set PLATFORM_DB_HOST (or PLATFORM_DB_DSN) to run "
+        "training_service integration tests.",
         allow_module_level=True,
     )
-os.environ["PLATFORM_DB_DSN"] = os.environ["TEST_PLATFORM_DB_DSN"]
 
 from fastapi.testclient import TestClient  # noqa: E402
 
@@ -193,7 +199,6 @@ class TestTrainingJobs:
         j = client.post(
             "/api/v1/training/jobs", json={"concern": "draft", "sample": 0.01}
         ).json()
-        # Small sleep to allow background worker to register job
         time.sleep(0.3)
         assert client.post(f"/api/v1/training/jobs/{j['id']}/cancel").status_code == 200
 
@@ -224,9 +229,7 @@ class TestModels:
         assert client.post("/api/v1/training/models/99999/activate").status_code == 404
 
     def test_deactivate_404(self):
-        assert (
-            client.post("/api/v1/training/models/99999/deactivate").status_code == 404
-        )
+        assert client.post("/api/v1/training/models/99999/deactivate").status_code == 404
 
     def test_delete_404(self):
         assert client.delete("/api/v1/training/models/99999").status_code == 404

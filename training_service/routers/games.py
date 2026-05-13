@@ -4,6 +4,7 @@ import sqlite3
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Path, Query
+from pydantic import BaseModel
 
 from training_service.core import db
 from training_service.core.config import cfg
@@ -15,8 +16,6 @@ from training_service.core.schemas import (
     GameIngest,
     GameIngested,
     GameListResponse,
-    LeagueImportRequest,
-    LeagueImportResponse,
     PaginatedMeta,
 )
 
@@ -33,118 +32,17 @@ def _derive_id(data: dict) -> str:
     )
 
 
-def _row(r):
+def _row(r) -> GameIngested:
     return GameIngested(
         id=r["id"],
         source=r["source"],
         patch=r["patch"],
         match_type=r["match_type"],
-        ingested_at=r["ingested_at"],
+        ingested_at=str(r["ingested_at"]),
     )
 
 
-def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
-    row = conn.execute(
-        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)
-    ).fetchone()
-    return row is not None
-
-
-def _columns(conn: sqlite3.Connection, table: str) -> set[str]:
-    if not _table_exists(conn, table):
-        return set()
-    return {r["name"] for r in conn.execute(f"PRAGMA table_info({table})")}
-
-
-def _first_col(cols: set[str], candidates: tuple[str, ...]) -> str | None:
-    return next((c for c in candidates if c in cols), None)
-
-
-def _fetch_grouped(conn: sqlite3.Connection, table: str, match_id: str) -> dict:
-    cols = _columns(conn, table)
-    if not cols:
-        return {}
-    match_col = _first_col(cols, ("match_id", "matchId", "game_id", "gameId"))
-    puuid_col = _first_col(cols, ("puuid", "player_id", "summoner_id"))
-    if not match_col or not puuid_col:
-        return {}
-    rows = conn.execute(
-        f"SELECT * FROM {table} WHERE {match_col}=?", (match_id,)
-    ).fetchall()
-    grouped: dict = {}
-    for row in rows:
-        item = dict(row)
-        grouped.setdefault(str(item.get(puuid_col)), []).append(item)
-    return grouped
-
-
-def _league_game_rows(body: LeagueImportRequest):
-    conn = sqlite3.connect(cfg.LEAGUE_DB)
-    conn.row_factory = sqlite3.Row
-    try:
-        match_cols = _columns(conn, "matches")
-        if not match_cols:
-            raise HTTPException(
-                status_code=503,
-                detail=f"LEAGUE_DB at '{cfg.LEAGUE_DB}' has no matches table.",
-            )
-        match_id_col = _first_col(match_cols, ("match_id", "matchId", "id", "game_id"))
-        if not match_id_col:
-            raise HTTPException(
-                status_code=503,
-                detail="LEAGUE_DB matches table has no match_id/id column.",
-            )
-
-        clauses, params = [], []
-        match_type_col = _first_col(match_cols, ("match_type", "gameType", "queueType"))
-        if body.match_type and match_type_col:
-            clauses.append(f"{match_type_col}=?")
-            params.append(body.match_type)
-        where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
-        rows = conn.execute(
-            f"SELECT * FROM matches {where} ORDER BY {match_id_col} LIMIT ? OFFSET ?",
-            params + [body.limit, body.offset],
-        ).fetchall()
-
-        ps_cols = _columns(conn, "player_stats")
-        ps_match_col = _first_col(ps_cols, ("match_id", "matchId", "game_id", "gameId"))
-        items_by_match = _table_exists(conn, "player_items")
-        runes_by_match = _table_exists(conn, "player_runes")
-
-        for match in rows:
-            match_data = dict(match)
-            match_id = str(match_data[match_id_col])
-            participants = []
-            if ps_match_col:
-                stat_rows = conn.execute(
-                    f"SELECT * FROM player_stats WHERE {ps_match_col}=?", (match_id,)
-                ).fetchall()
-                items = (
-                    _fetch_grouped(conn, "player_items", match_id)
-                    if items_by_match
-                    else {}
-                )
-                runes = (
-                    _fetch_grouped(conn, "player_runes", match_id)
-                    if runes_by_match
-                    else {}
-                )
-                for stat in stat_rows:
-                    participant = dict(stat)
-                    puuid = str(participant.get("puuid"))
-                    if puuid in items:
-                        participant["items"] = items[puuid]
-                    if puuid in runes:
-                        participant["runes"] = runes[puuid]
-                    participants.append(participant)
-            yield match_id, {**match_data, "participants": participants}
-    finally:
-        conn.close()
-
-
-@router.post(
-    "", response_model=GameIngested, status_code=201, summary="Ingest a single match"
-)
+@router.post("", response_model=GameIngested, status_code=201, summary="Ingest a single match")
 def ingest_game(body: GameIngest):
     gid = body.id or _derive_id(body.data)
     db.insert_game(gid, body.data, source=body.source)
@@ -171,33 +69,6 @@ def ingest_batch(body: BatchIngestRequest):
             errors.append({"id": item.id, "error": str(e)})
             skipped += 1
     return BatchIngestResponse(ingested=ingested, skipped=skipped, errors=errors)
-
-
-@router.post(
-    "/import/league",
-    response_model=LeagueImportResponse,
-    summary="Copy matches from LEAGUE_DB into ml-db",
-)
-def import_league_games(body: LeagueImportRequest):
-    imported = skipped = 0
-    errors = []
-    try:
-        rows = list(_league_game_rows(body))
-    except HTTPException:
-        raise
-    except Exception as exc:
-        raise HTTPException(
-            status_code=503, detail=f"LEAGUE_DB unavailable: {exc}"
-        ) from exc
-
-    for game_id, raw in rows:
-        try:
-            db.insert_game(game_id, raw, source="league_db")
-            imported += 1
-        except Exception as exc:
-            errors.append({"id": game_id, "error": str(exc)})
-            skipped += 1
-    return LeagueImportResponse(imported=imported, skipped=skipped, errors=errors)
 
 
 @router.get("", response_model=GameListResponse, summary="List games")
@@ -234,7 +105,7 @@ def get_game(game_id: str = Path(...)):
         match_type=row["match_type"],
         duration_sec=row.get("duration_sec"),
         platform=row.get("platform"),
-        ingested_at=row["ingested_at"],
+        ingested_at=str(row["ingested_at"]),
         raw_json=row["raw_json"],
     )
 
@@ -246,6 +117,91 @@ def get_game(game_id: str = Path(...)):
     responses={404: {"model": ErrorResponse}},
 )
 def delete_game(game_id: str = Path(...)):
-    if db.get_game(game_id) is None:
+    if not db.delete_game(game_id):
         raise HTTPException(status_code=404, detail=f"Game '{game_id}' not found.")
-    db.delete_game(game_id)
+
+
+# ── League DB import ──────────────────────────────────────────────────────────
+
+
+class LeagueImportRequest(BaseModel):
+    limit: Optional[int] = None
+    offset: int = 0
+    match_type: Optional[str] = None
+
+
+class LeagueImportResponse(BaseModel):
+    imported: int
+    skipped: int
+    errors: list
+
+
+@router.post(
+    "/import/league",
+    response_model=LeagueImportResponse,
+    summary="Import matches from the read-only league SQLite dataset",
+)
+def import_league(body: LeagueImportRequest):
+    """
+    Reads matches from league_data.db (read-only SQLite), assembles each
+    match with participants, items, and runes, then upserts into the
+    platform PostgreSQL DB via db.insert_game().
+    """
+    league_path = cfg.LEAGUE_DB
+    try:
+        conn = sqlite3.connect(f"file:{league_path}?mode=ro", uri=True)
+        conn.row_factory = sqlite3.Row
+    except sqlite3.OperationalError as e:
+        raise HTTPException(status_code=503, detail=f"League DB unavailable: {e}")
+
+    try:
+        q = "SELECT * FROM matches"
+        params: list = []
+        if body.match_type:
+            q += " WHERE match_type=?"
+            params.append(body.match_type)
+        q += " ORDER BY match_id"
+        if body.limit is not None:
+            q += f" LIMIT {int(body.limit)}"
+        if body.offset:
+            q += f" OFFSET {int(body.offset)}"
+
+        matches = conn.execute(q, params).fetchall()
+        imported = skipped = 0
+        errors: list = []
+
+        for m in matches:
+            match_id = m["match_id"]
+            try:
+                participants = []
+                for p in conn.execute(
+                    "SELECT * FROM player_stats WHERE match_id=?", (match_id,)
+                ).fetchall():
+                    pdict = dict(p)
+                    pdict["items"] = [
+                        dict(i)
+                        for i in conn.execute(
+                            "SELECT * FROM player_items WHERE match_id=? AND puuid=?",
+                            (match_id, pdict["puuid"]),
+                        ).fetchall()
+                    ]
+                    pdict["runes"] = [
+                        dict(r)
+                        for r in conn.execute(
+                            "SELECT * FROM player_runes WHERE match_id=? AND puuid=?",
+                            (match_id, pdict["puuid"]),
+                        ).fetchall()
+                    ]
+                    participants.append(pdict)
+
+                raw = dict(m)
+                raw["participants"] = participants
+                db.insert_game(match_id, raw, source="league_db")
+                imported += 1
+            except Exception as e:
+                errors.append({"id": match_id, "error": str(e)})
+                skipped += 1
+
+        return LeagueImportResponse(imported=imported, skipped=skipped, errors=errors)
+    finally:
+        conn.close()

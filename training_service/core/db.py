@@ -1,12 +1,9 @@
 """
 training_service/core/db.py
 
-PostgreSQL-backed platform metadata database.
-Replaces the previous SQLite file so training-service scales safely to
-multiple replicas in Kubernetes without WAL write-lock collisions.
-
-The heavy 78 GB read-only league_data.db (LEAGUE_DB) stays as SQLite on
-the persistent volume — it is never written to by this service.
+PostgreSQL-backed platform metadata database (replaces SQLite).
+All placeholders use %s (psycopg2 style). No caller needs to know this —
+they go through the helper functions, never raw SQL.
 """
 
 import json
@@ -14,11 +11,10 @@ import threading
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
+import psycopg2
 from psycopg2.pool import ThreadedConnectionPool
 
 from training_service.core.config import cfg
-
-# ── Connection pool ───────────────────────────────────────────────────────────
 
 _pool: ThreadedConnectionPool | None = None
 _pool_lock = threading.Lock()
@@ -30,9 +26,7 @@ def _get_pool() -> ThreadedConnectionPool:
         return _pool
     with _pool_lock:
         if _pool is None:
-            _pool = ThreadedConnectionPool(
-                minconn=1, maxconn=10, **cfg.PLATFORM_DB_KWARGS
-            )
+            _pool = ThreadedConnectionPool(minconn=1, maxconn=10, **cfg.PLATFORM_DB_KWARGS)
     return _pool
 
 
@@ -69,7 +63,7 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-# ── Schema (idempotent) ───────────────────────────────────────────────────────
+# ── Schema ────────────────────────────────────────────────────────────────────
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS games (
@@ -144,7 +138,6 @@ def init_db():
 
 # ── Games ─────────────────────────────────────────────────────────────────────
 
-
 def count_games() -> int:
     with get_conn() as conn:
         with conn.cursor() as cur:
@@ -153,10 +146,10 @@ def count_games() -> int:
 
 
 def insert_game(game_id: str, raw: dict, source: str = "manual"):
-    patch = raw.get("patch") or raw.get("gameVersion")
-    match_type = raw.get("match_type") or raw.get("gameType") or raw.get("queueType")
+    patch        = raw.get("patch")      or raw.get("gameVersion")
+    match_type   = raw.get("match_type") or raw.get("gameType") or raw.get("queueType")
     duration_sec = raw.get("duration_sec") or raw.get("gameDuration")
-    platform = raw.get("platform") or raw.get("platformId")
+    platform     = raw.get("platform")   or raw.get("platformId")
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -169,15 +162,7 @@ def insert_game(game_id: str, raw: dict, source: str = "manual"):
                     platform=EXCLUDED.platform, raw_json=EXCLUDED.raw_json,
                     ingested_at=now()
                 """,
-                (
-                    game_id,
-                    source,
-                    patch,
-                    match_type,
-                    duration_sec,
-                    platform,
-                    json.dumps(raw),
-                ),
+                (game_id, source, patch, match_type, duration_sec, platform, json.dumps(raw)),
             )
 
 
@@ -193,15 +178,9 @@ def get_game(game_id: str) -> dict | None:
 
 def list_games(source=None, patch=None, match_type=None, limit=50, offset=0):
     clauses, params = [], []
-    if source:
-        clauses.append("source=%s")
-        params.append(source)
-    if patch:
-        clauses.append("patch=%s")
-        params.append(patch)
-    if match_type:
-        clauses.append("match_type=%s")
-        params.append(match_type)
+    if source:     clauses.append("source=%s");     params.append(source)
+    if patch:      clauses.append("patch=%s");      params.append(patch)
+    if match_type: clauses.append("match_type=%s"); params.append(match_type)
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
     with get_conn() as conn:
         with conn.cursor() as cur:
@@ -225,7 +204,6 @@ def delete_game(game_id: str) -> bool:
 
 # ── Features ──────────────────────────────────────────────────────────────────
 
-
 def upsert_features(game_id, concern, vector, names, schema_version="1"):
     with get_conn() as conn:
         with conn.cursor() as cur:
@@ -239,13 +217,7 @@ def upsert_features(game_id, concern, vector, names, schema_version="1"):
                     schema_version=EXCLUDED.schema_version,
                     extracted_at=now()
                 """,
-                (
-                    game_id,
-                    concern,
-                    json.dumps(vector),
-                    json.dumps(names),
-                    schema_version,
-                ),
+                (game_id, concern, json.dumps(vector), json.dumps(names), schema_version),
             )
 
 
@@ -282,36 +254,21 @@ def delete_features(game_id: str, concern: str | None = None) -> int:
 
 # ── Models ────────────────────────────────────────────────────────────────────
 
-
-def register_model(
-    concern,
-    algorithm,
-    version,
-    file_path,
-    metrics,
-    hyperparams=None,
-    dataset_id=None,
-    feature_names=None,
-) -> int:
+def register_model(concern, algorithm, version, file_path, metrics,
+                   hyperparams=None, dataset_id=None, feature_names=None) -> int:
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
                 INSERT INTO models
-                    (concern,algorithm,dataset_id,version,file_path,metrics,hyperparams,feature_names,is_active,created_at)
+                    (concern,algorithm,dataset_id,version,file_path,metrics,
+                     hyperparams,feature_names,is_active,created_at)
                 VALUES (%s,%s,%s,%s,%s,%s::jsonb,%s::jsonb,%s::jsonb,FALSE,now())
                 RETURNING id
                 """,
-                (
-                    concern,
-                    algorithm,
-                    dataset_id,
-                    version,
-                    file_path,
-                    json.dumps(metrics),
-                    json.dumps(hyperparams or {}),
-                    json.dumps(feature_names or []),
-                ),
+                (concern, algorithm, dataset_id, version, file_path,
+                 json.dumps(metrics), json.dumps(hyperparams or {}),
+                 json.dumps(feature_names or [])),
             )
             return cur.fetchone()[0]
 
@@ -366,17 +323,12 @@ def get_model_by_id(model_id: int) -> dict | None:
 
 def list_models(concern=None, active_only=False) -> list[dict]:
     clauses, params = [], []
-    if concern:
-        clauses.append("concern=%s")
-        params.append(concern)
-    if active_only:
-        clauses.append("is_active=TRUE")
+    if concern:     clauses.append("concern=%s");  params.append(concern)
+    if active_only: clauses.append("is_active=TRUE")
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
     with get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute(
-                f"SELECT * FROM models {where} ORDER BY created_at DESC", params
-            )
+            cur.execute(f"SELECT * FROM models {where} ORDER BY created_at DESC", params)
             rows = _all(cur)
     return [_parse_model(d) for d in rows]
 
@@ -384,16 +336,13 @@ def list_models(concern=None, active_only=False) -> list[dict]:
 def _parse_model(d: dict) -> dict:
     for f in ("metrics", "hyperparams", "feature_names"):
         v = d.get(f)
-        if isinstance(v, str):
-            d[f] = json.loads(v) if v else {}
-        elif v is None:
-            d[f] = {}
+        if isinstance(v, str): d[f] = json.loads(v) if v else {}
+        elif v is None:        d[f] = {}
     d["is_active"] = bool(d.get("is_active"))
     return d
 
 
 # ── Training jobs ─────────────────────────────────────────────────────────────
-
 
 def create_job(job_id, concern, algorithm="auto", dataset_id=None, filters=None):
     with get_conn() as conn:
@@ -430,12 +379,8 @@ def get_job(job_id: str) -> dict | None:
 
 def list_jobs(concern=None, status=None, limit=100) -> list[dict]:
     clauses, params = [], []
-    if concern:
-        clauses.append("concern=%s")
-        params.append(concern)
-    if status:
-        clauses.append("status=%s")
-        params.append(status)
+    if concern: clauses.append("concern=%s"); params.append(concern)
+    if status:  clauses.append("status=%s");  params.append(status)
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
     with get_conn() as conn:
         with conn.cursor() as cur:
@@ -450,8 +395,6 @@ def list_jobs(concern=None, status=None, limit=100) -> list[dict]:
 def _parse_job(d: dict) -> dict:
     for f in ("filters", "metrics"):
         v = d.get(f)
-        if isinstance(v, str):
-            d[f] = json.loads(v) if v else {}
-        elif v is None:
-            d[f] = {}
+        if isinstance(v, str): d[f] = json.loads(v) if v else {}
+        elif v is None:        d[f] = {}
     return d
