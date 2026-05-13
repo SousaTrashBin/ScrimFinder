@@ -15,6 +15,11 @@ import time
 
 import pytest
 
+from fastapi.testclient import TestClient  # noqa: E402
+
+from training_service.main import app  # noqa: E402
+from training_service.core.db import init_db
+
 # ── Skip entire module if no DB is configured ─────────────────────────────────
 # Accept either individual vars (CI workflow) or a full DSN string.
 _has_db = bool(os.environ.get("PLATFORM_DB_HOST") or os.environ.get("PLATFORM_DB_DSN"))
@@ -25,10 +30,8 @@ if not _has_db:
         allow_module_level=True,
     )
 
-from fastapi.testclient import TestClient  # noqa: E402
 
-from training_service.main import app  # noqa: E402
-
+init_db()
 client = TestClient(app, raise_server_exceptions=True)
 
 GAME = {
