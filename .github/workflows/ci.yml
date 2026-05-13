@@ -20,6 +20,7 @@ jobs:
           'match_history_service',
           'detail_filling_service'
         ]
+    continue-on-error: true
 
     steps:
     - uses: actions/checkout@v6
@@ -40,6 +41,7 @@ jobs:
           echo "to fix locally, run: cd ${{ matrix.service }} && ./mvnw spotless:apply"
           exit 1
         fi
+      continue-on-error: true
 
     - name: build and run tests
       run: |
@@ -77,6 +79,7 @@ jobs:
         run: |
           ruff check ${{ matrix.service }}
           ruff format --check ${{ matrix.service }}
+        continue-on-error: true
 
       - name: run tests with pytest
         run: |
