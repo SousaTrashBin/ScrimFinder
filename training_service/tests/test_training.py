@@ -29,7 +29,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from training_service.main import app  # noqa: E402
 
-client = TestClient(app, raise_server_exceptions=False)
+client = TestClient(app, raise_server_exceptions=True)
 
 GAME = {
     "matchId": "EUW1_TEST_001",
