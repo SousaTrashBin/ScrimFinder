@@ -1,6 +1,6 @@
 package fc.ul.scrimfinder.rest.client;
 
-import fc.ul.scrimfinder.dto.external.ExternalPlayerDTO;
+import fc.ul.scrimfinder.dto.external.ExternalPlayerResponse;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -11,6 +11,9 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 public interface ExternalPlayerClient {
 
     @GET
-    @Path("/{name}/{tag}")
-    ExternalPlayerDTO fetchPlayerRank(@PathParam("name") String name, @PathParam("tag") String tag);
+    @Path("/{server}/{name}/{tag}")
+    ExternalPlayerResponse fetchPlayerRank(
+            @PathParam("server") String server,
+            @PathParam("name") String name,
+            @PathParam("tag") String tag);
 }

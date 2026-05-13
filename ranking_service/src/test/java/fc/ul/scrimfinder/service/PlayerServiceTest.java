@@ -6,26 +6,24 @@ import static org.mockito.Mockito.*;
 
 import fc.ul.scrimfinder.domain.Player;
 import fc.ul.scrimfinder.domain.RiotAccount;
+import fc.ul.scrimfinder.dto.external.ExternalPlayerResponse;
 import fc.ul.scrimfinder.dto.response.PlayerDTO;
 import fc.ul.scrimfinder.exception.ExternalServiceUnavailableException;
 import fc.ul.scrimfinder.exception.PlayerAlreadyCreatedException;
 import fc.ul.scrimfinder.exception.PlayerNotFoundException;
-import fc.ul.scrimfinder.grpc.ExternalPlayerFillingService;
-import fc.ul.scrimfinder.grpc.LeagueEntry;
-import fc.ul.scrimfinder.grpc.PlayerResponse;
 import fc.ul.scrimfinder.mapper.PlayerMapper;
 import fc.ul.scrimfinder.repository.PlayerRepository;
+import fc.ul.scrimfinder.rest.client.ExternalPlayerClient;
 import fc.ul.scrimfinder.util.MMRConverter;
 import fc.ul.scrimfinder.util.Region;
-import io.quarkus.grpc.GrpcClient;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
-import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import java.util.Optional;
 import java.util.UUID;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -41,9 +39,7 @@ public class PlayerServiceTest {
 
     @InjectMock MMRConverter mmrConverter;
 
-    @InjectMock
-    @GrpcClient("player-service")
-    ExternalPlayerFillingService playerFillingClient;
+    @InjectMock @RestClient ExternalPlayerClient externalPlayerClient;
 
     @Test
     public void testCreatePlayer_Success() {
@@ -100,15 +96,10 @@ public class PlayerServiceTest {
         p.setDiscordUsername("user");
         when(playerRepository.findByIdOptional(pid)).thenReturn(Optional.of(p));
 
-        when(playerFillingClient.getPlayer(any()))
+        when(externalPlayerClient.fetchPlayerRank(anyString(), anyString(), anyString()))
                 .thenReturn(
-                        Uni.createFrom()
-                                .item(
-                                        PlayerResponse.newBuilder()
-                                                .setPuuid("puuid-123")
-                                                .setGameName("Name")
-                                                .setTagLine("TAG")
-                                                .build()));
+                        new ExternalPlayerResponse(
+                                new ExternalPlayerResponse.Account("puuid-123", "Name", "TAG"), null, null, null));
 
         when(playerMapper.toDTO(any()))
                 .thenReturn(new PlayerDTO(pid, "user", java.util.List.of(), 1000, 1000));
@@ -129,8 +120,8 @@ public class PlayerServiceTest {
         p.setId(pid);
         when(playerRepository.findByIdOptional(pid)).thenReturn(Optional.of(p));
 
-        when(playerFillingClient.getPlayer(any()))
-                .thenReturn(Uni.createFrom().failure(new RuntimeException("Service down")));
+        when(externalPlayerClient.fetchPlayerRank(anyString(), anyString(), anyString()))
+                .thenThrow(new RuntimeException("Service down"));
 
         assertThrows(
                 ExternalServiceUnavailableException.class,
@@ -153,19 +144,19 @@ public class PlayerServiceTest {
 
         when(playerRepository.findByIdOptional(pid)).thenReturn(Optional.of(p));
 
-        when(playerFillingClient.getPlayer(any()))
+        when(externalPlayerClient.fetchPlayerRank(anyString(), anyString(), anyString()))
                 .thenReturn(
-                        Uni.createFrom()
-                                .item(
-                                        PlayerResponse.newBuilder()
-                                                .addEntries(
-                                                        LeagueEntry.newBuilder()
-                                                                .setQueueType("RANKED_SOLO_5x5")
-                                                                .setTier("GOLD")
-                                                                .setRank("II")
-                                                                .setLeaguePoints(50)
-                                                                .build())
-                                                .build()));
+                        new ExternalPlayerResponse(
+                                null,
+                                null,
+                                null,
+                                java.util.List.of(
+                                        new ExternalPlayerResponse.Queue(
+                                                "RANKED_SOLO_5x5",
+                                                new ExternalPlayerResponse.Rank("GOLD", 2, 50),
+                                                0,
+                                                0,
+                                                false))));
 
         when(mmrConverter.convertRankToMMR(any())).thenReturn(1450);
 
