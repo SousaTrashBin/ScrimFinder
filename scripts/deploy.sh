@@ -40,6 +40,16 @@ gcloud services enable \
     eventarc.googleapis.com \
     secretmanager.googleapis.com
 
+PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format="value(projectNumber)")
+FUNCTIONS_BUILD_SERVICE_ACCOUNT_EMAIL="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+FUNCTIONS_BUILD_SERVICE_ACCOUNT="projects/${PROJECT_ID}/serviceAccounts/${FUNCTIONS_BUILD_SERVICE_ACCOUNT_EMAIL}"
+
+echo "ensuring Cloud Functions build service account permissions..."
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+    --member="serviceAccount:${FUNCTIONS_BUILD_SERVICE_ACCOUNT_EMAIL}" \
+    --role="roles/cloudbuild.builds.builder" \
+    --quiet
+
 ZONE="${REGION}-a"
 EXPECTED_CONTEXT="gke_${PROJECT_ID}_${ZONE}_${CLUSTER_NAME}"
 
@@ -67,6 +77,7 @@ if [[ "$CURRENT_CONTEXT" != "$EXPECTED_CONTEXT" ]]; then
             --enable-autoscaling \
             --min-nodes 1 \
             --max-nodes 1 \
+            --workload-pool="${PROJECT_ID}.svc.id.goog" \
             --quiet
 
         CLUSTER_STATUS="PROVISIONING"
@@ -96,6 +107,27 @@ else
     echo "already connected to the correct GKE cluster ($EXPECTED_CONTEXT)."
 fi
 
+WORKLOAD_POOL=$(gcloud container clusters describe "$CLUSTER_NAME" \
+    --zone "$ZONE" \
+    --project "$PROJECT_ID" \
+    --format="value(workloadIdentityConfig.workloadPool)" 2>/dev/null || echo "")
+
+if [ "$WORKLOAD_POOL" != "${PROJECT_ID}.svc.id.goog" ]; then
+    echo "enabling Workload Identity on cluster..."
+    gcloud container clusters update "$CLUSTER_NAME" \
+        --zone "$ZONE" \
+        --project "$PROJECT_ID" \
+        --workload-pool="${PROJECT_ID}.svc.id.goog" \
+        --quiet
+
+    gcloud container node-pools update default-pool \
+        --cluster="$CLUSTER_NAME" \
+        --zone="$ZONE" \
+        --project="$PROJECT_ID" \
+        --workload-metadata=GKE_METADATA \
+        --quiet
+fi
+
 echo "creating secrets for Google Cloud..."
 
 SECRETS_SERVICE_ACCOUNT=secrets-service-account
@@ -105,23 +137,32 @@ gcloud iam service-accounts create $SECRETS_SERVICE_ACCOUNT \
     --description="A Service Account with access to all ScrimFinder secrets" \
     --display-name="secrets-service-account" || true
 
-SECRETS="RIOT_API_KEY|${RIOT_API_KEY}"
-SECRETS+=" DB_USER|${SCRIM_DB_USER}"
-SECRETS+=" DB_PASSWORD|${SCRIM_DB_PASSWORD}"
-SECRETS+=" REDIS_PASSWORD|${SCRIM_REDIS_PASSWORD}"
-SECRETS+=" DB_USER|${SCRIM_DB_USER}"
-SECRETS+=" RABBITMQ_USER|${SCRIM_RABBITMQ_USER}"
-SECRETS+=" RABBITMQ_PASSWORD|${SCRIM_RABBITMQ_PASSWORD}"
-SECRETS+=" RABBITMQ_ERLANG_COOKIE|${SCRIM_RABBITMQ_ERLANG_COOKIE}"
+gcloud iam service-accounts add-iam-policy-binding "${SECRETS_SERVICE_ACCOUNT_EMAIL}" \
+    --member="serviceAccount:${PROJECT_ID}.svc.id.goog[${SCRIM_NAMESPACE}/scrimfinder-secrets-reader]" \
+    --role="roles/iam.workloadIdentityUser" \
+    --quiet || true
+
+SECRETS="riot-api-key|${RIOT_API_KEY}"
+SECRETS+=" db-user|${SCRIM_DB_USER}"
+SECRETS+=" db-password|${SCRIM_DB_PASSWORD}"
+SECRETS+=" redis-password|${SCRIM_REDIS_PASSWORD}"
+SECRETS+=" rabbitmq-user|${SCRIM_RABBITMQ_USER}"
+SECRETS+=" rabbitmq-password|${SCRIM_RABBITMQ_PASSWORD}"
+SECRETS+=" rabbitmq-erlang-cookie|${SCRIM_RABBITMQ_ERLANG_COOKIE}"
 
 for NAME_SECRET in ${SECRETS}; do
     (
         NAME=${NAME_SECRET%%|*}
         SECRET=${NAME_SECRET##*|}
 
-        echo -n "${SECRET}" | gcloud secrets create "${NAME}" \
-            --data-file=- \
-            --replication-policy="automatic" || true
+        if gcloud secrets describe "${NAME}" > /dev/null 2>&1; then
+            echo -n "${SECRET}" | gcloud secrets versions add "${NAME}" \
+                --data-file=-
+        else
+            echo -n "${SECRET}" | gcloud secrets create "${NAME}" \
+                --data-file=- \
+                --replication-policy="automatic"
+        fi
 
         gcloud secrets add-iam-policy-binding "${NAME}" \
             --member="serviceAccount:${SECRETS_SERVICE_ACCOUNT_EMAIL}" \
@@ -190,11 +231,15 @@ SERVERLESS_FUNCTIONS="detail_filling_service|getFilledMatch|RIOT_API_KEY"
 SERVERLESS_FUNCTIONS+=" detail_filling_service|getRawMatchData|RIOT_API_KEY"
 SERVERLESS_FUNCTIONS+=" detail_filling_service|getFilledPlayer|RIOT_API_KEY"
 
+SERVERLESS_DEPLOY_PIDS=()
+SERVERLESS_DEPLOY_NAMES=()
+
 for SERVICE_FUNCTION in ${SERVERLESS_FUNCTIONS}; do
+    temp=${SERVICE_FUNCTION#*|}
+    FUNCTION=${temp%%|*}
+
     (
         SERVICE=${SERVICE_FUNCTION%%|*}
-        temp=${SERVICE_FUNCTION#*|}
-        FUNCTION=${temp%%|*}
         SECRETS=${temp##*|}
 
         gcloud functions deploy "${FUNCTION}" \
@@ -208,21 +253,67 @@ for SERVICE_FUNCTION in ${SERVERLESS_FUNCTIONS}; do
             --max-instances=30 \
             --memory=512Mi \
             --cpu=800m \
+            --build-service-account="${FUNCTIONS_BUILD_SERVICE_ACCOUNT}" \
             --service-account="${SECRETS_SERVICE_ACCOUNT_EMAIL}" \
             --set-secrets 'RIOT_API_KEY=RIOT_API_KEY:latest' # from Google Cloud secret manager
     ) &
+
+    SERVERLESS_DEPLOY_PIDS+=("$!")
+    SERVERLESS_DEPLOY_NAMES+=("${FUNCTION}")
 done
 
-wait
+SERVERLESS_DEPLOY_FAILED=0
+for i in "${!SERVERLESS_DEPLOY_PIDS[@]}"; do
+    if ! wait "${SERVERLESS_DEPLOY_PIDS[$i]}"; then
+        echo "serverless function deploy failed: ${SERVERLESS_DEPLOY_NAMES[$i]}"
+        SERVERLESS_DEPLOY_FAILED=1
+    fi
+done
+
+if [ "$SERVERLESS_DEPLOY_FAILED" -ne 0 ]; then
+    exit 1
+fi
+
 echo "all serverless functions done deploying."
 
-echo "functions info:"
+echo "function endpoints:"
+
+DETAIL_FILLING_FUNCTION_URL=""
+DETAIL_FILLING_API_URL=""
 
 for SERVICE_FUNCTION in ${SERVERLESS_FUNCTIONS}; do
     temp=${SERVICE_FUNCTION#*|}
     FUNCTION=${temp%%|*}
-    gcloud functions describe "${FUNCTION}" --region="${REGION}" --format="value(url)"
+    FUNCTION_URL=$(gcloud functions describe "${FUNCTION}" --region="${REGION}" --format="value(url)")
+
+    if [ -z "${DETAIL_FILLING_FUNCTION_URL}" ]; then
+        DETAIL_FILLING_FUNCTION_URL="${FUNCTION_URL}"
+        DETAIL_FILLING_API_URL="${FUNCTION_URL}/api/v1/riot"
+    fi
+
+    case "${FUNCTION}" in
+        getFilledMatch)
+            echo "${FUNCTION}: ${FUNCTION_URL}/api/v1/riot/matches/{matchId}"
+            ;;
+        getRawMatchData)
+            echo "${FUNCTION}: ${FUNCTION_URL}/api/v1/riot/matches/{matchId}/raw"
+            ;;
+        getFilledPlayer)
+            echo "${FUNCTION}: ${FUNCTION_URL}/api/v1/riot/players/{server}/{name}/{tag}"
+            ;;
+        *)
+            echo "${FUNCTION}: ${FUNCTION_URL}"
+            ;;
+    esac
 done
+
+if [ -z "${DETAIL_FILLING_FUNCTION_URL}" ]; then
+    echo "error: no detail filling serverless function URL was found."
+    exit 1
+fi
+
+echo "using detail filling service URL for Kubernetes services: ${DETAIL_FILLING_FUNCTION_URL}"
+echo "using detail filling API URL for Kubernetes services: ${DETAIL_FILLING_API_URL}"
 
 echo "updating Helm dependencies..."
 helm dependency update k8s/charts/scrimfinder
@@ -231,18 +322,55 @@ echo "deploying Argo CD..."
 kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
 kubectl apply -n argocd --server-side --force-conflicts -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
-kubectl apply -n argocd --server-side --force-conflicts -f k8s/application.yaml
-
-COMMON_SET_ARGS=(
-    --set "global.namespace=$SCRIM_NAMESPACE"
-    --set "global.projectID=$PROJECT_ID"
-    --set "global.microservicesRegistry=${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}"
-    --set "global.region=${REGION}"
-    --set "global.projectId=${PROJECT_ID}"
-    --set "global.repoName=${REPO_NAME}"
-    --set "global.rabbitmqHost=${SCRIM_RABBITMQ_HOST}"
-    --set "global.rabbitmqPort=${SCRIM_RABBITMQ_PORT}"
-)
+kubectl apply -n argocd --server-side --force-conflicts -f - <<EOF
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: scrimfinder
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: "https://github.com/SousaTrashBin/ScrimFinder.git"
+    targetRevision: work/bruno
+    path: k8s/charts/scrimfinder
+    helm:
+      releaseName: scrimfinder
+      valueFiles:
+        - values.yaml
+      parameters:
+        - name: global.namespace
+          value: "${SCRIM_NAMESPACE}"
+        - name: global.projectID
+          value: "${PROJECT_ID}"
+        - name: global.microservicesRegistry
+          value: "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}"
+        - name: global.region
+          value: "${REGION}"
+        - name: global.projectId
+          value: "${PROJECT_ID}"
+        - name: global.repoName
+          value: "${REPO_NAME}"
+        - name: global.rabbitmqHost
+          value: "${SCRIM_RABBITMQ_HOST}"
+        - name: global.rabbitmqPort
+          value: "${SCRIM_RABBITMQ_PORT}"
+        - name: services.ranking-service.env.DETAIL_FILLING_SERVICE_URL
+          value: "${DETAIL_FILLING_FUNCTION_URL}"
+        - name: services.match-history-service.env.PLAYER_FILLING_SVC_URL
+          value: "${DETAIL_FILLING_API_URL}"
+        - name: services.training-service.env.DETAIL_FILLING_URL
+          value: "${DETAIL_FILLING_API_URL}"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: "${SCRIM_NAMESPACE}"
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+    automated:
+      prune: true
+      selfHeal: true
+EOF
 
 echo "waiting for Traefik LoadBalancer External IP/Hostname..."
 
