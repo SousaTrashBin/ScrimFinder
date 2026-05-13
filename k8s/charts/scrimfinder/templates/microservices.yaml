@@ -5,6 +5,8 @@ kind: Deployment
 metadata:
   name: {{ $name }}
   namespace: {{ $.Values.global.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
 spec:
   {{- if not ($config.autoscaling).enabled }}
   replicas: {{ $config.replicas | default 1 }}
@@ -129,6 +131,8 @@ kind: Service
 metadata:
   name: {{ $name }}
   namespace: {{ $.Values.global.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
 spec:
   selector:
     app: {{ $name }}
@@ -145,6 +149,8 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: {{ $name }}-hpa
   namespace: {{ $.Values.global.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
 spec:
   scaleTargetRef:
     apiVersion: apps/v1

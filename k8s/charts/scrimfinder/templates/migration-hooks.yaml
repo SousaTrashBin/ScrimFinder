@@ -4,8 +4,7 @@ metadata:
   name: scrimfinder-ranking-migrations
   namespace: {{ .Values.global.namespace }}
   annotations:
-    argocd.argoproj.io/hook: PreSync
-    argocd.argoproj.io/sync-wave: "-10"
+    argocd.argoproj.io/sync-wave: "4"
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 data: {}
 ---
@@ -15,8 +14,7 @@ metadata:
   name: scrimfinder-matchmaking-migrations
   namespace: {{ .Values.global.namespace }}
   annotations:
-    argocd.argoproj.io/hook: PreSync
-    argocd.argoproj.io/sync-wave: "-10"
+    argocd.argoproj.io/sync-wave: "4"
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 data: {}
 ---
@@ -26,8 +24,7 @@ metadata:
   name: scrimfinder-history-migrations
   namespace: {{ .Values.global.namespace }}
   annotations:
-    argocd.argoproj.io/hook: PreSync
-    argocd.argoproj.io/sync-wave: "-10"
+    argocd.argoproj.io/sync-wave: "4"
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 data: {}
 ---
@@ -44,8 +41,8 @@ metadata:
   name: "scrimfinder-{{ $job.name }}-db-migrate"
   namespace: {{ $ns }}
   annotations:
-    argocd.argoproj.io/hook: PreSync
-    argocd.argoproj.io/sync-wave: "-5"
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/sync-wave: "5"
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
 spec:
   backoffLimit: 0
