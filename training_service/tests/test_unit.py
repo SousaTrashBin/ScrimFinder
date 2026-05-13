@@ -11,7 +11,6 @@ Run:
 import sqlite3
 import threading
 
-import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -36,11 +35,11 @@ def test_openapi_hides_dataset_routes_and_job_dataset_id():
     assert not any(path.startswith("/datasets") for path in spec["paths"])
 
     job_create = spec["components"]["schemas"].get("TrainingJobCreate", {})
-    job_resp   = spec["components"]["schemas"].get("TrainingJobResponse", {})
+    job_resp = spec["components"]["schemas"].get("TrainingJobResponse", {})
 
     # dataset_id must NOT appear as a required field (it's Optional with default None)
     required_create = job_create.get("required", [])
-    required_resp   = job_resp.get("required", [])
+    required_resp = job_resp.get("required", [])
     assert "dataset_id" not in required_create
     assert "dataset_id" not in required_resp
 
@@ -51,7 +50,9 @@ def test_openapi_hides_dataset_routes_and_job_dataset_id():
 def test_create_training_job_accepts_minimal_payload(monkeypatch):
     stored = {}
 
-    def fake_create_job(job_id, concern, algorithm="auto", dataset_id=None, filters=None):
+    def fake_create_job(
+        job_id, concern, algorithm="auto", dataset_id=None, filters=None
+    ):
         stored.update(
             {
                 "id": job_id,
@@ -79,8 +80,8 @@ def test_create_training_job_accepts_minimal_payload(monkeypatch):
             pass
 
     monkeypatch.setattr(training.db, "create_job", fake_create_job)
-    monkeypatch.setattr(training.db, "get_job",    lambda job_id: stored)
-    monkeypatch.setattr(threading,   "Thread",     _NoopThread)
+    monkeypatch.setattr(training.db, "get_job", lambda job_id: stored)
+    monkeypatch.setattr(threading, "Thread", _NoopThread)
 
     r = _make_client().post(
         "/jobs",
@@ -89,7 +90,7 @@ def test_create_training_job_accepts_minimal_payload(monkeypatch):
 
     assert r.status_code == 202
     body = r.json()
-    assert body["concern"]   == "draft"
+    assert body["concern"] == "draft"
     assert body["algorithm"] == "auto"
     # dataset_id should not appear in the response body at all (excluded or None)
     assert body.get("dataset_id") is None
@@ -112,8 +113,12 @@ def test_import_league_games_copies_match_participants_items_and_runes(
         "CREATE TABLE player_stats "
         "(match_id TEXT, puuid TEXT, champion_id TEXT, team_id TEXT, win INTEGER)"
     )
-    conn.execute("CREATE TABLE player_items  (match_id TEXT, puuid TEXT, item_id INTEGER)")
-    conn.execute("CREATE TABLE player_runes  (match_id TEXT, puuid TEXT, rune_id INTEGER)")
+    conn.execute(
+        "CREATE TABLE player_items  (match_id TEXT, puuid TEXT, item_id INTEGER)"
+    )
+    conn.execute(
+        "CREATE TABLE player_runes  (match_id TEXT, puuid TEXT, rune_id INTEGER)"
+    )
     conn.execute("INSERT INTO matches      VALUES ('M1', 'RANKED', 1800, '14.10')")
     conn.execute("INSERT INTO player_stats VALUES ('M1', 'P1', '22', '100', 1)")
     conn.execute("INSERT INTO player_items VALUES ('M1', 'P1', 3031)")
@@ -136,7 +141,7 @@ def test_import_league_games_copies_match_participants_items_and_runes(
 
     assert r.status_code == 200
     assert r.json() == {"imported": 1, "skipped": 0, "errors": []}
-    assert inserted["game_id"]                              == "M1"
-    assert inserted["source"]                               == "league_db"
+    assert inserted["game_id"] == "M1"
+    assert inserted["source"] == "league_db"
     assert inserted["raw"]["participants"][0]["items"][0]["item_id"] == 3031
     assert inserted["raw"]["participants"][0]["runes"][0]["rune_id"] == 8005

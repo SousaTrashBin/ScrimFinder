@@ -8,56 +8,61 @@ permissions:
   contents: read
 
 jobs:
+  # ── Java services ────────────────────────────────────────────────────────────
   quarkus_build:
     name: build & test - ${{ matrix.service }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
       matrix:
-        service: [
-          'matchmaking-service',
-          'ranking_service',
-          'match_history_service',
-          'detail_filling_service'
-        ]
+        service:
+          - matchmaking-service
+          - ranking_service
+          - match_history_service
+          - detail_filling_service
 
     steps:
-    - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-    - name: set up JDK 21
-      uses: actions/setup-java@v4
-      with:
-        java-version: '21'
-        distribution: 'temurin'
-        cache: 'maven'
-        cache-dependency-path: ${{ matrix.service }}/pom.xml
+      - name: set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+          cache-dependency-path: ${{ matrix.service }}/pom.xml
 
-    - name: check formatting
-      run: |
-        cd ${{ matrix.service }}
-        if ! ./mvnw spotless:check; then
-          echo "::error::spotless formatting check failed for ${{ matrix.service }}!"
-          echo "to fix locally, run: cd ${{ matrix.service }} && ./mvnw spotless:apply"
-          exit 1
-        fi
+      - name: check formatting
+        run: |
+          cd ${{ matrix.service }}
+          if ! ./mvnw spotless:check; then
+            echo "::error::spotless formatting check failed for ${{ matrix.service }}!"
+            echo "To fix locally: cd ${{ matrix.service }} && ./mvnw spotless:apply"
+            exit 1
+          fi
 
-    - name: build and run tests
-      run: |
-        cd ${{ matrix.service }}
-        ./mvnw clean package
+      - name: build and run tests
+        run: |
+          cd ${{ matrix.service }}
+          ./mvnw clean package
 
+  # ── Python services ──────────────────────────────────────────────────────────
   python_build:
     name: build & test - ${{ matrix.service }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
       matrix:
-        service: [
-          'analysis_service',
-          'training_service',
-        ]
+        include:
+          # training_service needs PostgreSQL; analysis_service does not
+          - service: training_service
+            needs_postgres: true
+          - service: analysis_service
+            needs_postgres: false
 
-    # Start a Postgres container for training_service
+    # PostgreSQL is started for every matrix row but only used by training_service.
+    # GitHub Actions does not support conditional services, so we start it always
+    # and let the service healthcheck gate the step — analysis_service ignores it.
     services:
       postgres:
         image: postgres:15
@@ -67,7 +72,6 @@ jobs:
           POSTGRES_PASSWORD: pass
         ports:
           - 5432:5432
-        # Wait until postgres is healthy before starting the job
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -75,39 +79,42 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
+
       - name: set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: 'pip'
+          cache: pip
           cache-dependency-path: ${{ matrix.service }}/requirements.txt
 
       - name: install dependencies
         run: |
           cd ${{ matrix.service }}
-          python -m pip install --upgrade pip
+          pip install --upgrade pip
           pip install -r requirements.txt
           pip install ruff pytest pytest-asyncio
 
       - name: lint with ruff
         run: |
-          # Note: we check the subdirectory directly to avoid path issues
           cd ${{ matrix.service }}
           ruff check .
           ruff format --check .
 
-      - name: run tests with pytest
+      - name: run tests
         env:
+          # training_service picks these up via config.py PLATFORM_DB_KWARGS
+          # analysis_service ignores them entirely
           PLATFORM_DB_HOST: localhost
           PLATFORM_DB_PORT: "5432"
           PLATFORM_DB_NAME: testdb
           PLATFORM_DB_USER: user
           PLATFORM_DB_PASSWORD: pass
-          MODELS_DIR: ./models
-          GAMES_DIR: ./games
-          DATASETS_DIR: ./datasets
+          # Artefact dirs — created by pytest.ini / tests themselves
+          MODELS_DIR: /tmp/models
+          GAMES_DIR: /tmp/games
+          DATASETS_DIR: /tmp/datasets
         run: |
           cd ${{ matrix.service }}
-          mkdir -p models games datasets
+          mkdir -p /tmp/models /tmp/games /tmp/datasets
           pytest

@@ -17,9 +17,7 @@ import pytest
 
 # ── Skip entire module if no DB is configured ─────────────────────────────────
 # Accept either individual vars (CI workflow) or a full DSN string.
-_has_db = bool(
-    os.environ.get("PLATFORM_DB_HOST") or os.environ.get("PLATFORM_DB_DSN")
-)
+_has_db = bool(os.environ.get("PLATFORM_DB_HOST") or os.environ.get("PLATFORM_DB_DSN"))
 if not _has_db:
     pytest.skip(
         "No PostgreSQL configured. Set PLATFORM_DB_HOST (or PLATFORM_DB_DSN) to run "
@@ -229,7 +227,9 @@ class TestModels:
         assert client.post("/api/v1/training/models/99999/activate").status_code == 404
 
     def test_deactivate_404(self):
-        assert client.post("/api/v1/training/models/99999/deactivate").status_code == 404
+        assert (
+            client.post("/api/v1/training/models/99999/deactivate").status_code == 404
+        )
 
     def test_delete_404(self):
         assert client.delete("/api/v1/training/models/99999").status_code == 404

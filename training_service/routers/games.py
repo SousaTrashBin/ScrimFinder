@@ -42,7 +42,9 @@ def _row(r) -> GameIngested:
     )
 
 
-@router.post("", response_model=GameIngested, status_code=201, summary="Ingest a single match")
+@router.post(
+    "", response_model=GameIngested, status_code=201, summary="Ingest a single match"
+)
 def ingest_game(body: GameIngest):
     gid = body.id or _derive_id(body.data)
     db.insert_game(gid, body.data, source=body.source)

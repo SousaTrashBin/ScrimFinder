@@ -10,13 +10,23 @@ def _parse_postgres_uri(uri: str) -> dict:
     m = re.match(r"postgresql://([^:]+):([^@]+)@([^:]+):(\d+)/([^\?]+)", uri)
     if m:
         user, password, host, port, dbname = m.groups()
-        return {"host": host, "port": int(port), "dbname": dbname,
-                "user": user, "password": password}
+        return {
+            "host": host,
+            "port": int(port),
+            "dbname": dbname,
+            "user": user,
+            "password": password,
+        }
     m = re.match(r"postgresql://([^:]+):([^@]+)@([^/]+)/([^\?]+)", uri)
     if m:
         user, password, host, dbname = m.groups()
-        return {"host": host, "port": 5432, "dbname": dbname,
-                "user": user, "password": password}
+        return {
+            "host": host,
+            "port": 5432,
+            "dbname": dbname,
+            "user": user,
+            "password": password,
+        }
     raise ValueError(f"Cannot parse PostgreSQL URI: {uri!r}")
 
 
@@ -29,10 +39,10 @@ class _Config:
         PLATFORM_DB_KWARGS: dict = _parse_postgres_uri(_uri)
     else:
         PLATFORM_DB_KWARGS: dict = {
-            "host":     os.environ.get("PLATFORM_DB_HOST", "localhost"),
-            "port":     int(os.environ.get("PLATFORM_DB_PORT", "5432")),
-            "dbname":   os.environ.get("PLATFORM_DB_NAME", "platform"),
-            "user":     os.environ.get("PLATFORM_DB_USER", "postgres"),
+            "host": os.environ.get("PLATFORM_DB_HOST", "localhost"),
+            "port": int(os.environ.get("PLATFORM_DB_PORT", "5432")),
+            "dbname": os.environ.get("PLATFORM_DB_NAME", "platform"),
+            "user": os.environ.get("PLATFORM_DB_USER", "postgres"),
             "password": os.environ.get("PLATFORM_DB_PASSWORD", "postgres"),
         }
 
@@ -45,8 +55,8 @@ class _Config:
     )
 
     # ── ML artefact paths ─────────────────────────────────────────────────────
-    MODELS_DIR:   str = os.environ.get("MODELS_DIR",   str(_HERE / "data" / "models"))
-    GAMES_DIR:    str = os.environ.get("GAMES_DIR",    str(_HERE / "data" / "games"))
+    MODELS_DIR: str = os.environ.get("MODELS_DIR", str(_HERE / "data" / "models"))
+    GAMES_DIR: str = os.environ.get("GAMES_DIR", str(_HERE / "data" / "games"))
     DATASETS_DIR: str = os.environ.get("DATASETS_DIR", str(_HERE / "data" / "datasets"))
 
     MODEL_RELOAD_INTERVAL: int = int(os.environ.get("MODEL_RELOAD_INTERVAL", 600))
