@@ -2,22 +2,20 @@ package fc.ul.scrimfinder.service.impl;
 
 import fc.ul.scrimfinder.domain.Player;
 import fc.ul.scrimfinder.domain.RiotAccount;
+import fc.ul.scrimfinder.dto.external.ExternalPlayerResponse;
 import fc.ul.scrimfinder.dto.response.PlayerDTO;
 import fc.ul.scrimfinder.dto.response.RankDTO;
 import fc.ul.scrimfinder.dto.response.RiotAccountDTO;
 import fc.ul.scrimfinder.exception.*;
-import fc.ul.scrimfinder.grpc.ExternalPlayerFillingService;
-import fc.ul.scrimfinder.grpc.PlayerRequest;
-import fc.ul.scrimfinder.grpc.PlayerResponse;
 import fc.ul.scrimfinder.mapper.PlayerMapper;
 import fc.ul.scrimfinder.repository.PlayerRepository;
 import fc.ul.scrimfinder.repository.ReadOnlyPlayerRepository;
 import fc.ul.scrimfinder.repository.RiotAccountRepository;
+import fc.ul.scrimfinder.rest.client.ExternalPlayerClient;
 import fc.ul.scrimfinder.service.PlayerService;
 import fc.ul.scrimfinder.util.MMRConverter;
 import fc.ul.scrimfinder.util.Region;
 import fc.ul.scrimfinder.util.Tier;
-import io.quarkus.grpc.GrpcClient;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -28,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.faulttolerance.Timeout;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 @Slf4j
 @Blocking
@@ -42,9 +41,7 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Inject PlayerMapper playerMapper;
 
-    @Inject
-    @GrpcClient("player-service")
-    ExternalPlayerFillingService playerFillingClient;
+    @Inject @RestClient ExternalPlayerClient externalPlayerClient;
 
     @Inject MMRConverter mmrConverter;
 
@@ -134,18 +131,10 @@ public class PlayerServiceImpl implements PlayerService {
                                     return new PlayerNotFoundException("Internal player not found");
                                 });
 
-        PlayerResponse externalPlayer;
+        ExternalPlayerResponse externalPlayer;
         try {
             externalPlayer =
-                    playerFillingClient
-                            .getPlayer(
-                                    PlayerRequest.newBuilder()
-                                            .setGameName(gameName)
-                                            .setTagLine(tagLine)
-                                            .setServer(region.getDisplayName())
-                                            .build())
-                            .await()
-                            .indefinitely();
+                    externalPlayerClient.fetchPlayerRank(region.getDisplayName(), gameName, tagLine);
             log.info(
                     "\u001B[32m[SUCCESS]\u001B[0m Verified Riot account {}#{} via External Service",
                     gameName,
@@ -160,7 +149,8 @@ public class PlayerServiceImpl implements PlayerService {
                     "External service is currently unavailable or player not found. Please try again later.");
         }
 
-        String effectivePuuid = (puuid != null && !puuid.isBlank()) ? puuid : externalPlayer.getPuuid();
+        String effectivePuuid =
+                (puuid != null && !puuid.isBlank()) ? puuid : externalPlayer.account().puuid();
 
         if (player.getRiotAccounts().stream().anyMatch(acc -> acc.getPuuid().equals(effectivePuuid))) {
             log.warn(
@@ -258,44 +248,42 @@ public class PlayerServiceImpl implements PlayerService {
         }
 
         try {
-            PlayerResponse externalPlayer =
-                    playerFillingClient
-                            .getPlayer(
-                                    PlayerRequest.newBuilder()
-                                            .setGameName(primaryAccount.getGameName())
-                                            .setTagLine(primaryAccount.getTagLine())
-                                            .setServer(primaryAccount.getRegion().getDisplayName())
-                                            .build())
-                            .await()
-                            .indefinitely();
+            ExternalPlayerResponse externalPlayer =
+                    externalPlayerClient.fetchPlayerRank(
+                            primaryAccount.getRegion().getDisplayName(),
+                            primaryAccount.getGameName(),
+                            primaryAccount.getTagLine());
 
-            externalPlayer
-                    .getEntriesList()
-                    .forEach(
-                            entry -> {
-                                RankDTO rankDTO =
-                                        new RankDTO(
-                                                Tier.valueOf(entry.getTier().toUpperCase()),
-                                                parseDivision(entry.getRank()),
-                                                entry.getLeaguePoints());
-                                if ("RANKED_SOLO_5x5".equals(entry.getQueueType())) {
-                                    int oldMMR = player.getSoloqMMR();
-                                    player.setSoloqMMR(mmrConverter.convertRankToMMR(rankDTO));
-                                    log.info(
-                                            "\u001B[34m[INFO]\u001B[0m Updated SOLOQ MMR for {}: {} -> {}",
-                                            player.getDiscordUsername(),
-                                            oldMMR,
-                                            player.getSoloqMMR());
-                                } else if ("RANKED_FLEX_SR".equals(entry.getQueueType())) {
-                                    int oldMMR = player.getFlexMMR();
-                                    player.setFlexMMR(mmrConverter.convertRankToMMR(rankDTO));
-                                    log.info(
-                                            "\u001B[34m[INFO]\u001B[0m Updated FLEX MMR for {}: {} -> {}",
-                                            player.getDiscordUsername(),
-                                            oldMMR,
-                                            player.getFlexMMR());
-                                }
-                            });
+            if (externalPlayer.queues() != null) {
+                externalPlayer
+                        .queues()
+                        .forEach(
+                                entry -> {
+                                    if (entry.rank() == null || entry.rank().tier() == null) return;
+                                    RankDTO rankDTO =
+                                            new RankDTO(
+                                                    Tier.valueOf(entry.rank().tier().toUpperCase()),
+                                                    entry.rank().division(),
+                                                    entry.rank().lps());
+                                    if ("RANKED_SOLO_5x5".equals(entry.queueType())) {
+                                        int oldMMR = player.getSoloqMMR();
+                                        player.setSoloqMMR(mmrConverter.convertRankToMMR(rankDTO));
+                                        log.info(
+                                                "\u001B[34m[INFO]\u001B[0m Updated SOLOQ MMR for {}: {} -> {}",
+                                                player.getDiscordUsername(),
+                                                oldMMR,
+                                                player.getSoloqMMR());
+                                    } else if ("RANKED_FLEX_SR".equals(entry.queueType())) {
+                                        int oldMMR = player.getFlexMMR();
+                                        player.setFlexMMR(mmrConverter.convertRankToMMR(rankDTO));
+                                        log.info(
+                                                "\u001B[34m[INFO]\u001B[0m Updated FLEX MMR for {}: {} -> {}",
+                                                player.getDiscordUsername(),
+                                                oldMMR,
+                                                player.getFlexMMR());
+                                    }
+                                });
+            }
 
             playerRepository.persist(player);
             log.info("\u001B[32m[SUCCESS]\u001B[0m MMR sync complete for player {}", playerId);
@@ -333,20 +321,6 @@ public class PlayerServiceImpl implements PlayerService {
                     "\u001B[34m[INFO]\u001B[0m Riot account {}#{} not found. Nothing to unlink.",
                     gameName,
                     tagLine);
-        }
-    }
-
-    private int parseDivision(String rank) {
-        try {
-            return Integer.parseInt(rank);
-        } catch (NumberFormatException e) {
-            return switch (rank) {
-                case "I" -> 1;
-                case "II" -> 2;
-                case "III" -> 3;
-                case "IV" -> 4;
-                default -> 1;
-            };
         }
     }
 }

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-REQUIRED_VARS="SCRIM_PROJECT_ID SCRIM_REGION SCRIM_REPO_NAME SCRIM_ENV_TAG SCRIM_CLUSTER_NAME RIOT_API_KEY SCRIM_DB_USER SCRIM_DB_PASSWORD SCRIM_PULUMI_STACK SCRIM_JWT_SECRET SCRIM_DISCORD_BOT_SECRET"
+REQUIRED_VARS="SCRIM_PROJECT_ID SCRIM_REGION SCRIM_REPO_NAME SCRIM_ENV_TAG SCRIM_CLUSTER_NAME RIOT_API_KEY SCRIM_DB_USER SCRIM_DB_PASSWORD SCRIM_GRAFANA_TOKEN"
 
 for var in $REQUIRED_VARS; do
     if [ -z "$(eval echo \${$var:-})" ]; then
@@ -25,40 +25,169 @@ SCRIM_RABBITMQ_ERLANG_COOKIE="${SCRIM_RABBITMQ_ERLANG_COOKIE:-erlangcookie}"
 SCRIM_RABBITMQ_HOST="${SCRIM_RABBITMQ_HOST:-scrimfinder-rabbitmq-broker}"
 SCRIM_RABBITMQ_PORT="${SCRIM_RABBITMQ_PORT:-5672}"
 
-PULUMI_STACK="${SCRIM_PULUMI_STACK}"
-PULUMI_DIR="$(cd "$(dirname "$0")/../infrastructure/pulumi" && pwd)"
+echo "checking GCP configuration..."
+gcloud config set project "$PROJECT_ID" --quiet
 
-echo "provisioning GKE cluster via Pulumi (stack: $PULUMI_STACK)..."
+echo "enabling required Google Cloud APIs..."
+gcloud services enable \
+    artifactregistry.googleapis.com \
+    container.googleapis.com \
+    compute.googleapis.com \
+    iam.googleapis.com \
+    cloudfunctions.googleapis.com \
+    cloudbuild.googleapis.com \
+    run.googleapis.com \
+    eventarc.googleapis.com \
+    secretmanager.googleapis.com
 
-if ! command -v pulumi &>/dev/null; then
-    echo "error: pulumi is not installed. See https://www.pulumi.com/docs/install/"
-    exit 1
+PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format="value(projectNumber)")
+FUNCTIONS_BUILD_SERVICE_ACCOUNT_EMAIL="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+FUNCTIONS_BUILD_SERVICE_ACCOUNT="projects/${PROJECT_ID}/serviceAccounts/${FUNCTIONS_BUILD_SERVICE_ACCOUNT_EMAIL}"
+
+echo "ensuring Cloud Functions build service account permissions..."
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+    --member="serviceAccount:${FUNCTIONS_BUILD_SERVICE_ACCOUNT_EMAIL}" \
+    --role="roles/cloudbuild.builds.builder" \
+    --quiet
+
+ZONE="${REGION}-a"
+EXPECTED_CONTEXT="gke_${PROJECT_ID}_${ZONE}_${CLUSTER_NAME}"
+
+CURRENT_CONTEXT=$(kubectl config current-context 2>/dev/null || echo "")
+
+if [[ "$CURRENT_CONTEXT" != "$EXPECTED_CONTEXT" ]]; then
+    echo "target GKE context not active. checking cluster status..."
+
+    CLUSTER_STATUS=$(gcloud container clusters describe "$CLUSTER_NAME" \
+        --zone "$ZONE" \
+        --project "$PROJECT_ID" \
+        --format="value(status)" 2>/dev/null || echo "NOT_FOUND")
+
+    if [ "$CLUSTER_STATUS" = "NOT_FOUND" ]; then
+        echo "creating GKE zonal cluster: $CLUSTER_NAME in $ZONE ..."
+
+        gcloud container clusters create "$CLUSTER_NAME" \
+            --zone "$ZONE" \
+            --project "$PROJECT_ID" \
+            --num-nodes 1 \
+            --machine-type e2-standard-4 \
+            --disk-size 40 \
+            --disk-type pd-standard \
+            --spot \
+            --enable-autoscaling \
+            --min-nodes 1 \
+            --max-nodes 1 \
+            --workload-pool="${PROJECT_ID}.svc.id.goog" \
+            --quiet
+
+        CLUSTER_STATUS="PROVISIONING"
+    fi
+
+    echo "ensuring cluster $CLUSTER_NAME is RUNNING..."
+
+    until [ "$CLUSTER_STATUS" = "RUNNING" ]; do
+        CLUSTER_STATUS=$(gcloud container clusters describe "$CLUSTER_NAME" \
+            --zone "$ZONE" \
+            --project "$PROJECT_ID" \
+            --format="value(status)" 2>/dev/null || echo "ERROR")
+
+        if [ "$CLUSTER_STATUS" = "RUNNING" ]; then
+            break
+        fi
+
+        echo "current status: $CLUSTER_STATUS. waiting 20s..."
+        sleep 20
+    done
+
+    echo "fetching GKE credentials..."
+    gcloud container clusters get-credentials "$CLUSTER_NAME" \
+        --zone "$ZONE" \
+        --project "$PROJECT_ID"
+else
+    echo "already connected to the correct GKE cluster ($EXPECTED_CONTEXT)."
 fi
 
-(
-    cd "$PULUMI_DIR"
-    [ ! -d venv ] && python3 -m venv venv
-    venv/bin/pip install -q -r requirements.txt
-    pulumi stack select "$PULUMI_STACK" --create
-    pulumi config set gcp:project "$PROJECT_ID" --stack "$PULUMI_STACK"
-    pulumi config set gcp:region  "$REGION"     --stack "$PULUMI_STACK"
-    pulumi up --yes --stack "$PULUMI_STACK"
-)
+WORKLOAD_POOL=$(gcloud container clusters describe "$CLUSTER_NAME" \
+    --zone "$ZONE" \
+    --project "$PROJECT_ID" \
+    --format="value(workloadIdentityConfig.workloadPool)" 2>/dev/null || echo "")
 
-echo "writing kubeconfig from Pulumi stack output..."
-KUBECONFIG_PATH="${KUBECONFIG:-$HOME/.kube/config}"
-mkdir -p "$(dirname "$KUBECONFIG_PATH")"
-(cd "$PULUMI_DIR" && pulumi stack output kubeconfig --show-secrets --stack "$PULUMI_STACK")     > "$KUBECONFIG_PATH"
-chmod 600 "$KUBECONFIG_PATH"
+if [ "$WORKLOAD_POOL" != "${PROJECT_ID}.svc.id.goog" ]; then
+    echo "enabling Workload Identity on cluster..."
+    gcloud container clusters update "$CLUSTER_NAME" \
+        --zone "$ZONE" \
+        --project "$PROJECT_ID" \
+        --workload-pool="${PROJECT_ID}.svc.id.goog" \
+        --quiet
 
-ARTIFACT_REGISTRY=$(cd "$PULUMI_DIR" && pulumi stack output artifact_registry --stack "$PULUMI_STACK")
-ZONE="${REGION}-a"
+    gcloud container node-pools update default-pool \
+        --cluster="$CLUSTER_NAME" \
+        --zone="$ZONE" \
+        --project="$PROJECT_ID" \
+        --workload-metadata=GKE_METADATA \
+        --quiet
+fi
+
+echo "creating secrets for Google Cloud..."
+
+SECRETS_SERVICE_ACCOUNT=secrets-service-account
+SECRETS_SERVICE_ACCOUNT_EMAIL="${SECRETS_SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com"
+
+gcloud iam service-accounts create $SECRETS_SERVICE_ACCOUNT \
+    --description="A Service Account with access to all ScrimFinder secrets" \
+    --display-name="secrets-service-account" || true
+
+gcloud iam service-accounts add-iam-policy-binding "${SECRETS_SERVICE_ACCOUNT_EMAIL}" \
+    --member="serviceAccount:${PROJECT_ID}.svc.id.goog[${SCRIM_NAMESPACE}/scrimfinder-secrets-reader]" \
+    --role="roles/iam.workloadIdentityUser" \
+    --quiet || true
+
+SECRETS="RIOT_API_KEY|${RIOT_API_KEY}"
+SECRETS+=" riot-api-key|${RIOT_API_KEY}"
+SECRETS+=" db-user|${SCRIM_DB_USER}"
+SECRETS+=" db-password|${SCRIM_DB_PASSWORD}"
+SECRETS+=" redis-password|${SCRIM_REDIS_PASSWORD}"
+SECRETS+=" rabbitmq-user|${SCRIM_RABBITMQ_USER}"
+SECRETS+=" rabbitmq-password|${SCRIM_RABBITMQ_PASSWORD}"
+SECRETS+=" rabbitmq-erlang-cookie|${SCRIM_RABBITMQ_ERLANG_COOKIE}"
+
+for NAME_SECRET in ${SECRETS}; do
+    (
+        NAME=${NAME_SECRET%%|*}
+        SECRET=${NAME_SECRET##*|}
+
+        if gcloud secrets describe "${NAME}" > /dev/null 2>&1; then
+            echo -n "${SECRET}" | gcloud secrets versions add "${NAME}" \
+                --data-file=-
+        else
+            echo -n "${SECRET}" | gcloud secrets create "${NAME}" \
+                --data-file=- \
+                --replication-policy="automatic"
+        fi
+
+        gcloud secrets add-iam-policy-binding "${NAME}" \
+            --member="serviceAccount:${SECRETS_SERVICE_ACCOUNT_EMAIL}" \
+            --role="roles/secretmanager.secretAccessor"
+    ) &
+done
+
+wait
+echo "done creating secrets."
 
 echo "authenticating Docker to Artifact Registry..."
 gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
 
+if ! gcloud artifacts repositories describe "$REPO_NAME" --location="$REGION" > /dev/null 2>&1; then
+    echo "creating Artifact Registry repository: $REPO_NAME..."
+
+    gcloud artifacts repositories create "$REPO_NAME" \
+        --repository-format=docker \
+        --location="$REGION" \
+        --description="Docker repository for ScrimFinder"
+fi
+
 if [ -z "${SERVICES:-}" ]; then
-    SERVICES="matchmaking-service ranking_service match_history_service detail_filling_service training_service analysis_service"
+    SERVICES="matchmaking-service ranking_service match_history_service training_service analysis_service"
 fi
 
 if [ "${SKIP_BUILD:-false}" != "true" ]; then
@@ -67,7 +196,7 @@ if [ "${SKIP_BUILD:-false}" != "true" ]; then
     for SERVICE in $SERVICES; do
         (
             IMAGE_NAME=$(echo "$SERVICE" | tr '_' '-')
-            IMAGE_PATH="$ARTIFACT_REGISTRY/$IMAGE_NAME:latest"
+            IMAGE_PATH="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$IMAGE_NAME:latest"
 
             echo "building $SERVICE..."
             docker buildx build \
@@ -87,99 +216,166 @@ else
     echo "skipping build phase."
 fi
 
-echo "deploying with Helm, Traefik, and routing..."
+echo "packaging services with serverless functions..."
 
-helm repo add traefik https://traefik.github.io/charts
-helm repo update
+SERVERLESS_SERVICES="detail_filling_service"
 
-echo "preparing namespace..."
-kubectl create namespace "$SCRIM_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+for SERVICE in ${SERVERLESS_SERVICES}; do
+    cd "${SERVICE}"
+    mvn clean package
+    cd ..
+done
 
-echo "installing/updating Traefik CRDs explicitly..."
-helm show crds traefik/traefik | kubectl apply --server-side --force-conflicts -f -
+echo "deploying serverless functions in parallel..."
+
+SERVERLESS_FUNCTIONS="detail_filling_service|getFilledMatch|riot_api_key"
+SERVERLESS_FUNCTIONS+=" detail_filling_service|getRawMatchData|riot_api_key"
+SERVERLESS_FUNCTIONS+=" detail_filling_service|getFilledPlayer|riot_api_key"
+
+SERVERLESS_DEPLOY_PIDS=()
+SERVERLESS_DEPLOY_NAMES=()
+
+for SERVICE_FUNCTION in ${SERVERLESS_FUNCTIONS}; do
+    temp=${SERVICE_FUNCTION#*|}
+    FUNCTION=${temp%%|*}
+
+    (
+        SERVICE=${SERVICE_FUNCTION%%|*}
+        SECRETS=${temp##*|}
+
+        gcloud functions deploy "${FUNCTION}" \
+            --region="${REGION}" \
+            --entry-point=io.quarkus.gcp.functions.http.QuarkusHttpFunction \
+            --runtime=java21 \
+            --trigger-http \
+            --allow-unauthenticated \
+            --source="${SERVICE}"/target/deployment \
+            --min-instances=0 \
+            --max-instances=30 \
+            --memory=512Mi \
+            --cpu=800m \
+            --build-service-account="${FUNCTIONS_BUILD_SERVICE_ACCOUNT}" \
+            --service-account="${SECRETS_SERVICE_ACCOUNT_EMAIL}" \
+            --set-secrets 'RIOT_API_KEY=RIOT_API_KEY:latest' # from Google Cloud secret manager
+    ) &
+
+    SERVERLESS_DEPLOY_PIDS+=("$!")
+    SERVERLESS_DEPLOY_NAMES+=("${FUNCTION}")
+done
+
+SERVERLESS_DEPLOY_FAILED=0
+for i in "${!SERVERLESS_DEPLOY_PIDS[@]}"; do
+    if ! wait "${SERVERLESS_DEPLOY_PIDS[$i]}"; then
+        echo "serverless function deploy failed: ${SERVERLESS_DEPLOY_NAMES[$i]}"
+        SERVERLESS_DEPLOY_FAILED=1
+    fi
+done
+
+if [ "$SERVERLESS_DEPLOY_FAILED" -ne 0 ]; then
+    exit 1
+fi
+
+echo "all serverless functions done deploying."
+
+echo "function endpoints:"
+
+DETAIL_FILLING_FUNCTION_URL=""
+DETAIL_FILLING_API_URL=""
+
+for SERVICE_FUNCTION in ${SERVERLESS_FUNCTIONS}; do
+    temp=${SERVICE_FUNCTION#*|}
+    FUNCTION=${temp%%|*}
+    FUNCTION_URL=$(gcloud functions describe "${FUNCTION}" --region="${REGION}" --format="value(url)")
+
+    if [ -z "${DETAIL_FILLING_FUNCTION_URL}" ]; then
+        DETAIL_FILLING_FUNCTION_URL="${FUNCTION_URL}"
+        DETAIL_FILLING_DOMAIN=$(echo "$FUNCTION_URL" | awk -F/ '{print $3}')
+    fi
+
+    case "${FUNCTION}" in
+        getFilledMatch)
+            echo "${FUNCTION}: ${FUNCTION_URL}/api/v1/riot/matches/{matchId}"
+            ;;
+        getRawMatchData)
+            echo "${FUNCTION}: ${FUNCTION_URL}/api/v1/riot/matches/{matchId}/raw"
+            ;;
+        getFilledPlayer)
+            echo "${FUNCTION}: ${FUNCTION_URL}/api/v1/riot/players/{server}/{name}/{tag}"
+            ;;
+        *)
+            echo "${FUNCTION}: ${FUNCTION_URL}"
+            ;;
+    esac
+done
+
+if [ -z "${DETAIL_FILLING_FUNCTION_URL}" ]; then
+    echo "error: no detail filling serverless function URL was found."
+    exit 1
+fi
+
+echo "using detail filling domain for Traefik ExternalName: ${DETAIL_FILLING_DOMAIN}"
 
 echo "updating Helm dependencies..."
 helm dependency update k8s/charts/scrimfinder
 
-COMMON_SET_ARGS=(
-    --set "global.namespace=$SCRIM_NAMESPACE"
-    --set "global.microservicesRegistry=${ARTIFACT_REGISTRY}"
-    --set "global.region=${REGION}"
-    --set "global.projectId=${PROJECT_ID}"
-    --set "global.repoName=${REPO_NAME}"
-    --set "secrets.riotApiKey=${RIOT_API_KEY}"
-    --set "secrets.dbUser=${SCRIM_DB_USER}"
-    --set "secrets.dbPassword=${SCRIM_DB_PASSWORD}"
-    --set "secrets.redisPassword=${SCRIM_REDIS_PASSWORD}"
-    --set "secrets.rabbitmqUser=${SCRIM_RABBITMQ_USER}"
-    --set "secrets.rabbitmqPassword=${SCRIM_RABBITMQ_PASSWORD}"
-    --set "secrets.rabbitmqErlangCookie=${SCRIM_RABBITMQ_ERLANG_COOKIE}"
-    --set "global.rabbitmqHost=${SCRIM_RABBITMQ_HOST}"
-    --set "global.rabbitmqPort=${SCRIM_RABBITMQ_PORT}"
-    --set "secrets.jwtSecret=${SCRIM_JWT_SECRET}"
-    --set "secrets.discordBotSecret=${SCRIM_DISCORD_BOT_SECRET}"
-)
+echo "deploying Argo CD..."
 
-HELM_DIFF_ARGS=(
-    --namespace "$SCRIM_NAMESPACE"
-    "${COMMON_SET_ARGS[@]}"
-)
+export SCRIM_NAMESPACE="${SCRIM_NAMESPACE}"
+export PROJECT_ID="${PROJECT_ID}"
+export REGION="${REGION}"
+export REPO_NAME="${REPO_NAME}"
+export SCRIM_RABBITMQ_HOST="${SCRIM_RABBITMQ_HOST}"
+export SCRIM_RABBITMQ_PORT="${SCRIM_RABBITMQ_PORT}"
+export DETAIL_FILLING_DOMAIN="${DETAIL_FILLING_DOMAIN}"
 
-HELM_UPGRADE_ARGS=(
-    --namespace "$SCRIM_NAMESPACE"
-    --create-namespace
-    --skip-crds
-    "${COMMON_SET_ARGS[@]}"
-)
+kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
+kubectl apply -n argocd --server-side --force-conflicts -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
 
-if helm plugin list | grep -q "diff"; then
-    echo "--- PREVIEWING CHANGES (helm diff) ---"
-
-    helm diff upgrade scrimfinder k8s/charts/scrimfinder \
-        "${HELM_DIFF_ARGS[@]}" \
-        --allow-unreleased
-
-    if [ "${CONFIRM_DEPLOY:-false}" = "true" ]; then
-        echo "proceeding with deployment..."
-    else
-        echo "check the diff above."
-        echo "to bypass this check in the future, set CONFIRM_DEPLOY=true."
-    fi
-fi
-
-echo "checking Helm release state..."
-
-HELM_STATUS=$(helm status scrimfinder -n "$SCRIM_NAMESPACE" 2>/dev/null | grep "STATUS:" | awk '{print $2}' || echo "NOT_FOUND")
-
-if [[ "$HELM_STATUS" == "pending-install" || "$HELM_STATUS" == "pending-upgrade" || "$HELM_STATUS" == "pending-rollback" ]]; then
-    echo "detected stuck Helm release ($HELM_STATUS). clearing lock..."
-
-    LATEST_REVISION=$(helm history scrimfinder -n "$SCRIM_NAMESPACE" --max 1 2>/dev/null | tail -n 1 | awk '{print $1}')
-
-    if [ -n "$LATEST_REVISION" ] && [ "$LATEST_REVISION" != "REVISION" ]; then
-        kubectl delete secret "sh.helm.release.v1.scrimfinder.v${LATEST_REVISION}" -n "$SCRIM_NAMESPACE"
-    fi
-fi
-
-echo "deploying with Helm..."
-
-set +e
-HELM_OUTPUT=$(helm upgrade --install scrimfinder k8s/charts/scrimfinder \
-    "${HELM_UPGRADE_ARGS[@]}" \
-    --wait \
-    --timeout 10m 2>&1)
-HELM_RC=$?
-set -e
-
-if [ $HELM_RC -ne 0 ]; then
-    echo "$HELM_OUTPUT"
-    echo "helm deployment failed."
-    exit $HELM_RC
+if command -v envsubst >/dev/null 2>&1; then
+    envsubst < k8s/application.yaml | kubectl apply -n argocd --server-side --force-conflicts -f -
 else
-    echo "$HELM_OUTPUT"
+    echo "warning: envsubst not found. applying manifests without variable substitution..."
+    kubectl apply -n argocd --server-side --force-conflicts -f k8s/application.yaml
 fi
+
+echo "instrumenting app with Grafana Alloy to send metrics to Grafana Cloud..."
+
+kubectl get ns beyla >/dev/null 2>&1 || kubectl create ns beyla && helm repo add grafana https://grafana.github.io/helm-charts && \
+  helm repo update && \
+  { kubectl apply -f - <<'EOF'
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-secret
+  namespace: beyla
+type: Opaque
+stringData:
+  otlp-headers: "Authorization=Basic ${SCRIM_GRAFANA_TOKEN}"
+EOF
+} && echo "secret created" && \
+helm upgrade --install --atomic --timeout 300s beyla grafana/beyla \
+  --namespace beyla --create-namespace \
+  --values - <<'EOF'
+config:
+  data:
+    discovery:
+      instrument:
+        - k8s_namespace: production
+        - k8s_namespace: staging
+    routes:
+      unmatched: heuristic
+    env:
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://grafana-k8s-monitoring-alloy-receiver.scrimfinder.svc.cluster.local:4317"
+    envValueFrom:
+      OTEL_EXPORTER_OTLP_HEADERS:
+        secretKeyRef:
+          name: grafana-secret
+          key: otlp-headers
+EOF
 
 echo "waiting for Traefik LoadBalancer External IP/Hostname..."
+echo "this might take a few minutes..."
 
 EXTERNAL_IP=""
 
@@ -201,7 +397,31 @@ while [ -z "$EXTERNAL_IP" ]; do
     [ -z "$EXTERNAL_IP" ] && sleep 10
 done
 
-echo "deployment complete! Traefik External IP/Hostname: $EXTERNAL_IP"
+echo "waiting for Argo CD LoadBalancer External IP/Hostname..."
 
-echo "verifying service health with internal smoke tests..."
-helm test scrimfinder --namespace "$SCRIM_NAMESPACE"
+EXTERNAL_ARGOCD_IP=""
+
+while [ -z "$EXTERNAL_ARGOCD_IP" ]; do
+    echo "waiting for argocd IP..."
+
+    EXTERNAL_ARGOCD_IP=$(kubectl get svc argocd-server \
+        -n argocd \
+        -o=jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+
+    if [ -z "$EXTERNAL_ARGOCD_IP" ]; then
+        echo "checking for Hostname..."
+
+        EXTERNAL_ARGOCD_IP=$(kubectl get svc argocd-server \
+            -n argocd \
+            -o=jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+    fi
+
+    [ -z "$EXTERNAL_ARGOCD_IP" ] && sleep 10
+done
+
+INITIAL_ARGOCD_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secret \
+    -o jsonpath="{.data.password}" | base64 -d)
+
+echo "deployment complete!"
+echo "Traefik External IP/Hostname: $EXTERNAL_IP"
+echo "Argo CD External IP/Hostname: ${EXTERNAL_ARGOCD_IP}; username: admin; initial password: $INITIAL_ARGOCD_PASSWORD"

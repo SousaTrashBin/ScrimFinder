@@ -1,0 +1,4 @@
+---
+
+- name: Get Current Date (just a placeholder task)
+  command: date

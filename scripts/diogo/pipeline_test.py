@@ -3,7 +3,7 @@ import uuid
 import time
 import os
 
-BASE_URL = os.environ.get("BASE_URL", "http://34.159.21.93")
+BASE_URL = os.environ.get("BASE_URL", "http://34.141.81.245")
 MATCHMAKING_URL = f"{BASE_URL}/api/v1/matchmaking"
 RANKING_URL = f"{BASE_URL}/api/v1/ranking"
 HISTORY_URL = f"{BASE_URL}/api/v1/history"

@@ -81,7 +81,7 @@ public class PlayerFillingController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    @Timeout(2000)
+    @Timeout(10000)
     public Response getFilledPlayer(
             @PathParam("server") String server,
             @PathParam("name")

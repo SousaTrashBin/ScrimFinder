@@ -4,9 +4,8 @@ metadata:
   name: scrimfinder-ranking-migrations
   namespace: {{ .Values.global.namespace }}
   annotations:
-    "helm.sh/hook": post-install,pre-upgrade
-    "helm.sh/hook-weight": "-10"
-    "helm.sh/hook-delete-policy": before-hook-creation
+    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 data: {}
 ---
 apiVersion: v1
@@ -15,9 +14,8 @@ metadata:
   name: scrimfinder-matchmaking-migrations
   namespace: {{ .Values.global.namespace }}
   annotations:
-    "helm.sh/hook": post-install,pre-upgrade
-    "helm.sh/hook-weight": "-10"
-    "helm.sh/hook-delete-policy": before-hook-creation
+    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 data: {}
 ---
 apiVersion: v1
@@ -26,9 +24,8 @@ metadata:
   name: scrimfinder-history-migrations
   namespace: {{ .Values.global.namespace }}
   annotations:
-    "helm.sh/hook": post-install,pre-upgrade
-    "helm.sh/hook-weight": "-10"
-    "helm.sh/hook-delete-policy": before-hook-creation
+    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 data: {}
 ---
 {{- $ns := .Values.global.namespace -}}
@@ -44,13 +41,14 @@ metadata:
   name: "scrimfinder-{{ $job.name }}-db-migrate"
   namespace: {{ $ns }}
   annotations:
-    "helm.sh/hook": post-install,pre-upgrade
-    "helm.sh/hook-weight": "-5"
-    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/sync-wave: "5"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
 spec:
   backoffLimit: 0
   template:
     spec:
+      serviceAccountName: {{ $.Values.global.secretsServiceAccountName | default "scrimfinder-secrets-reader" }}
       restartPolicy: Never
       containers:
       - name: flyway
@@ -79,9 +77,18 @@ spec:
         volumeMounts:
         - name: sql
           mountPath: /flyway/sql
+        - name: secrets
+          mountPath: /mnt/secrets
+          readOnly: true
       volumes:
       - name: sql
         configMap:
           name: {{ $job.cm }}
+      - name: secrets
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: gcp-scrimfinder
 ---
 {{- end }}

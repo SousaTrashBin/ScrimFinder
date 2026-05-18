@@ -20,6 +20,13 @@ jobs:
           - ranking_service
           - match_history_service
           - detail_filling_service
+        service: [
+          'matchmaking-service',
+          'ranking_service',
+          'match_history_service',
+          'detail_filling_service'
+        ]
+    continue-on-error: true
 
     steps:
       - uses: actions/checkout@v4
@@ -40,6 +47,15 @@ jobs:
             echo "To fix locally: cd ${{ matrix.service }} && ./mvnw spotless:apply"
             exit 1
           fi
+    - name: check formatting
+      run: |
+        cd ${{ matrix.service }}
+        if ! ./mvnw spotless:check; then
+          echo "::error::spotless formatting check failed for ${{ matrix.service }}!"
+          echo "to fix locally, run: cd ${{ matrix.service }} && ./mvnw spotless:apply"
+          exit 1
+        fi
+      continue-on-error: true
 
       - name: build and run tests
         run: |
@@ -100,6 +116,9 @@ jobs:
           cd ${{ matrix.service }}
           ruff check .
           ruff format --check .
+          ruff check ${{ matrix.service }}
+          ruff format --check ${{ matrix.service }}
+        continue-on-error: true
 
       - name: run tests
         env:

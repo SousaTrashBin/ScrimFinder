@@ -28,6 +28,7 @@ public class ReadinessRiotApiCheck implements HealthCheck {
     }
 
     private boolean isRiotApiAvailable() {
+        clientUrlPrefixProvider.setPrefix("euw1");
         try (Response response = riotHealthClient.checkHealth()) {
             return response.getStatus() < 400;
         } catch (Exception x) {

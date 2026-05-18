@@ -2,6 +2,7 @@ global:
   namespace: scrimfinder
   imageTag: "latest"
   # Registry for microservices only
+  projectID: "${PROJECT_ID}"
   microservicesRegistry: "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}"
   rabbitmqHost: "scrimfinder-rabbitmq-broker"
   rabbitmqPort: "5672"
@@ -9,6 +10,8 @@ global:
   securityContext: {}
   security:
     allowInsecureImages: true
+
+detailFillingExternalName: "example.cloudfunctions.net"
 
 secrets:
   riotApiKey: "REPLACE_ME"
@@ -38,8 +41,10 @@ traefik:
   providers:
     kubernetesCRD:
       enabled: true
+      allowExternalNameServices: true
     kubernetesIngress:
       enabled: true
+      allowExternalNameServices: true
 
   service:
     enabled: true
@@ -219,7 +224,7 @@ services:
       PLAYER_FILLING_SVC_PORT: "9000"
       MATCH_HISTORY_SVC_HOST: "match-history-service"
       MATCH_HISTORY_SVC_PORT: "9002"
-      DETAIL_FILLING_SERVICE_URL: "http://detail-filling-service:8080"
+      DETAIL_FILLING_SERVICE_URL: "http://scrimfinder-traefik/api/v1/riot"
       MATCH_HISTORY_SERVICE_URL: "http://match-history-service:8080"
     healthPath: "/api/v1/ranking/q/health"
 
@@ -244,7 +249,7 @@ services:
       TRAINING_SVC_RPC_PORT: "50051"
       PLAYER_FILLING_SVC_HOST: "detail-filling-service"
       PLAYER_FILLING_SVC_PORT: "9000"
-      PLAYER_FILLING_SVC_URL: "http://detail-filling-service:8080/api/v1/riot"
+      PLAYER_FILLING_SVC_URL: "http://scrimfinder-traefik/api/v1/riot"
     healthPath: "/api/v1/history/q/health"
 
   detail-filling-service:
@@ -289,11 +294,7 @@ services:
       targetCPUUtilizationPercentage: 80
       targetMemoryUtilizationPercentage: 80
     env:
-      DETAIL_FILLING_URL: "http://detail-filling-service:8080/api/v1/riot"
-      PLATFORM_DB_HOST: "scrimfinder-platform-db-primary"
-      PLATFORM_DB_PORT: "5432"
-      PLATFORM_DB_NAME: "platform"
-      PLATFORM_DB_USER: "postgres"
+      DETAIL_FILLING_URL: "http://scrimfinder-traefik/api/v1/riot"
     healthType: "http"
     healthPath: "/api/v1/training/q/health"
     persistence:
@@ -336,11 +337,11 @@ services:
         containerPort: 8001
     resources:
       requests:
-        cpu: "1000m"
-        memory: "2Gi"
+        cpu: "200m"
+        memory: "512Mi"
       limits:
         cpu: "1000m"
-        memory: "2Gi"
+        memory: "1Gi"
     autoscaling:
       enabled: true
       minReplicas: 1

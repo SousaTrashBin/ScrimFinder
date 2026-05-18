@@ -1,39 +1,126 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-# We only need the stack name and project ID for a clean Pulumi destroy
-REQUIRED_VARS="SCRIM_PULUMI_STACK SCRIM_PROJECT_ID"
+REQUIRED_VARS="SCRIM_PROJECT_ID SCRIM_REGION SCRIM_REPO_NAME SCRIM_ENV_TAG SCRIM_CLUSTER_NAME"
 
 for var in $REQUIRED_VARS; do
     if [ -z "$(eval echo \${$var:-})" ]; then
-        echo "error: $var is not set."
+        echo "error: $var is not set. please set it in your system environment."
         exit 1
     fi
 done
 
-PULUMI_STACK="${SCRIM_PULUMI_STACK}"
-PULUMI_DIR="$(cd "$(dirname "$0")/../infrastructure/pulumi" && pwd)"
+PROJECT_ID="$SCRIM_PROJECT_ID"
+REGION="$SCRIM_REGION"
+REPO_NAME="$SCRIM_REPO_NAME"
+ENV_TAG="$SCRIM_ENV_TAG"
+CLUSTER_NAME="$SCRIM_CLUSTER_NAME"
+SCRIM_NAMESPACE="${SCRIM_NAMESPACE:-scrimfinder}"
+ZONE="${REGION}-a"
 
-echo "Starting shutdown for stack: $PULUMI_STACK..."
+DELETE_ARTIFACT_REPO="${SCRIM_DELETE_ARTIFACT_REPO:-false}"
+DELETE_UNUSED_K8S_IPS="${SCRIM_DELETE_UNUSED_K8S_IPS:-true}"
+DELETE_ORPHAN_PVC_DISKS="${SCRIM_DELETE_ORPHAN_PVC_DISKS:-false}"
 
-# 1. Clean up Kubernetes resources first (Optional but good practice)
-# This ensures LoadBalancers and PVs are detached before the cluster vanishes
-if command -v helm &>/dev/null && command -v kubectl &>/dev/null; then
-    echo "Uninstalling Helm release..."
-    helm uninstall scrimfinder -n scrimfinder || true
+echo "setting active GCP project to $PROJECT_ID..."
+gcloud config set project "$PROJECT_ID" --quiet
+
+cleanup_resources() {
+    echo "deleting serverless functions..."
+    SERVERLESS_FUNCTIONS="detail-filling-service|getFilledMatch detail-filling-service|getRawMatchData detail-filling-service|getFilledPlayer"
+    for SERVICE_FUNCTION in ${SERVERLESS_FUNCTIONS}; do
+        (
+            FUNCTION=${SERVICE_FUNCTION##*|}
+            gcloud functions delete "${FUNCTION}" --region="${REGION}" || true
+        ) &
+    done
+    wait
+
+    echo "deleting Argo CD resources..."
+    kubectl patch app scrimfinder  -p '{"metadata": {"finalizers": ["resources-finalizer.argocd.argoproj.io"]}}' --type merge || true
+    kubectl delete app scrimfinder --wait=true --timeout=3m || true
+    kubectl delete -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml --wait=false --timeout=1m || true
+    kubectl delete namespace argocd --ignore-not-found=true --wait=true --timeout=1m || true
+
+    echo "deleting Grafana Beyla resources..."
+    helm uninstall beyla || true
+    kubectl delete namespace beyla --ignore-not-found=true --wait=true --timeout=1m || true
+
+    echo "deleting secrets..."
+    SECRETS="riot-api-key db-user db-password redis-password rabbitmq-user rabbitmq-password rabbitmq-erlang-cookie"
+    for SECRET in ${SECRETS}; do
+        gcloud secrets delete "${SECRET}" &
+    done
+    wait
+    SECRETS_SERVICE_ACCOUNT_EMAIL="secrets-service-account@${PROJECT_ID}.iam.gserviceaccount.com"
+    (gcloud iam service-accounts delete "${SECRETS_SERVICE_ACCOUNT_EMAIL}" || true) &
+    wait
+}
+
+if gcloud container clusters describe "$CLUSTER_NAME" --zone "$ZONE" --project "$PROJECT_ID" >/dev/null 2>&1; then
+    echo "fetching GKE credentials..."
+    gcloud container clusters get-credentials "$CLUSTER_NAME" --zone "$ZONE" --project "$PROJECT_ID"
+
+    cleanup_resources
+
+    if [ "${SKIP_CLUSTER_SHUTDOWN:-false}" != "true" ]; then
+        echo "deleting GKE cluster: $CLUSTER_NAME..."
+        gcloud container clusters delete "$CLUSTER_NAME" --zone "$ZONE" --project "$PROJECT_ID" --quiet
+    else
+      echo "skipping cluster deletion (change SKIP_CLUSTER_SHUTDOWN to false to delete the cluster as well)"
+    fi
+else
+    echo "cluster $CLUSTER_NAME not found or already deleted."
 fi
 
-# 2. Use Pulumi to tear down the infrastructure
-echo "Destroying infrastructure via Pulumi..."
-(
-    cd "$PULUMI_DIR"
-    # Ensure venv is active for the automation
-    [ -d venv ] && source venv/bin/activate || source venv/Scripts/activate
+if [ "$DELETE_UNUSED_K8S_IPS" = "true" ]; then
+    echo "cleaning unused regional static IPs likely created by Kubernetes load balancers..."
 
-    pulumi stack select "$PULUMI_STACK"
-    # --yes avoids interactive prompts
-    # --remove-pending-state helps if a previous update crashed
-    pulumi destroy --yes --stack "$PULUMI_STACK"
-)
+    mapfile -t CANDIDATE_IPS < <(gcloud compute addresses list \
+        --project "$PROJECT_ID" \
+        --filter="region:($REGION) AND status=RESERVED" \
+        --format="csv[no-heading](name,users)" | awk -F',' '
+            $2 == "" && $1 ~ /^(k8s-|scrimfinder|traefik)/ { print $1 }
+        ' || true)
 
-echo "Shutdown complete! Infrastructure destroyed and Pulumi state updated."
+    if [ ${#CANDIDATE_IPS[@]} -gt 0 ]; then
+        for ip_name in "${CANDIDATE_IPS[@]}"; do
+            echo "deleting unused IP: $ip_name"
+            gcloud compute addresses delete "$ip_name" --region "$REGION" --project "$PROJECT_ID" --quiet || true
+        done
+    else
+        echo "no obvious unused Kubernetes-related static IPs found in $REGION."
+    fi
+fi
+
+if [ "$DELETE_ORPHAN_PVC_DISKS" = "true" ]; then
+    echo "cleaning orphan PersistentVolume disks (name prefix: pvc-)..."
+
+    while read -r disk_name disk_zone; do
+        [ -z "$disk_name" ] && continue
+        echo "deleting orphan disk: $disk_name ($disk_zone)"
+        gcloud compute disks delete "$disk_name" \
+            --zone "$disk_zone" \
+            --project "$PROJECT_ID" \
+            --quiet || true
+    done < <(gcloud compute disks list \
+        --project "$PROJECT_ID" \
+        --filter="name~'^pvc-'" \
+        --format="value(name,zone)")
+fi
+
+if [ "$DELETE_ARTIFACT_REPO" = "true" ]; then
+    if gcloud artifacts repositories describe "$REPO_NAME" --location "$REGION" --project "$PROJECT_ID" >/dev/null 2>&1; then
+        echo "deleting Artifact Registry repository $REPO_NAME..."
+        gcloud artifacts repositories delete "$REPO_NAME" \
+            --location "$REGION" \
+            --project "$PROJECT_ID" \
+            --quiet
+    else
+        echo "Artifact Registry repository $REPO_NAME not found."
+    fi
+else
+    echo "keeping Artifact Registry repository (set SCRIM_DELETE_ARTIFACT_REPO=true to remove image storage costs)."
+fi
+
+echo "shutdown complete!"

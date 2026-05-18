@@ -5,6 +5,8 @@ kind: Deployment
 metadata:
   name: {{ $name }}
   namespace: {{ $.Values.global.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
 spec:
   {{- if not ($config.autoscaling).enabled }}
   replicas: {{ $config.replicas | default 1 }}
@@ -17,6 +19,7 @@ spec:
       labels:
         app: {{ $name }}
     spec:
+      serviceAccountName: {{ $.Values.global.secretsServiceAccountName | default "scrimfinder-secrets-reader" }}
       {{- if $config.waitFor }}
       initContainers:
       - name: wait-for-dependencies
@@ -111,23 +114,34 @@ spec:
 #          periodSeconds: 10
 #          timeoutSeconds: 5
         {{- end }}
-        {{- if $config.persistence }}
         volumeMounts:
+          {{- if $config.persistence }}
         - name: {{ $config.persistence.claimName }}
           mountPath: {{ $config.persistence.mountPath }}
-        {{- end }}
-      {{- if $config.persistence }}
+          {{- end }}
+        - name: secrets
+          mountPath: /mnt/secrets
+          readOnly: true
       volumes:
+        {{- if $config.persistence }}
       - name: {{ $config.persistence.claimName }}
         persistentVolumeClaim:
           claimName: {{ $config.persistence.claimName }}
-      {{- end }}
+        {{- end }}
+      - name: secrets
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: gcp-scrimfinder
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ $name }}
   namespace: {{ $.Values.global.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
 spec:
   selector:
     app: {{ $name }}
@@ -144,6 +158,8 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: {{ $name }}-hpa
   namespace: {{ $.Values.global.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
