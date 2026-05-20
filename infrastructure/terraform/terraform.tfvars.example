@@ -1,0 +1,15 @@
+project_id        = "your-gcp-project"
+region            = "europe-west1"
+zone_suffix       = "a"
+environment       = "dev"
+cluster_name      = "scrimfinder"
+repo_name         = "scrimfinder"
+node_machine_type = "e2-standard-4"
+node_count        = 1
+min_nodes         = 1
+max_nodes         = 3
+disk_size_gb      = 40
+enable_spot       = true
+gke_channel       = "REGULAR"
+master_cidr       = "0.0.0.0/0"
+namespace         = "scrimfinder"

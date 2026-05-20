@@ -1,6 +1,0 @@
-name: scrimfinder-gke
-runtime:
-  name: python
-  options:
-    virtualenv: venv
-description: Provisions the ScrimFinder GKE cluster, VPC, node pool, Artifact Registry, and Workload Identity on GCP.
