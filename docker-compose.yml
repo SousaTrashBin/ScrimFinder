@@ -151,14 +151,14 @@ services:
       timeout: 5s
       retries: 5
 
-  platform-db:
+  ml-db:
     image: postgres:15
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: platform
+      POSTGRES_DB: ml
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d platform"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ml"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -202,7 +202,12 @@ services:
     environment:
       - PYTHONPATH=/app
       - LEAGUE_DB=/app/dataset/league_data.db
-      - PLATFORM_DB_DSN=host=platform-db port=5432 dbname=platform user=postgres password=postgres
+      - PLATFORM_DB_HOST=ml-db
+      - PLATFORM_DB_PORT=5432
+      - PLATFORM_DB_NAME=ml
+      - PLATFORM_DB_USER=postgres
+      - PLATFORM_DB_PASSWORD=postgres
+      - LEAGUE_DB_DSN=host=ml-db port=5432 dbname=ml user=postgres password=postgres
       - MODELS_DIR=/app/ml_data/models
       - GAMES_DIR=/app/ml_data/games
       - DATASETS_DIR=/app/ml_data/datasets
@@ -217,7 +222,7 @@ services:
       - "traefik.http.routers.training.rule=PathPrefix(`/api/v1/training`)"
       - "traefik.http.services.training.loadbalancer.server.port=8000"
     depends_on:
-      platform-db:
+      ml-db:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -232,7 +237,11 @@ services:
     environment:
       - PYTHONPATH=/app
       - LEAGUE_DB=/app/dataset/league_data.db
-      - PLATFORM_DB_DSN=host=platform-db port=5432 dbname=platform user=postgres password=postgres
+      - LEAGUE_DB_HOST=ml-db
+      - LEAGUE_DB_PORT=5432
+      - LEAGUE_DB_NAME=ml
+      - LEAGUE_DB_USER=postgres
+      - LEAGUE_DB_PASSWORD=postgres
       - MODELS_DIR=/app/ml_data/models
       - MODEL_RELOAD_INTERVAL=60
       - TRAINING_GRPC_URL=training-service:50051
@@ -244,4 +253,7 @@ services:
       - "traefik.http.routers.analysis.rule=PathPrefix(`/api/v1/analysis`)"
       - "traefik.http.services.analysis.loadbalancer.server.port=8001"
     depends_on:
-      - training-service
+      ml-db:
+        condition: service_healthy
+      training-service:
+        condition: service_started

@@ -28,8 +28,8 @@ The platform consists of six core microservices categorized into three main doma
 ## Technologies
 
 * **Backend:** Java 21 (Quarkus), Python 3.11 (FastAPI).
-* **Infrastructure:** Kubernetes (K8s), Docker Compose, Traefik (API Gateway).
-* **Databases:** PostgreSQL (Core Data), Redis (Caching), SQLite (ML Metadata & Local Dataset).
+* **Infrastructure:** Terraform, Kubernetes (K8s), Docker Compose, Traefik (API Gateway).
+* **Databases:** PostgreSQL (Core Data, ML data/model registry/jobs/features), Redis (Caching), SQLite (local ML import source only).
 * **Communication:** REST (Inter-service & External), gRPC (High-performance metadata exchange).
 * **Tooling:** `uv` (Python environment management), `Maven` (Java build tool), `Ruff` (Python linting/formatting).
 
