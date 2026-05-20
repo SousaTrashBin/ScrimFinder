@@ -24,6 +24,12 @@ SCRIM_RABBITMQ_PASSWORD="${SCRIM_RABBITMQ_PASSWORD:-rabbitmqpassword}"
 SCRIM_RABBITMQ_ERLANG_COOKIE="${SCRIM_RABBITMQ_ERLANG_COOKIE:-erlangcookie}"
 SCRIM_RABBITMQ_HOST="${SCRIM_RABBITMQ_HOST:-scrimfinder-rabbitmq-broker}"
 SCRIM_RABBITMQ_PORT="${SCRIM_RABBITMQ_PORT:-5672}"
+SCRIM_ML_DB_PASSWORD="${SCRIM_ML_DB_PASSWORD:-$SCRIM_DB_PASSWORD}"
+SCRIM_JWT_DB_PASSWORD="${SCRIM_JWT_DB_PASSWORD:-$SCRIM_DB_PASSWORD}"
+SCRIM_JWT_SECRET="${SCRIM_JWT_SECRET:-changeme_in_production}"
+SCRIM_DISCORD_BOT_SECRET="${SCRIM_DISCORD_BOT_SECRET:-changeme_in_production}"
+SCRIM_JWT_PRIVATE_KEY="${SCRIM_JWT_PRIVATE_KEY:-}"
+SCRIM_JWT_PUBLIC_KEY="${SCRIM_JWT_PUBLIC_KEY:-}"
 
 echo "checking GCP configuration..."
 gcloud config set project "$PROJECT_ID" --quiet
@@ -53,79 +59,31 @@ gcloud projects add-iam-policy-binding "$PROJECT_ID" \
 ZONE="${REGION}-a"
 EXPECTED_CONTEXT="gke_${PROJECT_ID}_${ZONE}_${CLUSTER_NAME}"
 
-CURRENT_CONTEXT=$(kubectl config current-context 2>/dev/null || echo "")
-
-if [[ "$CURRENT_CONTEXT" != "$EXPECTED_CONTEXT" ]]; then
-    echo "target GKE context not active. checking cluster status..."
-
-    CLUSTER_STATUS=$(gcloud container clusters describe "$CLUSTER_NAME" \
-        --zone "$ZONE" \
-        --project "$PROJECT_ID" \
-        --format="value(status)" 2>/dev/null || echo "NOT_FOUND")
-
-    if [ "$CLUSTER_STATUS" = "NOT_FOUND" ]; then
-        echo "creating GKE zonal cluster: $CLUSTER_NAME in $ZONE ..."
-
-        gcloud container clusters create "$CLUSTER_NAME" \
-            --zone "$ZONE" \
-            --project "$PROJECT_ID" \
-            --num-nodes 1 \
-            --machine-type e2-standard-4 \
-            --disk-size 40 \
-            --disk-type pd-standard \
-            --spot \
-            --enable-autoscaling \
-            --min-nodes 1 \
-            --max-nodes 1 \
-            --workload-pool="${PROJECT_ID}.svc.id.goog" \
-            --quiet
-
-        CLUSTER_STATUS="PROVISIONING"
+if [ "${SCRIM_SKIP_TERRAFORM:-false}" != "true" ]; then
+    if ! command -v terraform >/dev/null 2>&1; then
+        echo "error: terraform is required unless SCRIM_SKIP_TERRAFORM=true."
+        exit 1
     fi
 
-    echo "ensuring cluster $CLUSTER_NAME is RUNNING..."
+    echo "applying Terraform infrastructure..."
+    terraform -chdir=infrastructure/terraform init -input=false
+    terraform -chdir=infrastructure/terraform apply -auto-approve \
+        -var="project_id=${PROJECT_ID}" \
+        -var="region=${REGION}" \
+        -var="cluster_name=${CLUSTER_NAME}" \
+        -var="repo_name=${REPO_NAME}" \
+        -var="environment=${ENV_TAG}" \
+        -var="namespace=${SCRIM_NAMESPACE}"
+fi
 
-    until [ "$CLUSTER_STATUS" = "RUNNING" ]; do
-        CLUSTER_STATUS=$(gcloud container clusters describe "$CLUSTER_NAME" \
-            --zone "$ZONE" \
-            --project "$PROJECT_ID" \
-            --format="value(status)" 2>/dev/null || echo "ERROR")
-
-        if [ "$CLUSTER_STATUS" = "RUNNING" ]; then
-            break
-        fi
-
-        echo "current status: $CLUSTER_STATUS. waiting 20s..."
-        sleep 20
-    done
-
-    echo "fetching GKE credentials..."
+CURRENT_CONTEXT=$(kubectl config current-context 2>/dev/null || echo "")
+if [[ "$CURRENT_CONTEXT" != "$EXPECTED_CONTEXT" ]]; then
+    echo "fetching GKE credentials for Terraform-managed cluster..."
     gcloud container clusters get-credentials "$CLUSTER_NAME" \
         --zone "$ZONE" \
         --project "$PROJECT_ID"
 else
     echo "already connected to the correct GKE cluster ($EXPECTED_CONTEXT)."
-fi
-
-WORKLOAD_POOL=$(gcloud container clusters describe "$CLUSTER_NAME" \
-    --zone "$ZONE" \
-    --project "$PROJECT_ID" \
-    --format="value(workloadIdentityConfig.workloadPool)" 2>/dev/null || echo "")
-
-if [ "$WORKLOAD_POOL" != "${PROJECT_ID}.svc.id.goog" ]; then
-    echo "enabling Workload Identity on cluster..."
-    gcloud container clusters update "$CLUSTER_NAME" \
-        --zone "$ZONE" \
-        --project "$PROJECT_ID" \
-        --workload-pool="${PROJECT_ID}.svc.id.goog" \
-        --quiet
-
-    gcloud container node-pools update default-pool \
-        --cluster="$CLUSTER_NAME" \
-        --zone="$ZONE" \
-        --project="$PROJECT_ID" \
-        --workload-metadata=GKE_METADATA \
-        --quiet
 fi
 
 echo "creating secrets for Google Cloud..."
@@ -146,10 +104,16 @@ SECRETS="RIOT_API_KEY|${RIOT_API_KEY}"
 SECRETS+=" riot-api-key|${RIOT_API_KEY}"
 SECRETS+=" db-user|${SCRIM_DB_USER}"
 SECRETS+=" db-password|${SCRIM_DB_PASSWORD}"
+SECRETS+=" ml-db-password|${SCRIM_ML_DB_PASSWORD}"
+SECRETS+=" jwt-db-password|${SCRIM_JWT_DB_PASSWORD}"
 SECRETS+=" redis-password|${SCRIM_REDIS_PASSWORD}"
 SECRETS+=" rabbitmq-user|${SCRIM_RABBITMQ_USER}"
 SECRETS+=" rabbitmq-password|${SCRIM_RABBITMQ_PASSWORD}"
 SECRETS+=" rabbitmq-erlang-cookie|${SCRIM_RABBITMQ_ERLANG_COOKIE}"
+SECRETS+=" jwt-secret|${SCRIM_JWT_SECRET}"
+SECRETS+=" discord-bot-secret|${SCRIM_DISCORD_BOT_SECRET}"
+SECRETS+=" jwt-private-key|${SCRIM_JWT_PRIVATE_KEY}"
+SECRETS+=" jwt-public-key|${SCRIM_JWT_PUBLIC_KEY}"
 
 for NAME_SECRET in ${SECRETS}; do
     (

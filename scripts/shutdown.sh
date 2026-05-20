@@ -47,7 +47,7 @@ cleanup_resources() {
     kubectl delete namespace beyla --ignore-not-found=true --wait=true --timeout=1m || true
 
     echo "deleting secrets..."
-    SECRETS="riot-api-key db-user db-password redis-password rabbitmq-user rabbitmq-password rabbitmq-erlang-cookie"
+    SECRETS="riot-api-key db-user db-password ml-db-password jwt-db-password redis-password rabbitmq-user rabbitmq-password rabbitmq-erlang-cookie jwt-secret discord-bot-secret jwt-private-key jwt-public-key"
     for SECRET in ${SECRETS}; do
         gcloud secrets delete "${SECRET}" &
     done
