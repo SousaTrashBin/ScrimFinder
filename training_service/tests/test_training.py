@@ -15,10 +15,12 @@ import time
 
 import pytest
 
+pytestmark = pytest.mark.integration
+
 from fastapi.testclient import TestClient  # noqa: E402
 
 from training_service.main import app  # noqa: E402
-from training_service.core.db import init_db
+from training_service.core.db import init_db  # noqa: E402
 
 # ── Skip entire module if no DB is configured ─────────────────────────────────
 # Accept either individual vars (CI workflow) or a full DSN string.
