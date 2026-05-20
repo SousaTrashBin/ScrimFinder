@@ -21,10 +21,10 @@ done
 
 echo "testing python services"
 if [ -n "$PYTEST_CMD" ]; then
-    for service in analysis_service training_service; do
+    for service in jwt_manager analysis_service training_service; do
         if [ -d "$service" ]; then
             echo "testing service: $service..."
-            PYTHONPATH="$(pwd)/$service:$PYTHONPATH" $PYTEST_CMD "$service"
+            PYTHONPATH="$(pwd):$PYTHONPATH" $PYTEST_CMD "$service"
         fi
     done
 else
