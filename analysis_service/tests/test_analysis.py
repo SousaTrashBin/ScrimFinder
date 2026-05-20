@@ -8,6 +8,10 @@ import sqlite3
 import tempfile
 from pathlib import Path
 
+import pytest
+
+pytestmark = pytest.mark.integration
+
 _TMP = Path(tempfile.mkdtemp(prefix="analysis_test_"))
 _LEAGUE_DB = _TMP / "league_data.db"
 
