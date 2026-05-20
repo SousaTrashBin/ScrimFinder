@@ -23,7 +23,7 @@ secrets:
   rabbitmqErlangCookie: "erlangcookie"
   jwtSecret: "REPLACE_ME"
   discordBotSecret: "REPLACE_ME"
-  platformDbPassword: "REPLACE_ME"
+  mlDbPassword: "REPLACE_ME"
   jwtDbPassword: "REPLACE_ME"
   # RS256 key pair — generate with: openssl genrsa 2048 | tee private.pem && openssl rsa -in private.pem -pubout -out public.pem
   jwtPrivateKey: ""
@@ -145,15 +145,15 @@ rabbitmq-broker:
     size: 2Gi
 
 
-platform-db:
+ml-db:
   architecture: standalone
   auth:
-    database: platform
+    database: ml
     username: postgres
     existingSecret: scrimfinder-secrets
     secretKeys:
-      adminPasswordKey: platform-db-password
-      userPasswordKey: platform-db-password
+      adminPasswordKey: ml-db-password
+      userPasswordKey: ml-db-password
   primary:
     persistence:
       size: 5Gi
@@ -295,6 +295,20 @@ services:
       targetMemoryUtilizationPercentage: 80
     env:
       DETAIL_FILLING_URL: "http://scrimfinder-traefik/api/v1/riot"
+      PLATFORM_DB_HOST: "scrimfinder-ml-db-primary"
+      PLATFORM_DB_PORT: "5432"
+      PLATFORM_DB_NAME: "ml"
+      PLATFORM_DB_USER: "postgres"
+      LEAGUE_DB_HOST: "scrimfinder-ml-db-primary"
+      LEAGUE_DB_PORT: "5432"
+      LEAGUE_DB_NAME: "ml"
+      LEAGUE_DB_USER: "postgres"
+      MODELS_DIR: "/app/data/models"
+      GAMES_DIR: "/app/data/games"
+      DATASETS_DIR: "/app/data/datasets"
+    envFromSecrets:
+      PLATFORM_DB_PASSWORD: ml-db-password
+      LEAGUE_DB_PASSWORD: ml-db-password
     healthType: "http"
     healthPath: "/api/v1/training/q/health"
     persistence:
@@ -350,6 +364,13 @@ services:
       targetMemoryUtilizationPercentage: 80
     env:
       TRAINING_GRPC_URL: "training-service:50051"
+      LEAGUE_DB_HOST: "scrimfinder-ml-db-primary"
+      LEAGUE_DB_PORT: "5432"
+      LEAGUE_DB_NAME: "ml"
+      LEAGUE_DB_USER: "postgres"
+      MODELS_DIR: "/app/data/models"
+    envFromSecrets:
+      LEAGUE_DB_PASSWORD: ml-db-password
     healthType: "http"
     healthPath: "/api/v1/analysis/q/health"
     persistence:
