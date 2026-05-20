@@ -34,7 +34,6 @@ def _meta(r):
 def _build_task(ds_id, filters, concern):
     try:
         db.update_dataset_status(ds_id, status="building")
-        # TODO: from training_service.datasets.builder import build
         db.update_dataset_status(
             ds_id, status="ready", game_count=db.count_games(), row_count=0
         )
@@ -121,11 +120,7 @@ def delete_dataset(dataset_id: str = Path(...)):
         raise HTTPException(
             status_code=404, detail=f"Dataset '{dataset_id}' not found."
         )
-    with db.get_conn() as conn:
-        active = conn.execute(
-            "SELECT COUNT(*) FROM training_jobs WHERE dataset_id=? AND status IN ('PENDING','RUNNING')",
-            (dataset_id,),
-        ).fetchone()[0]
+    active = db.count_active_jobs_for_dataset(dataset_id)
     if active:
         raise HTTPException(
             status_code=409,

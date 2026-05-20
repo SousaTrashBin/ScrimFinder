@@ -147,8 +147,8 @@ class PlayerOutcome(BaseModel):
     cs: int
     vision: int
     performance_score: float | None = None
-    highlights: list[str] = []
-    lowlights: list[str] = []
+    highlights: list[str] = Field(default_factory=list)
+    lowlights: list[str] = Field(default_factory=list)
 
 
 class GameAnalysisResponse(BaseModel):

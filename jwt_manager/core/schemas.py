@@ -1,9 +1,9 @@
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, field_validator
 
 
 class RegisterRequest(BaseModel):
     username: str
-    email: EmailStr
+    email: str
     password: str
 
     @field_validator("username")
@@ -14,6 +14,15 @@ class RegisterRequest(BaseModel):
             raise ValueError("Username must be at least 3 characters.")
         if len(v) > 32:
             raise ValueError("Username must be at most 32 characters.")
+        return v
+
+    @field_validator("email")
+    @classmethod
+    def email_valid(cls, v):
+        v = v.strip().lower()
+        local, sep, domain = v.partition("@")
+        if not sep or not local or "." not in domain:
+            raise ValueError("Email must be a valid address.")
         return v
 
     @field_validator("password")

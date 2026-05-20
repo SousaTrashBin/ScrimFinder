@@ -100,6 +100,7 @@ CREATE TABLE IF NOT EXISTS models (
     dataset_id    TEXT,
     version       TEXT        NOT NULL,
     file_path     TEXT        NOT NULL,
+    artifact      BYTEA,
     metrics       JSONB       NOT NULL DEFAULT '{}',
     hyperparams   JSONB       NOT NULL DEFAULT '{}',
     feature_names JSONB,
@@ -127,6 +128,116 @@ CREATE TABLE IF NOT EXISTS training_jobs (
 );
 CREATE INDEX IF NOT EXISTS idx_jobs_concern ON training_jobs(concern);
 CREATE INDEX IF NOT EXISTS idx_jobs_status  ON training_jobs(status);
+
+CREATE TABLE IF NOT EXISTS datasets (
+    id         TEXT        PRIMARY KEY,
+    name       TEXT        NOT NULL,
+    description TEXT       NOT NULL DEFAULT '',
+    concern    TEXT        NOT NULL,
+    filters    JSONB       NOT NULL DEFAULT '{}',
+    game_count INTEGER     NOT NULL DEFAULT 0,
+    row_count  INTEGER     NOT NULL DEFAULT 0,
+    status     TEXT        NOT NULL DEFAULT 'registered',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    built_at   TIMESTAMPTZ,
+    file_path  TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_datasets_concern ON datasets(concern);
+
+CREATE TABLE IF NOT EXISTS dim_champions (
+    id   TEXT PRIMARY KEY,
+    name TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS dim_items (
+    id   TEXT PRIMARY KEY,
+    name TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS dim_runes (
+    id   TEXT PRIMARY KEY,
+    name TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS dim_players (
+    puuid TEXT PRIMARY KEY,
+    name  TEXT,
+    tag   TEXT
+);
+
+CREATE TABLE IF NOT EXISTS matches (
+    match_id   TEXT PRIMARY KEY,
+    patch      TEXT,
+    duration   INTEGER,
+    timestamp  BIGINT,
+    match_type TEXT
+);
+
+CREATE TABLE IF NOT EXISTS player_stats (
+    match_id    TEXT NOT NULL REFERENCES matches(match_id) ON DELETE CASCADE,
+    puuid       TEXT NOT NULL,
+    champion_id TEXT,
+    team_id     TEXT,
+    win         INTEGER,
+    position    TEXT,
+    kills       INTEGER,
+    deaths      INTEGER,
+    assists     INTEGER,
+    gold        INTEGER,
+    cs          INTEGER,
+    dmg_champs  INTEGER,
+    vision      INTEGER,
+    kda         DOUBLE PRECISION,
+    kp          DOUBLE PRECISION,
+    summ1       TEXT,
+    summ2       TEXT,
+    PRIMARY KEY (match_id, puuid)
+);
+CREATE INDEX IF NOT EXISTS idx_player_stats_champ ON player_stats(champion_id);
+CREATE INDEX IF NOT EXISTS idx_player_stats_puuid ON player_stats(puuid);
+CREATE INDEX IF NOT EXISTS idx_player_stats_position ON player_stats(position);
+
+CREATE TABLE IF NOT EXISTS team_stats (
+    match_id     TEXT NOT NULL REFERENCES matches(match_id) ON DELETE CASCADE,
+    team_id      TEXT NOT NULL,
+    win          INTEGER,
+    baron        INTEGER,
+    dragon       INTEGER,
+    tower        INTEGER,
+    inhibitor    INTEGER,
+    horde        INTEGER,
+    first_blood  INTEGER,
+    first_tower  INTEGER,
+    first_dragon INTEGER,
+    PRIMARY KEY (match_id, team_id)
+);
+
+CREATE TABLE IF NOT EXISTS bans (
+    match_id    TEXT NOT NULL REFERENCES matches(match_id) ON DELETE CASCADE,
+    team_id     TEXT,
+    champion_id TEXT,
+    pick_turn   INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_bans_match ON bans(match_id);
+
+CREATE TABLE IF NOT EXISTS player_items (
+    match_id TEXT NOT NULL,
+    puuid    TEXT NOT NULL,
+    item_id  TEXT,
+    slot     INTEGER,
+    FOREIGN KEY (match_id, puuid) REFERENCES player_stats(match_id, puuid) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_player_items_player ON player_items(match_id, puuid);
+CREATE INDEX IF NOT EXISTS idx_player_items_item ON player_items(item_id);
+
+CREATE TABLE IF NOT EXISTS player_runes (
+    match_id TEXT NOT NULL,
+    puuid    TEXT NOT NULL,
+    rune_id  TEXT,
+    FOREIGN KEY (match_id, puuid) REFERENCES player_stats(match_id, puuid) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_player_runes_player ON player_runes(match_id, puuid);
+CREATE INDEX IF NOT EXISTS idx_player_runes_rune ON player_runes(rune_id);
 """
 
 
@@ -135,6 +246,7 @@ def init_db():
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(_SCHEMA)
+            cur.execute("ALTER TABLE models ADD COLUMN IF NOT EXISTS artifact BYTEA")
 
 
 # ── Games ─────────────────────────────────────────────────────────────────────
@@ -218,6 +330,225 @@ def delete_game(game_id: str) -> bool:
             return cur.rowcount > 0
 
 
+# ── Deployed league dataset tables ────────────────────────────────────────────
+
+_DIMENSION_COLUMNS = {
+    "dim_champions": ("id", "name"),
+    "dim_items": ("id", "name"),
+    "dim_runes": ("id", "name"),
+    "dim_players": ("puuid", "name", "tag"),
+}
+
+
+def _pick(row: dict, key: str, default=None):
+    return row[key] if key in row and row[key] is not None else default
+
+
+def _as_int_bool(value) -> int:
+    if isinstance(value, str):
+        return 1 if value.lower() in {"1", "true", "t", "yes"} else 0
+    return int(bool(value))
+
+
+def upsert_dimension_rows(table: str, rows: list[dict]) -> int:
+    columns = _DIMENSION_COLUMNS.get(table)
+    if columns is None:
+        raise ValueError(f"Unsupported dimension table: {table}")
+    if not rows:
+        return 0
+
+    conflict_col = columns[0]
+    update_cols = [c for c in columns[1:]]
+    placeholders = ",".join(["%s"] * len(columns))
+    update_sql = ", ".join(f"{c}=EXCLUDED.{c}" for c in update_cols)
+    query = (
+        f"INSERT INTO {table} ({','.join(columns)}) VALUES ({placeholders}) "
+        f"ON CONFLICT ({conflict_col}) DO UPDATE SET {update_sql}"
+    )
+    values = [tuple(_pick(row, c) for c in columns) for row in rows]
+
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.executemany(query, values)
+    return len(values)
+
+
+def upsert_league_match(raw: dict) -> None:
+    """Persist one normalized league match into the deployed ML database."""
+    match_id = _pick(raw, "match_id") or _pick(raw, "matchId") or _pick(raw, "id")
+    if not match_id:
+        raise ValueError("League match is missing match_id")
+
+    participants = raw.get("participants") or []
+    team_rows = raw.get("teams") or raw.get("team_stats") or []
+    bans = raw.get("bans") or []
+
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO matches (match_id, patch, duration, timestamp, match_type)
+                VALUES (%s,%s,%s,%s,%s)
+                ON CONFLICT (match_id) DO UPDATE SET
+                    patch=EXCLUDED.patch,
+                    duration=EXCLUDED.duration,
+                    timestamp=EXCLUDED.timestamp,
+                    match_type=EXCLUDED.match_type
+                """,
+                (
+                    str(match_id),
+                    _pick(raw, "patch") or _pick(raw, "gameVersion"),
+                    _pick(raw, "duration")
+                    or _pick(raw, "duration_sec")
+                    or _pick(raw, "gameDuration"),
+                    _pick(raw, "timestamp"),
+                    _pick(raw, "match_type")
+                    or _pick(raw, "gameType")
+                    or _pick(raw, "queueType"),
+                ),
+            )
+
+            cur.execute("DELETE FROM player_items WHERE match_id=%s", (str(match_id),))
+            cur.execute("DELETE FROM player_runes WHERE match_id=%s", (str(match_id),))
+            cur.execute("DELETE FROM bans WHERE match_id=%s", (str(match_id),))
+            cur.execute("DELETE FROM team_stats WHERE match_id=%s", (str(match_id),))
+
+            for p in participants:
+                puuid = _pick(p, "puuid")
+                if not puuid:
+                    continue
+                cur.execute(
+                    """
+                    INSERT INTO dim_players (puuid, name, tag)
+                    VALUES (%s,%s,%s)
+                    ON CONFLICT (puuid) DO UPDATE SET
+                        name=COALESCE(EXCLUDED.name, dim_players.name),
+                        tag=COALESCE(EXCLUDED.tag, dim_players.tag)
+                    """,
+                    (
+                        str(puuid),
+                        _pick(p, "name")
+                        or _pick(p, "riotIdGameName")
+                        or _pick(p, "summonerName"),
+                        _pick(p, "tag") or _pick(p, "riotIdTagline"),
+                    ),
+                )
+                cur.execute(
+                    """
+                    INSERT INTO player_stats
+                        (match_id, puuid, champion_id, team_id, win, position,
+                         kills, deaths, assists, gold, cs, dmg_champs, vision,
+                         kda, kp, summ1, summ2)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    ON CONFLICT (match_id, puuid) DO UPDATE SET
+                        champion_id=EXCLUDED.champion_id,
+                        team_id=EXCLUDED.team_id,
+                        win=EXCLUDED.win,
+                        position=EXCLUDED.position,
+                        kills=EXCLUDED.kills,
+                        deaths=EXCLUDED.deaths,
+                        assists=EXCLUDED.assists,
+                        gold=EXCLUDED.gold,
+                        cs=EXCLUDED.cs,
+                        dmg_champs=EXCLUDED.dmg_champs,
+                        vision=EXCLUDED.vision,
+                        kda=EXCLUDED.kda,
+                        kp=EXCLUDED.kp,
+                        summ1=EXCLUDED.summ1,
+                        summ2=EXCLUDED.summ2
+                    """,
+                    (
+                        str(match_id),
+                        str(puuid),
+                        str(_pick(p, "champion_id") or _pick(p, "championId") or ""),
+                        str(_pick(p, "team_id") or _pick(p, "teamId") or ""),
+                        _as_int_bool(_pick(p, "win", 0)),
+                        _pick(p, "position") or _pick(p, "teamPosition"),
+                        _pick(p, "kills", 0),
+                        _pick(p, "deaths", 0),
+                        _pick(p, "assists", 0),
+                        _pick(p, "gold") or _pick(p, "goldEarned", 0),
+                        _pick(p, "cs") or _pick(p, "totalMinionsKilled", 0),
+                        _pick(p, "dmg_champs")
+                        or _pick(p, "totalDamageDealtToChampions")
+                        or _pick(p, "totalDamageDealt", 0),
+                        _pick(p, "vision")
+                        or _pick(p, "visionScore")
+                        or _pick(p, "wardsPlaced", 0),
+                        _pick(p, "kda", 0.0),
+                        _pick(p, "kp", 0.0),
+                        _pick(p, "summ1"),
+                        _pick(p, "summ2"),
+                    ),
+                )
+
+                for item in p.get("items") or []:
+                    cur.execute(
+                        "INSERT INTO player_items (match_id, puuid, item_id, slot) VALUES (%s,%s,%s,%s)",
+                        (
+                            str(match_id),
+                            str(puuid),
+                            str(_pick(item, "item_id") or _pick(item, "itemId") or ""),
+                            _pick(item, "slot"),
+                        ),
+                    )
+                for rune in p.get("runes") or []:
+                    cur.execute(
+                        "INSERT INTO player_runes (match_id, puuid, rune_id) VALUES (%s,%s,%s)",
+                        (
+                            str(match_id),
+                            str(puuid),
+                            str(_pick(rune, "rune_id") or _pick(rune, "runeId") or ""),
+                        ),
+                    )
+
+            for t in team_rows:
+                cur.execute(
+                    """
+                    INSERT INTO team_stats
+                        (match_id, team_id, win, baron, dragon, tower, inhibitor,
+                         horde, first_blood, first_tower, first_dragon)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    ON CONFLICT (match_id, team_id) DO UPDATE SET
+                        win=EXCLUDED.win,
+                        baron=EXCLUDED.baron,
+                        dragon=EXCLUDED.dragon,
+                        tower=EXCLUDED.tower,
+                        inhibitor=EXCLUDED.inhibitor,
+                        horde=EXCLUDED.horde,
+                        first_blood=EXCLUDED.first_blood,
+                        first_tower=EXCLUDED.first_tower,
+                        first_dragon=EXCLUDED.first_dragon
+                    """,
+                    (
+                        str(match_id),
+                        str(_pick(t, "team_id") or _pick(t, "teamId") or ""),
+                        _pick(t, "win"),
+                        _pick(t, "baron"),
+                        _pick(t, "dragon"),
+                        _pick(t, "tower"),
+                        _pick(t, "inhibitor"),
+                        _pick(t, "horde"),
+                        _pick(t, "first_blood"),
+                        _pick(t, "first_tower"),
+                        _pick(t, "first_dragon"),
+                    ),
+                )
+
+            for ban in bans:
+                cur.execute(
+                    "INSERT INTO bans (match_id, team_id, champion_id, pick_turn) VALUES (%s,%s,%s,%s)",
+                    (
+                        str(match_id),
+                        str(_pick(ban, "team_id") or _pick(ban, "teamId") or ""),
+                        str(
+                            _pick(ban, "champion_id") or _pick(ban, "championId") or ""
+                        ),
+                        _pick(ban, "pick_turn") or _pick(ban, "pickTurn"),
+                    ),
+                )
+
+
 # ── Features ──────────────────────────────────────────────────────────────────
 
 
@@ -288,14 +619,21 @@ def register_model(
     dataset_id=None,
     feature_names=None,
 ) -> int:
+    artifact = None
+    try:
+        with open(file_path, "rb") as f:
+            artifact = f.read()
+    except OSError:
+        artifact = None
+
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
                 INSERT INTO models
-                    (concern,algorithm,dataset_id,version,file_path,metrics,
+                    (concern,algorithm,dataset_id,version,file_path,artifact,metrics,
                      hyperparams,feature_names,is_active,created_at)
-                VALUES (%s,%s,%s,%s,%s,%s::jsonb,%s::jsonb,%s::jsonb,FALSE,now())
+                VALUES (%s,%s,%s,%s,%s,%s,%s::jsonb,%s::jsonb,%s::jsonb,FALSE,now())
                 RETURNING id
                 """,
                 (
@@ -304,6 +642,7 @@ def register_model(
                     dataset_id,
                     version,
                     file_path,
+                    artifact,
                     json.dumps(metrics),
                     json.dumps(hyperparams or {}),
                     json.dumps(feature_names or []),
@@ -388,6 +727,90 @@ def _parse_model(d: dict) -> dict:
     return d
 
 
+# ── Datasets ─────────────────────────────────────────────────────────────────
+
+
+def insert_dataset(
+    dataset_id: str, name: str, concern: str, filters: dict, description: str = ""
+):
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO datasets (id,name,description,concern,filters,created_at)
+                VALUES (%s,%s,%s,%s,%s::jsonb,now())
+                """,
+                (dataset_id, name, description, concern, json.dumps(filters or {})),
+            )
+
+
+def get_dataset(dataset_id: str) -> dict | None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT * FROM datasets WHERE id=%s", (dataset_id,))
+            d = _one(cur)
+    return _parse_dataset(d) if d else None
+
+
+def list_datasets(concern: str | None = None) -> list[dict]:
+    params = []
+    where = ""
+    if concern:
+        where = "WHERE concern=%s"
+        params.append(concern)
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT * FROM datasets {where} ORDER BY created_at DESC", params
+            )
+            rows = _all(cur)
+    return [_parse_dataset(d) for d in rows]
+
+
+def update_dataset_status(dataset_id: str, **kwargs):
+    allowed = {"status", "game_count", "row_count", "built_at", "file_path"}
+    sets, params = [], []
+    for key, value in kwargs.items():
+        if key not in allowed:
+            raise ValueError(f"Unsupported dataset field: {key}")
+        sets.append(f"{key}=%s")
+        params.append(value)
+    if "built_at" not in kwargs and kwargs.get("status") in {"ready", "error"}:
+        sets.append("built_at=now()")
+    if not sets:
+        return
+    params.append(dataset_id)
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(f"UPDATE datasets SET {', '.join(sets)} WHERE id=%s", params)
+
+
+def delete_dataset(dataset_id: str) -> bool:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM datasets WHERE id=%s", (dataset_id,))
+            return cur.rowcount > 0
+
+
+def count_active_jobs_for_dataset(dataset_id: str) -> int:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT COUNT(*) FROM training_jobs WHERE dataset_id=%s AND status IN ('PENDING','RUNNING')",
+                (dataset_id,),
+            )
+            return cur.fetchone()[0]
+
+
+def _parse_dataset(d: dict) -> dict:
+    v = d.get("filters")
+    if isinstance(v, str):
+        d["filters"] = json.loads(v) if v else {}
+    elif v is None:
+        d["filters"] = {}
+    return d
+
+
 # ── Training jobs ─────────────────────────────────────────────────────────────
 
 
@@ -406,7 +829,7 @@ def update_job(job_id: str, **kwargs):
         return
     sets, params = [], []
     for k, v in kwargs.items():
-        sets.append(f"{k}=%s")
+        sets.append(f"{k}=%s::jsonb" if k in {"filters", "metrics"} else f"{k}=%s")
         params.append(json.dumps(v) if isinstance(v, (dict, list)) else v)
     params.append(job_id)
     with get_conn() as conn:

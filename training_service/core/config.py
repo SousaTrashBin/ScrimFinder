@@ -1,42 +1,16 @@
 import os
-import re
 from pathlib import Path
 
 _HERE = Path(__file__).resolve().parent.parent
 
 
-def _parse_postgres_uri(uri: str) -> dict:
-    """Convert postgresql:// URI → psycopg2 kwargs dict."""
-    m = re.match(r"postgresql://([^:]+):([^@]+)@([^:]+):(\d+)/([^\?]+)", uri)
-    if m:
-        user, password, host, port, dbname = m.groups()
-        return {
-            "host": host,
-            "port": int(port),
-            "dbname": dbname,
-            "user": user,
-            "password": password,
-        }
-    m = re.match(r"postgresql://([^:]+):([^@]+)@([^/]+)/([^\?]+)", uri)
-    if m:
-        user, password, host, dbname = m.groups()
-        return {
-            "host": host,
-            "port": 5432,
-            "dbname": dbname,
-            "user": user,
-            "password": password,
-        }
-    raise ValueError(f"Cannot parse PostgreSQL URI: {uri!r}")
-
-
 class _Config:
     # ── PostgreSQL connection ─────────────────────────────────────────────────
-    # Priority: PLATFORM_DB_DSN (URI) > individual PLATFORM_DB_* vars.
+    # Priority: PLATFORM_DB_DSN / ML_DB_DSN > individual PLATFORM_DB_* vars.
     # PLATFORM_DB_KWARGS is what gets unpacked into ThreadedConnectionPool.
-    _uri = os.environ.get("PLATFORM_DB_DSN")
-    if _uri and _uri.startswith("postgresql://"):
-        PLATFORM_DB_KWARGS: dict = _parse_postgres_uri(_uri)
+    _dsn = os.environ.get("PLATFORM_DB_DSN") or os.environ.get("ML_DB_DSN")
+    if _dsn:
+        PLATFORM_DB_KWARGS: dict = {"dsn": _dsn}
     else:
         PLATFORM_DB_KWARGS: dict = {
             "host": os.environ.get("PLATFORM_DB_HOST", "localhost"),
@@ -47,12 +21,30 @@ class _Config:
         }
 
     # Keep a plain DSN string for logging / compat
-    PLATFORM_DB_DSN: str = " ".join(f"{k}={v}" for k, v in PLATFORM_DB_KWARGS.items())
+    PLATFORM_DB_DSN: str = _dsn or " ".join(
+        f"{k}={v}" for k, v in PLATFORM_DB_KWARGS.items()
+    )
 
     # ── Read-only 78 GB SQLite league dataset ─────────────────────────────────
     LEAGUE_DB: str = os.environ.get(
         "LEAGUE_DB", str(_HERE.parent / "dataset" / "league_data.db")
     )
+    LEAGUE_DB_DSN: str = (
+        os.environ.get("LEAGUE_DB_DSN") or os.environ.get("ML_DB_DSN") or _dsn or ""
+    )
+    if not LEAGUE_DB_DSN and os.environ.get("LEAGUE_DB_HOST"):
+        LEAGUE_DB_DSN = (
+            "host={host} port={port} dbname={db} user={user} password={pw}".format(
+                host=os.environ.get("LEAGUE_DB_HOST"),
+                port=os.environ.get("LEAGUE_DB_PORT", "5432"),
+                db=os.environ.get("LEAGUE_DB_NAME", "ml"),
+                user=os.environ.get("LEAGUE_DB_USER", "postgres"),
+                pw=os.environ.get(
+                    "LEAGUE_DB_PASSWORD",
+                    os.environ.get("PLATFORM_DB_PASSWORD", "postgres"),
+                ),
+            )
+        )
 
     # ── ML artefact paths ─────────────────────────────────────────────────────
     MODELS_DIR: str = os.environ.get("MODELS_DIR", str(_HERE / "data" / "models"))

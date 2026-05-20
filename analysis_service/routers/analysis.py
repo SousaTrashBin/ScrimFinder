@@ -139,7 +139,7 @@ def _score_player(pipe, pos_le, champ_le, position_db: str, champion_id: int, st
 def _generate_tips(stats: dict, percentiles: dict, role: str) -> list[ImprovementTip]:
     """Generate improvement tips based on which metrics are below median."""
     tips = []
-    role_p = percentiles.get(role, percentiles.get("MID", {}))
+    role_p = percentiles.get(role) or percentiles.get(_DB_TO_ROLE.get(role, role)) or percentiles.get("MID", {})
 
     checks = [
         (
@@ -391,7 +391,7 @@ def analyze_player(body: PlayerAnalysisRequest) -> PlayerAnalysisResponse:
     avg_gpm = round((avgs["gold"] / max(avg_duration / 60, 1)), 1)
 
     # ── Percentile benchmarking ───────────────────────────────
-    role_p = percentiles.get(role_db, percentiles.get("MIDDLE", {}))
+    role_p = percentiles.get(role_db) or percentiles.get(role) or percentiles.get("MIDDLE", {})
 
     def make_metric(value: float, metric: str, tier_key: str) -> PerformanceMetric:
         pct = _percentile_score(value, role_p, tier_key)
@@ -456,6 +456,8 @@ def analyze_game(body: GameAnalysisRequest) -> GameAnalysisResponse:
     # ── Parse participants ────────────────────────────────────
     participants = raw.get("participants", [])
     players: list[PlayerOutcome] = []
+    blue_players: list[PlayerOutcome] = []
+    red_players: list[PlayerOutcome] = []
 
     for p in participants:
         puuid = p.get("puuid", "unknown")
@@ -498,26 +500,33 @@ def analyze_game(body: GameAnalysisRequest) -> GameAnalysisResponse:
 
         highlights, lowlights = _highlight_player(kills, deaths, cs, vision, kda)
 
-        players.append(
-            PlayerOutcome(
-                puuid=puuid,
-                champion=champ_name,
-                role=_DB_TO_ROLE.get(position, position),
-                win=win,
-                kda=kda,
-                damage=dmg,
-                gold=gold,
-                cs=cs,
-                vision=vision,
-                performance_score=perf_score,
-                highlights=highlights,
-                lowlights=lowlights,
-            )
+        outcome = PlayerOutcome(
+            puuid=puuid,
+            champion=champ_name,
+            role=_DB_TO_ROLE.get(position, position),
+            win=win,
+            kda=kda,
+            damage=dmg,
+            gold=gold,
+            cs=cs,
+            vision=vision,
+            performance_score=perf_score,
+            highlights=highlights,
+            lowlights=lowlights,
         )
+        players.append(outcome)
+        if p.get("teamId") == 100 or p.get("team_id") == "100":
+            blue_players.append(outcome)
+        elif p.get("teamId") == 200 or p.get("team_id") == "200":
+            red_players.append(outcome)
 
     # ── Determine winner ──────────────────────────────────────
-    blue_wins = any(p.win for p in players if p.role in ("TOP", "JUNGLE", "MID", "BOT", "SUPPORT"))
-    winner = "blue" if blue_wins else "red"
+    if blue_players or red_players:
+        blue_wins = any(p.win for p in blue_players)
+        red_wins = any(p.win for p in red_players)
+        winner = "blue" if blue_wins and not red_wins else "red" if red_wins and not blue_wins else None
+    else:
+        winner = None
 
     return GameAnalysisResponse(
         game_id=game_id,
@@ -526,10 +535,8 @@ def analyze_game(body: GameAnalysisRequest) -> GameAnalysisResponse:
         winner=winner,
         players=players,
         team_synergies={
-            "blue": _synergies(
-                [p for p in players if raw.get("participants", [{}])[players.index(p)].get("teamId") == 100]
-            ),
-            "red": [],
+            "blue": _synergies(blue_players),
+            "red": _synergies(red_players),
         },
         key_moments=_key_moments(players),
         model_version=mv,

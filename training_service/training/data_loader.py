@@ -16,10 +16,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder, MultiLabelBinarizer
 
-DB_PATH = os.environ.get(
-    "LEAGUE_DB",
-    os.path.join(os.path.dirname(__file__), "..", "..", "dataset", "league_data.db"),
-)
+from training_service.core.config import cfg
 
 VALID_POSITIONS = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"]
 
@@ -46,11 +43,30 @@ Filters = dict  # keys: sample (float), limit (int), matchType (str)
 
 
 def _connect() -> sqlite3.Connection:
-    if not Path(DB_PATH).exists():
+    if cfg.LEAGUE_DB_DSN:
+        try:
+            import psycopg2
+        except ImportError as exc:
+            raise RuntimeError(
+                "psycopg2 is required for PostgreSQL-backed LEAGUE_DB_DSN."
+            ) from exc
+        return psycopg2.connect(cfg.LEAGUE_DB_DSN)
+
+    db_path = os.environ.get(
+        "LEAGUE_DB",
+        os.path.join(
+            os.path.dirname(__file__), "..", "..", "dataset", "league_data.db"
+        ),
+    )
+    if not Path(db_path).exists():
         raise FileNotFoundError(
-            f"Database not found at {DB_PATH}. Set the LEAGUE_DB environment variable to the correct path."
+            f"Database not found at {db_path}. Set LEAGUE_DB or LEAGUE_DB_DSN to the correct data source."
         )
-    return sqlite3.connect(DB_PATH)
+    return sqlite3.connect(db_path)
+
+
+def _sql(query: str) -> str:
+    return query.replace("?", "%s") if cfg.LEAGUE_DB_DSN else query
 
 
 def _read_chunked(
@@ -60,6 +76,7 @@ def _read_chunked(
     progress_start: int,
     progress_end: int,
     approx_total: int = 0,
+    params: Optional[list] = None,
 ) -> pd.DataFrame:
     """
     Read query in CHUNK_SIZE chunks, reporting progress after every chunk.
@@ -70,7 +87,9 @@ def _read_chunked(
     loaded = 0
     span = progress_end - progress_start
 
-    for chunk in pd.read_sql(query, conn, chunksize=CHUNK_SIZE):
+    for chunk in pd.read_sql(
+        _sql(query), conn, params=params or [], chunksize=CHUNK_SIZE
+    ):
         chunks.append(chunk)
         loaded += len(chunk)
         frac = min(loaded / approx_total, 0.98) if approx_total > 0 else 0.5
@@ -89,7 +108,7 @@ def _match_id_clause(filters: Filters) -> tuple[str, list]:
     Sampling at the match level guarantees all 10 players per match are included,
     which is required to build valid 5v5 team compositions.
     """
-    match_type = filters.get("matchType")
+    match_type = filters.get("match_type") or filters.get("matchType")
     sample = filters.get("sample", 1.0)
     limit = filters.get("limit")
 
@@ -150,10 +169,12 @@ def load_draft_data(report: Report, filters: Optional[Filters] = None):
     if limit:
         approx = min(approx, limit)
 
-    df = _read_chunked(query, "Loading draft data", report, 2, 38, approx)
+    df = _read_chunked(query, "Loading draft data", report, 2, 38, approx, params)
 
     if df.empty:
         raise ValueError("No data returned — check LEAGUE_DB path and filters.")
+
+    df["team_id"] = df["team_id"].astype(str)
 
     report(38, f"Pivoting {len(df):,} rows into team compositions…")
 
@@ -239,6 +260,7 @@ def load_build_data(report: Report, filters: Optional[Filters] = None):
         2,
         20,
         approx_ps,
+        params,
     )
     if stats.empty:
         raise ValueError("No player stats returned — check filters.")
@@ -262,6 +284,7 @@ def load_build_data(report: Report, filters: Optional[Filters] = None):
         20,
         45,
         int(APPROX_ROWS["player_items"] * (sample or 1.0)),
+        params,
     )
     report(45, "Loading runes…")
 
@@ -282,22 +305,29 @@ def load_build_data(report: Report, filters: Optional[Filters] = None):
         45,
         62,
         int(APPROX_ROWS["player_runes"] * (sample or 1.0)),
+        params,
     )
     report(62, "Grouping items per player…")
-    items_g = (
-        items.groupby(["match_id", "puuid"])["item_id"]
-        .apply(list)
-        .reset_index()
-        .rename(columns={"item_id": "item_ids"})
-    )
+    if items.empty:
+        items_g = pd.DataFrame(columns=["match_id", "puuid", "item_ids"])
+    else:
+        items_g = (
+            items.groupby(["match_id", "puuid"])["item_id"]
+            .apply(list)
+            .reset_index()
+            .rename(columns={"item_id": "item_ids"})
+        )
 
     report(66, "Grouping runes per player…")
-    runes_g = (
-        runes.groupby(["match_id", "puuid"])["rune_id"]
-        .apply(list)
-        .reset_index()
-        .rename(columns={"rune_id": "rune_ids"})
-    )
+    if runes.empty:
+        runes_g = pd.DataFrame(columns=["match_id", "puuid", "rune_ids"])
+    else:
+        runes_g = (
+            runes.groupby(["match_id", "puuid"])["rune_id"]
+            .apply(list)
+            .reset_index()
+            .rename(columns={"rune_id": "rune_ids"})
+        )
 
     report(69, "Joining features…")
     df = stats.merge(items_g, on=["match_id", "puuid"], how="left").merge(
@@ -361,6 +391,7 @@ def load_performance_data(report: Report, filters: Optional[Filters] = None):
         2,
         50,
         approx,
+        params,
     )
 
     if df.empty:

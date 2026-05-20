@@ -145,9 +145,9 @@ class LeagueImportResponse(BaseModel):
 )
 def import_league(body: LeagueImportRequest):
     """
-    Reads matches from league_data.db (read-only SQLite), assembles each
-    match with participants, items, and runes, then upserts into the
-    platform PostgreSQL DB via db.insert_game().
+    Reads matches from league_data.db (read-only SQLite import source), assembles each
+    match with participants, items, and runes, then stores both raw and normalized
+    rows in the deployed ML PostgreSQL database.
     """
     league_path = cfg.LEAGUE_DB
     try:
@@ -157,6 +157,15 @@ def import_league(body: LeagueImportRequest):
         raise HTTPException(status_code=503, detail=f"League DB unavailable: {e}")
 
     try:
+        for table in ("dim_champions", "dim_items", "dim_runes"):
+            try:
+                rows = [
+                    dict(r) for r in conn.execute(f"SELECT * FROM {table}").fetchall()
+                ]
+                db.upsert_dimension_rows(table, rows)
+            except sqlite3.OperationalError:
+                pass
+
         q = "SELECT * FROM matches"
         params: list = []
         if body.match_type:
@@ -198,6 +207,7 @@ def import_league(body: LeagueImportRequest):
 
                 raw = dict(m)
                 raw["participants"] = participants
+                db.upsert_league_match(raw)
                 db.insert_game(match_id, raw, source="league_db")
                 imported += 1
             except Exception as e:
