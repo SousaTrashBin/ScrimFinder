@@ -2,83 +2,75 @@ name: ScrimFinder CI
 
 on:
   push:
-    branches: [ main, work/diogo, work/bruno, work/rodrigo ]
+    branches: [main, work/diogo, work/bruno, work/rodrigo]
+  pull_request:
 
 permissions:
   contents: read
 
+# Cancel stale runs when new commits are pushed to a PR or branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  # ── Java services ────────────────────────────────────────────────────────────
   quarkus_build:
-    name: build & test - ${{ matrix.service }}
+    name: Java build & test - ${{ matrix.service }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         service:
           - matchmaking-service
           - ranking_service
           - match_history_service
           - detail_filling_service
-        service: [
-          'matchmaking-service',
-          'ranking_service',
-          'match_history_service',
-          'detail_filling_service'
-        ]
-    continue-on-error: true
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: set up JDK 21
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
+          java-version: "21"
           distribution: temurin
           cache: maven
           cache-dependency-path: ${{ matrix.service }}/pom.xml
 
-      - name: check formatting
-        run: |
-          cd ${{ matrix.service }}
-          if ! ./mvnw spotless:check; then
-            echo "::error::spotless formatting check failed for ${{ matrix.service }}!"
-            echo "To fix locally: cd ${{ matrix.service }} && ./mvnw spotless:apply"
-            exit 1
-          fi
-    - name: check formatting
-      run: |
-        cd ${{ matrix.service }}
-        if ! ./mvnw spotless:check; then
-          echo "::error::spotless formatting check failed for ${{ matrix.service }}!"
-          echo "to fix locally, run: cd ${{ matrix.service }} && ./mvnw spotless:apply"
-          exit 1
-        fi
-      continue-on-error: true
+      - name: Ensure Maven wrapper is executable
+        working-directory: ${{ matrix.service }}
+        run: chmod +x ./mvnw
 
-      - name: build and run tests
-        run: |
-          cd ${{ matrix.service }}
-          ./mvnw clean package
+      - name: Check formatting
+        working-directory: ${{ matrix.service }}
+        run: ./mvnw spotless:check -B
 
-  # ── Python services ──────────────────────────────────────────────────────────
+      - name: Build and run tests
+        working-directory: ${{ matrix.service }}
+        run: ./mvnw clean package -B
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-${{ matrix.service }}
+          path: ${{ matrix.service }}/target/surefire-reports/
+          if-no-files-found: ignore
+          retention-days: 7
+
   python_build:
-    name: build & test - ${{ matrix.service }}
+    name: Python lint & test - ${{ matrix.service }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
-        include:
-          # training_service needs PostgreSQL; analysis_service does not
-          - service: training_service
-            needs_postgres: true
-          - service: analysis_service
-            needs_postgres: false
+        service:
+          - jwt_manager
+          - analysis_service
+          - training_service
 
-    # PostgreSQL is started for every matrix row but only used by training_service.
-    # GitHub Actions does not support conditional services, so we start it always
-    # and let the service healthcheck gate the step — analysis_service ignores it.
     services:
       postgres:
         image: postgres:15
@@ -93,47 +85,65 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: set up Python 3.11
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
           cache-dependency-path: ${{ matrix.service }}/requirements.txt
 
-      - name: install dependencies
+      - name: Install dependencies
+        working-directory: ${{ matrix.service }}
         run: |
-          cd ${{ matrix.service }}
-          pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install ruff pytest pytest-asyncio
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install ruff pytest pytest-asyncio
 
-      - name: lint with ruff
-        run: |
-          cd ${{ matrix.service }}
-          ruff check .
-          ruff format --check .
-          ruff check ${{ matrix.service }}
-          ruff format --check ${{ matrix.service }}
-        continue-on-error: true
+      - name: Lint with Ruff (logic)
+        run: ruff check ${{ matrix.service }}
 
-      - name: run tests
+      - name: Check formatting with Ruff
+        run: ruff format --check ${{ matrix.service }}
+
+      - name: Run tests
         env:
-          # training_service picks these up via config.py PLATFORM_DB_KWARGS
-          # analysis_service ignores them entirely
+          PYTHONPATH: ${{ github.workspace }}
+          JWT_DB_HOST: localhost
+          JWT_DB_PORT: "5432"
+          JWT_DB_NAME: testdb
+          JWT_DB_USER: user
+          JWT_DB_PASSWORD: pass
+          REDIS_URL: redis://localhost:6379/2
           PLATFORM_DB_HOST: localhost
           PLATFORM_DB_PORT: "5432"
           PLATFORM_DB_NAME: testdb
           PLATFORM_DB_USER: user
           PLATFORM_DB_PASSWORD: pass
-          # Artefact dirs — created by pytest.ini / tests themselves
           MODELS_DIR: /tmp/models
           GAMES_DIR: /tmp/games
           DATASETS_DIR: /tmp/datasets
         run: |
-          cd ${{ matrix.service }}
           mkdir -p /tmp/models /tmp/games /tmp/datasets
-          pytest
+          pytest ${{ matrix.service }} --junitxml=junit-${{ matrix.service }}.xml -v
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-${{ matrix.service }}
+          path: junit-${{ matrix.service }}.xml
+          if-no-files-found: ignore
+          retention-days: 7
