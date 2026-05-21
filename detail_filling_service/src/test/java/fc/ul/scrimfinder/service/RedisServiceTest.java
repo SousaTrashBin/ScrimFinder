@@ -20,12 +20,10 @@ import jakarta.inject.Inject;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.*;
 
 @QuarkusTest
+@Tag("unit")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class RedisServiceTest {
 
@@ -39,7 +37,7 @@ public class RedisServiceTest {
 
     @Test
     @Order(1)
-    public void testGetExistentRawMatchFromCache() {
+    public void testGetRawMatchData_ShouldFillRedisCache_WhenRiotMatchApiCalled() {
         final String matchId = UUID.randomUUID().toString();
         when(riotAdapterService.getRawMatchData(anyString())).thenReturn("raw match");
         matchFillingService.getRawMatchData(matchId);
@@ -50,7 +48,7 @@ public class RedisServiceTest {
 
     @Test
     @Order(2)
-    public void testGetExistentMatchFromCache() {
+    public void testGetMatchData_ShouldFillRedisCache_WhenRiotMatchApiCalled() {
         final String matchId = "EUW1_" + UUID.randomUUID();
 
         final List<PlayerStatsDTO> playerStatsDTOList =
@@ -111,7 +109,7 @@ public class RedisServiceTest {
 
     @Test
     @Order(3)
-    public void testGetExistentPlayerFromCache() {
+    public void testGetPlayerData_ShouldFillRedisCache_WhenRiotPlayerApiCalled() {
         final String name = "kung";
         final String tag = "foo";
         final String server = "EUW";
