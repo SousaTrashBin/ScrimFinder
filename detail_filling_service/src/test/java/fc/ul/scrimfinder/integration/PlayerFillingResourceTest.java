@@ -1,4 +1,4 @@
-package fc.ul.scrimfinder.controller;
+package fc.ul.scrimfinder.integration;
 
 import static io.restassured.RestAssured.given;
 

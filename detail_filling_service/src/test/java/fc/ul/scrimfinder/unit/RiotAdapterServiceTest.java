@@ -1,4 +1,4 @@
-package fc.ul.scrimfinder.service;
+package fc.ul.scrimfinder.unit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -12,6 +12,7 @@ import fc.ul.scrimfinder.dto.response.player.*;
 import fc.ul.scrimfinder.exception.InvalidMatchFormatException;
 import fc.ul.scrimfinder.exception.InvalidPlayerFormatException;
 import fc.ul.scrimfinder.mapper.RiotMapper;
+import fc.ul.scrimfinder.service.RiotAdapterService;
 import fc.ul.scrimfinder.util.Rank;
 import fc.ul.scrimfinder.util.Tier;
 import io.quarkus.test.InjectMock;

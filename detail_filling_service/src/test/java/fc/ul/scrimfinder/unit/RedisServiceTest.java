@@ -1,4 +1,4 @@
-package fc.ul.scrimfinder.service;
+package fc.ul.scrimfinder.unit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -13,6 +13,9 @@ import fc.ul.scrimfinder.dto.response.match.PlayerStatsDTO;
 import fc.ul.scrimfinder.dto.response.match.TeamStatsDTO;
 import fc.ul.scrimfinder.dto.response.player.*;
 import fc.ul.scrimfinder.redis.RedisService;
+import fc.ul.scrimfinder.service.MatchFillingService;
+import fc.ul.scrimfinder.service.PlayerFillingService;
+import fc.ul.scrimfinder.service.RiotAdapterService;
 import fc.ul.scrimfinder.util.*;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
