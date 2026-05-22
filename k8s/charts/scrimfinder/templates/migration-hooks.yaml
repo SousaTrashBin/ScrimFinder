@@ -77,18 +77,22 @@ spec:
         volumeMounts:
         - name: sql
           mountPath: /flyway/sql
+        {{- if $.Values.global.useSecretManager }}
         - name: secrets
           mountPath: /mnt/secrets
           readOnly: true
+        {{- end }}
       volumes:
       - name: sql
         configMap:
           name: {{ $job.cm }}
+      {{- if $.Values.global.useSecretManager }}
       - name: secrets
         csi:
           driver: secrets-store.csi.k8s.io
           readOnly: true
           volumeAttributes:
             secretProviderClass: gcp-scrimfinder
+      {{- end }}
 ---
 {{- end }}

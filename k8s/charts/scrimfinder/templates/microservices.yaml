@@ -1,5 +1,5 @@
 {{- range $name, $config := .Values.services }}
-{{- if $config.ports }}
+{{- if and (ne ($config.enabled | default true) false) $config.ports }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -105,26 +105,34 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 5
         {{- end }}
+        {{- if or $config.persistence $.Values.global.useSecretManager }}
         volumeMounts:
-          {{- if $config.persistence }}
+        {{- if $config.persistence }}
         - name: {{ $config.persistence.claimName }}
           mountPath: {{ $config.persistence.mountPath }}
           {{- end }}
+        {{- if $.Values.global.useSecretManager }}
         - name: secrets
           mountPath: /mnt/secrets
           readOnly: true
+        {{- end }}
+        {{- end }}
+      {{- if or $config.persistence $.Values.global.useSecretManager }}
       volumes:
         {{- if $config.persistence }}
       - name: {{ $config.persistence.claimName }}
         persistentVolumeClaim:
           claimName: {{ $config.persistence.claimName }}
         {{- end }}
+      {{- if $.Values.global.useSecretManager }}
       - name: secrets
         csi:
           driver: secrets-store.csi.k8s.io
           readOnly: true
           volumeAttributes:
             secretProviderClass: gcp-scrimfinder
+      {{- end }}
+      {{- end }}
 ---
 apiVersion: v1
 kind: Service

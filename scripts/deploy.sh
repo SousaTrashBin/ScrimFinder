@@ -1,10 +1,10 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-REQUIRED_VARS="SCRIM_PROJECT_ID SCRIM_REGION SCRIM_REPO_NAME SCRIM_ENV_TAG SCRIM_CLUSTER_NAME RIOT_API_KEY SCRIM_DB_USER SCRIM_DB_PASSWORD"
+REQUIRED_VARS="SCRIM_PROJECT_ID SCRIM_REGION SCRIM_REPO_NAME SCRIM_CLUSTER_NAME RIOT_API_KEY SCRIM_DB_USER SCRIM_DB_PASSWORD"
 
 for var in $REQUIRED_VARS; do
-    if [ -z "$(eval echo \${$var:-})" ]; then
+    if [ -z "${!var:-}" ]; then
         echo "error: $var is not set. please set it in your system environment."
         exit 1
     fi
@@ -13,177 +13,33 @@ done
 PROJECT_ID="$SCRIM_PROJECT_ID"
 REGION="$SCRIM_REGION"
 REPO_NAME="$SCRIM_REPO_NAME"
-ENV_TAG="$SCRIM_ENV_TAG"
 CLUSTER_NAME="$SCRIM_CLUSTER_NAME"
 
 SCRIM_NAMESPACE="${SCRIM_NAMESPACE:-scrimfinder}"
 
-SCRIM_REDIS_PASSWORD="${SCRIM_REDIS_PASSWORD:-redispassword}"
-SCRIM_RABBITMQ_USER="${SCRIM_RABBITMQ_USER:-user}"
-SCRIM_RABBITMQ_PASSWORD="${SCRIM_RABBITMQ_PASSWORD:-rabbitmqpassword}"
-SCRIM_RABBITMQ_ERLANG_COOKIE="${SCRIM_RABBITMQ_ERLANG_COOKIE:-erlangcookie}"
 SCRIM_RABBITMQ_HOST="${SCRIM_RABBITMQ_HOST:-scrimfinder-rabbitmq-broker}"
 SCRIM_RABBITMQ_PORT="${SCRIM_RABBITMQ_PORT:-5672}"
+SCRIM_IMAGE_TAG="${SCRIM_IMAGE_TAG:-latest}"
 
 echo "checking GCP configuration..."
 gcloud config set project "$PROJECT_ID" --quiet
 
-echo "enabling required Google Cloud APIs..."
-gcloud services enable \
-    artifactregistry.googleapis.com \
-    container.googleapis.com \
-    compute.googleapis.com \
-    iam.googleapis.com \
-    cloudfunctions.googleapis.com \
-    cloudbuild.googleapis.com \
-    run.googleapis.com \
-    eventarc.googleapis.com \
-    secretmanager.googleapis.com
+echo "provisioning infrastructure with Terraform..."
+"$(dirname "$0")/deploy-infra.sh"
 
 PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format="value(projectNumber)")
 FUNCTIONS_BUILD_SERVICE_ACCOUNT_EMAIL="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
 FUNCTIONS_BUILD_SERVICE_ACCOUNT="projects/${PROJECT_ID}/serviceAccounts/${FUNCTIONS_BUILD_SERVICE_ACCOUNT_EMAIL}"
-
-echo "ensuring Cloud Functions build service account permissions..."
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-    --member="serviceAccount:${FUNCTIONS_BUILD_SERVICE_ACCOUNT_EMAIL}" \
-    --role="roles/cloudbuild.builds.builder" \
-    --quiet
+SECRETS_SERVICE_ACCOUNT_EMAIL="secrets-service-account@${PROJECT_ID}.iam.gserviceaccount.com"
 
 ZONE="${REGION}-a"
-EXPECTED_CONTEXT="gke_${PROJECT_ID}_${ZONE}_${CLUSTER_NAME}"
-
-CURRENT_CONTEXT=$(kubectl config current-context 2>/dev/null || echo "")
-
-if [[ "$CURRENT_CONTEXT" != "$EXPECTED_CONTEXT" ]]; then
-    echo "target GKE context not active. checking cluster status..."
-
-    CLUSTER_STATUS=$(gcloud container clusters describe "$CLUSTER_NAME" \
-        --zone "$ZONE" \
-        --project "$PROJECT_ID" \
-        --format="value(status)" 2>/dev/null || echo "NOT_FOUND")
-
-    if [ "$CLUSTER_STATUS" = "NOT_FOUND" ]; then
-        echo "creating GKE zonal cluster: $CLUSTER_NAME in $ZONE ..."
-
-        gcloud container clusters create "$CLUSTER_NAME" \
-            --zone "$ZONE" \
-            --project "$PROJECT_ID" \
-            --num-nodes 1 \
-            --machine-type e2-standard-4 \
-            --disk-size 40 \
-            --disk-type pd-standard \
-            --spot \
-            --enable-autoscaling \
-            --min-nodes 1 \
-            --max-nodes 1 \
-            --workload-pool="${PROJECT_ID}.svc.id.goog" \
-            --quiet
-
-        CLUSTER_STATUS="PROVISIONING"
-    fi
-
-    echo "ensuring cluster $CLUSTER_NAME is RUNNING..."
-
-    until [ "$CLUSTER_STATUS" = "RUNNING" ]; do
-        CLUSTER_STATUS=$(gcloud container clusters describe "$CLUSTER_NAME" \
-            --zone "$ZONE" \
-            --project "$PROJECT_ID" \
-            --format="value(status)" 2>/dev/null || echo "ERROR")
-
-        if [ "$CLUSTER_STATUS" = "RUNNING" ]; then
-            break
-        fi
-
-        echo "current status: $CLUSTER_STATUS. waiting 20s..."
-        sleep 20
-    done
-
-    echo "fetching GKE credentials..."
-    gcloud container clusters get-credentials "$CLUSTER_NAME" \
-        --zone "$ZONE" \
-        --project "$PROJECT_ID"
-else
-    echo "already connected to the correct GKE cluster ($EXPECTED_CONTEXT)."
-fi
-
-WORKLOAD_POOL=$(gcloud container clusters describe "$CLUSTER_NAME" \
+echo "fetching GKE credentials..."
+gcloud container clusters get-credentials "$CLUSTER_NAME" \
     --zone "$ZONE" \
-    --project "$PROJECT_ID" \
-    --format="value(workloadIdentityConfig.workloadPool)" 2>/dev/null || echo "")
-
-if [ "$WORKLOAD_POOL" != "${PROJECT_ID}.svc.id.goog" ]; then
-    echo "enabling Workload Identity on cluster..."
-    gcloud container clusters update "$CLUSTER_NAME" \
-        --zone "$ZONE" \
-        --project "$PROJECT_ID" \
-        --workload-pool="${PROJECT_ID}.svc.id.goog" \
-        --quiet
-
-    gcloud container node-pools update default-pool \
-        --cluster="$CLUSTER_NAME" \
-        --zone="$ZONE" \
-        --project="$PROJECT_ID" \
-        --workload-metadata=GKE_METADATA \
-        --quiet
-fi
-
-echo "creating secrets for Google Cloud..."
-
-SECRETS_SERVICE_ACCOUNT=secrets-service-account
-SECRETS_SERVICE_ACCOUNT_EMAIL="${SECRETS_SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com"
-
-gcloud iam service-accounts create $SECRETS_SERVICE_ACCOUNT \
-    --description="A Service Account with access to all ScrimFinder secrets" \
-    --display-name="secrets-service-account" || true
-
-gcloud iam service-accounts add-iam-policy-binding "${SECRETS_SERVICE_ACCOUNT_EMAIL}" \
-    --member="serviceAccount:${PROJECT_ID}.svc.id.goog[${SCRIM_NAMESPACE}/scrimfinder-secrets-reader]" \
-    --role="roles/iam.workloadIdentityUser" \
-    --quiet || true
-
-SECRETS="riot-api-key|${RIOT_API_KEY}"
-SECRETS+=" db-user|${SCRIM_DB_USER}"
-SECRETS+=" db-password|${SCRIM_DB_PASSWORD}"
-SECRETS+=" redis-password|${SCRIM_REDIS_PASSWORD}"
-SECRETS+=" rabbitmq-user|${SCRIM_RABBITMQ_USER}"
-SECRETS+=" rabbitmq-password|${SCRIM_RABBITMQ_PASSWORD}"
-SECRETS+=" rabbitmq-erlang-cookie|${SCRIM_RABBITMQ_ERLANG_COOKIE}"
-
-for NAME_SECRET in ${SECRETS}; do
-    (
-        NAME=${NAME_SECRET%%|*}
-        SECRET=${NAME_SECRET##*|}
-
-        if gcloud secrets describe "${NAME}" > /dev/null 2>&1; then
-            echo -n "${SECRET}" | gcloud secrets versions add "${NAME}" \
-                --data-file=-
-        else
-            echo -n "${SECRET}" | gcloud secrets create "${NAME}" \
-                --data-file=- \
-                --replication-policy="automatic"
-        fi
-
-        gcloud secrets add-iam-policy-binding "${NAME}" \
-            --member="serviceAccount:${SECRETS_SERVICE_ACCOUNT_EMAIL}" \
-            --role="roles/secretmanager.secretAccessor"
-    ) &
-done
-
-wait
-echo "done creating secrets."
+    --project "$PROJECT_ID"
 
 echo "authenticating Docker to Artifact Registry..."
 gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
-
-if ! gcloud artifacts repositories describe "$REPO_NAME" --location="$REGION" > /dev/null 2>&1; then
-    echo "creating Artifact Registry repository: $REPO_NAME..."
-
-    gcloud artifacts repositories create "$REPO_NAME" \
-        --repository-format=docker \
-        --location="$REGION" \
-        --description="Docker repository for ScrimFinder"
-fi
 
 if [ -z "${SERVICES:-}" ]; then
     SERVICES="matchmaking-service ranking_service match_history_service training_service analysis_service"
@@ -195,7 +51,7 @@ if [ "${SKIP_BUILD:-false}" != "true" ]; then
     for SERVICE in $SERVICES; do
         (
             IMAGE_NAME=$(echo "$SERVICE" | tr '_' '-')
-            IMAGE_PATH="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$IMAGE_NAME:latest"
+            IMAGE_PATH="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$IMAGE_NAME:$SCRIM_IMAGE_TAG"
 
             echo "building $SERVICE..."
             docker buildx build \
@@ -240,7 +96,6 @@ for SERVICE_FUNCTION in ${SERVERLESS_FUNCTIONS}; do
 
     (
         SERVICE=${SERVICE_FUNCTION%%|*}
-        SECRETS=${temp##*|}
 
         gcloud functions deploy "${FUNCTION}" \
             --region="${REGION}" \
@@ -279,7 +134,6 @@ echo "all serverless functions done deploying."
 echo "function endpoints:"
 
 DETAIL_FILLING_FUNCTION_URL=""
-DETAIL_FILLING_API_URL=""
 
 for SERVICE_FUNCTION in ${SERVERLESS_FUNCTIONS}; do
     temp=${SERVICE_FUNCTION#*|}
@@ -317,61 +171,26 @@ echo "using detail filling domain for Traefik ExternalName: ${DETAIL_FILLING_DOM
 echo "updating Helm dependencies..."
 helm dependency update k8s/charts/scrimfinder
 
-echo "deploying Argo CD..."
-kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
-kubectl apply -n argocd --server-side --force-conflicts -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
-kubectl apply -n argocd --server-side --force-conflicts -f - <<EOF
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: scrimfinder
-  namespace: argocd
-spec:
-  project: default
-  source:
-    repoURL: "https://github.com/SousaTrashBin/ScrimFinder.git"
-    targetRevision: work/bruno
-    path: k8s/charts/scrimfinder
-    helm:
-      releaseName: scrimfinder
-      valueFiles:
-        - values.yaml
-      parameters:
-        - name: global.namespace
-          value: "${SCRIM_NAMESPACE}"
-        - name: global.projectID
-          value: "${PROJECT_ID}"
-        - name: global.microservicesRegistry
-          value: "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}"
-        - name: global.region
-          value: "${REGION}"
-        - name: global.projectId
-          value: "${PROJECT_ID}"
-        - name: global.repoName
-          value: "${REPO_NAME}"
-        - name: global.rabbitmqHost
-          value: "${SCRIM_RABBITMQ_HOST}"
-        - name: global.rabbitmqPort
-          value: "${SCRIM_RABBITMQ_PORT}"
-        - name: detailFillingExternalName
-          value: "${DETAIL_FILLING_DOMAIN}"
-        - name: services.ranking-service.env.DETAIL_FILLING_SERVICE_URL
-          value: "http://scrimfinder-traefik/api/v1/riot"
-        - name: services.match-history-service.env.PLAYER_FILLING_SVC_URL
-          value: "http://scrimfinder-traefik/api/v1/riot"
-        - name: services.training-service.env.DETAIL_FILLING_URL
-          value: "http://scrimfinder-traefik/api/v1/riot"
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: "${SCRIM_NAMESPACE}"
-  syncPolicy:
-    syncOptions:
-      - CreateNamespace=true
-    automated:
-      prune: true
-      selfHeal: true
-EOF
+echo "deploying application with Helm..."
+helm upgrade --install scrimfinder k8s/charts/scrimfinder \
+    --namespace "$SCRIM_NAMESPACE" \
+    --create-namespace \
+    --wait \
+    --timeout 25m \
+    --set global.namespace="${SCRIM_NAMESPACE}" \
+    --set global.projectID="${PROJECT_ID}" \
+    --set global.microservicesRegistry="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}" \
+    --set global.imageTag="${SCRIM_IMAGE_TAG}" \
+    --set global.region="${REGION}" \
+    --set global.projectId="${PROJECT_ID}" \
+    --set global.repoName="${REPO_NAME}" \
+    --set global.rabbitmqHost="${SCRIM_RABBITMQ_HOST}" \
+    --set global.rabbitmqPort="${SCRIM_RABBITMQ_PORT}" \
+    --set global.useArgoApplications=false \
+    --set detailFillingExternal.externalName="${DETAIL_FILLING_DOMAIN}" \
+    --set services.ranking-service.env.DETAIL_FILLING_SERVICE_URL="http://scrimfinder-traefik/api/v1/riot" \
+    --set services.match-history-service.env.PLAYER_FILLING_SVC_URL="http://scrimfinder-traefik/api/v1/riot" \
+    --set services.training-service.env.DETAIL_FILLING_URL="http://scrimfinder-traefik/api/v1/riot"
 
 echo "waiting for Traefik LoadBalancer External IP/Hostname..."
 
@@ -395,31 +214,5 @@ while [ -z "$EXTERNAL_IP" ]; do
     [ -z "$EXTERNAL_IP" ] && sleep 10
 done
 
-echo "waiting for Argo CD LoadBalancer External IP/Hostname..."
-
-EXTERNAL_ARGOCD_IP=""
-
-while [ -z "$EXTERNAL_ARGOCD_IP" ]; do
-    echo "waiting for argocd IP..."
-
-    EXTERNAL_ARGOCD_IP=$(kubectl get svc argocd-server \
-        -n argocd \
-        -o=jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
-
-    if [ -z "$EXTERNAL_ARGOCD_IP" ]; then
-        echo "checking for Hostname..."
-
-        EXTERNAL_ARGOCD_IP=$(kubectl get svc argocd-server \
-            -n argocd \
-            -o=jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
-    fi
-
-    [ -z "$EXTERNAL_ARGOCD_IP" ] && sleep 10
-done
-
-INITIAL_ARGOCD_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secret \
-    -o jsonpath="{.data.password}" | base64 -d)
-
 echo "deployment complete!"
 echo "Traefik External IP/Hostname: $EXTERNAL_IP"
-echo "Argo CD External IP/Hostname: ${EXTERNAL_ARGOCD_IP}; username: admin; initial password: $INITIAL_ARGOCD_PASSWORD"

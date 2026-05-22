@@ -1,6 +1,8 @@
 global:
   namespace: scrimfinder
   imageTag: "latest"
+  useSecretManager: true
+  useArgoApplications: false
   # Registry for microservices only
   projectID: "${PROJECT_ID}"
   microservicesRegistry: "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}"
@@ -11,6 +13,9 @@ global:
   security:
     allowInsecureImages: true
 
+detailFillingExternal:
+  enabled: true
+  externalName: "example.cloudfunctions.net"
 detailFillingExternalName: "example.cloudfunctions.net"
 
 secrets:
@@ -216,26 +221,27 @@ services:
       PLAYER_FILLING_SVC_URL: "http://scrimfinder-traefik/api/v1/riot"
     healthPath: "/api/v1/history/q/health"
   
-  #detail-filling-service:
-  #  imageName: "detail-filling-service"
-  #  ports:
-  #    - name: http
-  #      containerPort: 8080
-  #    - name: grpc
-  #      containerPort: 9000
-  #  resources:
-  #    requests:
-  #      cpu: "100m"
-  #      memory: "256Mi"
-  #    limits:
-  #      cpu: "800m"
-  #      memory: "512Mi"
-  #  env:
-  #    QUARKUS_REDIS_HOSTS: "redis://scrimfinder-filling-cache-master:6379"
-  #    REDIS_URL: "redis://scrimfinder-filling-cache-master:6379"
-  #    TRAINING_SVC_HOST: "training-service"
-  #    TRAINING_SVC_RPC_PORT: "50051"
-  #  healthPath: "/api/v1/riot/q/health"
+  detail-filling-service:
+    enabled: false
+    imageName: "detail-filling-service"
+    ports:
+      - name: http
+        containerPort: 8080
+      - name: grpc
+        containerPort: 9000
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "256Mi"
+      limits:
+        cpu: "800m"
+        memory: "512Mi"
+    env:
+      QUARKUS_REDIS_HOSTS: "redis://scrimfinder-filling-cache-master:6379"
+      REDIS_URL: "redis://scrimfinder-filling-cache-master:6379"
+      TRAINING_SVC_HOST: "training-service"
+      TRAINING_SVC_RPC_PORT: "50051"
+    healthPath: "/api/v1/riot/q/health"
   
   training-service:
     imageName: "training-service"
