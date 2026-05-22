@@ -24,9 +24,11 @@ import jakarta.inject.Inject;
 import java.util.Optional;
 import java.util.UUID;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+@Tag("unit")
 @QuarkusTest
 @TestTransaction
 public class PlayerServiceTest {

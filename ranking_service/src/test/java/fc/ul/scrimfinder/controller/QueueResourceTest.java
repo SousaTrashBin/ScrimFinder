@@ -11,8 +11,10 @@ import fc.ul.scrimfinder.util.MMRRuleType;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import java.util.UUID;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+@Tag("integration-light")
 @QuarkusTest
 public class QueueResourceTest {
 

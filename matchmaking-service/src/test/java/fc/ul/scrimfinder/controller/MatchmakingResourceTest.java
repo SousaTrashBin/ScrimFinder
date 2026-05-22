@@ -17,8 +17,10 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.ws.rs.core.MediaType;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+@Tag("integration-light")
 @QuarkusTest
 public class MatchmakingResourceTest {
 
