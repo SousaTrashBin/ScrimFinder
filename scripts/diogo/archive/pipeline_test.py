@@ -1,7 +1,8 @@
-import requests
-import uuid
-import time
 import os
+import time
+import uuid
+
+import requests
 
 BASE_URL = os.environ.get("BASE_URL", "http://34.141.81.245")
 MATCHMAKING_URL = f"{BASE_URL}/api/v1/matchmaking"
