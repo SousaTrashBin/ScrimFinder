@@ -1,4 +1,4 @@
-package fc.ul.scrimfinder.service;
+package fc.ul.scrimfinder.unit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
