@@ -130,6 +130,8 @@ jobs:
 
       - name: set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
+        with:
+          install_components: gke-gcloud-auth-plugin
 
       - name: set up Terraform
         uses: hashicorp/setup-terraform@v3
