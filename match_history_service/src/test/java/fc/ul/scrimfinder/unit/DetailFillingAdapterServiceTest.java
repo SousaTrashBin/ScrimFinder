@@ -13,6 +13,7 @@ import fc.ul.scrimfinder.dto.request.PlayerStatsDTO;
 import fc.ul.scrimfinder.dto.request.TeamStatsDTO;
 import fc.ul.scrimfinder.dto.response.MatchDTO;
 import fc.ul.scrimfinder.exception.InvalidExternalJsonFormatException;
+import fc.ul.scrimfinder.service.DetailFillingAdapterService;
 import fc.ul.scrimfinder.util.Champion;
 import fc.ul.scrimfinder.util.RiotId;
 import fc.ul.scrimfinder.util.Role;
