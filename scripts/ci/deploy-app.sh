@@ -135,9 +135,9 @@ helm upgrade --install scrimfinder "$ROOT_DIR/k8s/charts/scrimfinder" \
   --set secrets.rabbitmqPassword="$SCRIM_RABBITMQ_PASSWORD" \
   --set secrets.rabbitmqErlangCookie="$SCRIM_RABBITMQ_ERLANG_COOKIE" \
   --set services.detail-filling-service.enabled=false \
-  --set services.ranking-service.env.DETAIL_FILLING_SERVICE_URL="https://${DETAIL_FILLING_DOMAIN}/api/v1/riot" \
-  --set services.match-history-service.env.PLAYER_FILLING_SVC_URL="https://${DETAIL_FILLING_DOMAIN}/api/v1/riot" \
-  --set services.training-service.env.DETAIL_FILLING_URL="https://${DETAIL_FILLING_DOMAIN}/api/v1/riot"
+  --set services.ranking-service.env.DETAIL_FILLING_SERVICE_URL="http://scrimfinder-traefik/api/v1/riot" \
+  --set services.match-history-service.env.PLAYER_FILLING_SVC_URL="http://scrimfinder-traefik/api/v1/riot" \
+  --set services.training-service.env.DETAIL_FILLING_URL="http://scrimfinder-traefik/api/v1/riot"
 
 kubectl rollout status deployment/matchmaking-service -n "$SCRIM_NAMESPACE" --timeout=10m
 kubectl rollout status deployment/ranking-service -n "$SCRIM_NAMESPACE" --timeout=10m
