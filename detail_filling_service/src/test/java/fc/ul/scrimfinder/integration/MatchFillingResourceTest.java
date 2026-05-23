@@ -18,7 +18,7 @@ import java.util.List;
 import org.junit.jupiter.api.*;
 
 @QuarkusTest
-@Tag("integration")
+@Tag("integration-light")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class MatchFillingResourceTest {
 
