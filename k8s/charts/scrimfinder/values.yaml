@@ -151,8 +151,8 @@ services:
         containerPort: 9000
     resources:
       requests:
-        cpu: "100m"
-        memory: "256Mi"
+        cpu: "800m"
+        memory: "512Mi"
       limits:
         cpu: "800m"
         memory: "512Mi"
@@ -176,8 +176,8 @@ services:
         containerPort: 9001
     resources:
       requests:
-        cpu: "100m"
-        memory: "256Mi"
+        cpu: "800m"
+        memory: "512Mi"
       limits:
         cpu: "800m"
         memory: "512Mi"
@@ -201,8 +201,8 @@ services:
         containerPort: 9002
     resources:
       requests:
-        cpu: "100m"
-        memory: "256Mi"
+        cpu: "800m"
+        memory: "512Mi"
       limits:
         cpu: "800m"
         memory: "512Mi"
@@ -225,8 +225,8 @@ services:
   #      containerPort: 9000
   #  resources:
   #    requests:
-  #      cpu: "100m"
-  #      memory: "256Mi"
+  #      cpu: "800m"
+  #      memory: "512Mi"
   #    limits:
   #      cpu: "800m"
   #      memory: "512Mi"
@@ -246,8 +246,8 @@ services:
         containerPort: 50051
     resources:
       requests:
-        cpu: "200m"
-        memory: "512Mi"
+        cpu: "2000m"
+        memory: "2Gi"
       limits:
         cpu: "2000m"
         memory: "2Gi"
@@ -273,8 +273,8 @@ services:
         containerPort: 8001
     resources:
       requests:
-        cpu: "200m"
-        memory: "512Mi"
+        cpu: "1000m"
+        memory: "1Gi"
       limits:
         cpu: "1000m"
         memory: "1Gi"
