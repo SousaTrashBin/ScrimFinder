@@ -3,6 +3,7 @@ package fc.ul.scrimfinder.client;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import java.net.http.HttpConnectTimeoutException;
 import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.rest.client.annotation.ClientHeaderParam;
@@ -19,6 +20,6 @@ public interface RiotRegionServiceClient {
     @GET
     @Path("/{puuid}")
     @Retry(maxRetries = 4)
-    @CircuitBreaker
+    @CircuitBreaker(failOn = HttpConnectTimeoutException.class)
     String getActiveRegion(@PathParam("puuid") @NotBlank String puuid);
 }

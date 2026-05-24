@@ -12,6 +12,8 @@ import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.faulttolerance.Timeout;
 import org.jboss.logging.Logger;
 
+import java.net.http.HttpConnectTimeoutException;
+
 @ApplicationScoped
 public class TrainingAdapterServiceImpl implements TrainingAdapterService {
     @Inject
@@ -23,7 +25,7 @@ public class TrainingAdapterServiceImpl implements TrainingAdapterService {
     @Override
     @Retry(maxRetries = 4)
     @Timeout(10000)
-    @CircuitBreaker()
+    @CircuitBreaker(failOn = HttpConnectTimeoutException.class)
     public boolean sendMatchForAnalysis(String riotMatchId) {
         try {
             ForwardMatchRequest request =

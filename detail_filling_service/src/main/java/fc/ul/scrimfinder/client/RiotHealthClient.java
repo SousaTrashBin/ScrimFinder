@@ -3,6 +3,7 @@ package fc.ul.scrimfinder.client;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.net.http.HttpConnectTimeoutException;
 import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.rest.client.annotation.ClientHeaderParam;
@@ -18,6 +19,6 @@ public interface RiotHealthClient {
     @Path("/lol/status/v4/platform-data")
     @ClientHeaderParam(name = "X-Riot-Token", value = "${config.riot-api-key}")
     @Retry(maxRetries = 4)
-    @CircuitBreaker
+    @CircuitBreaker(failOn = HttpConnectTimeoutException.class)
     Response checkHealth();
 }
