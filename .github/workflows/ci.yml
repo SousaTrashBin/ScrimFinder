@@ -15,6 +15,15 @@ permissions:
   id-token: write
 
 jobs:
+  redis-init:
+    name: redis setup for tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: run redis setup script
+        run: ./detail_filling_service/redisInit.sh
+
   java_fast_tests:
     name: java fast tests - ${{ matrix.service }}
     runs-on: ubuntu-latest
@@ -91,6 +100,15 @@ jobs:
         run: |
           cd "${{ matrix.service }}"
           pytest
+
+  redis-shutdown:
+    name: redis shutdown after tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: run redis shutdown script
+        run: ./detail_filling_service/redisShutdown.sh
 
   java_heavy_and_gke_system_tests:
     name: integration-heavy and ephemeral GKE system tests
