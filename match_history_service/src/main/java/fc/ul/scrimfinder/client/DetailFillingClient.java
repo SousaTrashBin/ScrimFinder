@@ -3,6 +3,7 @@ package fc.ul.scrimfinder.client;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.rest.client.annotation.RegisterProvider;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
@@ -15,11 +16,13 @@ public interface DetailFillingClient {
     @GET
     @Path("matches/{matchId}")
     @Retry(maxRetries = 4)
+    @CircuitBreaker
     String getFilledMatch(@PathParam("matchId") @NotBlank String matchId);
 
     @GET
     @Path("players/{server}/{name}/{tag}")
     @Retry(maxRetries = 4)
+    @CircuitBreaker
     String getFilledPlayer(
             @PathParam("server") @NotBlank String server,
             @PathParam("name") @NotBlank String name,

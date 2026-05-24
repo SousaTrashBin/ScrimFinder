@@ -3,6 +3,7 @@ package fc.ul.scrimfinder.client;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.rest.client.annotation.ClientHeaderParam;
 import org.eclipse.microprofile.rest.client.annotation.RegisterProvider;
@@ -18,5 +19,6 @@ public interface RiotMatchServiceClient {
     @GET
     @Path("/lol/match/v5/matches/{matchId}")
     @Retry(maxRetries = 4)
+    @CircuitBreaker
     String getMatch(@PathParam("matchId") @NotNull String matchId);
 }
