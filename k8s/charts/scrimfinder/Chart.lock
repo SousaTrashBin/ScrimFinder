@@ -24,7 +24,7 @@ dependencies:
   repository: https://kubernetes-sigs.github.io/secrets-store-csi-driver/charts
   version: 1.6.0
 - name: vertical-pod-autoscaler
-  version: 11.1.1
   repository: https://cowboysysop.github.io/charts/
-digest: sha256:99e60e56d1b54dc69b326e43faac0279d393834e602daefffdd726fde8d1debb
-generated: "2026-05-12T17:17:35.8908822+01:00"
+  version: 11.1.1
+digest: sha256:872e512371089e0177bf21ede81ec5e0aedebed2ccda168dd73c0bc1c6bd1f75
+generated: "2026-05-24T19:53:20.5951937+01:00"
