@@ -27,6 +27,7 @@ jobs:
   java_fast_tests:
     name: java fast tests - ${{ matrix.service }}
     runs-on: ubuntu-latest
+    needs: redis-init
     env:
       RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
       SCRIM_DB_USER: ${{ secrets.SCRIM_DB_USER }}
@@ -105,6 +106,7 @@ jobs:
     name: redis shutdown after tests
     runs-on: ubuntu-latest
     needs: java_fast_tests
+    if: always()
     steps:
       - uses: actions/checkout@v6
 
