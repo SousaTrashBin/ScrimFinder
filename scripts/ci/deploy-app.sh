@@ -28,7 +28,6 @@ gcloud container clusters get-credentials "$SCRIM_CLUSTER_NAME" --zone "$zone" -
 PROJECT_NUMBER=$(gcloud projects describe "$SCRIM_PROJECT_ID" --format="value(projectNumber)")
 FUNCTIONS_BUILD_SERVICE_ACCOUNT_EMAIL="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
 FUNCTIONS_BUILD_SERVICE_ACCOUNT="projects/${SCRIM_PROJECT_ID}/serviceAccounts/${FUNCTIONS_BUILD_SERVICE_ACCOUNT_EMAIL}"
-SECRETS_SERVICE_ACCOUNT_EMAIL="secrets-service-account@${SCRIM_PROJECT_ID}.iam.gserviceaccount.com"
 
 echo "packaging services with serverless functions..."
 
@@ -68,7 +67,7 @@ for SERVICE_FUNCTION in ${SERVERLESS_FUNCTIONS}; do
             --memory=512Mi \
             --cpu=800m \
             --build-service-account="${FUNCTIONS_BUILD_SERVICE_ACCOUNT}" \
-            --set-secrets 'RIOT_API_KEY=RIOT_API_KEY:latest' # assuming standard secret manager setup, no secrets service account used here for brevity as it might not be created in ephemeral script
+            --set-secrets 'RIOT_API_KEY=RIOT_API_KEY:latest'
     ) &
 
     SERVERLESS_DEPLOY_PIDS+=("$!")

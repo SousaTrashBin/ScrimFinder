@@ -25,6 +25,7 @@ SCRIM_GITHUB_PR="${SCRIM_GITHUB_PR:-${PR_NUMBER:-}}"
 SCRIM_TF_STATE_KEY="${SCRIM_TF_STATE_KEY:-${SCRIM_TF_WORKSPACE}/terraform.tfstate}"
 SCRIM_MANAGE_SECRET_MANAGER="${SCRIM_MANAGE_SECRET_MANAGER:-true}"
 SCRIM_MANAGE_ARTIFACT_REGISTRY_REPOSITORY="${SCRIM_MANAGE_ARTIFACT_REGISTRY_REPOSITORY:-true}"
+SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER="${SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER:-}"
 
 echo "applying Terraform infrastructure..."
 gcloud config set project "${SCRIM_PROJECT_ID}" --quiet
@@ -61,6 +62,7 @@ TF_VAR_ARGS=(
     -var="environment_name=${SCRIM_ENVIRONMENT_NAME}"
     -var="github_run_id=${SCRIM_GITHUB_RUN_ID}"
     -var="github_pr=${SCRIM_GITHUB_PR}"
+    -var="cloud_functions_deployer_member=${SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER}"
 )
 
 import_if_missing() {

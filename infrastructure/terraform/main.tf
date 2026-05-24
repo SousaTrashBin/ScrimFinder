@@ -31,6 +31,13 @@ locals {
     rabbitmq-password      = var.rabbitmq_password
     rabbitmq-erlang-cookie = var.rabbitmq_erlang_cookie
   }
+
+  cloud_functions_deployer_roles = var.cloud_functions_deployer_member == "" ? toset([]) : toset([
+    "roles/cloudbuild.builds.editor",
+    "roles/cloudfunctions.admin",
+    "roles/run.admin",
+    "roles/secretmanager.secretAccessor",
+  ])
 }
 
 resource "google_project_service" "required" {
@@ -101,6 +108,20 @@ resource "google_project_iam_member" "functions_build_builder" {
   project = var.project_id
   role    = "roles/cloudbuild.builds.builder"
   member  = "serviceAccount:${data.google_project.current.number}-compute@developer.gserviceaccount.com"
+}
+
+resource "google_project_iam_member" "cloud_functions_deployer" {
+  for_each = local.cloud_functions_deployer_roles
+  project  = var.project_id
+  role     = each.key
+  member   = var.cloud_functions_deployer_member
+}
+
+resource "google_service_account_iam_member" "cloud_functions_deployer_build_sa_user" {
+  count              = var.cloud_functions_deployer_member == "" ? 0 : 1
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${data.google_project.current.number}-compute@developer.gserviceaccount.com"
+  role               = "roles/iam.serviceAccountUser"
+  member             = var.cloud_functions_deployer_member
 }
 
 resource "google_service_account" "secrets_sa" {

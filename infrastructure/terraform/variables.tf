@@ -78,3 +78,9 @@ variable "github_pr" {
   type    = string
   default = ""
 }
+
+variable "cloud_functions_deployer_member" {
+  type        = string
+  default     = ""
+  description = "Optional IAM member, for example serviceAccount:name@project.iam.gserviceaccount.com, allowed to deploy Cloud Functions in CI."
+}
