@@ -37,7 +37,7 @@ locals {
     "roles/cloudfunctions.admin",
     "roles/iam.serviceAccountUser",
     "roles/run.admin",
-    "roles/secretmanager.secretAccessor",
+    "roles/secretmanager.admin",
   ])
 }
 

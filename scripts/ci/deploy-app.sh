@@ -29,6 +29,16 @@ PROJECT_NUMBER=$(gcloud projects describe "$SCRIM_PROJECT_ID" --format="value(pr
 FUNCTIONS_BUILD_SERVICE_ACCOUNT_EMAIL="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
 FUNCTIONS_BUILD_SERVICE_ACCOUNT="projects/${SCRIM_PROJECT_ID}/serviceAccounts/${FUNCTIONS_BUILD_SERVICE_ACCOUNT_EMAIL}"
 
+echo "ensuring Secret Manager secret exists for serverless functions..."
+if ! gcloud secrets describe RIOT_API_KEY --project="${SCRIM_PROJECT_ID}" >/dev/null 2>&1; then
+    gcloud secrets create RIOT_API_KEY \
+        --project="${SCRIM_PROJECT_ID}" \
+        --replication-policy=automatic
+fi
+printf '%s' "${RIOT_API_KEY}" | gcloud secrets versions add RIOT_API_KEY \
+    --project="${SCRIM_PROJECT_ID}" \
+    --data-file=-
+
 echo "packaging services with serverless functions..."
 
 SERVERLESS_SERVICES="detail_filling_service"
