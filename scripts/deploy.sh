@@ -222,7 +222,9 @@ SERVERLESS_SERVICES="detail_filling_service"
 
 for SERVICE in ${SERVERLESS_SERVICES}; do
     cd "${SERVICE}"
+    ./redisInit.sh || true
     mvn clean package
+    ./redisShutdown.sh || true
     cd ..
 done
 
