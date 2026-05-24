@@ -36,7 +36,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.*;
 
 @QuarkusTest
-@Tag("integration-heavy")
+@Tag("system")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class MatchHistoryResourceTest {
 
