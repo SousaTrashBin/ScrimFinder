@@ -7,12 +7,11 @@ import fc.ul.scrimfinder.service.TrainingAdapterService;
 import io.quarkus.grpc.GrpcClient;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import java.net.http.HttpConnectTimeoutException;
 import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.faulttolerance.Timeout;
 import org.jboss.logging.Logger;
-
-import java.net.http.HttpConnectTimeoutException;
 
 @ApplicationScoped
 public class TrainingAdapterServiceImpl implements TrainingAdapterService {
