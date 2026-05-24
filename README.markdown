@@ -74,6 +74,7 @@ To format and test all services locally:
 * [Google Cloud SDK](https://cloud.google.com/sdk) (gcloud)
 * [Terraform](https://developer.hashicorp.com/terraform/install)
 * [Docker](https://www.docker.com/) & [Helm](https://helm.sh/)
+* [Ansible](https://docs.ansible.com/projects/ansible/latest/installation_guide/intro_installation.html#installing-and-upgrading-ansible-with-pip)
 * **Environment Variables:**
   ```bash
   export SCRIM_PROJECT_ID="your-gcp-id"
@@ -83,6 +84,7 @@ To format and test all services locally:
   export RIOT_API_KEY="RGAPI-..."
   export SCRIM_DB_USER="scrim_admin"
   export SCRIM_DB_PASSWORD="secure_password"
+  export SCRIM_GRAFANA_TOKEN="glc_..."
   ```
 
 ### Cloud Deployment (GKE)

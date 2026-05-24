@@ -12,16 +12,14 @@ import org.hibernate.annotations.SoftDelete;
 @Getter
 @Setter
 @SoftDelete
-@Table(
-        name = "player",
-        uniqueConstraints = {@UniqueConstraint(columnNames = {"name", "tag"})})
+@Table(name = "player")
 public class Player {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", unique = true, nullable = false, updatable = false)
     private UUID id;
 
-    @Column(name = "puuid", unique = true, nullable = false, updatable = false)
+    @Column(name = "puuid", nullable = false, updatable = false)
     private String puuid;
 
     @Column(name = "name", nullable = false)

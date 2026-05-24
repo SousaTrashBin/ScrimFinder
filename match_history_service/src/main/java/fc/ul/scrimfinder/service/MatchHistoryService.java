@@ -34,4 +34,6 @@ public interface MatchHistoryService {
 
     @CircuitBreaker(skipOn = {MatchNotFoundException.class})
     MatchDTO deleteMatchById(String riotMatchId) throws MatchNotFoundException;
+
+    void cleanUp();
 }

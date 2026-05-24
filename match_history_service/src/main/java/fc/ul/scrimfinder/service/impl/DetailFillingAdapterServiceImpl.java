@@ -12,7 +12,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.stream.StreamSupport;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
@@ -22,25 +21,17 @@ public class DetailFillingAdapterServiceImpl implements DetailFillingAdapterServ
 
     @Override
     public MatchDTO getMatch(String riotMatchId) {
-        return mapToMatchFromDetailFilling(detailFillingClient.getFilledMatch(riotMatchId));
+        return mapToMatchFromDetailFilling(
+                new JsonNodeFinder(null)
+                        .fromStringOrThrow(
+                                detailFillingClient.getFilledMatch(riotMatchId),
+                                InvalidExternalJsonFormatException.class)
+                        .jsonNode());
     }
 
     @Override
-    public String getPlayerPuuid(String server, String name, String tag) {
-        return mapToPlayerPuuidFromDetailFilling(
-                detailFillingClient.getFilledPlayer(server, name, tag));
-    }
-
-    @Override
-    public Integer getPlayerIcon(String server, String name, String tag) {
-        return mapToPlayerIconFromDetailFilling(detailFillingClient.getFilledPlayer(server, name, tag));
-    }
-
-    private MatchDTO mapToMatchFromDetailFilling(String json) {
-        JsonNodeFinder matchFinder =
-                Objects.requireNonNull(
-                        new JsonNodeFinder(null)
-                                .fromStringOrThrow(json, InvalidExternalJsonFormatException.class));
+    public MatchDTO mapToMatchFromDetailFilling(JsonNode match) {
+        JsonNodeFinder matchFinder = new JsonNodeFinder(match);
 
         String riotMatchId =
                 matchFinder
@@ -83,7 +74,8 @@ public class DetailFillingAdapterServiceImpl implements DetailFillingAdapterServ
         return new MatchDTO(riotMatchId, null, patch, gameCreation, gameDuration, players, teams);
     }
 
-    private PlayerStatsDTO mapToPlayerFromDetailFilling(JsonNode player, Long gameDuration) {
+    @Override
+    public PlayerStatsDTO mapToPlayerFromDetailFilling(JsonNode player, Long gameDuration) {
         JsonNodeFinder playerNodeFinder = new JsonNodeFinder(player);
 
         JsonNodeFinder riotIdNodeFinder =
@@ -241,7 +233,8 @@ public class DetailFillingAdapterServiceImpl implements DetailFillingAdapterServ
                 mmrDelta);
     }
 
-    private TeamStatsDTO mapToTeamFromDetailFilling(JsonNode team) {
+    @Override
+    public TeamStatsDTO mapToTeamFromDetailFilling(JsonNode team) {
         JsonNodeFinder teamNodeFinder = new JsonNodeFinder(team);
 
         TeamSide side =
@@ -276,25 +269,5 @@ public class DetailFillingAdapterServiceImpl implements DetailFillingAdapterServ
                         .asInt();
 
         return new TeamStatsDTO(side, teamKills, teamDeaths, teamAssists, teamHealing);
-    }
-
-    private String mapToPlayerPuuidFromDetailFilling(String json) {
-        return Objects.requireNonNull(
-                        new JsonNodeFinder(null)
-                                .fromStringOrThrow(json, InvalidExternalJsonFormatException.class))
-                .jsonGetOrThrow("account", InvalidExternalJsonFormatException.class)
-                .jsonGetOrThrow("puuid", InvalidExternalJsonFormatException.class)
-                .jsonNode()
-                .asText();
-    }
-
-    private Integer mapToPlayerIconFromDetailFilling(String json) {
-        return Objects.requireNonNull(
-                        new JsonNodeFinder(null)
-                                .fromStringOrThrow(json, InvalidExternalJsonFormatException.class))
-                .jsonGetOrThrow("summoner", InvalidExternalJsonFormatException.class)
-                .jsonGetOrThrow("icon", InvalidExternalJsonFormatException.class)
-                .jsonNode()
-                .asInt();
     }
 }

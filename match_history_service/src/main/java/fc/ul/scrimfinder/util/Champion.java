@@ -1,6 +1,5 @@
 package fc.ul.scrimfinder.util;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -19,13 +18,11 @@ public enum Champion {
     ANNIE("ANNIE"),
     APHELIOS("APHELIOS"),
     ASHE("ASHE"),
-    @JsonProperty("AURELION SOL")
-    AURELION_SOL("AURELION SOL"),
+    AURELION_SOL("AURELIONSOL"),
     AURORA("AURORA"),
     AZIR("AZIR"),
     BARD("BARD"),
-    @JsonProperty("BEL'VETH")
-    BELVETH("BEL'VETH"),
+    BELVETH("BELVETH"),
     BLITZCRANK("BLITZCRANK"),
     BRAND("BRAND"),
     BRAUM("BRAUM"),
@@ -33,13 +30,11 @@ public enum Champion {
     CAITLYN("CAITLYN"),
     CAMILLE("CAMILLE"),
     CASSIOPEIA("CASSIOPEIA"),
-    @JsonProperty("CHO'GATH")
-    CHOGATH("CHO'GATH"),
+    CHOGATH("CHOGATH"),
     CORKI("CORKI"),
     DARIUS("DARIUS"),
     DIANA("DIANA"),
-    @JsonProperty("DR. MUNDO")
-    DR_MUNDO("DR. MUNDO"),
+    DR_MUNDO("DRMUNDO"),
     DRAVEN("DRAVEN"),
     EKKO("EKKO"),
     ELISE("ELISE"),
@@ -62,16 +57,13 @@ public enum Champion {
     IRELIA("IRELIA"),
     IVERN("IVERN"),
     JANNA("JANNA"),
-    @JsonProperty("JARVAN IV")
-    JARVAN_IV("JARVAN IV"),
+    JARVAN_IV("JARVANIV"),
     JAX("JAX"),
     JAYCE("JAYCE"),
     JHIN("JHIN"),
     JINX("JINX"),
-    @JsonProperty("K'SANTE")
-    KSANTE("K'SANTE"),
-    @JsonProperty("KAI'SA")
-    KAISA("KAI'SA"),
+    KSANTE("KSANTE"),
+    KAISA("KAISA"),
     KALISTA("KALISTA"),
     KARMA("KARMA"),
     KARTHUS("KARTHUS"),
@@ -80,15 +72,12 @@ public enum Champion {
     KAYLE("KAYLE"),
     KAYN("KAYN"),
     KENNEN("KENNEN"),
-    @JsonProperty("KHA'ZIK")
-    KHAZIX("KHA'ZIX"),
+    KHAZIX("KHAZIX"),
     KINDRED("KINDRED"),
     KLED("KLED"),
-    @JsonProperty("KOG'MAW")
-    KOGMAW("KOG'MAW"),
+    KOGMAW("KOGMAW"),
     LEBLANC("LEBLANC"),
-    @JsonProperty("LEE SIN")
-    LEE_SIN("LEE SIN"),
+    LEE_SIN("LEESIN"),
     LEONA("LEONA"),
     LILLIA("LILLIA"),
     LISSANDRA("LISSANDRA"),
@@ -98,12 +87,10 @@ public enum Champion {
     MALPHITE("MALPHITE"),
     MALZAHAR("MALHAZAR"),
     MAOKAI("MAOKAI"),
-    @JsonProperty("MASTER YI")
-    MASTER_YI("MASTER YI"),
+    MASTER_YI("MASTERYI"),
     MEL("MEL"),
     MILIO("MILIO"),
-    @JsonProperty("MISS FORTUNE")
-    MISS_FORTUNE("MISS FORTUNE"),
+    MISS_FORTUNE("MISSFORTUNE"),
     MORDEKAISER("MORDEKAISER"),
     MORGANA("MORGANA"),
     NAAFIRI("NAAFIRI"),
@@ -114,7 +101,6 @@ public enum Champion {
     NIDALEE("NIDALEE"),
     NILAH("NILAH"),
     NOCTURNE("NOCTURNE"),
-    @JsonProperty("NUNU & WILLUMP")
     NUNU_WILLUMP("NUNU & WILLUMP"),
     OLAF("OLAF"),
     ORIANNA("ORIANNA"),
@@ -126,11 +112,9 @@ public enum Champion {
     QUINN("QUINN"),
     RAKAN("RAKAN"),
     RAMMUS("RAMMUS"),
-    @JsonProperty("REK'SAI")
-    REKSAI("REK'SAI"),
+    REKSAI("REKSAI"),
     RELL("RELL"),
-    @JsonProperty("RENATA GLASC")
-    RENATA_GLASC("RENATA GLASC"),
+    RENATA_GLASC("RENATAGLASC"),
     RENEKTON("RENEKTON"),
     RENGAR("RENGAR"),
     RIVEN("RIVEN"),
@@ -154,8 +138,7 @@ public enum Champion {
     SWAIN("SWAIN"),
     SYLAS("SYLAS"),
     SYNDRA("SYNDRA"),
-    @JsonProperty("TAHM KENCH")
-    TAHM_KENCH("TAHM KENCH"),
+    TAHM_KENCH("TAHMKENCH"),
     TALIYAH("TALIYAH"),
     TALON("TALON"),
     TARIC("TARIC"),
@@ -171,8 +154,7 @@ public enum Champion {
     VARUS("VARUS"),
     VAYNE("VAYNE"),
     VEIGAR("VEIGAR"),
-    @JsonProperty("VEL'KOZ")
-    VELKOZ("VEL'KOZ"),
+    VELKOZ("VELKOZ"),
     VEX("VEX"),
     VI("VI"),
     VIEGO("VIEGO"),
@@ -183,8 +165,7 @@ public enum Champion {
     WUKONG("WUKONG"),
     XAYAH("XAYAH"),
     XERATH("XERATH"),
-    @JsonProperty("XIN ZHAO")
-    XIN_ZHAO("XIN ZHAO"),
+    XIN_ZHAO("XINZHAO"),
     YASUO("YASUO"),
     YONE("YONE"),
     YORICK("YORICK"),
