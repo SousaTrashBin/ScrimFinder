@@ -146,29 +146,75 @@ def create_job(body: TrainingJobCreate):
     return _resp(db.get_job(job_id))
 
 
-@router.get("", response_model=TrainingJobListResponse, summary="List jobs")
-def list_jobs(
-    concern: Optional[str] = None,
-    status: Optional[JobStatus] = None,
+@router.get(
+    "",
+    response_model=TrainingJobListResponse,
+    summary="List jobs or get a specific job by ID",
+)
+def list_or_get_job(
+    job_id: Optional[str] = Query(
+        None, description="Specific job ID to fetch. If omitted, returns all jobs."
+    ),
+    concern: Optional[str] = Query(None),
+    status: Optional[JobStatus] = Query(None),
     limit: int = Query(100, ge=1, le=500),
 ):
+    if job_id:
+        row = db.get_job(job_id)
+        if row is None:
+            raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found.")
+        return TrainingJobListResponse(jobs=[_resp(row)])
+
     rows = db.list_jobs(
         concern=concern, status=status.value if status else None, limit=limit
     )
     return TrainingJobListResponse(jobs=[_resp(r) for r in rows])
 
 
-@router.get(
+@router.delete(
     "/{job_id}",
-    response_model=TrainingJobResponse,
-    summary="Get job status",
+    status_code=204,
+    summary="Delete a specific job",
     responses={404: {"model": ErrorResponse}},
 )
-def get_job(job_id: str = Path(...)):
+def delete_job(job_id: str = Path(...)):
     row = db.get_job(job_id)
     if row is None:
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found.")
-    return _resp(row)
+    if row["status"] in ("PENDING", "RUNNING"):
+        ev = _cancel_flags.get(job_id)
+        if ev:
+            ev.set()
+    db.delete_job(job_id)
+    return None
+
+
+@router.delete(
+    "",
+    status_code=204,
+    summary="Delete all jobs (bulk cleanup)",
+    responses={409: {"model": ErrorResponse}},
+)
+def delete_all_jobs(
+    status: Optional[JobStatus] = Query(
+        None, description="Only delete jobs with this status"
+    ),
+    confirm: bool = Query(False, description="Must be true to actually delete"),
+):
+    if not confirm:
+        raise HTTPException(
+            status_code=409,
+            detail="Add ?confirm=true to actually delete all jobs.",
+        )
+    jobs = db.list_jobs(status=status.value if status else None, limit=10000)
+    for row in jobs:
+        job_id = row["id"]
+        if row["status"] in ("PENDING", "RUNNING"):
+            ev = _cancel_flags.get(job_id)
+            if ev:
+                ev.set()
+        db.delete_job(job_id)
+    return None
 
 
 @router.post(

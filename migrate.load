@@ -1,0 +1,11 @@
+LOAD DATABASE
+     FROM sqlite:///data/league_data.db
+     INTO postgresql://postgres:postgres@ml-db:5432/ml
+WITH include drop,
+     create tables,
+     create indexes,
+     reset sequences,
+     workers = 4,
+     batch rows = 10000
+SET work_mem to '256MB',
+    maintenance_work_mem to '512MB';

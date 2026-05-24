@@ -1,6 +1,257 @@
+# ScrimFinder Full BigQuery Migration Guide
+
+> **Objective:** Migrate all database operations from PostgreSQL/SQLite to Google BigQuery, ensuring all endpoints function correctly.
+> **Scope:** `training_service` and `analysis_service` — all DB reads/writes go to BigQuery.
+> **Datasets:** `scrimfinder` (league data, read-only) + `scrimfinder_platform` (ML metadata, read-write).
+
+---
+
+## Table of Contents
+
+1. [Prerequisites & Environment Setup](#1-prerequisites--environment-setup)
+2. [Create BigQuery Datasets](#2-create-bigquery-datasets)
+3. [Check Model File Sizes](#3-check-model-file-sizes)
+4. [Rewrite `training_service/core/config.py`](#4-rewrite-training_servicecoreconfigpy)
+5. [Create `training_service/core/bq_schema.py`](#5-create-training_servicecorebq_schemapy)
+6. [Rewrite `training_service/core/db.py`](#6-rewrite-training_servicecoredbpy)
+7. [Update `training_service/core/bigquery_client.py`](#7-update-training_servicecorebigquery_clientpy)
+8. [Update `training_service/routers/games.py`](#8-update-training_serviceroutersgamespy)
+9. [Update `training_service/routers/datasets.py`](#9-update-training_serviceroutersdatasetspy)
+10. [Update `training_service/routers/models.py`](#10-update-training_serviceroutersmodelspy)
+11. [Update `training_service/routers/training.py`](#11-update-training_servicerouterstrainingpy)
+12. [Update `training_service/routers/features.py`](#12-update-training_serviceroutersfeaturespy)
+13. [Update `analysis_service` DB Code](#13-update-analysis_service-db-code)
+14. [Update Docker Compose](#14-update-docker-compose)
+15. [Update `requirements.txt`](#15-update-requirementstxt)
+16. [Testing & Verification](#16-testing--verification)
+17. [Troubleshooting](#17-troubleshooting)
+
+---
+
+## 1. Prerequisites & Environment Setup
+
+Ensure these environment variables are set before running any service:
+
+```powershell
+$env:BQ_PROJECT = "scrimfinder-494022"
+$env:BQ_DATASET = "scrimfinder"
+$env:BQ_PLATFORM_DATASET = "scrimfinder_platform"
+$env:GOOGLE_APPLICATION_CREDENTIALS = "C:\Users\rodri\MyStuff\FCUL\Masters\Semestre2\CN\secrets\gcp-key.json"
+```
+
+Verify connectivity:
+
+```powershell
+python -c "from google.cloud import bigquery; client = bigquery.Client(); print('OK:', client.project)"
+```
+
+---
+
+## 2. Create BigQuery Datasets
+
+Run once via `bq` CLI or Cloud Console:
+
+```bash
+bq mk --dataset --location=EU scrimfinder-494022:scrimfinder
+bq mk --dataset --location=EU scrimfinder-494022:scrimfinder_platform
+```
+
+Verify:
+
+```powershell
+python -c "
+from google.cloud import bigquery
+client = bigquery.Client()
+for ds in client.list_datasets():
+    print(ds.dataset_id)
+"
+```
+
+---
+
+## 3. Check Model File Sizes
+
+Before deciding where to store model artifacts (BigQuery `BYTES` vs GCS), check existing model sizes:
+
+```powershell
+Get-ChildItem -Path training_service/data/models -Recurse -Filter *.pkl | Select-Object Name, @{N='SizeMB';E={[math]::Round($_.Length/1MB,2)}} | Sort-Object SizeMB -Descending
+```
+
+### Decision Matrix
+
+| Max Model Size | Storage Strategy | Implementation |
+|---------------|------------------|----------------|
+| < 5 MB | BigQuery `BYTES` column | Store directly in `models.artifact` |
+| 5-10 MB | BigQuery `BYTES` with caution | Test first; may hit cell limits |
+| > 10 MB | GCS + reference in BigQuery | `models.artifact_path` = `gs://...` URL |
+
+**Default:** Use GCS for artifacts to be safe. Create a bucket:
+
+```bash
+gsutil mb gs://scrimfinder-models
+```
+
+---
+
+## 4. Rewrite `training_service/core/config.py`
+
+Replace the existing config with BigQuery-aware defaults:
+
+```python
+"""
+training_service/core/config.py
+
+BigQuery-first configuration. PostgreSQL/SQLite references removed.
+"""
+
+import os
+from pathlib import Path
+
+_HERE = Path(__file__).resolve().parent.parent
+
+
+class _Config:
+    # ── BigQuery ─────────────────────────────────────────────────────────
+    BQ_PROJECT: str = os.environ.get("BQ_PROJECT", os.environ.get("SCRIM_PROJECT_ID", ""))
+    BQ_DATASET: str = os.environ.get("BQ_DATASET", "scrimfinder")
+    BQ_PLATFORM_DATASET: str = os.environ.get("BQ_PLATFORM_DATASET", "scrimfinder_platform")
+
+    # ── GCS for model artifacts (if using GCS instead of BigQuery BYTES) ──
+    GCS_MODEL_BUCKET: str = os.environ.get("GCS_MODEL_BUCKET", "scrimfinder-models")
+
+    # ── Local paths (for temp files, not DB) ──────────────────────────────
+    MODELS_DIR: str = os.environ.get("MODELS_DIR", str(_HERE / "data" / "models"))
+    GAMES_DIR: str = os.environ.get("GAMES_DIR", str(_HERE / "data" / "games"))
+    DATASETS_DIR: str = os.environ.get("DATASETS_DIR", str(_HERE / "data" / "datasets"))
+
+    MODEL_RELOAD_INTERVAL: int = int(os.environ.get("MODEL_RELOAD_INTERVAL", "600"))
+
+    def ensure_dirs(self):
+        for d in [self.MODELS_DIR, self.GAMES_DIR, self.DATASETS_DIR]:
+            Path(d).mkdir(parents=True, exist_ok=True)
+
+
+cfg = _Config()
+```
+
+---
+
+## 5. Create `training_service/core/bq_schema.py`
+
+Create this new file. It defines all platform tables in BigQuery syntax:
+
+```python
+"""
+training_service/core/bq_schema.py
+
+BigQuery DDL for ML platform metadata tables.
+Run `init_bq_platform(client)` once at startup.
+"""
+
+from google.cloud import bigquery
+
+_PLATFORM_TABLES = [
+    # games
+    """
+    CREATE TABLE IF NOT EXISTS `{project}.{platform}.games` (
+        id STRING NOT NULL,
+        source STRING,
+        patch STRING,
+        match_type STRING,
+        duration_sec INT64,
+        platform STRING,
+        raw_json JSON,
+        ingested_at TIMESTAMP
+    )
+    """,
+    # features
+    """
+    CREATE TABLE IF NOT EXISTS `{project}.{platform}.features` (
+        game_id STRING NOT NULL,
+        concern STRING NOT NULL,
+        feature_vector JSON,
+        feature_names JSON,
+        schema_version STRING,
+        extracted_at TIMESTAMP
+    )
+    """,
+    # models
+    """
+    CREATE TABLE IF NOT EXISTS `{project}.{platform}.models` (
+        id STRING NOT NULL,
+        concern STRING NOT NULL,
+        algorithm STRING,
+        dataset_id STRING,
+        version STRING NOT NULL,
+        file_path STRING,
+        artifact BYTES,
+        metrics JSON,
+        hyperparams JSON,
+        feature_names JSON,
+        is_active BOOL,
+        created_at TIMESTAMP,
+        activated_at TIMESTAMP
+    )
+    """,
+    # training_jobs
+    """
+    CREATE TABLE IF NOT EXISTS `{project}.{platform}.training_jobs` (
+        id STRING NOT NULL,
+        concern STRING NOT NULL,
+        algorithm STRING,
+        dataset_id STRING,
+        status STRING,
+        progress INT64,
+        stage STRING,
+        filters JSON,
+        metrics JSON,
+        model_id STRING,
+        error STRING,
+        created_at TIMESTAMP,
+        started_at TIMESTAMP,
+        completed_at TIMESTAMP
+    )
+    """,
+    # datasets
+    """
+    CREATE TABLE IF NOT EXISTS `{project}.{platform}.datasets` (
+        id STRING NOT NULL,
+        name STRING NOT NULL,
+        description STRING,
+        concern STRING NOT NULL,
+        filters JSON,
+        game_count INT64,
+        row_count INT64,
+        status STRING,
+        created_at TIMESTAMP,
+        built_at TIMESTAMP,
+        file_path STRING
+    )
+    """,
+]
+
+
+def init_bq_platform(client: bigquery.Client, project: str, platform_dataset: str):
+    """Create all platform tables if they don't exist."""
+    for ddl_template in _PLATFORM_TABLES:
+        ddl = ddl_template.format(project=project, platform=platform_dataset)
+        job = client.query(ddl)
+        job.result()  # wait for completion
+    print(f"Platform tables initialized in {project}.{platform_dataset}")
+```
+
+---
+
+## 6. Rewrite `training_service/core/db.py`
+
+This is the most critical file. Replace entirely:
+
+```python
 """
 training_service/core/db.py
 
+Pure BigQuery implementation for all database operations.
+No PostgreSQL/SQLite dependencies remain.
 """
 
 import json
@@ -33,7 +284,7 @@ def init_db():
     init_bq_platform(client, cfg.BQ_PROJECT, cfg.BQ_PLATFORM_DATASET)
 
 
-def now_iso() -> str:
+def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
@@ -53,9 +304,8 @@ def _bq_query(sql: str, params: Optional[List[Any]] = None) -> bigquery.table.Ro
         # Replace %s placeholders with @pN
         parts = sql.split("%s")
         sql = "".join(f"{part}@p{i}" for i, part in enumerate(parts[:-1])) + parts[-1]
-    # Respect dataset location (EU/US) to avoid 404 "not found in location US"
-    location = getattr(cfg, "BQ_LOCATION", None)
-    return client.query(sql, job_config=job_config, location=location).result()
+    return client.query(sql, job_config=job_config).result()
+
 
 def _bq_type(value: Any) -> str:
     if isinstance(value, bool):
@@ -64,18 +314,16 @@ def _bq_type(value: Any) -> str:
         return "INT64"
     if isinstance(value, float):
         return "FLOAT64"
-    if isinstance(value, bytes):
-        return "BYTES"
     if isinstance(value, str):
         return "STRING"
-    return "STRING"
+    return "STRING"  # JSON, etc.
 
 
 def _row_to_dict(row: bigquery.Row) -> Dict[str, Any]:
     d = dict(row.items())
     # Parse JSON strings back to Python objects
     for key, val in d.items():
-        if isinstance(val, str) and (val.startswith("{") or val.startswith("[")):
+        if isinstance(val, str) and val.startswith("{"):
             try:
                 d[key] = json.loads(val)
             except json.JSONDecodeError:
@@ -101,7 +349,7 @@ def insert_game(game_id: str, raw: dict, source: str = "manual"):
     sql = f"""
     MERGE `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.games` T
     USING (SELECT @p0 as id, @p1 as source, @p2 as patch, @p3 as match_type,
-                  @p4 as duration_sec, @p5 as platform, PARSE_JSON(@p6) as raw_json) S
+                  @p4 as duration_sec, @p5 as platform, @p6 as raw_json) S
     ON T.id = S.id
     WHEN MATCHED THEN UPDATE SET
         source = S.source, patch = S.patch, match_type = S.match_type,
@@ -129,19 +377,19 @@ def list_games(source=None, patch=None, match_type=None, limit=50, offset=0):
         where_clauses.append("source = @p0")
         params.append(source)
     if patch:
-        where_clauses.append(f"patch = @p{len(params)}")
+        where_clauses.append("patch = @p1")
         params.append(patch)
     if match_type:
-        where_clauses.append(f"match_type = @p{len(params)}")
+        where_clauses.append("match_type = @p2")
         params.append(match_type)
     where = " AND ".join(where_clauses)
     where_sql = f"WHERE {where}" if where else ""
-
+    
     count_sql = f"SELECT COUNT(*) as c FROM `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.games` {where_sql}"
     total = 0
     for row in _bq_query(count_sql, params):
         total = row.c
-
+    
     data_sql = f"""
     SELECT id, source, patch, match_type, duration_sec, ingested_at
     FROM `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.games`
@@ -155,8 +403,9 @@ def list_games(source=None, patch=None, match_type=None, limit=50, offset=0):
 
 def delete_game(game_id: str) -> bool:
     sql = f"DELETE FROM `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.games` WHERE id = @p0"
-    _bq_query(sql, [game_id])
-    return True
+    result = _bq_query(sql, [game_id])
+    # BigQuery DELETE returns num_dml_affected_rows via job stats
+    return True  # Simplified; check job stats for exact count
 
 
 # ── Features ──────────────────────────────────────────────────────────────
@@ -168,9 +417,9 @@ def upsert_features(game_id, concern, vector, names, schema_version="1"):
     USING (SELECT @p0 as game_id, @p1 as concern) S
     ON T.game_id = S.game_id AND T.concern = S.concern
     WHEN MATCHED THEN UPDATE SET
-        feature_vector = PARSE_JSON(@p2), feature_names = PARSE_JSON(@p3), schema_version = @p4, extracted_at = CURRENT_TIMESTAMP()
+        feature_vector = @p2, feature_names = @p3, schema_version = @p4, extracted_at = CURRENT_TIMESTAMP()
     WHEN NOT MATCHED THEN INSERT (game_id, concern, feature_vector, feature_names, schema_version, extracted_at)
-    VALUES (@p0, @p1, PARSE_JSON(@p2), PARSE_JSON(@p3), @p4, CURRENT_TIMESTAMP())
+    VALUES (@p0, @p1, @p2, @p3, @p4, CURRENT_TIMESTAMP())
     """
     _bq_query(sql, [game_id, concern, json.dumps(vector), json.dumps(names), schema_version])
 
@@ -193,7 +442,7 @@ def delete_features(game_id: str, concern: Optional[str] = None) -> int:
         sql = f"DELETE FROM `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.features` WHERE game_id = @p0"
         params = [game_id]
     _bq_query(sql, params)
-    return 1
+    return 1  # Simplified
 
 
 # ── Models ─────────────────────────────────────────────────────────────────
@@ -207,11 +456,11 @@ def register_model(concern, algorithm, version, file_path, metrics, hyperparams=
             artifact = f.read()
     except OSError:
         artifact = None
-
+    
     sql = f"""
     INSERT INTO `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.models`
     (id, concern, algorithm, dataset_id, version, file_path, artifact, metrics, hyperparams, feature_names, is_active, created_at)
-    VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, PARSE_JSON(@p7), PARSE_JSON(@p8), PARSE_JSON(@p9), FALSE, CURRENT_TIMESTAMP())
+    VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, FALSE, CURRENT_TIMESTAMP())
     """
     _bq_query(sql, [
         model_id, concern, algorithm, dataset_id, version, file_path,
@@ -221,6 +470,7 @@ def register_model(concern, algorithm, version, file_path, metrics, hyperparams=
 
 
 def activate_model(model_id: str):
+    # First deactivate existing active model for this concern
     sql1 = f"""
     UPDATE `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.models`
     SET is_active = FALSE
@@ -228,7 +478,7 @@ def activate_model(model_id: str):
     AND is_active = TRUE
     """
     _bq_query(sql1, [model_id])
-
+    
     sql2 = f"""
     UPDATE `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.models`
     SET is_active = TRUE, activated_at = CURRENT_TIMESTAMP()
@@ -269,7 +519,7 @@ def list_models(concern=None, active_only=False) -> List[Dict[str, Any]]:
         where_clauses.append("concern = @p0")
         params.append(concern)
     if active_only:
-        where_clauses.append(f"is_active = TRUE")
+        where_clauses.append("is_active = TRUE")
     where = " AND ".join(where_clauses)
     where_sql = f"WHERE {where}" if where else ""
     sql = f"SELECT * FROM `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.models` {where_sql} ORDER BY created_at DESC"
@@ -283,7 +533,7 @@ def insert_dataset(dataset_id: str, name: str, concern: str, filters: dict, desc
     sql = f"""
     INSERT INTO `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.datasets`
     (id, name, description, concern, filters, game_count, row_count, status, created_at)
-    VALUES (@p0, @p1, @p2, @p3, PARSE_JSON(@p4), 0, 0, 'registered', CURRENT_TIMESTAMP())
+    VALUES (@p0, @p1, @p2, @p3, @p4, 0, 0, 'registered', CURRENT_TIMESTAMP())
     """
     _bq_query(sql, [dataset_id, name, description, concern, json.dumps(filters or {})])
 
@@ -345,7 +595,7 @@ def create_job(job_id, concern, algorithm="auto", dataset_id=None, filters=None)
     sql = f"""
     INSERT INTO `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.training_jobs`
     (id, concern, algorithm, dataset_id, filters, status, progress, stage, created_at)
-    VALUES (@p0, @p1, @p2, @p3, PARSE_JSON(@p4), 'PENDING', 0, 'Queued', CURRENT_TIMESTAMP())
+    VALUES (@p0, @p1, @p2, @p3, @p4, 'PENDING', 0, 'Queued', CURRENT_TIMESTAMP())
     """
     _bq_query(sql, [job_id, concern, algorithm, dataset_id, json.dumps(filters or {})])
 
@@ -356,12 +606,8 @@ def update_job(job_id: str, **kwargs):
     sets = []
     params = []
     for k, v in kwargs.items():
-        if isinstance(v, (dict, list)):
-            sets.append(f"{k} = PARSE_JSON(@p{len(params)})")
-            params.append(json.dumps(v))
-        else:
-            sets.append(f"{k} = @p{len(params)}")
-            params.append(v)
+        sets.append(f"{k} = @p{len(params)}")
+        params.append(json.dumps(v) if isinstance(v, (dict, list)) else v)
     params.append(job_id)
     set_sql = ", ".join(sets)
     sql = f"UPDATE `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.training_jobs` SET {set_sql} WHERE id = @p{len(params)-1}"
@@ -375,12 +621,6 @@ def get_job(job_id: str) -> Optional[Dict[str, Any]]:
     return None
 
 
-def delete_job(job_id: str) -> bool:
-    sql = f"DELETE FROM `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.training_jobs` WHERE id = @p0"
-    _bq_query(sql, [job_id])
-    return True
-
-
 def list_jobs(concern=None, status=None, limit=100) -> List[Dict[str, Any]]:
     where_clauses = []
     params = []
@@ -388,7 +628,7 @@ def list_jobs(concern=None, status=None, limit=100) -> List[Dict[str, Any]]:
         where_clauses.append("concern = @p0")
         params.append(concern)
     if status:
-        where_clauses.append(f"status = @p{len(params)}")
+        where_clauses.append("status = @p1")
         params.append(status)
     where = " AND ".join(where_clauses)
     where_sql = f"WHERE {where}" if where else ""
@@ -401,6 +641,7 @@ def list_jobs(concern=None, status=None, limit=100) -> List[Dict[str, Any]]:
 
 def query_league(sql: str, params: Optional[List[Any]] = None):
     """Execute query against the league data dataset."""
+    # Replace league table references with fully-qualified names
     league_tables = ["matches", "player_stats", "team_stats", "bans", "player_items", "player_runes",
                      "dim_champions", "dim_items", "dim_runes", "dim_players"]
     for table in league_tables:
@@ -466,11 +707,11 @@ def upsert_league_match(raw: dict) -> None:
     match_id = raw.get("match_id") or raw.get("matchId") or raw.get("id")
     if not match_id:
         raise ValueError("League match is missing match_id")
-
+    
     participants = raw.get("participants") or []
     team_rows = raw.get("teams") or raw.get("team_stats") or []
     bans = raw.get("bans") or []
-
+    
     # Insert match
     sql = f"""
     MERGE `{cfg.BQ_PROJECT}.{cfg.BQ_DATASET}.matches` T
@@ -488,18 +729,18 @@ def upsert_league_match(raw: dict) -> None:
         raw.get("timestamp"),
         raw.get("match_type") or raw.get("gameType") or raw.get("queueType"),
     ])
-
+    
     # Clear existing child rows
     for table in ["player_items", "player_runes", "bans", "team_stats"]:
         del_sql = f"DELETE FROM `{cfg.BQ_PROJECT}.{cfg.BQ_DATASET}.{table}` WHERE match_id = @p0"
         _bq_query(del_sql, [str(match_id)])
-
+    
     # Insert participants
     for p in participants:
         puuid = p.get("puuid")
         if not puuid:
             continue
-
+        
         # Upsert player
         player_sql = f"""
         MERGE `{cfg.BQ_PROJECT}.{cfg.BQ_DATASET}.dim_players` T
@@ -516,7 +757,7 @@ def upsert_league_match(raw: dict) -> None:
             p.get("name") or p.get("riotIdGameName") or p.get("summonerName"),
             p.get("tag") or p.get("riotIdTagline"),
         ])
-
+        
         # Insert player_stats
         stats_sql = f"""
         INSERT INTO `{cfg.BQ_PROJECT}.{cfg.BQ_DATASET}.player_stats`
@@ -542,7 +783,7 @@ def upsert_league_match(raw: dict) -> None:
             p.get("summ1"),
             p.get("summ2"),
         ])
-
+        
         # Insert items
         for item in p.get("items") or []:
             item_sql = f"INSERT INTO `{cfg.BQ_PROJECT}.{cfg.BQ_DATASET}.player_items` (match_id, puuid, item_id, slot) VALUES (@p0, @p1, @p2, @p3)"
@@ -551,7 +792,7 @@ def upsert_league_match(raw: dict) -> None:
                 str(item.get("item_id") or item.get("itemId") or ""),
                 item.get("slot"),
             ])
-
+        
         # Insert runes
         for rune in p.get("runes") or []:
             rune_sql = f"INSERT INTO `{cfg.BQ_PROJECT}.{cfg.BQ_DATASET}.player_runes` (match_id, puuid, rune_id) VALUES (@p0, @p1, @p2)"
@@ -559,7 +800,7 @@ def upsert_league_match(raw: dict) -> None:
                 str(match_id), str(puuid),
                 str(rune.get("rune_id") or rune.get("runeId") or ""),
             ])
-
+    
     # Insert team stats
     for t in team_rows:
         team_sql = f"""
@@ -580,7 +821,7 @@ def upsert_league_match(raw: dict) -> None:
             t.get("first_tower"),
             t.get("first_dragon"),
         ])
-
+    
     # Insert bans
     for ban in bans:
         ban_sql = f"INSERT INTO `{cfg.BQ_PROJECT}.{cfg.BQ_DATASET}.bans` (match_id, team_id, champion_id, pick_turn) VALUES (@p0, @p1, @p2, @p3)"
@@ -596,12 +837,22 @@ def upsert_dimension_rows(table: str, rows: List[Dict[str, Any]]) -> int:
     """Upsert dimension table rows (champions, items, runes, players)."""
     if not rows:
         return 0
-
+    
     # Get columns from first row
     columns = list(rows[0].keys())
     conflict_col = columns[0]
-
+    
+    values_parts = []
+    all_params = []
+    for row in rows:
+        placeholders = []
+        for col in columns:
+            placeholders.append(f"@p{len(all_params)}")
+            all_params.append(row.get(col))
+        values_parts.append(f"({', '.join(placeholders)})")
+    
     # BigQuery MERGE for batch upsert
+    # For simplicity, do individual MERGEs
     for row in rows:
         sets = [f"{col} = S.{col}" for col in columns[1:]]
         vals = [f"@p{i}" for i in range(len(columns))]
@@ -615,5 +866,247 @@ def upsert_dimension_rows(table: str, rows: List[Dict[str, Any]]) -> int:
         VALUES ({', '.join(vals)})
         """
         _bq_query(sql, params)
-
+    
     return len(rows)
+```
+
+---
+
+## 7. Update `training_service/core/bigquery_client.py`
+
+This file is now superseded by `db.py`. You can either:
+
+**Option A:** Delete it and remove all imports of it.
+
+**Option B:** Keep it as a thin wrapper that delegates to `db.py`:
+
+```python
+"""Deprecated: use training_service.core.db directly."""
+from training_service.core.db import get_bq_client, _bq_query
+
+class BQClient:
+    def __init__(self):
+        self._client = get_bq_client()
+    
+    def connection(self):
+        # Return a mock connection for compatibility
+        return self
+    
+    def cursor(self):
+        return self
+    
+    def execute(self, sql, params=None):
+        return _bq_query(sql, params)
+    
+    def fetchall(self):
+        return []
+    
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, *args):
+        pass
+```
+
+---
+
+## 8. Update `training_service/routers/games.py`
+
+Replace SQLite/PostgreSQL league data access with BigQuery:
+
+```python
+from training_service.core.db import (
+    get_league_match, list_league_matches, get_player_stats,
+    get_team_stats, get_bans, get_player_items, get_player_runes,
+    upsert_league_match, query_league, insert_game
+)
+
+# Remove any sqlite3 or psycopg2 imports
+```
+
+For the `import_league` endpoint, use `query_league()` to read from BigQuery and `insert_game()` to write to the platform `games` table.
+
+---
+
+## 9. Update `training_service/routers/datasets.py`
+
+```python
+from training_service.core.db import (
+    insert_dataset, get_dataset, list_datasets,
+    update_dataset_status, delete_dataset, count_active_jobs_for_dataset
+)
+```
+
+Remove any `get_conn()` or psycopg2 usage.
+
+---
+
+## 10. Update `training_service/routers/models.py`
+
+```python
+from training_service.core.db import (
+    register_model, activate_model, deactivate_model, delete_model,
+    get_active_model, get_model_by_id, list_models
+)
+```
+
+---
+
+## 11. Update `training_service/routers/training.py`
+
+```python
+from training_service.core.db import (
+    create_job, update_job, get_job, list_jobs
+)
+```
+
+---
+
+## 12. Update `training_service/routers/features.py`
+
+```python
+from training_service.core.db import (
+    upsert_features, get_features, delete_features
+)
+```
+
+---
+
+## 13. Update `analysis_service` DB Code
+
+Apply the same pattern to `analysis_service`:
+
+1. Create `analysis_service/core/config.py` with `BQ_PROJECT`, `BQ_DATASET`, `BQ_PLATFORM_DATASET`
+2. Create `analysis_service/core/db.py` with BigQuery queries (or share `training_service/core/db.py`)
+3. Update all routers to import from the new `db.py`
+
+If `analysis_service` only reads from league data, it only needs the `query_league()` functions.
+
+---
+
+## 14. Update Docker Compose
+
+In `docker-compose.test.yml`:
+
+```yaml
+  training-service:
+    environment:
+      - PYTHONPATH=/app
+      - BQ_PROJECT=${BQ_PROJECT}
+      - BQ_DATASET=${BQ_DATASET:-scrimfinder}
+      - BQ_PLATFORM_DATASET=${BQ_PLATFORM_DATASET:-scrimfinder_platform}
+      - GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp-key.json
+      # Remove: USE_BIGQUERY, all PLATFORM_DB_* vars, LEAGUE_DB_* vars
+    volumes:
+      - ${GOOGLE_APPLICATION_CREDENTIALS}:/secrets/gcp-key.json:ro
+    depends_on:
+      # Remove ml-db dependency if no longer needed
+      # Or keep it if other services still use it
+```
+
+**Remove from `docker-compose.test.yml`:**
+- `USE_BIGQUERY`
+- `PLATFORM_DB_HOST`, `PLATFORM_DB_PORT`, `PLATFORM_DB_NAME`, `PLATFORM_DB_USER`, `PLATFORM_DB_PASSWORD`
+- `LEAGUE_DB`, `LEAGUE_DB_DSN`
+- `ml-db` service dependency (if nothing else uses it)
+
+---
+
+## 15. Update `requirements.txt`
+
+In `training_service/requirements.txt` and `analysis_service/requirements.txt`:
+
+**Remove:**
+```
+psycopg2-binary>=2.9.9
+```
+
+**Keep/Add:**
+```
+google-cloud-bigquery>=3.20.0
+db-dtypes>=1.2.0
+pandas>=2.2.0
+pyarrow>=16.0.0
+google-cloud-storage>=2.10.0  # if using GCS for model artifacts
+```
+
+---
+
+## 16. Testing & Verification
+
+### 16.1 Build and start
+
+```powershell
+docker compose -f docker-compose.test.yml build --no-cache training-service
+docker compose -f docker-compose.test.yml up -d training-service
+```
+
+### 16.2 Check logs
+
+```powershell
+docker compose -f docker-compose.test.yml logs training-service --tail 30
+```
+
+### 16.3 Test endpoints
+
+```powershell
+# Health check
+Invoke-RestMethod -Uri "http://localhost:8000/health"
+
+# List games (platform)
+Invoke-RestMethod -Uri "http://localhost:8000/api/v1/training/games"
+
+# Get league match from BigQuery
+Invoke-RestMethod -Uri "http://localhost:8000/api/v1/training/games/league/12345"
+
+# Import league data
+Invoke-RestMethod -Method Post -Uri "http://localhost:8000/api/v1/training/games/import/league" -Body '{"limit": 10}' -ContentType "application/json"
+
+# List datasets
+Invoke-RestMethod -Uri "http://localhost:8000/api/v1/training/datasets"
+
+# Create training job
+Invoke-RestMethod -Method Post -Uri "http://localhost:8000/api/v1/training/jobs" -Body '{"concern": "win-prediction", "algorithm": "gbm"}' -ContentType "application/json"
+```
+
+### 16.4 Verify BigQuery tables
+
+```powershell
+python -c "
+from google.cloud import bigquery
+client = bigquery.Client()
+print('Platform tables:')
+for t in client.list_tables('scrimfinder-494022.scrimfinder_platform'):
+    print(f'  {t.table_id}: {client.get_table(t).num_rows} rows')
+print('League tables:')
+for t in client.list_tables('scrimfinder-494022.scrimfinder'):
+    print(f'  {t.table_id}: {client.get_table(t).num_rows} rows')
+"
+```
+
+---
+
+## 17. Troubleshooting
+
+### `DefaultCredentialsError`
+- Verify `GOOGLE_APPLICATION_CREDENTIALS` env var inside container points to `/secrets/gcp-key.json`
+- Verify volume mount exists in `docker-compose.test.yml`
+- Run: `docker compose -f docker-compose.test.yml run --rm training-service ls -la /secrets/`
+
+### `NotFound: 404 Dataset not found`
+- Run: `bq mk --dataset --location=EU scrimfinder-494022:scrimfinder_platform`
+
+### `BadRequest: Syntax error`
+- Check that no PostgreSQL syntax (`DEFAULT`, `SERIAL`, `JSONB`, `TIMESTAMPTZ`) remains in queries
+- Use `MERGE` instead of `INSERT ... ON CONFLICT`
+- Use `CURRENT_TIMESTAMP()` instead of `now()`
+
+### `Forbidden: 403 Access Denied`
+- Verify service account has `roles/bigquery.dataEditor` and `roles/bigquery.jobUser`
+
+### Slow queries
+- BigQuery is optimized for analytics, not OLTP. For frequent small lookups, consider caching in Redis.
+
+---
+
+*End of migration guide.*

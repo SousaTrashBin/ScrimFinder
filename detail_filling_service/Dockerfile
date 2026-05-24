@@ -1,23 +1,28 @@
 FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /code
 
+# Use a dedicated Maven local repository inside the build context to avoid lock contention across parallel builds
+ENV MAVEN_OPTS="-Dmaven.repo.local=/code/.m2/repository"
+
 LABEL version="1.0"
 
 COPY pom.xml /code/
 
-RUN --mount=type=cache,target=/root/.m2,id=m2-detail mvn dependency:go-offline -B
+# Pre‑download all dependencies into the isolated repo
+RUN mvn dependency:go-offline -B
 
 COPY src /code/src
 
-RUN --mount=type=cache,target=/root/.m2,id=m2-detail mvn package -DskipTests -Dspotless.skip=true -B
+# Build the fast‑jar using the isolated repo
+RUN mvn -B package -DskipTests -Dspotless.skip=true -Dquarkus.package.type=fast-jar
 
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /deployments
 
-COPY --from=build --chown=185 /code/target/quarkus-app/lib/ /deployments/lib/
-COPY --from=build --chown=185 /code/target/quarkus-app/*.jar /deployments/
-COPY --from=build --chown=185 /code/target/quarkus-app/app/ /deployments/app/
-COPY --from=build --chown=185 /code/target/quarkus-app/quarkus/ /deployments/quarkus/
+COPY --from=build /code/target/quarkus-app/quarkus-run.jar /deployments/quarkus-run.jar
+COPY --from=build /code/target/quarkus-app/lib/ /deployments/lib/
+COPY --from=build /code/target/quarkus-app/app/ /deployments/app/
+COPY --from=build /code/target/quarkus-app/quarkus/ /deployments/quarkus/
 
 EXPOSE 8080
 USER 185

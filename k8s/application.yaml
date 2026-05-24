@@ -38,6 +38,10 @@ spec:
           value: "http://scrimfinder-traefik/api/v1/riot"
         - name: services.training-service.env.DETAIL_FILLING_URL
           value: "http://scrimfinder-traefik/api/v1/riot"
+        - name: services.training-service.env.BQ_PROJECT
+          value: "${PROJECT_ID}"
+        - name: services.analysis-service.env.BQ_PROJECT
+          value: "${PROJECT_ID}"
   destination:
     server: https://kubernetes.default.svc
     namespace: scrimfinder

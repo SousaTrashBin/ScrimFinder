@@ -50,7 +50,7 @@ message GetActiveModelRequest {
 
 message GetActiveModelResponse {
   bool   found       = 1;
-  int32  model_id    = 2;
+  string model_id    = 2;
   string concern     = 3;
   string algorithm   = 4;
   string version     = 5;

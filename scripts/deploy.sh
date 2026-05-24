@@ -44,17 +44,117 @@ gcloud services enable \
     cloudbuild.googleapis.com \
     run.googleapis.com \
     eventarc.googleapis.com \
-    secretmanager.googleapis.com
+    secretmanager.googleapis.com \
+    monitoring.googleapis.com \
+    logging.googleapis.com \
+    bigquery.googleapis.com \
+    storage.googleapis.com
 
 PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format="value(projectNumber)")
 FUNCTIONS_BUILD_SERVICE_ACCOUNT_EMAIL="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
 FUNCTIONS_BUILD_SERVICE_ACCOUNT="projects/${PROJECT_ID}/serviceAccounts/${FUNCTIONS_BUILD_SERVICE_ACCOUNT_EMAIL}"
 
-echo "ensuring Cloud Functions build service account permissions..."
+###############################################################################
+# CLOUD AND ROLE ATTRIBUTION SECTION
+###############################################################################
+
+echo "configuring cloud IAM roles and service account attributions..."
+
+# 1. Core service accounts identity
+SECRETS_SERVICE_ACCOUNT=secrets-service-account
+SECRETS_SERVICE_ACCOUNT_EMAIL="${SECRETS_SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com"
+GKE_NODES_SERVICE_ACCOUNT="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+CLOUD_FUNCTIONS_RUNTIME_SA="${PROJECT_ID}@appspot.gserviceaccount.com"
+
+echo "ensuring service accounts exist..."
+gcloud iam service-accounts create "$SECRETS_SERVICE_ACCOUNT" \
+    --description="Service Account for ScrimFinder secrets and workload access" \
+    --display-name="ScrimFinder Secrets Service Account" 2>/dev/null || echo "secrets-service-account already exists"
+
+# 2. Project-level role attributions for Secrets Service Account
+echo "attributing project-level IAM roles to secrets-service-account..."
+
+ROLES_FOR_SECRETS_SA=(
+    "roles/secretmanager.secretAccessor"
+    "roles/logging.logWriter"
+    "roles/monitoring.metricWriter"
+    "roles/cloudtrace.agent"
+    "roles/cloudsql.client"
+    "roles/datastore.user"
+    "roles/storage.objectViewer"
+    "roles/bigquery.admin"
+)
+
+for role in "${ROLES_FOR_SECRETS_SA[@]}"; do
+    echo "  → binding $role to $SECRETS_SERVICE_ACCOUNT_EMAIL"
+    gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+        --member="serviceAccount:${SECRETS_SERVICE_ACCOUNT_EMAIL}" \
+        --role="$role" \
+        --quiet || echo "    (role $role may already be bound)"
+done
+
+# 3. Workload Identity binding (allows K8s pods to impersonate this SA)
+echo "configuring Workload Identity Federation for GKE..."
+gcloud iam service-accounts add-iam-policy-binding "${SECRETS_SERVICE_ACCOUNT_EMAIL}" \
+    --member="serviceAccount:${PROJECT_ID}.svc.id.goog[${SCRIM_NAMESPACE}/scrimfinder-secrets-reader]" \
+    --role="roles/iam.workloadIdentityUser" \
+    --quiet || echo "WorkloadIdentity binding already exists"
+
+# 4. GKE default compute service account roles
+echo "attributing roles to GKE node service account ($GKE_NODES_SERVICE_ACCOUNT)..."
+
+ROLES_FOR_GKE_NODES=(
+    "roles/logging.logWriter"
+    "roles/monitoring.metricWriter"
+    "roles/monitoring.viewer"
+    "roles/storage.objectViewer"
+    "roles/artifactregistry.reader"
+)
+
+for role in "${ROLES_FOR_GKE_NODES[@]}"; do
+    echo "  → binding $role to $GKE_NODES_SERVICE_ACCOUNT"
+    gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+        --member="serviceAccount:${GKE_NODES_SERVICE_ACCOUNT}" \
+        --role="$role" \
+        --quiet || echo "    (role $role may already be bound)"
+done
+
+# 5. Cloud Functions build service account
+echo "attributing Cloud Build role to functions build service account..."
 gcloud projects add-iam-policy-binding "$PROJECT_ID" \
     --member="serviceAccount:${FUNCTIONS_BUILD_SERVICE_ACCOUNT_EMAIL}" \
     --role="roles/cloudbuild.builds.builder" \
-    --quiet
+    --quiet || echo "cloudbuild.builds.builder already bound"
+
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+    --member="serviceAccount:${FUNCTIONS_BUILD_SERVICE_ACCOUNT_EMAIL}" \
+    --role="roles/artifactregistry.writer" \
+    --quiet || echo "artifactregistry.writer already bound"
+
+# 6. Cloud Functions runtime service account
+echo "attributing roles to Cloud Functions runtime service account..."
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+    --member="serviceAccount:${CLOUD_FUNCTIONS_RUNTIME_SA}" \
+    --role="roles/secretmanager.secretAccessor" \
+    --quiet || echo "secretAccessor already bound for runtime SA"
+
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+    --member="serviceAccount:${CLOUD_FUNCTIONS_RUNTIME_SA}" \
+    --role="roles/logging.logWriter" \
+    --quiet || echo "logWriter already bound for runtime SA"
+
+# 7. ArgoCD / K8s admin roles (for the user or CI/CD identity)
+CURRENT_USER=$(gcloud config get-value account)
+echo "attributing Kubernetes Engine Admin to current user ($CURRENT_USER)..."
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+    --member="user:${CURRENT_USER}" \
+    --role="roles/container.admin" \
+    --quiet || echo "container.admin already bound"
+
+echo "cloud and role attribution complete."
+###############################################################################
+# END CLOUD AND ROLE ATTRIBUTION SECTION
+###############################################################################
 
 ZONE="${REGION}-a"
 EXPECTED_CONTEXT="gke_${PROJECT_ID}_${ZONE}_${CLUSTER_NAME}"
@@ -87,18 +187,6 @@ else
 fi
 
 echo "creating secrets for Google Cloud..."
-
-SECRETS_SERVICE_ACCOUNT=secrets-service-account
-SECRETS_SERVICE_ACCOUNT_EMAIL="${SECRETS_SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com"
-
-gcloud iam service-accounts create $SECRETS_SERVICE_ACCOUNT \
-    --description="A Service Account with access to all ScrimFinder secrets" \
-    --display-name="secrets-service-account" || true
-
-gcloud iam service-accounts add-iam-policy-binding "${SECRETS_SERVICE_ACCOUNT_EMAIL}" \
-    --member="serviceAccount:${PROJECT_ID}.svc.id.goog[${SCRIM_NAMESPACE}/scrimfinder-secrets-reader]" \
-    --role="roles/iam.workloadIdentityUser" \
-    --quiet || true
 
 SECRETS="RIOT_API_KEY|${RIOT_API_KEY}"
 SECRETS+=" riot-api-key|${RIOT_API_KEY}"

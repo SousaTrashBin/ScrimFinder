@@ -582,8 +582,9 @@ def analyze_champion(body: ChampionAnalysisRequest) -> ChampionAnalysisResponse:
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"LEAGUE_DB unavailable: {e}") from e
 
-    total = wr.get("total", 0)
-    win_rate = round(wr.get("wins", 0) / max(total, 1) * 100, 2)
+    total = wr.get("total") or 0
+    wins = wr.get("wins") or 0
+    win_rate = round(wins / max(total, 1) * 100, 2)
     tier = (
         "S" if win_rate >= 53 else "A" if win_rate >= 51 else "B" if win_rate >= 49 else "C" if win_rate >= 47 else "D"
     )

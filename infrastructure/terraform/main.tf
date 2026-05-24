@@ -11,6 +11,8 @@ locals {
     "iam.googleapis.com",
     "run.googleapis.com",
     "secretmanager.googleapis.com",
+    "bigquery.googleapis.com",
+    "storage.googleapis.com",
   ])
 
   workload_identity_services = toset([
@@ -194,4 +196,21 @@ resource "google_project_iam_member" "secrets_reader" {
   project = var.project_id
   role    = "roles/secretmanager.secretAccessor"
   member  = "serviceAccount:${google_service_account.workload["scrimfinder-secrets-reader"].email}"
+}
+
+resource "google_bigquery_dataset" "scrimfinder" {
+  dataset_id                  = "scrimfinder"
+  friendly_name               = "ScrimFinder Data"
+  description                 = "Dataset for League of Legends match analytics"
+  location                    = var.region
+  project                     = var.project_id
+  delete_contents_on_destroy = false
+}
+
+resource "google_project_iam_member" "bigquery_user" {
+  for_each = toset(["analysis-service", "training-service"])
+
+  project = var.project_id
+  role    = "roles/bigquery.admin"
+  member  = "serviceAccount:${google_service_account.workload[each.value].email}"
 }

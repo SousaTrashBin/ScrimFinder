@@ -295,6 +295,7 @@ services:
       targetMemoryUtilizationPercentage: 80
     env:
       DETAIL_FILLING_URL: "http://scrimfinder-traefik/api/v1/riot"
+      BQ_PROJECT: ""
       PLATFORM_DB_HOST: "scrimfinder-ml-db-primary"
       PLATFORM_DB_PORT: "5432"
       PLATFORM_DB_NAME: "ml"
@@ -364,6 +365,7 @@ services:
       targetMemoryUtilizationPercentage: 80
     env:
       TRAINING_GRPC_URL: "training-service:50051"
+      BQ_PROJECT: ""
       LEAGUE_DB_HOST: "scrimfinder-ml-db-primary"
       LEAGUE_DB_PORT: "5432"
       LEAGUE_DB_NAME: "ml"

@@ -15,7 +15,7 @@ import time
 
 import pytest
 
-pytestmark = pytest.mark.integration
+pytestmark = pytest.mark.integration_large
 
 from fastapi.testclient import TestClient  # noqa: E402
 

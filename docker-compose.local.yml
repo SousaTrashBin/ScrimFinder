@@ -1,0 +1,28 @@
+services:
+  training-service:
+    build:
+      context: ./training_service
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+      - "50051:50051"
+    environment:
+      - PYTHONPATH=/app
+      - BQ_PROJECT=${BQ_PROJECT:-}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp-key.json
+    volumes:
+      - ./ml_data:/app/ml_data
+      - C:/Users/rodri/MyStuff/FCUL/Masters/Semestre2/CN/gcp-key.json:/app/gcp-key.json:ro
+  analysis-service:
+    build:
+      context: ./analysis_service
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - PYTHONPATH=/app
+      - BQ_PROJECT=${BQ_PROJECT:-}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp-key.json
+    volumes:
+      - ./ml_data:/app/ml_data
+      - C:/Users/rodri/MyStuff/FCUL/Masters/Semestre2/CN/gcp-key.json:/app/gcp-key.json:ro

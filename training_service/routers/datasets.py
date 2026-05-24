@@ -1,7 +1,7 @@
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Path
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Path, Query
 
 from training_service.core import db
 from training_service.core.schemas import (
@@ -70,26 +70,20 @@ def build_dataset(body: DatasetBuildRequest, background_tasks: BackgroundTasks):
     return _meta(db.get_dataset(ds_id))
 
 
-@router.get("", response_model=DatasetListResponse, summary="List datasets")
-def list_datasets(concern: Optional[str] = None):
+@router.get("", response_model=DatasetListResponse, summary="List datasets or get one by ID")
+def list_or_get_dataset(
+    dataset_id: Optional[str] = Query(None, description="Specific dataset ID to fetch"),
+    concern: Optional[str] = Query(None)
+):
+    if dataset_id:
+        row = db.get_dataset(dataset_id)
+        if row is None:
+            raise HTTPException(status_code=404, detail=f"Dataset '{dataset_id}' not found.")
+        return DatasetListResponse(datasets=[_meta(row)])
+        
     return DatasetListResponse(
         datasets=[_meta(r) for r in db.list_datasets(concern=concern)]
     )
-
-
-@router.get(
-    "/{dataset_id}",
-    response_model=DatasetMeta,
-    summary="Get dataset",
-    responses={404: {"model": ErrorResponse}},
-)
-def get_dataset(dataset_id: str = Path(...)):
-    row = db.get_dataset(dataset_id)
-    if row is None:
-        raise HTTPException(
-            status_code=404, detail=f"Dataset '{dataset_id}' not found."
-        )
-    return _meta(row)
 
 
 @router.post(

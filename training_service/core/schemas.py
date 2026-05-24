@@ -163,9 +163,13 @@ class DatasetListResponse(BaseModel):
 class TrainingJobCreate(BaseModel):
     concern: Concern
     algorithm: Algorithm = Algorithm.AUTO
-    sample: Optional[float] = Field(None, ge=0.01, le=1.0)
-    limit: Optional[int] = Field(None, ge=1000)
-    match_type: Optional[str] = None
+    sample: Optional[float] = Field(
+        None, ge=0.01, le=1.0, description="Fraction of dataset to sample (0.01-1.0)"
+    )
+    limit: Optional[int] = Field(None, ge=1, le=100000, description="Max rows to train on")
+    match_type: Optional[str] = Field(
+        None, description="Filter by match type (e.g., CLASSIC, ARAM). Leave empty for all."
+    )
 
 
 class TrainingJobResponse(BaseModel):
@@ -176,12 +180,12 @@ class TrainingJobResponse(BaseModel):
     progress: int
     stage: str
     filters: dict
-    metrics: Optional[dict]
-    model_id: Optional[int]
-    error: Optional[str]
-    created_at: str
-    started_at: Optional[str]
-    completed_at: Optional[str]
+    metrics: Optional[dict] = None
+    model_id: Optional[str] = None
+    error: Optional[str] = None
+    created_at: Optional[str] = None
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
 
 
 class TrainingJobListResponse(BaseModel):
@@ -189,15 +193,15 @@ class TrainingJobListResponse(BaseModel):
 
 
 class ModelMeta(BaseModel):
-    id: int
+    id: str
     concern: str
     algorithm: str
     version: str
     metrics: dict
     hyperparams: dict
     is_active: bool
-    created_at: str
-    activated_at: Optional[str]
+    created_at: Optional[str] = None
+    activated_at: Optional[str] = None
 
 
 class ModelListResponse(BaseModel):

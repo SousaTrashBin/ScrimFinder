@@ -3,7 +3,6 @@ name: ScrimFinder CI
 on:
   push:
     branches: [main, work/diogo, work/bruno, work/rodrigo]
-  pull_request:
 
 permissions:
   contents: read
@@ -137,7 +136,13 @@ jobs:
           DATASETS_DIR: /tmp/datasets
         run: |
           mkdir -p /tmp/models /tmp/games /tmp/datasets
-          pytest ${{ matrix.service }} --junitxml=junit-${{ matrix.service }}.xml -v
+          if [ "${{ github.ref }}" = "refs/heads/main" ] || [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "Running ALL tests (main branch or PR)"
+            pytest ${{ matrix.service }} --junitxml=junit-${{ matrix.service }}.xml -v
+          else
+            echo "Running UNIT and SMALL INTEGRATION tests (feature branch)"
+            pytest ${{ matrix.service }} -m "unit or integration" --junitxml=junit-${{ matrix.service }}.xml -v
+          fi
 
       - name: Upload test reports
         if: always()

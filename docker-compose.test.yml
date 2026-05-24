@@ -1,0 +1,122 @@
+# docker-compose.test.yml
+# Test environment: Python services only + BigQuery
+# Java/Quarkus services excluded (build issues)
+
+services:
+  traefik:
+    image: traefik:v3.6.2
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  jwt-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: jwt_manager
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d jwt_manager"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  jwt-manager:
+    build:
+      context: ./jwt_manager
+      dockerfile: Dockerfile
+    command: uvicorn jwt_manager.main:app --host 0.0.0.0 --port 8002
+    environment:
+      - PYTHONPATH=/app
+      - JWT_DB_HOST=jwt-db
+      - JWT_DB_PORT=5432
+      - JWT_DB_NAME=jwt_manager
+      - JWT_DB_USER=postgres
+      - JWT_DB_PASSWORD=postgres
+      - REDIS_URL=redis://redis:6379/2
+      - JWT_SECRET=${JWT_SECRET:-changeme_in_production}
+      - JWT_ISSUER=scrimfinder/jwt-manager
+      - JWT_KEY_ID=scrimfinder-key-v1
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jwt.rule=PathPrefix(`/api/v1/auth`)"
+      - "traefik.http.services.jwt.loadbalancer.server.port=8002"
+    depends_on:
+      jwt-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  training-service:
+    build:
+      context: ./training_service
+      dockerfile: Dockerfile
+    command: uvicorn training_service.main:app --host 0.0.0.0 --port 8000
+    environment:
+      - PYTHONPATH=/app
+      - BQ_PROJECT=${BQ_PROJECT:-scrimfinder-494022}
+      - BQ_DATASET=${BQ_DATASET:-scrimfinder}
+      - BQ_PLATFORM_DATASET=${BQ_PLATFORM_DATASET:-scrimfinder_platform}
+      - GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp-key.json
+      - DATASETS_DIR=/app/ml_data/datasets
+      - GAMES_DIR=/app/ml_data/games
+      - MODELS_DIR=/app/ml_data/models
+      - MODEL_RELOAD_INTERVAL=60
+    volumes:
+      - ${GOOGLE_APPLICATION_CREDENTIALS}:/secrets/gcp-key.json:ro
+      - ./ml_data:/app/ml_data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.training.rule=PathPrefix(`/api/v1/training`)"
+      - "traefik.http.services.training.loadbalancer.server.port=8000"
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  analysis-service:
+    build:
+      context: ./analysis_service
+      dockerfile: Dockerfile
+    command: uvicorn analysis_service.main:app --host 0.0.0.0 --port 8001
+    environment:
+      - PYTHONPATH=/app
+      - BQ_PROJECT=${BQ_PROJECT:-scrimfinder-494022}
+      - BQ_DATASET=${BQ_DATASET:-scrimfinder}
+      - BQ_PLATFORM_DATASET=${BQ_PLATFORM_DATASET:-scrimfinder_platform}
+      - GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp-key.json
+      - MODELS_DIR=/app/ml_data/models
+      - MODEL_RELOAD_INTERVAL=60
+      - TRAINING_GRPC_URL=training-service:50051
+    volumes:
+      - ${GOOGLE_APPLICATION_CREDENTIALS}:/secrets/gcp-key.json:ro
+      - ./ml_data:/app/ml_data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.analysis.rule=PathPrefix(`/api/v1/analysis`)"
+      - "traefik.http.services.analysis.loadbalancer.server.port=8001"
+    ports:
+      - "8001:8001"
+    depends_on:
+      training-service:
+        condition: service_started
+
+networks:
+  default:
+    name: scrimfinder_default
