@@ -18,6 +18,14 @@ jobs:
   java_fast_tests:
     name: java fast tests - ${{ matrix.service }}
     runs-on: ubuntu-latest
+    env:
+      RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
+      SCRIM_DB_USER: ${{ secrets.SCRIM_DB_USER }}
+      SCRIM_DB_PASSWORD: ${{ secrets.SCRIM_DB_PASSWORD }}
+      SCRIM_REDIS_PASSWORD: ${{ secrets.SCRIM_REDIS_PASSWORD }}
+      SCRIM_RABBITMQ_USER: ${{ secrets.SCRIM_RABBITMQ_USER }}
+      SCRIM_RABBITMQ_PASSWORD: ${{ secrets.SCRIM_RABBITMQ_PASSWORD }}
+      SCRIM_RABBITMQ_ERLANG_COOKIE: ${{ secrets.SCRIM_RABBITMQ_ERLANG_COOKIE }}
     strategy:
       fail-fast: true
       matrix:
@@ -45,8 +53,7 @@ jobs:
 
       - name: run unit and integration-light tests
         run: |
-          cd "${{ matrix.service }}"
-          ./mvnw -B -Pfast-tests test
+          SERVICES="${{ matrix.service }}" ./scripts/ci/run-java-service-tests.sh fast-tests
 
   python_fast_tests:
     name: python fast tests - ${{ matrix.service }}

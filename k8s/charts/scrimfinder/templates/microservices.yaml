@@ -1,5 +1,9 @@
 {{- range $name, $config := .Values.services }}
-{{- if and (ne ($config.enabled | default true) false) $config.ports }}
+{{- $enabled := true }}
+{{- if hasKey $config "enabled" }}
+{{- $enabled = $config.enabled }}
+{{- end }}
+{{- if and $enabled $config.ports }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
