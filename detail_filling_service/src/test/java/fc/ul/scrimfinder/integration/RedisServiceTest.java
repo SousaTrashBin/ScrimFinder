@@ -1,4 +1,4 @@
-package fc.ul.scrimfinder.unit;
+package fc.ul.scrimfinder.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -26,7 +26,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.*;
 
 @QuarkusTest
-@Tag("unit")
+@Tag("integration-light")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class RedisServiceTest {
 

@@ -6,7 +6,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.*;
 
 @QuarkusTest
-@Tag("integration-light")
+@Tag("integration-heavy")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class PlayerFillingResourceTest {
 
