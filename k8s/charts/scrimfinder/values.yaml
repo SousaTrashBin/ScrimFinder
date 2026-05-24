@@ -161,6 +161,11 @@ services:
       limits:
         cpu: "800m"
         memory: "512Mi"
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
     env:
       DB_URL: "jdbc:postgresql://scrimfinder-matchmaking-db-primary:5432/matchmaking"
       READ_DB_URL: "jdbc:postgresql://scrimfinder-matchmaking-db-read:5432/matchmaking"
@@ -186,6 +191,11 @@ services:
       limits:
         cpu: "800m"
         memory: "512Mi"
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
     env:
       DB_URL: "jdbc:postgresql://scrimfinder-ranking-db-primary:5432/ranking"
       READ_DB_URL: "jdbc:postgresql://scrimfinder-ranking-db-read:5432/ranking"
@@ -211,6 +221,11 @@ services:
       limits:
         cpu: "800m"
         memory: "512Mi"
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
     env:
       DB_URL: "jdbc:postgresql://scrimfinder-history-db-primary:5432/history"
       READ_DB_URL: "jdbc:postgresql://scrimfinder-history-db-read:5432/history"
@@ -236,6 +251,11 @@ services:
       limits:
         cpu: "800m"
         memory: "512Mi"
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
     env:
       DETAIL_FILLING_REDIS_URL: "redis://scrimfinder-filling-cache-master:6379"
       REDIS_URL: "redis://scrimfinder-filling-cache-master:6379"
@@ -262,7 +282,6 @@ services:
       minReplicas: 1
       maxReplicas: 3
       targetCPUUtilizationPercentage: 80
-      targetMemoryUtilizationPercentage: 80
     env:
       DETAIL_FILLING_URL: "http://scrimfinder-traefik/api/v1/riot"
     healthType: "http"
@@ -289,7 +308,6 @@ services:
       minReplicas: 1
       maxReplicas: 3
       targetCPUUtilizationPercentage: 80
-      targetMemoryUtilizationPercentage: 80
     env:
       TRAINING_GRPC_URL: "training-service:50051"
     healthType: "http"
