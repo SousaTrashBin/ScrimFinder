@@ -177,7 +177,7 @@ spec:
       target:
         type: Utilization
         averageUtilization: {{ $config.autoscaling.targetCPUUtilizationPercentage }}
----
+#---
 #apiVersion: autoscaling.k8s.io/v1
 #kind: VerticalPodAutoscaler
 #metadata:
@@ -198,7 +198,6 @@ spec:
 #        controlledResources:
 #          - memory
 #        controlledValues: RequestsAndLimits
-#---
 {{- end }}
 {{- end }}
 {{- end }}

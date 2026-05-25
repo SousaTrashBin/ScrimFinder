@@ -2,7 +2,7 @@ global:
   namespace: scrimfinder
   imageTag: "latest"
   useSecretManager: true
-  useArgoApplications: false
+  useArgoApplications: true
   # Registry for microservices only
   projectID: "${PROJECT_ID}"
   microservicesRegistry: "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}"
