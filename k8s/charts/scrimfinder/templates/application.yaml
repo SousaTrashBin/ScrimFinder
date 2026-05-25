@@ -63,4 +63,23 @@ spec:
     automated:
       prune: true
       selfHeal: true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vpa
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: "https://github.com/kubernetes/autoscaler.git"
+    targetRevision: vertical-pod-autoscaler-1.6.0
+    path: vertical-pod-autoscaler/deploy
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
 {{- end }}
