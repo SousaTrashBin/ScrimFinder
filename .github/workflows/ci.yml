@@ -138,37 +138,16 @@ jobs:
       - name: derive environment
         run: ./scripts/ci/derive-env.sh
 
-      - name: run integration-heavy tests (background)
-        run: ./scripts/ci/run-java-service-tests.sh integration-tests & echo "TESTS_PID=$!" >> $GITHUB_ENV
-
-      - name: authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-
-      - name: set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          install_components: gke-gcloud-auth-plugin
-
-      - name: set up Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      - name: set up Helm
-        uses: azure/setup-helm@v4
-
-      - name: set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: deploy ephemeral GKE stack
-        run: ./scripts/ci/deploy-ephemeral-gke.sh
-
-      - name: wait for integration-heavy tests
+      - name: deploy ephemeral GKE stack and run tests in parallel
         run: |
-          if [ -n "${TESTS_PID:-}" ]; then
-            wait "$TESTS_PID"
-          fi
+          ./scripts/ci/run-java-service-tests.sh integration-tests &
+          TESTS_PID=$!
+          
+          # Proceed with infrastructure deployment while tests run
+          ./scripts/ci/deploy-ephemeral-gke.sh
+          
+          # Now wait for the background tests to finish
+          wait "$TESTS_PID"
 
       - name: build and push images
         run: ./scripts/ci/build-and-push-images.sh
