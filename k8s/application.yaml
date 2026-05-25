@@ -1,0 +1,51 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: scrimfinder
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: "https://github.com/SousaTrashBin/ScrimFinder.git"
+    targetRevision: main
+    path: k8s/charts/scrimfinder
+    helm:
+      releaseName: scrimfinder
+      valueFiles:
+        - values.yaml
+      parameters:
+        - name: global.namespace
+          value: "${SCRIM_NAMESPACE}"
+        - name: global.projectID
+          value: "${PROJECT_ID}"
+        - name: global.microservicesRegistry
+          value: "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}"
+        - name: global.imageTag
+          value: "${SCRIM_IMAGE_TAG}"
+        - name: global.region
+          value: "${REGION}"
+        - name: global.projectId
+          value: "${PROJECT_ID}"
+        - name: global.repoName
+          value: "${REPO_NAME}"
+        - name: global.rabbitmqHost
+          value: "${SCRIM_RABBITMQ_HOST}"
+        - name: global.rabbitmqPort
+          value: "${SCRIM_RABBITMQ_PORT}"
+        - name: detailFillingExternalName
+          value: "${DETAIL_FILLING_DOMAIN}"
+        - name: services.ranking-service.env.DETAIL_FILLING_SERVICE_URL
+          value: "http://scrimfinder-traefik/api/v1/riot"
+        - name: services.match-history-service.env.PLAYER_FILLING_SVC_URL
+          value: "http://scrimfinder-traefik/api/v1/riot"
+        - name: services.training-service.env.DETAIL_FILLING_URL
+          value: "http://scrimfinder-traefik/api/v1/riot"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: scrimfinder
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+    automated:
+      prune: true
+      selfHeal: true
