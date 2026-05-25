@@ -12,7 +12,25 @@ export RABBITMQ_USER="${RABBITMQ_USER:-${SCRIM_RABBITMQ_USER:-guest}}"
 export RABBITMQ_PASSWORD="${RABBITMQ_PASSWORD:-${SCRIM_RABBITMQ_PASSWORD:-guest}}"
 export RABBITMQ_ERLANG_COOKIE="${RABBITMQ_ERLANG_COOKIE:-${SCRIM_RABBITMQ_ERLANG_COOKIE:-erlangcookie}}"
 
+pids=()
+failed=0
+
 for service in $services; do
   echo "running $profile for $service"
-  (cd "$service" && ./mvnw -B -q "-P${profile}" test)
+  (
+    cd "$service"
+    ./mvnw -B -q "-P${profile}" test
+  ) &
+  pids+=("$!")
 done
+
+for pid in "${pids[@]}"; do
+  if ! wait "$pid"; then
+    failed=1
+  fi
+done
+
+if [ "$failed" -ne 0 ]; then
+  echo "error: one or more service tests failed"
+  exit 1
+fi

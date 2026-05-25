@@ -132,11 +132,11 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - name: run integration-heavy tests
-        run: ./scripts/ci/run-java-service-tests.sh integration-tests
-
       - name: derive environment
         run: ./scripts/ci/derive-env.sh
+
+      - name: run integration-heavy tests (background)
+        run: ./scripts/ci/run-java-service-tests.sh integration-tests & echo "TESTS_PID=$!" >> $GITHUB_ENV
 
       - name: authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -160,6 +160,12 @@ jobs:
 
       - name: deploy ephemeral GKE stack
         run: ./scripts/ci/deploy-ephemeral-gke.sh
+
+      - name: wait for integration-heavy tests
+        run: |
+          if [ -n "${TESTS_PID:-}" ]; then
+            wait "$TESTS_PID"
+          fi
 
       - name: build and push images
         run: ./scripts/ci/build-and-push-images.sh
