@@ -53,6 +53,9 @@ helm upgrade --install scrimfinder "$ROOT_DIR/k8s/charts/scrimfinder" \
   --set detailFillingExternal.externalName="${DETAIL_FILLING_DOMAIN}" \
   --set global.rabbitmqHost="$SCRIM_RABBITMQ_HOST" \
   --set global.rabbitmqPort="$SCRIM_RABBITMQ_PORT" \
+  --set matchmaking-db.readReplicas.count=0 \
+  --set ranking-db.readReplicas.count=0 \
+  --set history-db.readReplicas.count=0 \
   --set secrets.riotApiKey="$RIOT_API_KEY" \
   --set secrets.dbUser="$SCRIM_DB_USER" \
   --set secrets.dbPassword="$SCRIM_DB_PASSWORD" \
@@ -64,12 +67,6 @@ helm upgrade --install scrimfinder "$ROOT_DIR/k8s/charts/scrimfinder" \
   --set services.ranking-service.env.DETAIL_FILLING_SERVICE_URL="http://scrimfinder-traefik/api/v1/riot" \
   --set services.match-history-service.env.PLAYER_FILLING_SVC_URL="http://scrimfinder-traefik/api/v1/riot" \
   --set services.training-service.env.DETAIL_FILLING_URL="http://scrimfinder-traefik/api/v1/riot"
-
-kubectl rollout status deployment/matchmaking-service -n "$SCRIM_NAMESPACE" --timeout=10m
-kubectl rollout status deployment/ranking-service -n "$SCRIM_NAMESPACE" --timeout=10m
-kubectl rollout status deployment/match-history-service -n "$SCRIM_NAMESPACE" --timeout=10m
-kubectl rollout status deployment/training-service -n "$SCRIM_NAMESPACE" --timeout=10m
-kubectl rollout status deployment/analysis-service -n "$SCRIM_NAMESPACE" --timeout=10m
 
 base_url=""
 for _ in $(seq 1 90); do
