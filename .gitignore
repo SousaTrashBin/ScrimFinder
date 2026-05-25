@@ -41,6 +41,8 @@ ScrimFinder.iml
 __pycache__/
 *.py[cod]
 *$py.class
+**/training_service_pb2.py
+**/training_service_pb2_grpc.py
 *.so
 .Python
 env/
