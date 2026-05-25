@@ -135,6 +135,29 @@ jobs:
       - name: derive environment
         run: ./scripts/ci/derive-env.sh
 
+      - name: authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          install_components: gke-gcloud-auth-plugin
+
+      - name: set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: pre-warm maven wrapper
+        run: ./matchmaking-service/mvnw -version
+
       - name: deploy ephemeral GKE stack and run tests in parallel
         run: |
           ./scripts/ci/run-java-service-tests.sh integration-tests &
