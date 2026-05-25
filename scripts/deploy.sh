@@ -83,53 +83,29 @@ discover_detail_filling_domain "$REGION"
 echo "updating Helm dependencies..."
 helm dependency update "$ROOT_DIR/k8s/charts/scrimfinder"
 
-echo "deploying Argo CD..."
-
-export SCRIM_NAMESPACE="${SCRIM_NAMESPACE}"
-export PROJECT_ID="${PROJECT_ID}"
-export REGION="${REGION}"
-export REPO_NAME="${REPO_NAME}"
-export SCRIM_RABBITMQ_HOST="${SCRIM_RABBITMQ_HOST}"
-export SCRIM_RABBITMQ_PORT="${SCRIM_RABBITMQ_PORT}"
-export DETAIL_FILLING_DOMAIN="${DETAIL_FILLING_DOMAIN}"
-
-kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
-kubectl apply -n argocd --server-side --force-conflicts -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
-
-if command -v envsubst >/dev/null 2>&1; then
-    envsubst < "$ROOT_DIR/k8s/application.yaml" | kubectl apply -n argocd --server-side --force-conflicts -f -
-else
-    echo "warning: envsubst not found. applying manifests without variable substitution..."
-    kubectl apply -n argocd --server-side --force-conflicts -f "$ROOT_DIR/k8s/application.yaml"
-fi
-
-echo "waiting for Argo CD LoadBalancer External IP/Hostname..."
-
-EXTERNAL_ARGOCD_IP=""
-
-while [ -z "$EXTERNAL_ARGOCD_IP" ]; do
-    echo "waiting for argocd IP..."
-
-    EXTERNAL_ARGOCD_IP=$(kubectl get svc argocd-server \
-        -n argocd \
-        -o=jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
-
-    if [ -z "$EXTERNAL_ARGOCD_IP" ]; then
-        echo "checking for Hostname..."
-
-        EXTERNAL_ARGOCD_IP=$(kubectl get svc argocd-server \
-            -n argocd \
-            -o=jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
-    fi
-
-    [ -z "$EXTERNAL_ARGOCD_IP" ] && sleep 10
-done
-
-INITIAL_ARGOCD_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secret \
-    -o jsonpath="{.data.password}" | base64 -d)
-
-echo "Argo CD External IP/Hostname: ${EXTERNAL_ARGOCD_IP}; username: admin; initial password: $INITIAL_ARGOCD_PASSWORD"
+echo "deploying application with local Helm chart..."
+helm upgrade --install scrimfinder "$ROOT_DIR/k8s/charts/scrimfinder" \
+    --namespace "$SCRIM_NAMESPACE" \
+    --create-namespace \
+    --wait \
+    --timeout 25m \
+    --set global.namespace="${SCRIM_NAMESPACE}" \
+    --set global.projectID="${PROJECT_ID}" \
+    --set global.microservicesRegistry="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}" \
+    --set global.imageTag="${SCRIM_IMAGE_TAG}" \
+    --set global.region="${REGION}" \
+    --set global.projectId="${PROJECT_ID}" \
+    --set global.repoName="${REPO_NAME}" \
+    --set global.rabbitmqHost="${SCRIM_RABBITMQ_HOST}" \
+    --set global.rabbitmqPort="${SCRIM_RABBITMQ_PORT}" \
+    --set global.useArgoApplications=false \
+    --set global.useVerticalPodAutoscaler=false \
+    --set detailFillingExternal.enabled=true \
+    --set detailFillingExternal.externalName="${DETAIL_FILLING_DOMAIN}" \
+    --set services.detail-filling-service.enabled=false \
+    --set services.ranking-service.env.DETAIL_FILLING_SERVICE_URL="http://scrimfinder-traefik/api/v1/riot" \
+    --set services.match-history-service.env.PLAYER_FILLING_SVC_URL="http://scrimfinder-traefik/api/v1/riot" \
+    --set services.training-service.env.DETAIL_FILLING_URL="http://scrimfinder-traefik/api/v1/riot"
 
 echo "waiting for Traefik LoadBalancer External IP/Hostname..."
 echo "this might take a few minutes..."
