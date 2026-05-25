@@ -3,6 +3,9 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
+# shellcheck source=../lib/cloud-functions.sh
+source "$ROOT_DIR/scripts/lib/cloud-functions.sh"
+
 : "${SCRIM_PROJECT_ID:?}"
 : "${SCRIM_REGION:?}"
 : "${SCRIM_REPO_NAME:?}"
@@ -25,99 +28,12 @@ registry="${SCRIM_REGION}-docker.pkg.dev/${SCRIM_PROJECT_ID}/${SCRIM_REPO_NAME}"
 
 gcloud container clusters get-credentials "$SCRIM_CLUSTER_NAME" --zone "$zone" --project "$SCRIM_PROJECT_ID"
 
-PROJECT_NUMBER=$(gcloud projects describe "$SCRIM_PROJECT_ID" --format="value(projectNumber)")
-FUNCTIONS_BUILD_SERVICE_ACCOUNT_EMAIL="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
-FUNCTIONS_BUILD_SERVICE_ACCOUNT="projects/${SCRIM_PROJECT_ID}/serviceAccounts/${FUNCTIONS_BUILD_SERVICE_ACCOUNT_EMAIL}"
+FUNCTIONS_BUILD_SERVICE_ACCOUNT="$(functions_build_service_account "$SCRIM_PROJECT_ID")"
 
-echo "ensuring Secret Manager secret exists for serverless functions..."
-if ! gcloud secrets describe RIOT_API_KEY --project="${SCRIM_PROJECT_ID}" >/dev/null 2>&1; then
-    gcloud secrets create RIOT_API_KEY \
-        --project="${SCRIM_PROJECT_ID}" \
-        --replication-policy=automatic
-fi
-printf '%s' "${RIOT_API_KEY}" | gcloud secrets versions add RIOT_API_KEY \
-    --project="${SCRIM_PROJECT_ID}" \
-    --data-file=-
-
-echo "packaging services with serverless functions..."
-
-SERVERLESS_SERVICES="detail_filling_service"
-
-for SERVICE in ${SERVERLESS_SERVICES}; do
-    cd "${ROOT_DIR}/${SERVICE}"
-    mvn clean package -DskipTests -Dspotless.skip=true
-    cd "${ROOT_DIR}"
-done
-
-echo "deploying serverless functions in parallel..."
-
-SERVERLESS_FUNCTIONS="detail_filling_service|getFilledMatch|RIOT_API_KEY"
-SERVERLESS_FUNCTIONS+=" detail_filling_service|getRawMatchData|RIOT_API_KEY"
-SERVERLESS_FUNCTIONS+=" detail_filling_service|getFilledPlayer|RIOT_API_KEY"
-
-SERVERLESS_DEPLOY_PIDS=()
-SERVERLESS_DEPLOY_NAMES=()
-
-for SERVICE_FUNCTION in ${SERVERLESS_FUNCTIONS}; do
-    temp=${SERVICE_FUNCTION#*|}
-    FUNCTION=${temp%%|*}
-
-    (
-        SERVICE=${SERVICE_FUNCTION%%|*}
-
-        gcloud functions deploy "${FUNCTION}" \
-            --region="${SCRIM_REGION}" \
-            --entry-point=io.quarkus.gcp.functions.http.QuarkusHttpFunction \
-            --runtime=java21 \
-            --trigger-http \
-            --allow-unauthenticated \
-            --source="${ROOT_DIR}/${SERVICE}"/target/deployment \
-            --min-instances=0 \
-            --max-instances=30 \
-            --memory=512Mi \
-            --cpu=800m \
-            --build-service-account="${FUNCTIONS_BUILD_SERVICE_ACCOUNT}" \
-            --set-secrets 'RIOT_API_KEY=RIOT_API_KEY:latest'
-    ) &
-
-    SERVERLESS_DEPLOY_PIDS+=("$!")
-    SERVERLESS_DEPLOY_NAMES+=("${FUNCTION}")
-done
-
-SERVERLESS_DEPLOY_FAILED=0
-for i in "${!SERVERLESS_DEPLOY_PIDS[@]}"; do
-    if ! wait "${SERVERLESS_DEPLOY_PIDS[$i]}"; then
-        echo "serverless function deploy failed: ${SERVERLESS_DEPLOY_NAMES[$i]}"
-        SERVERLESS_DEPLOY_FAILED=1
-    fi
-done
-
-if [ "$SERVERLESS_DEPLOY_FAILED" -ne 0 ]; then
-    exit 1
-fi
-
-echo "function endpoints:"
-
-DETAIL_FILLING_FUNCTION_URL=""
-DETAIL_FILLING_DOMAIN=""
-
-for SERVICE_FUNCTION in ${SERVERLESS_FUNCTIONS}; do
-    temp=${SERVICE_FUNCTION#*|}
-    FUNCTION=${temp%%|*}
-    FUNCTION_URL=$(gcloud functions describe "${FUNCTION}" --region="${SCRIM_REGION}" --format="value(url)")
-
-    if [ -z "${DETAIL_FILLING_FUNCTION_URL}" ]; then
-        DETAIL_FILLING_FUNCTION_URL="${FUNCTION_URL}"
-        DETAIL_FILLING_DOMAIN=$(echo "$FUNCTION_URL" | awk -F/ '{print $3}')
-    fi
-done
-
-if [ -z "${DETAIL_FILLING_FUNCTION_URL}" ]; then
-    echo "error: no detail filling serverless function URL was found."
-    exit 1
-fi
-
-echo "using detail filling domain for Traefik ExternalName: ${DETAIL_FILLING_DOMAIN}"
+ensure_riot_api_secret "$SCRIM_PROJECT_ID" "$RIOT_API_KEY"
+package_detail_filling_function_source "$ROOT_DIR" false clean package -DskipTests -Dspotless.skip=true
+deploy_detail_filling_functions "$ROOT_DIR" "$SCRIM_REGION" "$FUNCTIONS_BUILD_SERVICE_ACCOUNT"
+discover_detail_filling_domain "$SCRIM_REGION"
 
 helm dependency update "$ROOT_DIR/k8s/charts/scrimfinder"
 
