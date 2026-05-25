@@ -74,7 +74,7 @@ public class ReplicaPlayerRankingReadRepository {
                        pr.queue_id, pr.mmr, pr.wins, pr.losses
                 """
                         + base
-                        + " ORDER BY pr.mmr DESC OFFSET ? LIMIT ?";
+                        + " ORDER BY pr.mmr DESC LIMIT ? OFFSET ?";
         String countSql = "SELECT COUNT(*) " + base;
 
         try (var conn = replicaDataSource.getConnection()) {
@@ -90,8 +90,8 @@ public class ReplicaPlayerRankingReadRepository {
             List<PlayerRankingDTO> data;
             try (PreparedStatement dps = conn.prepareStatement(dataSql)) {
                 bindLeaderboardFilters(dps, queueId, region);
-                dps.setInt(5, page * size);
-                dps.setInt(6, size);
+                dps.setInt(5, size);
+                dps.setInt(6, page * size);
                 data = toRankingList(dps.executeQuery());
             }
 

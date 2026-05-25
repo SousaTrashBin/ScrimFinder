@@ -19,6 +19,7 @@
         <surefire-plugin.version>3.5.4</surefire-plugin.version>
         <mapstruct.version>1.6.1</mapstruct.version>
         <lombok.version>1.18.38</lombok.version>
+        <test.groups>unit | integration-light | integration-heavy</test.groups>
     </properties>
 
     <dependencyManagement>
@@ -158,6 +159,7 @@
                 <version>${surefire-plugin.version}</version>
                 <configuration>
                     <argLine>@{argLine}</argLine>
+                    <groups>${test.groups}</groups>
                     <systemPropertyVariables>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                         <maven.home>${maven.home}</maven.home>
@@ -177,6 +179,7 @@
                 </executions>
                 <configuration>
                     <argLine>@{argLine}</argLine>
+                    <groups>${test.groups}</groups>
                     <systemPropertyVariables>
                         <native.image.path>${project.build.directory}/${project.build.finalName}-runner
                         </native.image.path>
@@ -218,6 +221,30 @@
     </build>
 
     <profiles>
+        <profile>
+            <id>fast-tests</id>
+            <properties>
+                <test.groups>unit | integration-light</test.groups>
+            </properties>
+        </profile>
+        <profile>
+            <id>integration-tests</id>
+            <properties>
+                <test.groups>integration-heavy</test.groups>
+            </properties>
+        </profile>
+        <profile>
+            <id>all-local-tests</id>
+            <properties>
+                <test.groups>unit | integration-light | integration-heavy</test.groups>
+            </properties>
+        </profile>
+        <profile>
+            <id>system-tests</id>
+            <properties>
+                <test.groups>system</test.groups>
+            </properties>
+        </profile>
         <profile>
             <id>native</id>
             <activation>

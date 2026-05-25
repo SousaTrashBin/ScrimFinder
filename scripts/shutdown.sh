@@ -1,10 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
-REQUIRED_VARS="SCRIM_PROJECT_ID SCRIM_REGION SCRIM_REPO_NAME SCRIM_ENV_TAG SCRIM_CLUSTER_NAME"
+REQUIRED_VARS="SCRIM_PROJECT_ID SCRIM_REGION SCRIM_REPO_NAME SCRIM_CLUSTER_NAME RIOT_API_KEY SCRIM_DB_USER SCRIM_DB_PASSWORD"
 
 for var in $REQUIRED_VARS; do
-    if [ -z "$(eval echo \${$var:-})" ]; then
+    if [ -z "${!var:-}" ]; then
         echo "error: $var is not set. please set it in your system environment."
         exit 1
     fi
@@ -12,11 +12,23 @@ done
 
 PROJECT_ID="$SCRIM_PROJECT_ID"
 REGION="$SCRIM_REGION"
-REPO_NAME="$SCRIM_REPO_NAME"
-ENV_TAG="$SCRIM_ENV_TAG"
 CLUSTER_NAME="$SCRIM_CLUSTER_NAME"
 SCRIM_NAMESPACE="${SCRIM_NAMESPACE:-scrimfinder}"
 ZONE="${REGION}-a"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TF_DIR="${ROOT_DIR}/infrastructure/terraform"
+
+SCRIM_REDIS_PASSWORD="${SCRIM_REDIS_PASSWORD:-redispassword}"
+SCRIM_RABBITMQ_USER="${SCRIM_RABBITMQ_USER:-user}"
+SCRIM_RABBITMQ_PASSWORD="${SCRIM_RABBITMQ_PASSWORD:-rabbitmqpassword}"
+SCRIM_RABBITMQ_ERLANG_COOKIE="${SCRIM_RABBITMQ_ERLANG_COOKIE:-erlangcookie}"
+SCRIM_TF_WORKSPACE="${SCRIM_TF_WORKSPACE:-default}"
+SCRIM_ENVIRONMENT_NAME="${SCRIM_ENVIRONMENT_NAME:-manual}"
+SCRIM_GITHUB_RUN_ID="${SCRIM_GITHUB_RUN_ID:-${GITHUB_RUN_ID:-}}"
+SCRIM_GITHUB_PR="${SCRIM_GITHUB_PR:-${PR_NUMBER:-}}"
+SCRIM_TF_STATE_KEY="${SCRIM_TF_STATE_KEY:-${SCRIM_TF_WORKSPACE}/terraform.tfstate}"
+SCRIM_MANAGE_SECRET_MANAGER="${SCRIM_MANAGE_SECRET_MANAGER:-true}"
+SCRIM_MANAGE_ARTIFACT_REGISTRY_REPOSITORY="${SCRIM_MANAGE_ARTIFACT_REGISTRY_REPOSITORY:-true}"
 
 DELETE_ARTIFACT_REPO="${SCRIM_DELETE_ARTIFACT_REPO:-false}"
 DELETE_UNUSED_K8S_IPS="${SCRIM_DELETE_UNUSED_K8S_IPS:-true}"
@@ -26,35 +38,11 @@ echo "setting active GCP project to $PROJECT_ID..."
 gcloud config set project "$PROJECT_ID" --quiet
 
 cleanup_resources() {
-    echo "deleting serverless functions..."
-    SERVERLESS_FUNCTIONS="detail-filling-service|getFilledMatch detail-filling-service|getRawMatchData detail-filling-service|getFilledPlayer"
-    for SERVICE_FUNCTION in ${SERVERLESS_FUNCTIONS}; do
-        (
-            FUNCTION=${SERVICE_FUNCTION##*|}
-            gcloud functions delete "${FUNCTION}" --region="${REGION}" || true
-        ) &
-    done
-    wait
-
     echo "deleting Argo CD resources..."
     kubectl patch app scrimfinder  -p '{"metadata": {"finalizers": ["resources-finalizer.argocd.argoproj.io"]}}' --type merge || true
     kubectl delete app scrimfinder --wait=true --timeout=3m || true
-    kubectl delete -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml --wait=false --timeout=1m || true
+    kubectl delete -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml --wait=true --timeout=1m || true
     kubectl delete namespace argocd --ignore-not-found=true --wait=true --timeout=1m || true
-
-    echo "deleting Grafana Beyla resources..."
-    helm uninstall beyla || true
-    kubectl delete namespace beyla --ignore-not-found=true --wait=true --timeout=1m || true
-
-    echo "deleting secrets..."
-    SECRETS="riot-api-key db-user db-password redis-password rabbitmq-user rabbitmq-password rabbitmq-erlang-cookie"
-    for SECRET in ${SECRETS}; do
-        gcloud secrets delete "${SECRET}" &
-    done
-    wait
-    SECRETS_SERVICE_ACCOUNT_EMAIL="secrets-service-account@${PROJECT_ID}.iam.gserviceaccount.com"
-    (gcloud iam service-accounts delete "${SECRETS_SERVICE_ACCOUNT_EMAIL}" || true) &
-    wait
 }
 
 if gcloud container clusters describe "$CLUSTER_NAME" --zone "$ZONE" --project "$PROJECT_ID" >/dev/null 2>&1; then
@@ -63,31 +51,82 @@ if gcloud container clusters describe "$CLUSTER_NAME" --zone "$ZONE" --project "
 
     cleanup_resources
 
-    if [ "${SKIP_CLUSTER_SHUTDOWN:-false}" != "true" ]; then
-        echo "deleting GKE cluster: $CLUSTER_NAME..."
-        gcloud container clusters delete "$CLUSTER_NAME" --zone "$ZONE" --project "$PROJECT_ID" --quiet
-    else
-      echo "skipping cluster deletion (change SKIP_CLUSTER_SHUTDOWN to false to delete the cluster as well)"
-    fi
 else
     echo "cluster $CLUSTER_NAME not found or already deleted."
 fi
 
+if [ "${SKIP_CLUSTER_SHUTDOWN:-false}" = "true" ]; then
+    echo "skipping Terraform destroy (SKIP_CLUSTER_SHUTDOWN=true)."
+else
+    echo "destroying infrastructure with Terraform..."
+    if [ -n "${TF_STATE_BUCKET:-}" ]; then
+        cat > "${TF_DIR}/backend-ci.tf" <<EOF
+terraform {
+  backend "gcs" {}
+}
+EOF
+        terraform -chdir="$TF_DIR" init -input=false \
+            -backend-config="bucket=${TF_STATE_BUCKET}" \
+            -backend-config="prefix=${SCRIM_TF_STATE_KEY}"
+    else
+        terraform -chdir="$TF_DIR" init -input=false
+        terraform -chdir="$TF_DIR" workspace select "${SCRIM_TF_WORKSPACE}" >/dev/null 2>&1 || terraform -chdir="$TF_DIR" workspace new "${SCRIM_TF_WORKSPACE}"
+    fi
+    # Avoid API-disable failures on destroy; keep enabled services unmanaged at teardown time.
+    PROJECT_SERVICE_STATE="$(terraform -chdir="$TF_DIR" state list | grep '^google_project_service\.required' || true)"
+    if [ -n "$PROJECT_SERVICE_STATE" ]; then
+        while IFS= read -r state_addr; do
+            [ -z "$state_addr" ] && continue
+            terraform -chdir="$TF_DIR" state rm "$state_addr" >/dev/null || true
+        done <<EOF
+$PROJECT_SERVICE_STATE
+EOF
+    fi
+    terraform -chdir="$TF_DIR" destroy -input=false -auto-approve \
+        -var="project_id=${SCRIM_PROJECT_ID}" \
+        -var="region=${SCRIM_REGION}" \
+        -var="repo_name=${SCRIM_REPO_NAME}" \
+        -var="cluster_name=${SCRIM_CLUSTER_NAME}" \
+        -var="namespace=${SCRIM_NAMESPACE}" \
+        -var="riot_api_key=${RIOT_API_KEY}" \
+        -var="db_user=${SCRIM_DB_USER}" \
+        -var="db_password=${SCRIM_DB_PASSWORD}" \
+        -var="redis_password=${SCRIM_REDIS_PASSWORD}" \
+        -var="rabbitmq_user=${SCRIM_RABBITMQ_USER}" \
+        -var="rabbitmq_password=${SCRIM_RABBITMQ_PASSWORD}" \
+        -var="rabbitmq_erlang_cookie=${SCRIM_RABBITMQ_ERLANG_COOKIE}" \
+        -var="manage_artifact_registry_repository=${SCRIM_MANAGE_ARTIFACT_REGISTRY_REPOSITORY}" \
+        -var="manage_secret_manager=${SCRIM_MANAGE_SECRET_MANAGER}" \
+        -var="environment_name=${SCRIM_ENVIRONMENT_NAME}" \
+        -var="github_run_id=${SCRIM_GITHUB_RUN_ID}" \
+        -var="github_pr=${SCRIM_GITHUB_PR}"
+fi
+
 if [ "$DELETE_UNUSED_K8S_IPS" = "true" ]; then
     echo "cleaning unused regional static IPs likely created by Kubernetes load balancers..."
-
-    mapfile -t CANDIDATE_IPS < <(gcloud compute addresses list \
+    CANDIDATE_IPS="$(gcloud compute addresses list \
         --project "$PROJECT_ID" \
         --filter="region:($REGION) AND status=RESERVED" \
         --format="csv[no-heading](name,users)" | awk -F',' '
             $2 == "" && $1 ~ /^(k8s-|scrimfinder|traefik)/ { print $1 }
-        ' || true)
+        ' || true)"
 
-    if [ ${#CANDIDATE_IPS[@]} -gt 0 ]; then
-        for ip_name in "${CANDIDATE_IPS[@]}"; do
+    if [ -n "${SCRIM_ENVIRONMENT_NAME:-}" ] && [ "$SCRIM_ENVIRONMENT_NAME" != "manual" ]; then
+        ENVIRONMENT_IPS="$(gcloud compute addresses list \
+            --project "$PROJECT_ID" \
+            --filter="region:($REGION) AND status=RESERVED AND labels.environment=${SCRIM_ENVIRONMENT_NAME}" \
+            --format="value(name)" || true)"
+        CANDIDATE_IPS="$(printf '%s\n%s\n' "$CANDIDATE_IPS" "$ENVIRONMENT_IPS" | awk 'NF && !seen[$0]++')"
+    fi
+
+    if [ -n "$CANDIDATE_IPS" ]; then
+        while IFS= read -r ip_name; do
+            [ -z "$ip_name" ] && continue
             echo "deleting unused IP: $ip_name"
             gcloud compute addresses delete "$ip_name" --region "$REGION" --project "$PROJECT_ID" --quiet || true
-        done
+        done <<EOF
+$CANDIDATE_IPS
+EOF
     else
         echo "no obvious unused Kubernetes-related static IPs found in $REGION."
     fi
@@ -110,17 +149,7 @@ if [ "$DELETE_ORPHAN_PVC_DISKS" = "true" ]; then
 fi
 
 if [ "$DELETE_ARTIFACT_REPO" = "true" ]; then
-    if gcloud artifacts repositories describe "$REPO_NAME" --location "$REGION" --project "$PROJECT_ID" >/dev/null 2>&1; then
-        echo "deleting Artifact Registry repository $REPO_NAME..."
-        gcloud artifacts repositories delete "$REPO_NAME" \
-            --location "$REGION" \
-            --project "$PROJECT_ID" \
-            --quiet
-    else
-        echo "Artifact Registry repository $REPO_NAME not found."
-    fi
-else
-    echo "keeping Artifact Registry repository (set SCRIM_DELETE_ARTIFACT_REPO=true to remove image storage costs)."
+    echo "SCRIM_DELETE_ARTIFACT_REPO=true is set, but Artifact Registry is managed by Terraform and will be destroyed with the stack."
 fi
 
 echo "shutdown complete!"

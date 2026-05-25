@@ -1,6 +1,8 @@
 global:
   namespace: scrimfinder
   imageTag: "latest"
+  useSecretManager: true
+  useArgoApplications: true
   # Registry for microservices only
   projectID: "${PROJECT_ID}"
   microservicesRegistry: "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}"
@@ -11,6 +13,9 @@ global:
   security:
     allowInsecureImages: true
 
+detailFillingExternal:
+  enabled: true
+  externalName: "example.cloudfunctions.net"
 detailFillingExternalName: "example.cloudfunctions.net"
 
 secrets:
@@ -151,11 +156,16 @@ services:
         containerPort: 9000
     resources:
       requests:
-        cpu: "800m"
+        cpu: "500m"
         memory: "512Mi"
       limits:
-        cpu: "800m"
+        cpu: "500m"
         memory: "512Mi"
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
     env:
       DB_URL: "jdbc:postgresql://scrimfinder-matchmaking-db-primary:5432/matchmaking"
       READ_DB_URL: "jdbc:postgresql://scrimfinder-matchmaking-db-read:5432/matchmaking"
@@ -176,11 +186,16 @@ services:
         containerPort: 9001
     resources:
       requests:
-        cpu: "800m"
+        cpu: "400m"
         memory: "512Mi"
       limits:
-        cpu: "800m"
+        cpu: "400m"
         memory: "512Mi"
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
     env:
       DB_URL: "jdbc:postgresql://scrimfinder-ranking-db-primary:5432/ranking"
       READ_DB_URL: "jdbc:postgresql://scrimfinder-ranking-db-read:5432/ranking"
@@ -201,11 +216,16 @@ services:
         containerPort: 9002
     resources:
       requests:
-        cpu: "800m"
+        cpu: "400m"
         memory: "512Mi"
       limits:
-        cpu: "800m"
+        cpu: "400m"
         memory: "512Mi"
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
     env:
       DB_URL: "jdbc:postgresql://scrimfinder-history-db-primary:5432/history"
       READ_DB_URL: "jdbc:postgresql://scrimfinder-history-db-read:5432/history"
@@ -216,27 +236,33 @@ services:
       PLAYER_FILLING_SVC_URL: "http://scrimfinder-traefik/api/v1/riot"
     healthPath: "/api/v1/history/q/health"
   
-  #detail-filling-service:
-  #  imageName: "detail-filling-service"
-  #  ports:
-  #    - name: http
-  #      containerPort: 8080
-  #    - name: grpc
-  #      containerPort: 9000
-  #  resources:
-  #    requests:
-  #      cpu: "800m"
-  #      memory: "512Mi"
-  #    limits:
-  #      cpu: "800m"
-  #      memory: "512Mi"
-  #  env:
-  #    QUARKUS_REDIS_HOSTS: "redis://scrimfinder-filling-cache-master:6379"
-  #    REDIS_URL: "redis://scrimfinder-filling-cache-master:6379"
-  #    TRAINING_SVC_HOST: "training-service"
-  #    TRAINING_SVC_RPC_PORT: "50051"
-  #  healthPath: "/api/v1/riot/q/health"
-  
+  detail-filling-service:
+    enabled: false
+    imageName: "detail-filling-service"
+    ports:
+      - name: http
+        containerPort: 8080
+      - name: grpc
+        containerPort: 9000
+    resources:
+      requests:
+        cpu: "400m"
+        memory: "512Mi"
+      limits:
+        cpu: "400m"
+        memory: "512Mi"
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
+    env:
+      DETAIL_FILLING_REDIS_URL: "redis://scrimfinder-filling-cache-master:6379"
+      REDIS_URL: "redis://scrimfinder-filling-cache-master:6379"
+      TRAINING_SVC_HOST: "training-service"
+      TRAINING_SVC_RPC_PORT: "50051"
+    healthPath: "/api/v1/riot/q/health"
+
   training-service:
     imageName: "training-service"
     ports:
@@ -246,17 +272,16 @@ services:
         containerPort: 50051
     resources:
       requests:
-        cpu: "2000m"
+        cpu: "600m"
         memory: "2Gi"
       limits:
-        cpu: "2000m"
+        cpu: "600m"
         memory: "2Gi"
     autoscaling:
       enabled: true
       minReplicas: 1
       maxReplicas: 3
       targetCPUUtilizationPercentage: 80
-      targetMemoryUtilizationPercentage: 80
     env:
       DETAIL_FILLING_URL: "http://scrimfinder-traefik/api/v1/riot"
     healthType: "http"
@@ -273,17 +298,16 @@ services:
         containerPort: 8001
     resources:
       requests:
-        cpu: "1000m"
+        cpu: "500m"
         memory: "1Gi"
       limits:
-        cpu: "1000m"
+        cpu: "500m"
         memory: "1Gi"
     autoscaling:
       enabled: true
       minReplicas: 1
       maxReplicas: 3
       targetCPUUtilizationPercentage: 80
-      targetMemoryUtilizationPercentage: 80
     env:
       TRAINING_GRPC_URL: "training-service:50051"
     healthType: "http"

@@ -10,14 +10,12 @@ RUN --mount=type=cache,target=/root/.m2,id=m2-detail mvn dependency:go-offline -
 COPY src /code/src
 
 RUN --mount=type=cache,target=/root/.m2,id=m2-detail mvn package -DskipTests -Dspotless.skip=true -B
+RUN cp target/deployment/*-runner.jar target/quarkus-run.jar
 
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /deployments
 
-COPY --from=build --chown=185 /code/target/quarkus-app/lib/ /deployments/lib/
-COPY --from=build --chown=185 /code/target/quarkus-app/*.jar /deployments/
-COPY --from=build --chown=185 /code/target/quarkus-app/app/ /deployments/app/
-COPY --from=build --chown=185 /code/target/quarkus-app/quarkus/ /deployments/quarkus/
+COPY --from=build --chown=185 /code/target/quarkus-run.jar /deployments/quarkus-run.jar
 
 EXPOSE 8080
 USER 185

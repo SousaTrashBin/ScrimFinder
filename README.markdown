@@ -72,6 +72,7 @@ To format and test all services locally:
 ### Prerequisites
 
 * [Google Cloud SDK](https://cloud.google.com/sdk) (gcloud)
+* [Terraform](https://developer.hashicorp.com/terraform/install)
 * [Docker](https://www.docker.com/) & [Helm](https://helm.sh/)
 * [Ansible](https://docs.ansible.com/projects/ansible/latest/installation_guide/intro_installation.html#installing-and-upgrading-ansible-with-pip)
 * **Environment Variables:**
@@ -99,7 +100,8 @@ chmod +x boot.sh scripts/*.sh
 
 | Script            | Purpose                                                                                                   | Usage                          |
 |:------------------|:----------------------------------------------------------------------------------------------------------|:-------------------------------|
-| **`deploy.sh`**   | Orchestrates the full GKE deployment, including cluster creation, image building, and Helm installation.  | `./scripts/deploy.sh`          |
+| **`deploy.sh`**   | Orchestrates deployment and calls Terraform for infra provisioning before app build and rollout.            | `./scripts/deploy.sh`          |
+| **`deploy-infra.sh`** | Applies Terraform infra (APIs, GKE, Artifact Registry, IAM, secrets).                                 | `./scripts/deploy-infra.sh`    |
 | **`shutdown.sh`** | Tears down the entire GKE deployment, uninstalls Helm releases, and deletes the GKE cluster.              | `./scripts/shutdown.sh`        |
 | **`verify.sh`**   | A wrapper that runs local tests, triggers a deployment, and then verifies all external service endpoints. | `./scripts/verify.sh`          |
 | **`utils.sh`**    | A utils script for common DevOps tasks (logs, proxies, monitoring).                                       | `./scripts/utils.sh <command>` |

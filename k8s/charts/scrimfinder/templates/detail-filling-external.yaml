@@ -1,3 +1,4 @@
+{{- if .Values.detailFillingExternal.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -7,4 +8,5 @@ metadata:
     argocd.argoproj.io/sync-wave: "10"
 spec:
   type: ExternalName
-  externalName: {{ .Values.detailFillingExternalName | default "example.cloudfunctions.net" }}
+  externalName: {{ .Values.detailFillingExternal.externalName | default .Values.detailFillingExternalName | default "example.cloudfunctions.net" }}
+{{- end }}
