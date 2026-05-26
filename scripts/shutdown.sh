@@ -32,7 +32,7 @@ SCRIM_MANAGE_ARTIFACT_REGISTRY_REPOSITORY="${SCRIM_MANAGE_ARTIFACT_REGISTRY_REPO
 
 DELETE_ARTIFACT_REPO="${SCRIM_DELETE_ARTIFACT_REPO:-false}"
 DELETE_UNUSED_K8S_IPS="${SCRIM_DELETE_UNUSED_K8S_IPS:-true}"
-DELETE_ORPHAN_PVC_DISKS="${SCRIM_DELETE_ORPHAN_PVC_DISKS:-false}"
+DELETE_ORPHAN_PVC_DISKS="${SCRIM_DELETE_ORPHAN_PVC_DISKS:-true}"
 
 echo "setting active GCP project to $PROJECT_ID..."
 gcloud config set project "$PROJECT_ID" --quiet
@@ -133,19 +133,37 @@ EOF
 fi
 
 if [ "$DELETE_ORPHAN_PVC_DISKS" = "true" ]; then
-    echo "cleaning orphan PersistentVolume disks (name prefix: pvc-)..."
+    echo "cleaning orphan PersistentVolume disks..."
 
-    while read -r disk_name disk_zone; do
-        [ -z "$disk_name" ] && continue
-        echo "deleting orphan disk: $disk_name ($disk_zone)"
-        gcloud compute disks delete "$disk_name" \
-            --zone "$disk_zone" \
+    if [ -n "${SCRIM_ENVIRONMENT_NAME:-}" ] && [ "$SCRIM_ENVIRONMENT_NAME" != "manual" ]; then
+        ENVIRONMENT_DISKS="$(gcloud compute disks list \
             --project "$PROJECT_ID" \
-            --quiet || true
-    done < <(gcloud compute disks list \
+            --filter="labels.environment=${SCRIM_ENVIRONMENT_NAME}" \
+            --format="value(name,zone)" || true)"
+        
+        if [ -n "$ENVIRONMENT_DISKS" ]; then
+            echo "Found disks labeled with environment ${SCRIM_ENVIRONMENT_NAME}. Deleting..."
+            while read -r disk_name disk_zone; do
+                [ -z "$disk_name" ] && continue
+                echo "deleting labeled disk: $disk_name ($disk_zone)"
+                gcloud compute disks delete "$disk_name" --zone "$disk_zone" --project "$PROJECT_ID" --quiet || true
+            done <<< "$ENVIRONMENT_DISKS"
+        fi
+    fi
+
+    ORPHAN_PVC_DISKS="$(gcloud compute disks list \
         --project "$PROJECT_ID" \
-        --filter="name~'^pvc-'" \
-        --format="value(name,zone)")
+        --filter="name~'^pvc-' AND users:*" \
+        --format="csv[no-heading](name,zone,users)" | awk -F',' '$3 == "" { print $1,$2 }' || true)"
+
+    if [ -n "$ORPHAN_PVC_DISKS" ]; then
+        echo "Found orphan PVC disks with no users. Deleting..."
+        while read -r disk_name disk_zone; do
+            [ -z "$disk_name" ] && continue
+            echo "deleting orphan disk: $disk_name ($disk_zone)"
+            gcloud compute disks delete "$disk_name" --zone "$disk_zone" --project "$PROJECT_ID" --quiet || true
+        done <<< "$ORPHAN_PVC_DISKS"
+    fi
 fi
 
 if [ "$DELETE_ARTIFACT_REPO" = "true" ]; then
