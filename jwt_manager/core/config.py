@@ -1,38 +1,35 @@
+"""
+jwt_manager/core/config.py
+
+BigQuery-first configuration.
+"""
+
 import os
+from pathlib import Path
+from typing import Optional
+
+_HERE = Path(__file__).resolve().parent.parent
 
 
 class _Config:
-    # ── PostgreSQL (user credentials) ─────────────────────────────────────────
-    DB_DSN: str = os.environ.get(
-        "JWT_DB_DSN",
-        "host={host} port={port} dbname={db} user={user} password={pw}".format(
-            host=os.environ.get("JWT_DB_HOST", "localhost"),
-            port=os.environ.get("JWT_DB_PORT", "5432"),
-            db=os.environ.get("JWT_DB_NAME", "jwt_manager"),
-            user=os.environ.get("JWT_DB_USER", "postgres"),
-            pw=os.environ.get("JWT_DB_PASSWORD", "postgres"),
-        ),
-    )
+    # ── BigQuery ─────────────────────────────────────────────────────────
+    BQ_PROJECT: str = os.environ.get("BQ_PROJECT", os.environ.get("SCRIM_PROJECT_ID", ""))
+    BQ_LOCATION: str = os.environ.get("BQ_LOCATION", "EU")
+    BQ_DATASET: str = os.environ.get("BQ_DATASET", "scrimfinder")
+    BQ_PLATFORM_DATASET: str = os.environ.get("BQ_PLATFORM_DATASET", "scrimfinder_platform")
 
-    # ── Redis (active session cache) — DB index 2 ────────────────────────────
-    REDIS_URL: str = os.environ.get("REDIS_URL", "redis://localhost:6379/2")
+    # ── Token settings ────────────────────────────────────────────────────
+    ACCESS_TOKEN_TTL: int = int(os.environ.get("ACCESS_TOKEN_TTL", "900"))  # 15 min
+    REFRESH_TOKEN_TTL: int = int(os.environ.get("REFRESH_TOKEN_TTL", "604800"))  # 7 days
 
-    # ── RS256 key pair ────────────────────────────────────────────────────────
-    # Inject PEM strings via K8s secret in prod.
-    # If absent, security.py generates a throwaway pair at startup (dev only).
-    JWT_PRIVATE_KEY_PEM: str = os.environ.get("JWT_PRIVATE_KEY", "")
-    JWT_PUBLIC_KEY_PEM: str = os.environ.get("JWT_PUBLIC_KEY", "")
-
-    # Bump JWT_KEY_ID when rotating keys so Istio re-fetches the JWKS.
+    # ── Key settings (optional env PEM strings for production) ──────────────
+    JWT_PRIVATE_KEY_PEM: Optional[str] = os.environ.get("JWT_PRIVATE_KEY_PEM")
+    JWT_PUBLIC_KEY_PEM: Optional[str] = os.environ.get("JWT_PUBLIC_KEY_PEM")
     JWT_KEY_ID: str = os.environ.get("JWT_KEY_ID", "scrimfinder-key-v1")
-
-    # ── Token lifetimes ───────────────────────────────────────────────────────
-    ACCESS_TOKEN_TTL: int = int(os.environ.get("ACCESS_TOKEN_TTL_SECONDS", 3600))  # 1 h
-    REFRESH_TOKEN_TTL: int = int(
-        os.environ.get("REFRESH_TOKEN_TTL_SECONDS", 604800)
-    )  # 7 d
-
     ISSUER: str = os.environ.get("JWT_ISSUER", "scrimfinder/jwt-manager")
+
+    # ── Key paths ─────────────────────────────────────────────────────────
+    KEYS_DIR: str = os.environ.get("KEYS_DIR", str(_HERE / "keys"))
 
 
 cfg = _Config()

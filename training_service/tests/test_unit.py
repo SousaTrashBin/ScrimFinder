@@ -1,154 +1,343 @@
 """
-training_service/tests/test_unit.py  —  Unit tests (no DB required)
+training_service/tests/test_unit.py  —  Unit tests (no live DB required)
 
-All DB and filesystem calls are monkeypatched. These run in CI even when
-no PostgreSQL service is present (analysis_service matrix row has no postgres).
+All DB calls are routed through BQMock. These run in CI even when
+no BigQuery service is present.
 
 Run:
     pytest training_service/tests/test_unit.py -v
 """
 
-import sqlite3
 import threading
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from training_service.routers import games, training
+from training_service.tests.bq_mock import BQMock
 
 pytestmark = pytest.mark.unit
 
 
-def _make_client() -> TestClient:
-    """Minimal app without lifespan — no DB connection needed."""
+# ── Fixtures ──────────────────────────────────────────────────────────────────
+
+
+@pytest.fixture
+def client(monkeypatch):
+    """Minimal app with BQMock — no lifespan, no real DB."""
+    from training_service.routers import games, features, datasets, models, training
+
+    mock = BQMock(monkeypatch)
+
     app = FastAPI()
-    app.include_router(games.router)
-    app.include_router(training.router)
+    app.include_router(games.router, prefix="/api/v1/training")
+    app.include_router(features.router, prefix="/api/v1/training")
+    app.include_router(datasets.router, prefix="/api/v1/training")
+    app.include_router(models.router, prefix="/api/v1/training")
+    app.include_router(training.router, prefix="/api/v1/training")
+
+    # Seed some data
+    mock.seed_games([
+        {"id": "G1", "source": "test", "patch": "14.10", "match_type": "RANKED",
+         "duration_sec": 1800, "platform": "EUW", "raw_json": {"matchId": "G1"}, "ingested_at": "2026-01-01T00:00:00"},
+    ])
+    mock.seed_models([
+        {"id": "M1", "concern": "draft", "algorithm": "gbm", "version": "v1",
+         "file_path": "/tmp/m1.pkl", "metrics": {}, "hyperparams": {},
+         "feature_names": [], "is_active": True, "created_at": "2026-01-01T00:00:00"},
+    ])
+
     return TestClient(app, raise_server_exceptions=False)
 
 
 # ── OpenAPI schema shape ──────────────────────────────────────────────────────
 
 
-def test_openapi_hides_dataset_routes_and_job_dataset_id():
-    spec = _make_client().get("/openapi.json").json()
+def test_openapi_exposes_all_routes(client):
+    spec = client.get("/api/v1/training/openapi.json").json()
+    paths = spec["paths"]
 
-    # datasets router is NOT included in the minimal app — no /datasets paths
-    assert not any(path.startswith("/datasets") for path in spec["paths"])
-
-    job_create = spec["components"]["schemas"].get("TrainingJobCreate", {})
-    job_resp = spec["components"]["schemas"].get("TrainingJobResponse", {})
-
-    # dataset_id must NOT appear as a required field (it's Optional with default None)
-    required_create = job_create.get("required", [])
-    required_resp = job_resp.get("required", [])
-    assert "dataset_id" not in required_create
-    assert "dataset_id" not in required_resp
-
-
-# ── Training job creation (mocked DB + thread) ────────────────────────────────
+    required = [
+        "/api/v1/training/games",
+        "/api/v1/training/games/batch",
+        "/api/v1/training/features/extract",
+        "/api/v1/training/datasets",
+        "/api/v1/training/jobs",
+        "/api/v1/training/models",
+    ]
+    for p in required:
+        assert any(path.startswith(p) for path in paths), f"Missing route prefix {p}"
 
 
-def test_create_training_job_accepts_minimal_payload(monkeypatch):
-    stored = {}
+# ── Games router ──────────────────────────────────────────────────────────────
 
-    def fake_create_job(
-        job_id, concern, algorithm="auto", dataset_id=None, filters=None
-    ):
-        stored.update(
-            {
-                "id": job_id,
-                "concern": concern,
-                "algorithm": algorithm,
-                "dataset_id": dataset_id,
-                "filters": filters or {},
-                "status": "PENDING",
-                "progress": 0,
-                "stage": "Queued",
-                "metrics": None,
-                "model_id": None,
-                "error": None,
-                "created_at": "2026-05-07T00:00:00+00:00",
-                "started_at": None,
-                "completed_at": None,
-            }
+
+class TestGamesUnit:
+    def test_ingest(self, client):
+        r = client.post("/api/v1/training/games", json={"data": {"matchId": "G2"}})
+        assert r.status_code == 201
+        assert r.json()["id"] == "G2"
+
+    def test_ingest_idempotent(self, client):
+        r1 = client.post("/api/v1/training/games", json={"data": {"matchId": "G2"}})
+        r2 = client.post("/api/v1/training/games", json={"data": {"matchId": "G2"}})
+        assert r1.json()["id"] == r2.json()["id"]
+
+    def test_get_by_query_param(self, client):
+        r = client.get("/api/v1/training/games?game_id=G1")
+        assert r.status_code == 200
+        assert r.json()["games"][0]["id"] == "G1"
+
+    def test_get_by_path(self, client):
+        r = client.get("/api/v1/training/games/G1")
+        assert r.status_code == 200
+        assert r.json()["id"] == "G1"
+
+    def test_get_404(self, client):
+        assert client.get("/api/v1/training/games/NOPE").status_code == 404
+
+    def test_list_filtered(self, client):
+        r = client.get("/api/v1/training/games?source=test")
+        assert r.status_code == 200
+        assert len(r.json()["games"]) >= 1
+
+    def test_delete(self, client):
+        client.post("/api/v1/training/games", json={"id": "DEL", "data": {"x": 1}})
+        assert client.delete("/api/v1/training/games/DEL").status_code == 204
+        assert client.get("/api/v1/training/games/DEL").status_code == 404
+
+    def test_batch_limit(self, client):
+        r = client.post(
+            "/api/v1/training/games/batch",
+            json={"games": [{"data": {"matchId": f"G{i}"}} for i in range(1001)]},
+        )
+        assert r.status_code == 422
+
+
+# ── Features router ───────────────────────────────────────────────────────────
+
+
+class TestFeaturesUnit:
+    def test_extract_by_id(self, client):
+        r = client.post(
+            "/api/v1/training/features/extract",
+            json={"game_id": "G1", "concerns": ["draft"], "store": False},
+        )
+        assert r.status_code == 200
+        assert r.json()["features"][0]["concern"] == "draft"
+
+    def test_extract_inline(self, client):
+        r = client.post(
+            "/api/v1/training/features/extract",
+            json={"raw_data": {"matchId": "G2"}, "concerns": ["build"], "store": False},
+        )
+        assert r.status_code == 200
+
+    def test_extract_404(self, client):
+        assert (
+            client.post(
+                "/api/v1/training/features/extract",
+                json={"game_id": "NOPE", "concerns": ["draft"]},
+            ).status_code
+            == 404
         )
 
-    class _NoopThread:
-        def __init__(self, *args, **kwargs):
-            pass
+    def test_get_by_query_param(self, client):
+        # First store something
+        client.post(
+            "/api/v1/training/features/extract",
+            json={"game_id": "G1", "concerns": ["draft"], "store": True},
+        )
+        r = client.get("/api/v1/training/features?game_id=G1")
+        assert r.status_code == 200
+        assert r.json()["game_id"] == "G1"
 
-        def start(self):
-            pass
-
-    monkeypatch.setattr(training.db, "create_job", fake_create_job)
-    monkeypatch.setattr(training.db, "get_job", lambda job_id: stored)
-    monkeypatch.setattr(threading, "Thread", _NoopThread)
-
-    r = _make_client().post(
-        "/jobs",
-        json={"concern": "draft", "algorithm": "auto", "sample": 0.01},
-    )
-
-    assert r.status_code == 202
-    body = r.json()
-    assert body["concern"] == "draft"
-    assert body["algorithm"] == "auto"
-    # dataset_id should not appear in the response body at all (excluded or None)
-    assert body.get("dataset_id") is None
+    def test_get_by_path(self, client):
+        r = client.get("/api/v1/training/features/G1")
+        # May be 404 if nothing stored — that's fine, just check it doesn't 500
+        assert r.status_code in (200, 404)
 
 
-# ── League import (mocked DB + tmp SQLite) ────────────────────────────────────
+# ── Datasets router ───────────────────────────────────────────────────────────
 
 
-def test_import_league_games_copies_match_participants_items_and_runes(
-    tmp_path, monkeypatch
-):
-    # Build a minimal league SQLite file
-    league_db = tmp_path / "league_data.db"
-    conn = sqlite3.connect(league_db)
-    conn.execute(
-        "CREATE TABLE matches "
-        "(match_id TEXT PRIMARY KEY, match_type TEXT, duration INTEGER, patch TEXT)"
-    )
-    conn.execute(
-        "CREATE TABLE player_stats "
-        "(match_id TEXT, puuid TEXT, champion_id TEXT, team_id TEXT, win INTEGER)"
-    )
-    conn.execute(
-        "CREATE TABLE player_items  (match_id TEXT, puuid TEXT, item_id INTEGER)"
-    )
-    conn.execute(
-        "CREATE TABLE player_runes  (match_id TEXT, puuid TEXT, rune_id INTEGER)"
-    )
-    conn.execute("INSERT INTO matches      VALUES ('M1', 'RANKED', 1800, '14.10')")
-    conn.execute("INSERT INTO player_stats VALUES ('M1', 'P1', '22', '100', 1)")
-    conn.execute("INSERT INTO player_items VALUES ('M1', 'P1', 3031)")
-    conn.execute("INSERT INTO player_runes VALUES ('M1', 'P1', 8005)")
-    conn.commit()
-    conn.close()
+class TestDatasetsUnit:
+    def test_create(self, client):
+        r = client.post(
+            "/api/v1/training/datasets",
+            json={"name": "Test DS", "concern": "draft"},
+        )
+        assert r.status_code == 201
+        assert r.json()["name"] == "Test DS"
 
-    inserted = {}
+    def test_get_by_query_param(self, client):
+        r = client.post(
+            "/api/v1/training/datasets",
+            json={"name": "FindMe", "concern": "draft"},
+        )
+        ds_id = r.json()["id"]
+        r2 = client.get(f"/api/v1/training/datasets?dataset_id={ds_id}")
+        assert r2.status_code == 200
+        assert r2.json()["datasets"][0]["id"] == ds_id
 
-    monkeypatch.setattr(games.cfg, "LEAGUE_DB", str(league_db))
-    monkeypatch.setattr(
-        games.db,
-        "insert_game",
-        lambda game_id, raw, source="manual": inserted.update(
-            {"game_id": game_id, "raw": raw, "source": source}
-        ),
-    )
-    monkeypatch.setattr(
-        games.db, "upsert_dimension_rows", lambda table, rows: len(rows)
-    )
-    monkeypatch.setattr(games.db, "upsert_league_match", lambda raw: None)
+    def test_list_filtered(self, client):
+        r = client.get("/api/v1/training/datasets?concern=draft")
+        assert r.status_code == 200
 
-    r = _make_client().post("/games/import/league", json={"limit": 1})
+    def test_delete(self, client):
+        r = client.post(
+            "/api/v1/training/datasets",
+            json={"name": "ToDelete", "concern": "build"},
+        )
+        ds_id = r.json()["id"]
+        assert client.delete(f"/api/v1/training/datasets/{ds_id}").status_code == 204
 
-    assert r.status_code == 200
-    assert r.json() == {"imported": 1, "skipped": 0, "errors": []}
-    assert inserted["game_id"] == "M1"
-    assert inserted["source"] == "league_db"
-    assert inserted["raw"]["participants"][0]["items"][0]["item_id"] == 3031
-    assert inserted["raw"]["participants"][0]["runes"][0]["rune_id"] == 8005
+
+# ── Models router ─────────────────────────────────────────────────────────────
+
+
+class TestModelsUnit:
+    def test_list(self, client):
+        r = client.get("/api/v1/training/models")
+        assert r.status_code == 200
+        assert len(r.json()["models"]) >= 1
+
+    def test_get_by_query_param(self, client):
+        r = client.get("/api/v1/training/models?model_id=M1")
+        assert r.status_code == 200
+        assert r.json()["models"][0]["id"] == "M1"
+
+    def test_get_by_path(self, client):
+        r = client.get("/api/v1/training/models/M1")
+        assert r.status_code == 200
+        assert r.json()["id"] == "M1"
+
+    def test_get_404(self, client):
+        assert client.get("/api/v1/training/models/NOPE").status_code == 404
+
+    def test_active(self, client):
+        r = client.get("/api/v1/training/models/active")
+        assert r.status_code == 200
+        for m in r.json()["models"]:
+            assert m["is_active"] is True
+
+
+# ── Training jobs router ──────────────────────────────────────────────────────
+
+
+class TestTrainingJobsUnit:
+    def test_create(self, client):
+        r = client.post(
+            "/api/v1/training/jobs", json={"concern": "draft", "sample": 0.01}
+        )
+        assert r.status_code == 202
+        assert r.json()["concern"] == "draft"
+
+    def test_get_by_query_param(self, client):
+        j = client.post(
+            "/api/v1/training/jobs", json={"concern": "draft", "sample": 0.01}
+        ).json()
+        r = client.get(f"/api/v1/training/jobs?job_id={j['id']}")
+        assert r.status_code == 200
+        assert r.json()["jobs"][0]["id"] == j["id"]
+
+    def test_list_filtered(self, client):
+        r = client.get("/api/v1/training/jobs?concern=draft")
+        assert r.status_code == 200
+        assert "jobs" in r.json()
+
+    def test_invalid_concern(self, client):
+        assert (
+            client.post(
+                "/api/v1/training/jobs", json={"concern": "invalid"}
+            ).status_code
+            == 422
+        )
+
+    def test_cancel_404(self, client):
+        assert client.post("/api/v1/training/jobs/job_nope/cancel").status_code == 404
+
+
+# ── Feature engineering ───────────────────────────────────────────────────────
+
+
+class TestFeatureEngineering:
+    def test_extract_draft_returns_vector_and_names(self):
+        from training_service.core.feature_engineering import extract_features
+
+        raw = {
+            "metadata": {"matchId": "M1"},
+            "info": {
+                "gameVersion": "14.10.1",
+                "queueId": 420,
+                "gameDuration": 1800,
+                "participants": [
+                    {"puuid": f"P{i}", "championName": f"Champ{i}", "teamId": 100 if i < 5 else 200,
+                     "teamPosition": ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"][i % 5],
+                     "win": i < 5, "kills": 5, "deaths": 2, "assists": 8,
+                     "goldEarned": 12000, "totalMinionsKilled": 200,
+                     "totalDamageDealtToChampions": 15000, "visionScore": 25,
+                     "item0": 3031, "item1": 0, "item2": 0, "item3": 0, "item4": 0, "item5": 0, "item6": 0,
+                     "perks": {"styles": [{"selections": [{"perk": 8005}]}]}}
+                    for i in range(10)
+                ],
+            },
+        }
+        vector, names = extract_features(raw, "draft")
+        assert len(vector) == len(names)
+        assert "winner" in names
+
+    def test_extract_build_aggregate(self):
+        from training_service.core.feature_engineering import extract_features
+
+        raw = {
+            "metadata": {"matchId": "M1"},
+            "info": {
+                "gameVersion": "14.10.1",
+                "queueId": 420,
+                "gameDuration": 1800,
+                "participants": [
+                    {"puuid": f"P{i}", "championName": f"Champ{i}", "teamId": 100 if i < 5 else 200,
+                     "teamPosition": "MIDDLE", "win": True, "kills": 5, "deaths": 2, "assists": 8,
+                     "goldEarned": 12000, "totalMinionsKilled": 200,
+                     "totalDamageDealtToChampions": 15000, "visionScore": 25,
+                     "item0": 3031, "item1": 3078, "item2": 0, "item3": 0, "item4": 0, "item5": 0, "item6": 0,
+                     "perks": {"styles": [{"selections": [{"perk": 8005}, {"perk": 9111}]}]}}
+                    for i in range(10)
+                ],
+            },
+        }
+        vector, names = extract_features(raw, "build")
+        assert len(vector) == len(names)
+        assert "avg_gold" in names
+
+    def test_extract_performance_aggregate(self):
+        from training_service.core.feature_engineering import extract_features
+
+        raw = {
+            "metadata": {"matchId": "M1"},
+            "info": {
+                "gameVersion": "14.10.1",
+                "queueId": 420,
+                "gameDuration": 1800,
+                "participants": [
+                    {"puuid": f"P{i}", "championName": f"Champ{i}", "teamId": 100 if i < 5 else 200,
+                     "teamPosition": "MIDDLE", "win": True, "kills": 5, "deaths": 2, "assists": 8,
+                     "goldEarned": 12000, "totalMinionsKilled": 200,
+                     "totalDamageDealtToChampions": 15000, "visionScore": 25,
+                     "item0": 3031, "item1": 0, "item2": 0, "item3": 0, "item4": 0, "item5": 0, "item6": 0,
+                     "perks": {"styles": [{"selections": [{"perk": 8005}]}]}}
+                    for i in range(10)
+                ],
+            },
+        }
+        vector, names = extract_features(raw, "performance")
+        assert len(vector) == len(names)
+        assert "avg_kda" in names
+
+    def test_invalid_match_returns_sentinel(self):
+        from training_service.core.feature_engineering import extract_features
+
+        vector, names = extract_features({"bad": "data"}, "draft")
+        assert vector == [0.0]
+        assert names[0].startswith("invalid:")

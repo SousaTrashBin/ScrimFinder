@@ -1,205 +1,211 @@
 """
-Two storage layers:
-  PostgreSQL → persistent user credentials (hashed passwords, account metadata)
-  Redis      → ephemeral session store (active JTIs; self-evict on TTL or logout)
+jwt_manager/core/db.py
+
+BigQuery implementation for JWT Manager.
+Replaces PostgreSQL/SQLite with BigQuery tables for users, sessions, and tokens.
 """
 
-import threading
-from contextlib import contextmanager
+import json
+import uuid
+from datetime import datetime, timezone
+from typing import Optional, Any, List, Dict
 
-import redis as redis_lib
-from psycopg2.pool import ThreadedConnectionPool
+from google.cloud import bigquery
+from google.cloud.bigquery import QueryJobConfig, ScalarQueryParameter
 
 from jwt_manager.core.config import cfg
 
-# ── PostgreSQL pool ───────────────────────────────────────────────────────────
-
-_pg_pool: ThreadedConnectionPool | None = None
-_pg_lock = threading.Lock()
+_client: Optional[bigquery.Client] = None
 
 
-def _get_pg() -> ThreadedConnectionPool:
-    global _pg_pool
-    if _pg_pool is not None:
-        return _pg_pool
-    with _pg_lock:
-        if _pg_pool is None:
-            _pg_pool = ThreadedConnectionPool(minconn=1, maxconn=10, dsn=cfg.DB_DSN)
-    return _pg_pool
-
-
-@contextmanager
-def get_conn():
-    pool = _get_pg()
-    conn = pool.getconn()
-    conn.autocommit = False
-    try:
-        yield conn
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        pool.putconn(conn)
-
-
-def _row(cur) -> dict | None:
-    row = cur.fetchone()
-    return dict(zip([d[0] for d in cur.description], row)) if row else None
-
-
-# ── Redis ─────────────────────────────────────────────────────────────────────
-
-_redis: redis_lib.Redis | None = None
-_redis_lock = threading.Lock()
-
-
-def get_redis() -> redis_lib.Redis:
-    global _redis
-    if _redis is not None:
-        return _redis
-    with _redis_lock:
-        if _redis is None:
-            _redis = redis_lib.from_url(cfg.REDIS_URL, decode_responses=True)
-    return _redis
-
-
-# ── Schema ────────────────────────────────────────────────────────────────────
-
-_SCHEMA = """
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
-CREATE TABLE IF NOT EXISTS users (
-    id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    username      TEXT        NOT NULL UNIQUE,
-    email         TEXT        NOT NULL UNIQUE,
-    password_hash TEXT        NOT NULL,
-    is_active     BOOLEAN     NOT NULL DEFAULT TRUE,
-    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
-CREATE INDEX IF NOT EXISTS idx_users_email    ON users(email);
-
-CREATE TABLE IF NOT EXISTS refresh_tokens (
-    jti        TEXT        PRIMARY KEY,
-    user_id    UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    issued_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-    expires_at TIMESTAMPTZ NOT NULL,
-    revoked    BOOLEAN     NOT NULL DEFAULT FALSE
-);
-CREATE INDEX IF NOT EXISTS idx_rt_user_id ON refresh_tokens(user_id);
-"""
+def get_bq_client() -> bigquery.Client:
+    global _client
+    if _client is None:
+        _client = bigquery.Client(project=cfg.BQ_PROJECT)
+    return _client
 
 
 def init_db():
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute(_SCHEMA)
+    """Initialize BigQuery tables for JWT Manager."""
+    if not cfg.BQ_PROJECT:
+        raise RuntimeError("BQ_PROJECT not set")
+    client = get_bq_client()
+
+    # Ensure dataset exists
+    dataset_id = f"{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}"
+    try:
+        client.get_dataset(dataset_id)
+    except Exception:
+        ds = bigquery.Dataset(dataset_id)
+        ds.location = cfg.BQ_LOCATION
+        client.create_dataset(ds, exists_ok=True)
+    tables = [
+        f"""
+        CREATE TABLE IF NOT EXISTS `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.users` (
+            id STRING NOT NULL,
+            username STRING NOT NULL,
+            email STRING NOT NULL,
+            password_hash STRING NOT NULL,
+            is_active BOOL DEFAULT TRUE,
+            created_at TIMESTAMP
+        )
+        """,
+        f"""
+        CREATE TABLE IF NOT EXISTS `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.refresh_tokens` (
+            jti STRING NOT NULL,
+            user_id STRING NOT NULL,
+            revoked BOOL DEFAULT FALSE,
+            expires_at TIMESTAMP,
+            created_at TIMESTAMP
+        )
+        """,
+        f"""
+        CREATE TABLE IF NOT EXISTS `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.access_sessions` (
+            jti STRING NOT NULL,
+            user_id STRING NOT NULL,
+            expires_at TIMESTAMP,
+            created_at TIMESTAMP
+        )
+        """,
+    ]
+    for ddl in tables:
+        job = client.query(ddl)
+        job.result()
+    print(f"JWT Manager tables initialized in {cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}")
+
+
+def _bq_query(sql: str, params: Optional[List[Any]] = None):
+    client = get_bq_client()
+    job_config = QueryJobConfig()
+    if params:
+        job_config.query_parameters = [
+            ScalarQueryParameter(f"p{i}", _bq_type(p), p)
+            for i, p in enumerate(params)
+        ]
+        parts = sql.split("%s")
+        sql = "".join(f"{part}@p{i}" for i, part in enumerate(parts[:-1])) + parts[-1]
+    location = getattr(cfg, "BQ_LOCATION", None)
+    return client.query(sql, job_config=job_config, location=location).result()
+
+
+def _bq_type(value: Any) -> str:
+    if isinstance(value, bool):
+        return "BOOL"
+    if isinstance(value, int):
+        return "INT64"
+    if isinstance(value, float):
+        return "FLOAT64"
+    if isinstance(value, str):
+        return "STRING"
+    return "STRING"
+
+
+def _row_to_dict(row: bigquery.Row) -> Dict[str, Any]:
+    d = dict(row.items())
+    for key, val in d.items():
+        if isinstance(val, str) and (val.startswith("{") or val.startswith("[")):
+            try:
+                d[key] = json.loads(val)
+            except json.JSONDecodeError:
+                pass
+    return d
+
+
+def now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
 # ── Users ─────────────────────────────────────────────────────────────────────
 
 
-def create_user(username: str, email: str, password_hash: str) -> dict:
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                "INSERT INTO users (username, email, password_hash) VALUES (%s,%s,%s) RETURNING *",
-                (username, email, password_hash),
-            )
-            return _row(cur)
+def create_user(username: str, email: str, password_hash: str) -> Dict[str, Any]:
+    user_id = str(uuid.uuid4())
+    sql = f"""
+    INSERT INTO `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.users`
+    (id, username, email, password_hash, is_active, created_at)
+    VALUES (@p0, @p1, @p2, @p3, TRUE, CURRENT_TIMESTAMP())
+    """
+    _bq_query(sql, [user_id, username, email, password_hash])
+    return {"id": user_id, "username": username, "email": email,
+            "password_hash": password_hash, "is_active": True}
 
 
-def get_user_by_username(username: str) -> dict | None:
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT * FROM users WHERE username=%s", (username,))
-            return _row(cur)
+def get_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
+    sql = f"SELECT * FROM `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.users` WHERE id = @p0"
+    for row in _bq_query(sql, [user_id]):
+        return _row_to_dict(row)
+    return None
 
 
-def get_user_by_email(email: str) -> dict | None:
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT * FROM users WHERE email=%s", (email,))
-            return _row(cur)
+def get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
+    sql = f"SELECT * FROM `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.users` WHERE username = @p0"
+    for row in _bq_query(sql, [username]):
+        return _row_to_dict(row)
+    return None
 
 
-def get_user_by_id(user_id: str) -> dict | None:
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT * FROM users WHERE id=%s", (user_id,))
-            return _row(cur)
+def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
+    sql = f"SELECT * FROM `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.users` WHERE email = @p0"
+    for row in _bq_query(sql, [email]):
+        return _row_to_dict(row)
+    return None
 
 
-def deactivate_user(user_id: str):
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                "UPDATE users SET is_active=FALSE, updated_at=now() WHERE id=%s",
-                (user_id,),
-            )
+# ── Refresh Tokens ────────────────────────────────────────────────────────────
 
 
-# ── Refresh tokens ────────────────────────────────────────────────────────────
+def store_refresh_token(jti: str, user_id: str, expires_at: str):
+    sql = f"""
+    INSERT INTO `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.refresh_tokens`
+    (jti, user_id, revoked, expires_at, created_at)
+    VALUES (@p0, @p1, FALSE, @p2, CURRENT_TIMESTAMP())
+    """
+    _bq_query(sql, [jti, user_id, expires_at])
 
 
-def store_refresh_token(jti: str, user_id: str, expires_at):
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                "INSERT INTO refresh_tokens (jti, user_id, expires_at) VALUES (%s,%s,%s)",
-                (jti, user_id, expires_at),
-            )
-
-
-def get_refresh_token(jti: str) -> dict | None:
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT * FROM refresh_tokens WHERE jti=%s", (jti,))
-            return _row(cur)
+def get_refresh_token(jti: str) -> Optional[Dict[str, Any]]:
+    sql = f"SELECT * FROM `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.refresh_tokens` WHERE jti = @p0"
+    for row in _bq_query(sql, [jti]):
+        return _row_to_dict(row)
+    return None
 
 
 def revoke_refresh_token(jti: str):
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("UPDATE refresh_tokens SET revoked=TRUE WHERE jti=%s", (jti,))
+    sql = f"UPDATE `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.refresh_tokens` SET revoked = TRUE WHERE jti = @p0"
+    _bq_query(sql, [jti])
 
 
 def revoke_all_user_tokens(user_id: str):
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                "UPDATE refresh_tokens SET revoked=TRUE WHERE user_id=%s", (user_id,)
-            )
+    sql = f"UPDATE `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.refresh_tokens` SET revoked = TRUE WHERE user_id = @p0"
+    _bq_query(sql, [user_id])
 
 
-# ── Redis session helpers ─────────────────────────────────────────────────────
-# Access-token JTIs stored as  session:{jti} → user_id  with TTL.
-# Deleted immediately on logout; expired tokens self-evict.
+# ── Access Sessions ───────────────────────────────────────────────────────────
 
 
-def cache_access_token(jti: str, user_id: str, ttl: int):
-    get_redis().setex(f"session:{jti}", ttl, str(user_id))
+def cache_access_token(jti: str, user_id: str, ttl_seconds: int):
+    from datetime import timedelta
+    expires = (datetime.now(timezone.utc) + timedelta(seconds=ttl_seconds)).isoformat()
+    sql = f"""
+    INSERT INTO `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.access_sessions`
+    (jti, user_id, expires_at, created_at)
+    VALUES (@p0, @p1, @p2, CURRENT_TIMESTAMP())
+    """
+    _bq_query(sql, [jti, user_id, expires])
 
 
-def get_cached_session(jti: str) -> str | None:
-    return get_redis().get(f"session:{jti}")
+def get_cached_session(jti: str) -> Optional[str]:
+    sql = f"SELECT user_id FROM `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.access_sessions` WHERE jti = @p0"
+    for row in _bq_query(sql, [jti]):
+        return row["user_id"]
+    return None
 
 
 def invalidate_access_token(jti: str):
-    get_redis().delete(f"session:{jti}")
+    sql = f"DELETE FROM `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.access_sessions` WHERE jti = @p0"
+    _bq_query(sql, [jti])
 
 
 def invalidate_all_user_sessions(user_id: str):
-    """Scan and delete every session key belonging to this user (logout-all)."""
-    r = get_redis()
-    uid = str(user_id)
-    cursor = 0
-    while True:
-        cursor, keys = r.scan(cursor, match="session:*", count=100)
-        for key in keys:
-            if r.get(key) == uid:
-                r.delete(key)
-        if cursor == 0:
-            break
+    sql = f"DELETE FROM `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.access_sessions` WHERE user_id = @p0"
+    _bq_query(sql, [user_id])

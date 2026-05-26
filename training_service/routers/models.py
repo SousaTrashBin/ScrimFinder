@@ -5,7 +5,7 @@ All model metadata endpoints.
 
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path, Query
 
 from training_service.core import db
 from training_service.core.schemas import ErrorResponse, ModelListResponse, ModelMeta
@@ -35,8 +35,24 @@ def _meta(r):
     )
 
 
-@router.get("", response_model=ModelListResponse, summary="List all models")
-def list_models(concern: Optional[str] = None, active_only: bool = False):
+@router.get("", response_model=ModelListResponse, summary="List models or get one by ID")
+def list_or_get_models(
+    model_id: Optional[str] = Query(None, description="Specific model ID to fetch"),
+    concern: Optional[str] = Query(None, description="Filter by concern"),
+    active_only: bool = Query(False, description="Only active models"),
+):
+    """
+    List all models with optional filtering, or fetch a single model by ID.
+
+    - If `model_id` is provided, returns that specific model (404 if not found).
+    - Otherwise returns a filtered list based on `concern` and `active_only`.
+    """
+    if model_id:
+        row = db.get_model_by_id(model_id)
+        if row is None:
+            raise HTTPException(status_code=404, detail=f"Model id={model_id} not found.")
+        return ModelListResponse(models=[_meta(row)])
+
     return ModelListResponse(
         models=[
             _meta(r) for r in db.list_models(concern=concern, active_only=active_only)
@@ -54,7 +70,7 @@ def list_active():
 @router.get(
     "/{model_id}",
     response_model=ModelMeta,
-    summary="Get model metadata",
+    summary="Get model metadata by path",
     responses={404: {"model": ErrorResponse}},
 )
 def get_model(model_id: str = Path(...)):

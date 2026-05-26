@@ -1,28 +1,80 @@
 services:
-  training-service:
+  training:
     build:
       context: ./training_service
       dockerfile: Dockerfile
+    container_name: scrimfinder_training
+    command: uvicorn training_service.main:app --host 0.0.0.0 --port 8000 --reload
     ports:
       - "8000:8000"
       - "50051:50051"
-    environment:
-      - PYTHONPATH=/app
-      - BQ_PROJECT=${BQ_PROJECT:-}
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp-key.json
     volumes:
       - ./ml_data:/app/ml_data
-      - C:/Users/rodri/MyStuff/FCUL/Masters/Semestre2/CN/gcp-key.json:/app/gcp-key.json:ro
-  analysis-service:
+      - ${GOOGLE_APPLICATION_CREDENTIALS:?err_GCP_key_not_set}:/secrets/gcp-key.json:ro
+    environment:
+      - PYTHONPATH=/app
+      - BQ_PROJECT=${BQ_PROJECT:-scrimfinder-494022}
+      - BQ_DATASET=${BQ_DATASET:-scrimfinder}
+      - BQ_PLATFORM_DATASET=${BQ_PLATFORM_DATASET:-scrimfinder_platform}
+      - BQ_LOCATION=${BQ_LOCATION:-EU}
+      - GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp-key.json
+      - DATASETS_DIR=/app/ml_data/datasets
+      - GAMES_DIR=/app/ml_data/games
+      - MODELS_DIR=/app/ml_data/models
+      - MODEL_RELOAD_INTERVAL=60
+      - GRPC_PORT=50051
+    networks:
+      - scrimfinder_net
+
+  analysis:
     build:
       context: ./analysis_service
       dockerfile: Dockerfile
+    container_name: scrimfinder_analysis
+    command: uvicorn analysis_service.main:app --host 0.0.0.0 --port 8001 --reload
     ports:
       - "8001:8001"
-    environment:
-      - PYTHONPATH=/app
-      - BQ_PROJECT=${BQ_PROJECT:-}
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp-key.json
     volumes:
       - ./ml_data:/app/ml_data
-      - C:/Users/rodri/MyStuff/FCUL/Masters/Semestre2/CN/gcp-key.json:/app/gcp-key.json:ro
+      - ${GOOGLE_APPLICATION_CREDENTIALS:?err_GCP_key_not_set}:/secrets/gcp-key.json:ro
+    environment:
+      - PYTHONPATH=/app
+      - BQ_PROJECT=${BQ_PROJECT:-scrimfinder-494022}
+      - BQ_DATASET=${BQ_DATASET:-scrimfinder}
+      - BQ_PLATFORM_DATASET=${BQ_PLATFORM_DATASET:-scrimfinder_platform}
+      - BQ_LOCATION=${BQ_LOCATION:-EU}
+      - GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp-key.json
+      - MODELS_DIR=/app/ml_data/models
+      - MODEL_RELOAD_INTERVAL=60
+      - TRAINING_GRPC_URL=training:50051
+    depends_on:
+      - training
+    networks:
+      - scrimfinder_net
+
+  jwt-manager:
+    build:
+      context: ./jwt_manager
+      dockerfile: Dockerfile
+    container_name: scrimfinder_jwt
+    command: uvicorn jwt_manager.main:app --host 0.0.0.0 --port 8002 --reload
+    ports:
+      - "8002:8002"
+    volumes:
+      - ${GOOGLE_APPLICATION_CREDENTIALS:?err_GCP_key_not_set}:/secrets/gcp-key.json:ro
+    environment:
+      - PYTHONPATH=/app
+      - BQ_PROJECT=${BQ_PROJECT:-scrimfinder-494022}
+      - BQ_DATASET=${BQ_DATASET:-scrimfinder}
+      - BQ_PLATFORM_DATASET=${BQ_PLATFORM_DATASET:-scrimfinder_platform}
+      - BQ_LOCATION=${BQ_LOCATION:-EU}
+      - GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp-key.json
+      - JWT_SECRET=${JWT_SECRET:-changeme_in_production}
+      - JWT_ISSUER=scrimfinder/jwt-manager
+      - JWT_KEY_ID=scrimfinder-key-v1
+    networks:
+      - scrimfinder_net
+
+networks:
+  scrimfinder_net:
+    driver: bridge

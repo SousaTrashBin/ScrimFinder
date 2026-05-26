@@ -152,13 +152,19 @@ def create_job(body: TrainingJobCreate):
     summary="List jobs or get a specific job by ID",
 )
 def list_or_get_job(
-    job_id: Optional[str] = Query(
-        None, description="Specific job ID to fetch. If omitted, returns all jobs."
-    ),
-    concern: Optional[str] = Query(None),
-    status: Optional[JobStatus] = Query(None),
-    limit: int = Query(100, ge=1, le=500),
+        job_id: Optional[str] = Query(
+            None, description="Specific job ID to fetch. If omitted, returns all jobs."
+        ),
+        concern: Optional[str] = Query(None, description="Filter by concern"),
+        status: Optional[JobStatus] = Query(None, description="Filter by status"),
+        limit: int = Query(100, ge=1, le=500),
 ):
+    """
+    List training jobs with optional filtering, or fetch a single job by ID.
+
+    - If `job_id` is provided, returns that specific job (404 if not found).
+    - Otherwise returns a filtered, paginated list.
+    """
     if job_id:
         row = db.get_job(job_id)
         if row is None:
@@ -196,10 +202,10 @@ def delete_job(job_id: str = Path(...)):
     responses={409: {"model": ErrorResponse}},
 )
 def delete_all_jobs(
-    status: Optional[JobStatus] = Query(
-        None, description="Only delete jobs with this status"
-    ),
-    confirm: bool = Query(False, description="Must be true to actually delete"),
+        status: Optional[JobStatus] = Query(
+            None, description="Only delete jobs with this status"
+        ),
+        confirm: bool = Query(False, description="Must be true to actually delete"),
 ):
     if not confirm:
         raise HTTPException(

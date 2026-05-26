@@ -1,122 +1,118 @@
 # docker-compose.test.yml
-# Test environment: Python services only + BigQuery
-# Java/Quarkus services excluded (build issues)
+# CI environment: Python services only + BigQuery emulator
+# No Java services. No PostgreSQL. No real GCP credentials needed.
 
 services:
-  traefik:
-    image: traefik:v3.6.2
-    command:
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
+  bq-emulator:
+    image: ghcr.io/goccy/bigquery-emulator:latest
+    container_name: bq_emulator
+    command: [
+      "--project=test-project",
+      "--dataset=scrimfinder",
+      "--dataset=scrimfinder_platform"
+    ]
     ports:
-      - "80:80"
-      - "8080:8080"
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "9050:9050"   # REST API
+      - "9060:9060"   # gRPC
+    networks:
+      - test_net
 
   redis:
     image: redis:7-alpine
+    container_name: test_redis
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 5
-
-  jwt-db:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: jwt_manager
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d jwt_manager"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+    networks:
+      - test_net
 
   jwt-manager:
     build:
       context: ./jwt_manager
       dockerfile: Dockerfile
+    container_name: test_jwt
     command: uvicorn jwt_manager.main:app --host 0.0.0.0 --port 8002
     environment:
       - PYTHONPATH=/app
-      - JWT_DB_HOST=jwt-db
-      - JWT_DB_PORT=5432
-      - JWT_DB_NAME=jwt_manager
-      - JWT_DB_USER=postgres
-      - JWT_DB_PASSWORD=postgres
-      - REDIS_URL=redis://redis:6379/2
-      - JWT_SECRET=${JWT_SECRET:-changeme_in_production}
+      - BQ_PROJECT=test-project
+      - BQ_DATASET=scrimfinder
+      - BQ_PLATFORM_DATASET=scrimfinder_platform
+      - BQ_LOCATION=EU
+      - BQ_EMULATOR_HOST=http://bq-emulator:9050
+      - GOOGLE_APPLICATION_CREDENTIALS=/dev/null
+      - JWT_SECRET=test-secret-key-do-not-use-in-production
       - JWT_ISSUER=scrimfinder/jwt-manager
-      - JWT_KEY_ID=scrimfinder-key-v1
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.jwt.rule=PathPrefix(`/api/v1/auth`)"
-      - "traefik.http.services.jwt.loadbalancer.server.port=8002"
+      - JWT_KEY_ID=test-key-v1
+      - REDIS_URL=redis://redis:6379/2
     depends_on:
-      jwt-db:
-        condition: service_healthy
+      bq-emulator:
+        condition: service_started
       redis:
         condition: service_healthy
+    networks:
+      - test_net
 
   training-service:
     build:
       context: ./training_service
       dockerfile: Dockerfile
+    container_name: test_training
     command: uvicorn training_service.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+      - "50051:50051"
     environment:
       - PYTHONPATH=/app
-      - BQ_PROJECT=${BQ_PROJECT:-scrimfinder-494022}
-      - BQ_DATASET=${BQ_DATASET:-scrimfinder}
-      - BQ_PLATFORM_DATASET=${BQ_PLATFORM_DATASET:-scrimfinder_platform}
-      - GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp-key.json
+      - BQ_PROJECT=test-project
+      - BQ_DATASET=scrimfinder
+      - BQ_PLATFORM_DATASET=scrimfinder_platform
+      - BQ_LOCATION=EU
+      - BQ_EMULATOR_HOST=http://bq-emulator:9050
+      - GOOGLE_APPLICATION_CREDENTIALS=/dev/null
       - DATASETS_DIR=/app/ml_data/datasets
       - GAMES_DIR=/app/ml_data/games
       - MODELS_DIR=/app/ml_data/models
       - MODEL_RELOAD_INTERVAL=60
+      - GRPC_PORT=50051
     volumes:
-      - ${GOOGLE_APPLICATION_CREDENTIALS}:/secrets/gcp-key.json:ro
       - ./ml_data:/app/ml_data
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.training.rule=PathPrefix(`/api/v1/training`)"
-      - "traefik.http.services.training.loadbalancer.server.port=8000"
-    ports:
-      - "8000:8000"
     depends_on:
-      redis:
-        condition: service_healthy
+      bq-emulator:
+        condition: service_started
+    networks:
+      - test_net
 
   analysis-service:
     build:
       context: ./analysis_service
       dockerfile: Dockerfile
+    container_name: test_analysis
     command: uvicorn analysis_service.main:app --host 0.0.0.0 --port 8001
+    ports:
+      - "8001:8001"
     environment:
       - PYTHONPATH=/app
-      - BQ_PROJECT=${BQ_PROJECT:-scrimfinder-494022}
-      - BQ_DATASET=${BQ_DATASET:-scrimfinder}
-      - BQ_PLATFORM_DATASET=${BQ_PLATFORM_DATASET:-scrimfinder_platform}
-      - GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp-key.json
+      - BQ_PROJECT=test-project
+      - BQ_DATASET=scrimfinder
+      - BQ_PLATFORM_DATASET=scrimfinder_platform
+      - BQ_LOCATION=EU
+      - BQ_EMULATOR_HOST=http://bq-emulator:9050
+      - GOOGLE_APPLICATION_CREDENTIALS=/dev/null
       - MODELS_DIR=/app/ml_data/models
       - MODEL_RELOAD_INTERVAL=60
       - TRAINING_GRPC_URL=training-service:50051
     volumes:
-      - ${GOOGLE_APPLICATION_CREDENTIALS}:/secrets/gcp-key.json:ro
       - ./ml_data:/app/ml_data
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.analysis.rule=PathPrefix(`/api/v1/analysis`)"
-      - "traefik.http.services.analysis.loadbalancer.server.port=8001"
-    ports:
-      - "8001:8001"
     depends_on:
       training-service:
         condition: service_started
+      bq-emulator:
+        condition: service_started
+    networks:
+      - test_net
 
 networks:
-  default:
-    name: scrimfinder_default
+  test_net:
+    driver: bridge

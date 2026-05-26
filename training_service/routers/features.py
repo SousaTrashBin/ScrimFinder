@@ -1,4 +1,6 @@
-from fastapi import APIRouter, HTTPException, Path
+from typing import Optional
+
+from fastapi import APIRouter, HTTPException, Path, Query
 
 from training_service.core import db
 from training_service.core.schemas import (
@@ -44,18 +46,18 @@ def extract(body: FeatureExtractRequest):
 
     results = []
     for concern in body.concerns:
-        vector, names = extract_features(raw, concern)
+        vector, names = extract_features(raw, concern.value)
         if body.store:
             game_id = (
-                body.game_id or raw.get("matchId") or raw.get("match_id") or "inline"
+                    body.game_id or raw.get("matchId") or raw.get("match_id") or "inline"
             )
             db.upsert_features(game_id, concern.value, vector, names)
         results.append(
             FeatureVector(
                 game_id=body.game_id
-                or raw.get("matchId")
-                or raw.get("match_id")
-                or "inline",
+                        or raw.get("matchId")
+                        or raw.get("match_id")
+                        or "inline",
                 concern=concern.value,
                 feature_vector=vector,
                 feature_names=names,
@@ -72,12 +74,45 @@ def extract(body: FeatureExtractRequest):
 
 
 @router.get(
-    "/{game_id}",
+    "",
     response_model=FeatureVector,
-    summary="Get stored features for a game",
+    summary="Get stored features for a game (by query param)",
     responses={404: {"model": ErrorResponse}},
 )
-def get_features(game_id: str = Path(...)):
+def get_features_by_query(
+        game_id: str = Query(..., description="Game ID to fetch features for"),
+        concern: Optional[str] = Query(None, description="Optional concern filter"),
+):
+    """
+    Get stored features for a specific game.
+
+    - `game_id` is required.
+    - `concern` is optional; if omitted, returns the first concern found.
+    """
+    rows = db.get_features(game_id, concern=concern)
+    if not rows:
+        raise HTTPException(
+            status_code=404, detail=f"No features found for game '{game_id}'."
+        )
+    r = rows[0]
+    return FeatureVector(
+        game_id=r["game_id"],
+        concern=r["concern"],
+        feature_vector=r.get("feature_vector") or [],
+        feature_names=r.get("feature_names") or [],
+        schema_version=r.get("schema_version", "1"),
+        extracted_at=str(r["extracted_at"]) if r.get("extracted_at") else None,
+    )
+
+
+@router.get(
+    "/{game_id}",
+    response_model=FeatureVector,
+    summary="Get stored features for a game (by path)",
+    responses={404: {"model": ErrorResponse}},
+)
+def get_features_by_path(game_id: str = Path(...)):
+    """Legacy path-based endpoint — kept for backward compatibility."""
     rows = db.get_features(game_id)
     if not rows:
         raise HTTPException(

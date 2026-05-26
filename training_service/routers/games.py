@@ -26,8 +26,8 @@ def _derive_id(data: dict) -> str:
         if data.get(k):
             return str(data[k])
     return (
-        "game_"
-        + hashlib.sha1(json.dumps(data, sort_keys=True).encode()).hexdigest()[:16]
+            "game_"
+            + hashlib.sha1(json.dumps(data, sort_keys=True).encode()).hexdigest()[:16]
     )
 
 
@@ -74,13 +74,19 @@ def ingest_batch(body: BatchIngestRequest):
 
 @router.get("", response_model=GameListResponse, summary="List games or get one by ID")
 def list_or_get_game(
-    game_id: Optional[str] = Query(None, description="Specific game ID to fetch"),
-    source: Optional[str] = None,
-    patch: Optional[str] = None,
-    match_type: Optional[str] = None,
-    limit: int = Query(50, ge=1, le=500),
-    offset: int = Query(0, ge=0),
+        game_id: Optional[str] = Query(None, description="Specific game ID to fetch"),
+        source: Optional[str] = Query(None, description="Filter by source"),
+        patch: Optional[str] = Query(None, description="Filter by patch"),
+        match_type: Optional[str] = Query(None, description="Filter by match type"),
+        limit: int = Query(50, ge=1, le=500),
+        offset: int = Query(0, ge=0),
 ):
+    """
+    List games with optional filtering, or fetch a single game by ID.
+
+    - If `game_id` is provided, returns that specific game (404 if not found).
+    - Otherwise returns a paginated, filtered list.
+    """
     if game_id:
         row = db.get_game(game_id)
         if row is None:
@@ -174,10 +180,10 @@ def import_league(body: LeagueImportRequest):
         if body.match_type:
             where_clauses.append("match_type = @p0")
             params.append(body.match_type)
-        
+
         if where_clauses:
             q += " WHERE " + " AND ".join(where_clauses)
-        
+
         q += " ORDER BY match_id"
         if body.limit is not None:
             q += f" LIMIT {int(body.limit)}"

@@ -5,12 +5,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from jwt_manager.core.db import init_db
+from jwt_manager.core.security import init_keys
 from jwt_manager.routers import auth
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    init_keys()
     yield
 
 
