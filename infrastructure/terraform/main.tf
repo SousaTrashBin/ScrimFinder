@@ -161,7 +161,7 @@ resource "google_secret_manager_secret_version" "scrim_secret_versions" {
 resource "google_secret_manager_secret_iam_member" "secrets_access" {
   for_each  = var.manage_secret_manager ? google_secret_manager_secret.scrim_secrets : {}
   project   = var.project_id
-  secret_id = each.value.secret_id
+  secret_id = each.key
   role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${google_service_account.secrets_sa[0].email}"
+  member    = "serviceAccount:${google_service_account.secrets_sa.account_id}@${var.project_id}.iam.gserviceaccount.com"
 }

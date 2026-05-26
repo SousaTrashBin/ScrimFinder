@@ -199,7 +199,9 @@ git clone https://github.com/kubernetes/autoscaler.git || true
 cd autoscaler/vertical-pod-autoscaler
 ./hack/vpa-up.sh
 cd ../..
-rm -r autoscaler
+rm -r autoscaler &
+
+wait
 
 echo "waiting for Argo CD LoadBalancer External IP/Hostname..."
 
