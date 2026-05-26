@@ -194,6 +194,13 @@ else
     kubectl apply -n argocd --server-side --force-conflicts -f k8s/application.yaml
 fi
 
+echo "installing VPA CRDs..."
+git clone https://github.com/kubernetes/autoscaler.git || true
+cd autoscaler/vertical-pod-autoscaler
+./hack/vpa-up.sh
+cd ../..
+rm -r autoscaler
+
 echo "waiting for Argo CD LoadBalancer External IP/Hostname..."
 
 EXTERNAL_ARGOCD_IP=""
