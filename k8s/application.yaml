@@ -48,6 +48,7 @@ spec:
       - CreateNamespace=true
       - RespectIgnoreDifferences=true
     automated:
+      enabled: false
       prune: false
       selfHeal: false
   # Allow VPA to change resources and limits without being considered Off-Sync by Argo CD
