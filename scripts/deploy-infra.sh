@@ -93,6 +93,7 @@ fi
 
 for secret_name in \
     "RIOT_API_KEY" \
+    "riot-api-key" \
     "db-user" \
     "db-password" \
     "redis-password" \
