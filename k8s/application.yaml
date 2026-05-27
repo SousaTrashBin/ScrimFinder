@@ -15,13 +15,13 @@ spec:
         - values.yaml
       parameters:
         - name: global.namespace
-          value: "${SCRIM_NAMESPACE}"
+          value: "${SCRIM_NAMESPACE:scrimfinder}"
         - name: global.projectID
           value: "${PROJECT_ID}"
         - name: global.microservicesRegistry
           value: "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}"
         - name: global.imageTag
-          value: "${SCRIM_IMAGE_TAG}"
+          value: "${SCRIM_IMAGE_TAG:latest}"
         - name: global.region
           value: "${REGION}"
         - name: global.projectId
