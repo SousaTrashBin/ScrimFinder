@@ -3,6 +3,7 @@ kind: ClusterRoleBinding
 metadata:
   name: scrimfinder-secrets-store-csi-driver-rolebinding
   annotations:
+    argocd.argoproj.io/hook: PreSync
     argocd.argoproj.io/sync-wave: "-15"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
