@@ -1,0 +1,111 @@
+
+  # ── Python Fast Tests (Unit + Acceptance + Mock Integration) ───────────────
+  python_fast_tests:
+    name: python fast tests - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        service:
+          - training_service
+          - analysis_service
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: ${{ matrix.service }}/requirements.txt
+
+      - name: install dependencies
+        run: |
+          cd "${{ matrix.service }}"
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio httpx
+
+      - name: generate gRPC stubs (training only)
+        if: matrix.service == 'training_service'
+        run: |
+          cd training_service
+          python -m grpc_tools.protoc -I proto --python_out=. --grpc_python_out=. proto/training_service.proto || true
+
+      - name: run unit tests
+        run: |
+          cd "${{ matrix.service }}"
+          pytest tests/test_unit.py -v -m unit
+
+      - name: run acceptance tests
+        run: |
+          cd "${{ matrix.service }}"
+          pytest tests/test_acceptance.py -v -m acceptance
+
+      - name: run mock integration tests
+        run: |
+          cd "${{ matrix.service }}"
+          pytest tests/test_integration.py -v -m integration
+
+  # ── Python Heavy Tests (Emulator-based Integration) ────────────────────────
+  python_heavy_tests:
+    name: python heavy tests - emulator integration
+    runs-on: ubuntu-latest
+    needs: python_fast_tests
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: install dependencies
+        run: |
+          for svc in training_service analysis_service; do
+            cd "$svc"
+            pip install -r requirements.txt
+            cd ..
+          done
+          pip install pytest pytest-asyncio httpx docker-compose
+
+      - name: start BigQuery emulator
+        run: |
+          docker-compose -f docker-compose.test.yml up -d bq-emulator
+          # Wait for emulator to be ready
+          for i in {1..30}; do
+            if curl -s http://localhost:9050/bigquery/v2/projects/test-project/datasets > /dev/null; then
+              echo "Emulator is ready"
+              break
+            fi
+            echo "Waiting for emulator... ($i/30)"
+            sleep 2
+          done
+
+      - name: run training service integration tests with emulator
+        env:
+          BQ_EMULATOR_HOST: http://localhost:9050
+          BQ_PROJECT: test-project
+          BQ_DATASET: test_league
+          BQ_PLATFORM_DATASET: test_platform
+        run: |
+          cd training_service
+          pytest tests/test_integration.py -v -m integration -k "not slow" || true
+
+      - name: run analysis service integration tests with emulator
+        env:
+          BQ_EMULATOR_HOST: http://localhost:9050
+          BQ_PROJECT: test-project
+          BQ_DATASET: test_league
+          BQ_PLATFORM_DATASET: test_platform
+        run: |
+          cd analysis_service
+          pytest tests/test_integration.py -v -m integration -k "not slow" || true
+
+      - name: stop BigQuery emulator
+        if: always()
+        run: docker-compose -f docker-compose.test.yml down

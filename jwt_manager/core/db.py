@@ -2,12 +2,11 @@
 jwt_manager/core/db.py
 
 BigQuery implementation for JWT Manager.
-Replaces PostgreSQL/SQLite with BigQuery tables for users, sessions, and tokens.
 """
 
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date, timedelta
 from typing import Optional, Any, List, Dict
 
 from google.cloud import bigquery
@@ -39,6 +38,7 @@ def init_db():
         ds = bigquery.Dataset(dataset_id)
         ds.location = cfg.BQ_LOCATION
         client.create_dataset(ds, exists_ok=True)
+
     tables = [
         f"""
         CREATE TABLE IF NOT EXISTS `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.users` (
@@ -82,8 +82,10 @@ def _bq_query(sql: str, params: Optional[List[Any]] = None):
             ScalarQueryParameter(f"p{i}", _bq_type(p), p)
             for i, p in enumerate(params)
         ]
-        parts = sql.split("%s")
-        sql = "".join(f"{part}@p{i}" for i, part in enumerate(parts[:-1])) + parts[-1]
+        # Only rewrite if SQL uses %s placeholders (legacy compat)
+        if "%s" in sql:
+            parts = sql.split("%s")
+            sql = "".join(f"{part}@p{i}" for i, part in enumerate(parts[:-1])) + parts[-1]
     location = getattr(cfg, "BQ_LOCATION", None)
     return client.query(sql, job_config=job_config, location=location).result()
 
@@ -95,8 +97,10 @@ def _bq_type(value: Any) -> str:
         return "INT64"
     if isinstance(value, float):
         return "FLOAT64"
-    if isinstance(value, str):
-        return "STRING"
+    if isinstance(value, datetime):
+        return "TIMESTAMP"
+    if isinstance(value, date):
+        return "DATE"
     return "STRING"
 
 
@@ -154,7 +158,7 @@ def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
 # ── Refresh Tokens ────────────────────────────────────────────────────────────
 
 
-def store_refresh_token(jti: str, user_id: str, expires_at: str):
+def store_refresh_token(jti: str, user_id: str, expires_at: datetime):
     sql = f"""
     INSERT INTO `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.refresh_tokens`
     (jti, user_id, revoked, expires_at, created_at)
@@ -164,7 +168,12 @@ def store_refresh_token(jti: str, user_id: str, expires_at: str):
 
 
 def get_refresh_token(jti: str) -> Optional[Dict[str, Any]]:
-    sql = f"SELECT * FROM `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.refresh_tokens` WHERE jti = @p0"
+    # Also check DB expiration as defense in depth (JWT exp is checked separately)
+    sql = f"""
+    SELECT * FROM `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.refresh_tokens`
+    WHERE jti = @p0
+      AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP())
+    """
     for row in _bq_query(sql, [jti]):
         return _row_to_dict(row)
     return None
@@ -184,8 +193,7 @@ def revoke_all_user_tokens(user_id: str):
 
 
 def cache_access_token(jti: str, user_id: str, ttl_seconds: int):
-    from datetime import timedelta
-    expires = (datetime.now(timezone.utc) + timedelta(seconds=ttl_seconds)).isoformat()
+    expires = datetime.now(timezone.utc) + timedelta(seconds=ttl_seconds)
     sql = f"""
     INSERT INTO `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.access_sessions`
     (jti, user_id, expires_at, created_at)
@@ -195,7 +203,11 @@ def cache_access_token(jti: str, user_id: str, ttl_seconds: int):
 
 
 def get_cached_session(jti: str) -> Optional[str]:
-    sql = f"SELECT user_id FROM `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.access_sessions` WHERE jti = @p0"
+    # Only return if the session row exists AND has not expired
+    sql = f"""
+    SELECT user_id FROM `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.access_sessions`
+    WHERE jti = @p0 AND expires_at > CURRENT_TIMESTAMP()
+    """
     for row in _bq_query(sql, [jti]):
         return row["user_id"]
     return None

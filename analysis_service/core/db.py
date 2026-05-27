@@ -72,3 +72,17 @@ def query_league(sql: str, params: Optional[List[Any]] = None):
         sql = sql.replace(f"FROM {table}", f"FROM `{cfg.BQ_PROJECT}.{cfg.BQ_DATASET}.{table}`")
         sql = sql.replace(f"JOIN {table}", f"JOIN `{cfg.BQ_PROJECT}.{cfg.BQ_DATASET}.{table}`")
     return _bq_query(sql, params)
+
+# ── Platform metadata (models, jobs, datasets) ───────────────────────────
+
+
+def get_active_model(concern: str) -> Optional[Dict[str, Any]]:
+    """Return the active model row for a concern from the platform dataset."""
+    sql = (
+        f"SELECT * FROM `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.models` "
+        f"WHERE concern = @p0 AND is_active = TRUE"
+    )
+    for row in _bq_query(sql, [concern]):
+        return _row_to_dict(row)
+    return None
+

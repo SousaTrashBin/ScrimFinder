@@ -80,6 +80,16 @@ def _row_to_dict(row: bigquery.Row) -> Dict[str, Any]:
                 d[key] = json.loads(val)
             except json.JSONDecodeError:
                 pass
+        elif isinstance(val, str) and "PARSE_JSON" in val:
+            # Handle case where BQ mock returns the SQL expression as string
+            # Extract the JSON part from expressions like "PARSE_JSON('{...}')"
+            import re
+            m = re.search(r"PARSE_JSON\('(.+?)'\)", val, re.DOTALL)
+            if m:
+                try:
+                    d[key] = json.loads(m.group(1).replace("''", "'"))
+                except json.JSONDecodeError:
+                    pass
     return d
 
 

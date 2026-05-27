@@ -1,5 +1,5 @@
 """
-jwt_manager/tests/test_jwt_manager.py
+jwt_manager/tests/test_jwt_integration.py
 
 Smoke tests for the JWT Manager service.
 Uses TestClient (no live DB/Redis needed — mocks both layers).
@@ -213,8 +213,9 @@ def test_validate_success(client, mock_db_and_redis):
 
 
 def test_validate_missing_header(client):
+    """HTTPBearer returns 401 when Authorization header is absent."""
     resp = client.get("/api/v1/auth/validate")
-    assert resp.status_code == 422  # FastAPI missing required header
+    assert resp.status_code == 401
 
 
 def test_validate_invalid_token(client):

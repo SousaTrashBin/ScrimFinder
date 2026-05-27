@@ -1,3 +1,4 @@
+
 """
 training_service/tests/test_unit.py  —  Unit tests (no live DB required)
 
@@ -7,8 +8,6 @@ no BigQuery service is present.
 Run:
     pytest training_service/tests/test_unit.py -v
 """
-
-import threading
 
 import pytest
 from fastapi import FastAPI
@@ -29,7 +28,14 @@ def client(monkeypatch):
 
     mock = BQMock(monkeypatch)
 
-    app = FastAPI()
+    # Build a minimal FastAPI app with the same prefix structure as main.py
+    # so that openapi.json is available.
+    app = FastAPI(
+        title="ScrimFinder Training Service",
+        version="1.0.0",
+        docs_url="/api/v1/training/docs",
+        openapi_url="/api/v1/training/openapi.json",
+    )
     app.include_router(games.router, prefix="/api/v1/training")
     app.include_router(features.router, prefix="/api/v1/training")
     app.include_router(datasets.router, prefix="/api/v1/training")
@@ -54,7 +60,10 @@ def client(monkeypatch):
 
 
 def test_openapi_exposes_all_routes(client):
-    spec = client.get("/api/v1/training/openapi.json").json()
+    r = client.get("/api/v1/training/openapi.json")
+    assert r.status_code == 200, f"OpenAPI spec not available: {r.text}"
+    spec = r.json()
+    assert "paths" in spec, "OpenJSON missing 'paths' key"
     paths = spec["paths"]
 
     required = [
@@ -75,18 +84,22 @@ def test_openapi_exposes_all_routes(client):
 class TestGamesUnit:
     def test_ingest(self, client):
         r = client.post("/api/v1/training/games", json={"data": {"matchId": "G2"}})
-        assert r.status_code == 201
+        assert r.status_code == 201, f"Ingest failed: {r.text}"
         assert r.json()["id"] == "G2"
 
     def test_ingest_idempotent(self, client):
         r1 = client.post("/api/v1/training/games", json={"data": {"matchId": "G2"}})
         r2 = client.post("/api/v1/training/games", json={"data": {"matchId": "G2"}})
+        assert r1.status_code == 201, f"First ingest failed: {r1.text}"
+        assert r2.status_code == 201, f"Second ingest failed: {r2.text}"
         assert r1.json()["id"] == r2.json()["id"]
 
     def test_get_by_query_param(self, client):
         r = client.get("/api/v1/training/games?game_id=G1")
         assert r.status_code == 200
-        assert r.json()["games"][0]["id"] == "G1"
+        body = r.json()
+        assert "games" in body
+        assert body["games"][0]["id"] == "G1"
 
     def test_get_by_path(self, client):
         r = client.get("/api/v1/training/games/G1")
@@ -144,18 +157,28 @@ class TestFeaturesUnit:
 
     def test_get_by_query_param(self, client):
         # First store something
+        r_store = client.post(
+            "/api/v1/training/features/extract",
+            json={"game_id": "G1", "concerns": ["draft"], "store": True},
+        )
+        assert r_store.status_code == 200, f"Store failed: {r_store.text}"
+        r = client.get("/api/v1/training/features?game_id=G1")
+        assert r.status_code == 200, f"Get failed: {r.text}"
+        assert r.json()["game_id"] == "G1"
+
+    def test_get_by_path(self, client):
+        # First store something
         client.post(
             "/api/v1/training/features/extract",
             json={"game_id": "G1", "concerns": ["draft"], "store": True},
         )
-        r = client.get("/api/v1/training/features?game_id=G1")
+        r = client.get("/api/v1/training/features/G1")
         assert r.status_code == 200
         assert r.json()["game_id"] == "G1"
 
-    def test_get_by_path(self, client):
-        r = client.get("/api/v1/training/features/G1")
-        # May be 404 if nothing stored — that's fine, just check it doesn't 500
-        assert r.status_code in (200, 404)
+    def test_get_by_path_404(self, client):
+        r = client.get("/api/v1/training/features/NOPE")
+        assert r.status_code == 404
 
 
 # ── Datasets router ───────────────────────────────────────────────────────────
@@ -230,16 +253,17 @@ class TestTrainingJobsUnit:
         r = client.post(
             "/api/v1/training/jobs", json={"concern": "draft", "sample": 0.01}
         )
-        assert r.status_code == 202
+        assert r.status_code == 202, f"Create job failed: {r.text}"
         assert r.json()["concern"] == "draft"
 
     def test_get_by_query_param(self, client):
         j = client.post(
             "/api/v1/training/jobs", json={"concern": "draft", "sample": 0.01}
-        ).json()
-        r = client.get(f"/api/v1/training/jobs?job_id={j['id']}")
-        assert r.status_code == 200
-        assert r.json()["jobs"][0]["id"] == j["id"]
+        )
+        assert j.status_code == 202, f"Create job failed: {j.text}"
+        r = client.get(f"/api/v1/training/jobs?job_id={j.json()['id']}")
+        assert r.status_code == 200, f"Get job failed: {r.text}"
+        assert r.json()["jobs"][0]["id"] == j.json()["id"]
 
     def test_list_filtered(self, client):
         r = client.get("/api/v1/training/jobs?concern=draft")

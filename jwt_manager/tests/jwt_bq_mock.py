@@ -2,7 +2,6 @@
 jwt_manager/tests/bq_mock.py
 
 BigQuery mock for JWT Manager unit/acceptance tests.
-Mirrors training_service/tests/bq_mock.py but for JWT tables (users, refresh_tokens, access_sessions).
 """
 
 from __future__ import annotations
@@ -46,8 +45,17 @@ class BQMock:
     def _execute(self, sql: str, params: Optional[List[Any]] = None) -> List[FakeRow]:
         sql = sql.strip()
         params = params or []
+        # Substitute params into SQL so regexes can match literal values
         for i, p in enumerate(params):
-            sql = sql.replace(f"@p{i}", repr(p) if isinstance(p, str) else str(p))
+            if isinstance(p, str):
+                val = repr(p)
+            elif isinstance(p, datetime):
+                val = f"'{p.isoformat()}'"
+            elif isinstance(p, bool):
+                val = str(p).upper()
+            else:
+                val = str(p)
+            sql = sql.replace(f"@p{i}", val)
 
         sql_upper = sql.upper()
 
@@ -177,20 +185,39 @@ class BQMock:
         if not where:
             return True
         import re
-        clauses = [c.strip() for c in where.split("AND")]
+
+        # Remove parenthesized IS NULL OR ... clauses (mock assumes no NULLs)
+        where = re.sub(r'\(\s*\w+\s+IS\s+NULL\s+OR\s+[^)]+\)', '', where, flags=re.IGNORECASE)
+        # Remove standalone IS NULL checks
+        where = re.sub(r'\b\w+\s+IS\s+NULL\b', '', where, flags=re.IGNORECASE)
+        # Clean up dangling ANDs
+        where = re.sub(r'\bAND\s+AND\b', 'AND', where, flags=re.IGNORECASE)
+        where = where.strip().strip('AND').strip()
+        if not where:
+            return True
+
+        clauses = [c.strip() for c in re.split(r'\s+AND\s+', where, flags=re.IGNORECASE)]
         for clause in clauses:
+            if not clause:
+                continue
+            # expires_at > CURRENT_TIMESTAMP()  -- assume not expired in mock
+            if re.search(r'>\s*CURRENT_TIMESTAMP\(\)', clause, re.IGNORECASE):
+                continue
+            # col = 'string'
             m = re.match(r"(\w+)\s*=\s*'([^']*)'", clause)
             if m:
                 col, val = m.group(1), m.group(2)
                 if str(row.get(col, "")) != val:
                     return False
                 continue
+            # col = unquoted_value
             m = re.match(r"(\w+)\s*=\s*(.+)", clause)
             if m:
                 col, val = m.group(1), m.group(2).strip()
                 if str(row.get(col, "")) != str(val):
                     return False
                 continue
+            # col = TRUE/FALSE
             m = re.match(r"(\w+)\s*=\s*(TRUE|FALSE)", clause, re.IGNORECASE)
             if m:
                 col, val = m.group(1), m.group(2).upper() == "TRUE"

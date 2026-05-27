@@ -13,6 +13,18 @@ from training_service.core.schemas import (
 router = APIRouter(prefix="/features", tags=["Features"])
 
 
+def _match_id(raw: dict) -> str:
+    for key in ("matchId", "match_id", "gameId", "id"):
+        if raw.get(key):
+            return str(raw[key])
+    metadata = raw.get("metadata")
+    if isinstance(metadata, dict):
+        for key in ("matchId", "match_id"):
+            if metadata.get(key):
+                return str(metadata[key])
+    return "inline"
+
+
 @router.post(
     "/extract",
     response_model=FeatureExtractResponse,
@@ -45,19 +57,14 @@ def extract(body: FeatureExtractRequest):
         )
 
     results = []
+    response_game_id = body.game_id or _match_id(raw)
     for concern in body.concerns:
         vector, names = extract_features(raw, concern.value)
         if body.store:
-            game_id = (
-                    body.game_id or raw.get("matchId") or raw.get("match_id") or "inline"
-            )
-            db.upsert_features(game_id, concern.value, vector, names)
+            db.upsert_features(response_game_id, concern.value, vector, names)
         results.append(
             FeatureVector(
-                game_id=body.game_id
-                        or raw.get("matchId")
-                        or raw.get("match_id")
-                        or "inline",
+                game_id=response_game_id,
                 concern=concern.value,
                 feature_vector=vector,
                 feature_names=names,
@@ -67,7 +74,7 @@ def extract(body: FeatureExtractRequest):
         )
 
     return FeatureExtractResponse(
-        game_id=body.game_id or raw.get("matchId") or raw.get("match_id") or "inline",
+        game_id=response_game_id,
         features=results,
         stored=body.store,
     )

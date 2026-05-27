@@ -172,5 +172,6 @@ def decode_token(token: str) -> dict:
         token,
         _PUBLIC_PEM,
         algorithms=["RS256"],
+        issuer=cfg.ISSUER,          # ← verifies the token came from us
         options={"require": ["sub", "jti", "exp", "iss"]},
     )

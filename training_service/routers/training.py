@@ -44,6 +44,12 @@ def _run(job_id, concern, algorithm, filters, cancel):
             raise InterruptedError("Cancelled")
         db.update_job(job_id, progress=pct, stage=stage)
 
+    if cancel.is_set():
+        db.update_job(
+            job_id, status="CANCELLED", stage="Cancelled", completed_at=now_iso()
+        )
+        return
+
     db.update_job(job_id, status="RUNNING", started_at=now_iso())
     try:
 
@@ -88,6 +94,8 @@ def _run(job_id, concern, algorithm, filters, cancel):
 
         j = _J()
         mod.train(j)
+        if cancel.is_set():
+            raise InterruptedError("Cancelled")
         db.update_job(
             job_id,
             status="COMPLETED",
@@ -240,13 +248,12 @@ def cancel_job(job_id: str = Path(...)):
     ev = _cancel_flags.get(job_id)
     if ev:
         ev.set()
-    else:
-        db.update_job(
-            job_id,
-            status="CANCELLED",
-            stage="Cancelled via API",
-            completed_at=now_iso(),
-        )
+    db.update_job(
+        job_id,
+        status="CANCELLED",
+        stage="Cancelled via API",
+        completed_at=now_iso(),
+    )
     return _resp(db.get_job(job_id))
 
 

@@ -13,7 +13,7 @@ services:
       - LEAGUE_DB=/app/dataset/league_data.db
       - MODELS_DIR=/app/data/models
       - MODEL_RELOAD_INTERVAL=60
-      - TRAINING_GRPC_URL=scrimfinder_training:50051
+      #- TRAINING_GRPC_URL=scrimfinder_training:50051
     networks:
       - scrimfinder_net
 

@@ -25,6 +25,11 @@ def _derive_id(data: dict) -> str:
     for k in ("matchId", "match_id", "gameId", "id"):
         if data.get(k):
             return str(data[k])
+    metadata = data.get("metadata")
+    if isinstance(metadata, dict):
+        for k in ("matchId", "match_id"):
+            if metadata.get(k):
+                return str(metadata[k])
     return (
             "game_"
             + hashlib.sha1(json.dumps(data, sort_keys=True).encode()).hexdigest()[:16]
@@ -199,6 +204,8 @@ def import_league(body: LeagueImportRequest):
             try:
                 # Fetch related data using db helpers
                 p_stats = db.get_player_stats(match_id)
+                if not p_stats:
+                    raise ValueError("No participant stats found")
                 p_items = db.get_player_items(match_id)
                 p_runes = db.get_player_runes(match_id)
 

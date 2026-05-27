@@ -105,7 +105,7 @@ def query_stats(champion_id: Any, position: Optional[str] = None, match_type: Op
     row = _one(sql, params)
     if row is None:
         return {}
-    return {k: round(float(v), 2) if v is not None else 0.0 for k, v in row.items()}
+    return {k: round(float(v), 2) if v is not None and isinstance(v, (int, float)) else 0.0 for k, v in row.items()}
 
 
 # ── Top items ─────────────────────────────────────────────────
@@ -127,7 +127,7 @@ def query_top_items(
     if match_type:
         clauses.append("m.match_type = %s")
         params.append(match_type)
-    
+
     sql = f"""
         SELECT di.name, COUNT(*) AS cnt
         FROM player_items pi
@@ -196,7 +196,7 @@ def query_top_champions(position: Optional[str] = None, match_type: Optional[str
         clauses.append("m.match_type = %s")
         params.append(match_type)
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
-    
+
     sql = f"""
         SELECT dc.name, COUNT(*) AS total, SUM(ps.win) AS wins,
                ROUND(AVG(ps.win)*100, 2) AS win_rate

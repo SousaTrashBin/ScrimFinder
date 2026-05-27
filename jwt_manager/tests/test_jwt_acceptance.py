@@ -1,11 +1,11 @@
 """
-jwt_manager/tests/test_acceptance.py  —  Acceptance / contract tests
+jwt_manager/tests/test_jwt_acceptance.py  —  Acceptance / contract tests
 
 Validates that every public auth endpoint responds correctly for both
 happy-path and expected-error scenarios. Uses BQMock so no live DB needed.
 
 Run:
-    pytest jwt_manager/tests/test_acceptance.py -v
+    pytest jwt_manager/tests/test_jwt_acceptance.py -v
 """
 
 import pytest
@@ -35,14 +35,12 @@ def client(monkeypatch):
 def logged_in_client(client):
     """Returns (client, tokens) tuple with a logged-in session."""
     from jwt_manager.core import security
-    # We need to set the password hash properly
     from jwt_manager.core import db
+    import jwt_manager.core.db as db_mod
+
     user = db.get_user_by_username("testuser")
     hashed = security.hash_password("Password1!")
-    # Update the user with proper password hash
-    # (BQMock doesn't support UPDATE well, so we re-create)
-    # For acceptance tests we just mock the verify
-    import jwt_manager.core.db as db_mod
+
     original_get = db_mod.get_user_by_username
 
     def patched_get(username):
@@ -51,7 +49,6 @@ def logged_in_client(client):
             u["password_hash"] = hashed
         return u
 
-    # Apply patch via monkeypatch on the module
     import jwt_manager.routers.auth as auth_mod
     auth_mod.db.get_user_by_username = patched_get
 
@@ -161,6 +158,74 @@ class TestLoginAcceptance:
         assert r.status_code == 401
 
 
+# ── Single Session ───────────────────────────────────────────────────────────
+
+
+class TestSingleSessionAcceptance:
+    def test_second_login_invalidates_first(self, logged_in_client):
+        client, tokens1 = logged_in_client
+
+        # Login again
+        r = client.post(
+            "/api/v1/auth/login",
+            json={"username": "testuser", "password": "Password1!"},
+        )
+        assert r.status_code == 200
+        tokens2 = r.json()
+
+        # First access token should be dead
+        r = client.get(
+            "/api/v1/auth/validate",
+            headers={"Authorization": f"Bearer {tokens1['access_token']}"},
+        )
+        assert r.status_code == 401
+        assert "Session is no longer active" in r.json()["detail"]
+
+        # Second access token should work
+        r = client.get(
+            "/api/v1/auth/validate",
+            headers={"Authorization": f"Bearer {tokens2['access_token']}"},
+        )
+        assert r.status_code == 200
+
+    def test_refresh_invalidates_old_access_token(self, logged_in_client):
+        client, tokens = logged_in_client
+
+        r = client.post(
+            "/api/v1/auth/refresh", json={"refresh_token": tokens["refresh_token"]}
+        )
+        assert r.status_code == 200
+        new_tokens = r.json()
+
+        # Old access token should be dead
+        r = client.get(
+            "/api/v1/auth/validate",
+            headers={"Authorization": f"Bearer {tokens['access_token']}"},
+        )
+        assert r.status_code == 401
+
+        # New access token should work
+        r = client.get(
+            "/api/v1/auth/validate",
+            headers={"Authorization": f"Bearer {new_tokens['access_token']}"},
+        )
+        assert r.status_code == 200
+
+    def test_refresh_revokes_old_refresh_token(self, logged_in_client):
+        client, tokens = logged_in_client
+
+        r = client.post(
+            "/api/v1/auth/refresh", json={"refresh_token": tokens["refresh_token"]}
+        )
+        assert r.status_code == 200
+
+        # Re-using the old refresh token should fail
+        r = client.post(
+            "/api/v1/auth/refresh", json={"refresh_token": tokens["refresh_token"]}
+        )
+        assert r.status_code == 401
+
+
 # ── Validate ──────────────────────────────────────────────────────────────────
 
 
@@ -175,7 +240,8 @@ class TestValidateAcceptance:
         assert r.json()["username"] == "testuser"
 
     def test_missing_header(self, client):
-        assert client.get("/api/v1/auth/validate").status_code == 422
+        """HTTPBearer returns 401 when Authorization header is absent."""
+        assert client.get("/api/v1/auth/validate").status_code == 401
 
     def test_invalid_token(self, client):
         r = client.get(

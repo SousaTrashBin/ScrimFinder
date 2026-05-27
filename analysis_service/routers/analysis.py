@@ -18,7 +18,7 @@ from pathlib import Path
 import numpy as np
 from fastapi import APIRouter, HTTPException
 
-import analysis_service.grpc_client as grpc_client
+from analysis_service.core.db import get_active_model
 from analysis_service.core.schemas import (
     AlternativeItem,
     BuildAnalysisRequest,
@@ -68,13 +68,13 @@ def _derive_id(data: dict) -> str:
 
 
 def _model_version(concern: str) -> str | None:
-    row = grpc_client.get_active_model(concern)
+    row = get_active_model(concern)
     return row["version"] if row else None
 
 
 def _load_artifact(concern: str) -> tuple:
     """Load active model artifact. Raises 503 if unavailable."""
-    row = grpc_client.get_active_model(concern)
+    row = get_active_model(concern)
     if row is None:
         raise HTTPException(
             status_code=503,

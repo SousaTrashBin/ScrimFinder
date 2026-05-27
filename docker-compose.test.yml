@@ -1,118 +1,80 @@
-# docker-compose.test.yml
-# CI environment: Python services only + BigQuery emulator
-# No Java services. No PostgreSQL. No real GCP credentials needed.
-
 services:
+  # ── goccy/bigquery-emulator for integration tests ──────────────────────────
   bq-emulator:
     image: ghcr.io/goccy/bigquery-emulator:latest
-    container_name: bq_emulator
-    command: [
-      "--project=test-project",
-      "--dataset=scrimfinder",
-      "--dataset=scrimfinder_platform"
-    ]
+    container_name: scrimfinder_bq_emulator
     ports:
-      - "9050:9050"   # REST API
+      - "9050:9050"   # HTTP REST API
       - "9060:9060"   # gRPC
+    environment:
+      - BIGQUERY_EMULATOR_HTTP_PORT=9050
+      - BIGQUERY_EMULATOR_GRPC_PORT=9060
+      - BIGQUERY_EMULATOR_PROJECT_ID=test-project
+      - BIGQUERY_EMULATOR_DATASET_ID=test_league,test_platform
+    volumes:
+      - ./bq_emulator_data:/data
     networks:
-      - test_net
-
-  redis:
-    image: redis:7-alpine
-    container_name: test_redis
+      - scrimfinder_net
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9050/bigquery/v2/projects/test-project/datasets"]
       interval: 5s
       timeout: 5s
-      retries: 5
-    networks:
-      - test_net
+      retries: 10
 
-  jwt-manager:
+  # ── Training Service (for integration tests with emulator) ─────────────────
+  training-test:
     build:
-      context: ./jwt_manager
+      context: ../training_service
       dockerfile: Dockerfile
-    container_name: test_jwt
-    command: uvicorn jwt_manager.main:app --host 0.0.0.0 --port 8002
+    container_name: scrimfinder_training_test
+    command: pytest training_service/tests/test_integration.py -v -m integration
     environment:
       - PYTHONPATH=/app
-      - BQ_PROJECT=test-project
-      - BQ_DATASET=scrimfinder
-      - BQ_PLATFORM_DATASET=scrimfinder_platform
-      - BQ_LOCATION=EU
       - BQ_EMULATOR_HOST=http://bq-emulator:9050
-      - GOOGLE_APPLICATION_CREDENTIALS=/dev/null
-      - JWT_SECRET=test-secret-key-do-not-use-in-production
-      - JWT_ISSUER=scrimfinder/jwt-manager
-      - JWT_KEY_ID=test-key-v1
-      - REDIS_URL=redis://redis:6379/2
+      - BQ_PROJECT=test-project
+      - BQ_DATASET=test_league
+      - BQ_PLATFORM_DATASET=test_platform
+      - BQ_LOCATION=US
+      - MODELS_DIR=/app/data/models
+      - MODEL_RELOAD_INTERVAL=60
+      # Disable background services for tests
+      - GRPC_PORT=0
+      - RABBITMQ_HOST=""
+    volumes:
+      - ../training_service:/app/training_service
+      - ../ml_data:/app/data
     depends_on:
       bq-emulator:
-        condition: service_started
-      redis:
         condition: service_healthy
     networks:
-      - test_net
+      - scrimfinder_net
 
-  training-service:
+  # ── Analysis Service (for integration tests with emulator) ─────────────────
+  analysis-test:
     build:
-      context: ./training_service
+      context: ../analysis_service
       dockerfile: Dockerfile
-    container_name: test_training
-    command: uvicorn training_service.main:app --host 0.0.0.0 --port 8000
-    ports:
-      - "8000:8000"
-      - "50051:50051"
+    container_name: scrimfinder_analysis_test
+    command: pytest analysis_service/tests/test_integration.py -v -m integration
     environment:
       - PYTHONPATH=/app
-      - BQ_PROJECT=test-project
-      - BQ_DATASET=scrimfinder
-      - BQ_PLATFORM_DATASET=scrimfinder_platform
-      - BQ_LOCATION=EU
       - BQ_EMULATOR_HOST=http://bq-emulator:9050
-      - GOOGLE_APPLICATION_CREDENTIALS=/dev/null
-      - DATASETS_DIR=/app/ml_data/datasets
-      - GAMES_DIR=/app/ml_data/games
-      - MODELS_DIR=/app/ml_data/models
+      - BQ_PROJECT=test-project
+      - BQ_DATASET=test_league
+      - BQ_PLATFORM_DATASET=test_platform
+      - BQ_LOCATION=US
+      - MODELS_DIR=/app/data/models
       - MODEL_RELOAD_INTERVAL=60
-      - GRPC_PORT=50051
+      - TRAINING_GRPC_URL=""
     volumes:
-      - ./ml_data:/app/ml_data
+      - ../analysis_service:/app/analysis_service
+      - ../ml_data:/app/data
     depends_on:
       bq-emulator:
-        condition: service_started
+        condition: service_healthy
     networks:
-      - test_net
-
-  analysis-service:
-    build:
-      context: ./analysis_service
-      dockerfile: Dockerfile
-    container_name: test_analysis
-    command: uvicorn analysis_service.main:app --host 0.0.0.0 --port 8001
-    ports:
-      - "8001:8001"
-    environment:
-      - PYTHONPATH=/app
-      - BQ_PROJECT=test-project
-      - BQ_DATASET=scrimfinder
-      - BQ_PLATFORM_DATASET=scrimfinder_platform
-      - BQ_LOCATION=EU
-      - BQ_EMULATOR_HOST=http://bq-emulator:9050
-      - GOOGLE_APPLICATION_CREDENTIALS=/dev/null
-      - MODELS_DIR=/app/ml_data/models
-      - MODEL_RELOAD_INTERVAL=60
-      - TRAINING_GRPC_URL=training-service:50051
-    volumes:
-      - ./ml_data:/app/ml_data
-    depends_on:
-      training-service:
-        condition: service_started
-      bq-emulator:
-        condition: service_started
-    networks:
-      - test_net
+      - scrimfinder_net
 
 networks:
-  test_net:
-    driver: bridge
+  scrimfinder_net:
+    external: true

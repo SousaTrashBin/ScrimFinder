@@ -1,5 +1,5 @@
 """
-training_service/tests/test_acceptance.py  —  Acceptance / contract tests
+training_service/tests/test_acceptance.py  --  Acceptance / contract tests
 
 Validates that every public endpoint responds correctly for both
 happy-path and expected-error scenarios. Uses BQMock so no live DB needed.
@@ -65,7 +65,7 @@ def client(monkeypatch):
     return TestClient(app, raise_server_exceptions=False)
 
 
-# ── System ────────────────────────────────────────────────────────────────────
+# -- System -------------------------------------------------
 
 
 def test_public_health_and_openapi_paths(client):
@@ -91,17 +91,17 @@ def test_root_includes_counts(client):
     assert "active_models" in body
 
 
-# ── Games ─────────────────────────────────────────────────────────────────────
+# -- Games --------------------------------------------------
 
 
 class TestGamesAcceptance:
     def test_ingest_and_retrieve(self, client):
         r = client.post("/api/v1/training/games", json={"data": {"matchId": "G_NEW"}})
-        assert r.status_code == 201
+        assert r.status_code == 201, f"Ingest failed: {r.text}"
         assert r.json()["id"] == "G_NEW"
 
         r2 = client.get("/api/v1/training/games/G_NEW")
-        assert r2.status_code == 200
+        assert r2.status_code == 200, f"Retrieve failed: {r2.text}"
         assert r2.json()["raw_json"]["matchId"] == "G_NEW"
 
     def test_get_by_query_param(self, client):
@@ -139,7 +139,7 @@ class TestGamesAcceptance:
         assert r.status_code == 422
 
 
-# ── Features ──────────────────────────────────────────────────────────────────
+# -- Features -----------------------------------------------
 
 
 class TestFeaturesAcceptance:
@@ -148,7 +148,7 @@ class TestFeaturesAcceptance:
             "/api/v1/training/features/extract",
             json={"game_id": "EUW1_TEST_001", "concerns": ["draft", "build", "performance"], "store": True},
         )
-        assert r.status_code == 200
+        assert r.status_code == 200, f"Extract failed: {r.text}"
         feats = r.json()["features"]
         assert len(feats) == 3
         assert all(f["feature_vector"] for f in feats)
@@ -179,16 +179,17 @@ class TestFeaturesAcceptance:
         )
 
     def test_get_by_query_after_store(self, client):
-        client.post(
+        r_store = client.post(
             "/api/v1/training/features/extract",
             json={"game_id": "EUW1_TEST_001", "concerns": ["draft"], "store": True},
         )
+        assert r_store.status_code == 200, f"Store failed: {r_store.text}"
         r = client.get("/api/v1/training/features?game_id=EUW1_TEST_001")
-        assert r.status_code == 200
+        assert r.status_code == 200, f"Get failed: {r.text}"
         assert r.json()["game_id"] == "EUW1_TEST_001"
 
 
-# ── Datasets ──────────────────────────────────────────────────────────────────
+# -- Datasets -----------------------------------------------
 
 
 class TestDatasetsAcceptance:
@@ -229,7 +230,7 @@ class TestDatasetsAcceptance:
         assert client.get(f"/api/v1/training/datasets?dataset_id={ds_id}").status_code == 404
 
 
-# ── Training Jobs ─────────────────────────────────────────────────────────────
+# -- Training Jobs ------------------------------------------
 
 
 class TestTrainingJobsAcceptance:
@@ -237,13 +238,13 @@ class TestTrainingJobsAcceptance:
         r = client.post(
             "/api/v1/training/jobs", json={"concern": "draft", "sample": 0.01}
         )
-        assert r.status_code == 202
+        assert r.status_code == 202, f"Create failed: {r.text}"
         job = r.json()
         assert job["concern"] == "draft"
         assert job["status"] in ("PENDING", "RUNNING")
 
         r2 = client.get(f"/api/v1/training/jobs?job_id={job['id']}")
-        assert r2.status_code == 200
+        assert r2.status_code == 200, f"Get failed: {r2.text}"
         assert r2.json()["jobs"][0]["id"] == job["id"]
 
     def test_all_concerns_accepted(self, client):
@@ -251,7 +252,7 @@ class TestTrainingJobsAcceptance:
             r = client.post(
                 "/api/v1/training/jobs", json={"concern": c, "sample": 0.01}
             )
-            assert r.status_code == 202, f"Concern {c} failed"
+            assert r.status_code == 202, f"Concern {c} failed: {r.text}"
 
     def test_list_filtered(self, client):
         r = client.get("/api/v1/training/jobs?concern=draft")
@@ -261,17 +262,21 @@ class TestTrainingJobsAcceptance:
     def test_cancel(self, client):
         j = client.post(
             "/api/v1/training/jobs", json={"concern": "draft", "sample": 0.01}
-        ).json()
-        r = client.post(f"/api/v1/training/jobs/{j['id']}/cancel")
+        )
+        assert j.status_code == 202, f"Create failed: {j.text}"
+        job_id = j.json()["id"]
+        r = client.post(f"/api/v1/training/jobs/{job_id}/cancel")
         assert r.status_code == 200
         assert r.json()["status"] in ("CANCELLED", "PENDING")
 
     def test_delete_job(self, client):
         j = client.post(
             "/api/v1/training/jobs", json={"concern": "build", "sample": 0.01}
-        ).json()
-        assert client.delete(f"/api/v1/training/jobs/{j['id']}").status_code == 204
-        assert client.get(f"/api/v1/training/jobs?job_id={j['id']}").status_code == 404
+        )
+        assert j.status_code == 202, f"Create failed: {j.text}"
+        job_id = j.json()["id"]
+        assert client.delete(f"/api/v1/training/jobs/{job_id}").status_code == 204
+        assert client.get(f"/api/v1/training/jobs?job_id={job_id}").status_code == 404
 
     def test_invalid_concern(self, client):
         assert (
@@ -282,7 +287,7 @@ class TestTrainingJobsAcceptance:
         )
 
 
-# ── Models ────────────────────────────────────────────────────────────────────
+# -- Models -------------------------------------------------
 
 
 class TestModelsAcceptance:
@@ -317,11 +322,11 @@ class TestModelsAcceptance:
         mid = models[0]["id"]
 
         r1 = client.post(f"/api/v1/training/models/{mid}/activate")
-        assert r1.status_code == 200
+        assert r1.status_code == 200, f"Activate failed: {r1.text}"
         assert r1.json()["is_active"] is True
 
         r2 = client.post(f"/api/v1/training/models/{mid}/deactivate")
-        assert r2.status_code == 200
+        assert r2.status_code == 200, f"Deactivate failed: {r2.text}"
         assert r2.json()["is_active"] is False
 
     def test_delete_404(self, client):
@@ -330,3 +335,28 @@ class TestModelsAcceptance:
     def test_cannot_delete_active(self, client):
         # MODEL_1 is active
         assert client.delete("/api/v1/training/models/MODEL_1").status_code == 409
+
+    def test_deploy_job(self, client, monkeypatch):
+        """Deploy endpoint activates the model linked to a completed job."""
+        from training_service.core import db
+
+        job_id = "job_acc_001"
+        model_id = "model_acc_001"
+        db.create_job(job_id, "draft", "gbm", None, {"sample": 0.5})
+        db.update_job(job_id, status="COMPLETED", progress=100, stage="Done",
+                      model_id=model_id, completed_at="2026-05-01T00:00:00")
+        # Register the model so activate succeeds
+        db.register_model("draft", "gbm", "v_acc", "/tmp/fake.pkl",
+                         {"acc": 0.7}, {}, None, ["f1"])
+
+        # Link job to the newly registered model
+        models = db.list_models(concern="draft")
+        real_mid = models[-1]["id"]
+        db.update_job(job_id, model_id=real_mid)
+
+        r = client.post(f"/api/v1/training/jobs/{job_id}/deploy")
+        assert r.status_code == 200, f"Deploy failed: {r.text}"
+        # Verify model is now active
+        active = db.get_active_model("draft")
+        assert active is not None
+        assert active["id"] == real_mid

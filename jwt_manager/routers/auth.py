@@ -1,7 +1,8 @@
 from typing import Annotated
 
 import jwt as pyjwt
-from fastapi import APIRouter, Header, HTTPException, Response, status
+from fastapi import APIRouter, HTTPException, Response, Security, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from jwt_manager.core import db, security
 from jwt_manager.core.config import cfg
@@ -17,14 +18,7 @@ from jwt_manager.core.schemas import (
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Auth"])
 
-
-def _bearer_token(authorization: str) -> str:
-    scheme, _, token = authorization.partition(" ")
-    if scheme.lower() != "bearer" or not token:
-        raise HTTPException(
-            status_code=401, detail="Authorization header must be 'Bearer <token>'."
-        )
-    return token
+security_bearer = HTTPBearer()
 
 
 def _decode_token(token: str, expected_type: str) -> dict:
@@ -42,8 +36,12 @@ def _decode_token(token: str, expected_type: str) -> dict:
     return payload
 
 
-def _current_user_from_access(authorization: str) -> tuple[dict, dict]:
-    payload = _decode_token(_bearer_token(authorization), "access")
+def _current_user_from_access(
+    credentials: HTTPAuthorizationCredentials = Security(security_bearer),
+) -> tuple[dict, dict]:
+    """Dependency: validates the access token and returns (payload, user)."""
+    token = credentials.credentials
+    payload = _decode_token(token, "access")
     user_id = str(payload["sub"])
     jti = payload["jti"]
 
@@ -59,6 +57,8 @@ def _current_user_from_access(authorization: str) -> tuple[dict, dict]:
     return payload, user
 
 
+# ── Public endpoints ──────────────────────────────────────────────────────────
+
 @router.post(
     "/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED
 )
@@ -72,12 +72,9 @@ def register(body: RegisterRequest) -> RegisterResponse:
         raise HTTPException(status_code=409, detail="Email already exists.")
 
     password_hash = security.hash_password(body.password)
-    try:
-        user = db.create_user(
-            username=username, email=email, password_hash=password_hash
-        )
-    except Exception as exc:
-        raise HTTPException(status_code=409, detail="User already exists.") from exc
+    user = db.create_user(
+        username=username, email=email, password_hash=password_hash
+    )
 
     return RegisterResponse(
         id=str(user["id"]), username=user["username"], email=user["email"]
@@ -94,22 +91,20 @@ def login(body: LoginRequest) -> LoginResponse:
     if not user.get("is_active", True):
         raise HTTPException(status_code=403, detail="User is inactive.")
 
+    user_id = str(user["id"])
+
+    # ── SINGLE SESSION: nuke everything before issuing new tokens ─────────────
+    db.invalidate_all_user_sessions(user_id)
+    db.revoke_all_user_tokens(user_id)
+
     access_token, access_jti, _ = security.create_access_token(
-        str(user["id"]), user["username"]
+        user_id, user["username"]
     )
-    refresh_token, refresh_jti, refresh_exp = security.create_refresh_token(
-        str(user["id"])
-    )
+    refresh_token, refresh_jti, refresh_exp = security.create_refresh_token(user_id)
 
-    db.cache_access_token(access_jti, str(user["id"]), cfg.ACCESS_TOKEN_TTL)
-    db.store_refresh_token(refresh_jti, str(user["id"]), refresh_exp)
+    db.cache_access_token(access_jti, user_id, cfg.ACCESS_TOKEN_TTL)
+    db.store_refresh_token(refresh_jti, user_id, refresh_exp)
     return LoginResponse(access_token=access_token, refresh_token=refresh_token)
-
-
-@router.get("/validate", response_model=ValidateResponse)
-def validate(authorization: Annotated[str, Header()]) -> ValidateResponse:
-    _, user = _current_user_from_access(authorization)
-    return ValidateResponse(user_id=str(user["id"]), username=user["username"])
 
 
 @router.post("/refresh", response_model=RefreshResponse)
@@ -129,7 +124,11 @@ def refresh(body: RefreshRequest) -> RefreshResponse:
     if not user.get("is_active", True):
         raise HTTPException(status_code=403, detail="User is inactive.")
 
+    # ── SINGLE SESSION: revoke old refresh + nuke all sessions/tokens ───────
     db.revoke_refresh_token(payload["jti"])
+    db.invalidate_all_user_sessions(user_id)
+    db.revoke_all_user_tokens(user_id)
+
     access_token, access_jti, _ = security.create_access_token(
         user_id, user["username"]
     )
@@ -140,22 +139,6 @@ def refresh(body: RefreshRequest) -> RefreshResponse:
     return RefreshResponse(access_token=access_token, refresh_token=refresh_token)
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-def logout(authorization: Annotated[str, Header()]) -> Response:
-    payload, _ = _current_user_from_access(authorization)
-    db.invalidate_access_token(payload["jti"])
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
-@router.post("/logout-all", status_code=status.HTTP_204_NO_CONTENT)
-def logout_all(authorization: Annotated[str, Header()]) -> Response:
-    _, user = _current_user_from_access(authorization)
-    user_id = str(user["id"])
-    db.invalidate_all_user_sessions(user_id)
-    db.revoke_all_user_tokens(user_id)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
 @router.get("/jwks.json")
 def jwks() -> dict:
     return security.build_jwks()
@@ -164,3 +147,33 @@ def jwks() -> dict:
 @router.get("/public-key", response_class=Response)
 def public_key() -> Response:
     return Response(content=security.get_public_key_pem(), media_type="text/plain")
+
+
+# ── Protected endpoints ───────────────────────────────────────────────────────
+
+@router.get("/validate", response_model=ValidateResponse)
+def validate(
+    user_data: tuple = Security(_current_user_from_access),
+) -> ValidateResponse:
+    _, user = user_data
+    return ValidateResponse(user_id=str(user["id"]), username=user["username"])
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(
+    user_data: tuple = Security(_current_user_from_access),
+) -> Response:
+    payload, _ = user_data
+    db.invalidate_access_token(payload["jti"])
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/logout-all", status_code=status.HTTP_204_NO_CONTENT)
+def logout_all(
+    user_data: tuple = Security(_current_user_from_access),
+) -> Response:
+    _, user = user_data
+    user_id = str(user["id"])
+    db.invalidate_all_user_sessions(user_id)
+    db.revoke_all_user_tokens(user_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

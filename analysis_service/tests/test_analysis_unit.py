@@ -11,7 +11,7 @@ Run:
 import pytest
 from fastapi.testclient import TestClient
 
-from analysis_service.tests.bq_mock import BQMock
+from analysis_service.tests.analysis_bq_mock import BQMock
 
 pytestmark = pytest.mark.unit
 
