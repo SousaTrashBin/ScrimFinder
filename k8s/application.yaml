@@ -49,8 +49,8 @@ spec:
       - RespectIgnoreDifferences=true
     automated:
       enabled: false
-      prune: false
-      selfHeal: false
+      prune: true
+      selfHeal: true
   # Allow VPA to change resources and limits without being considered Off-Sync by Argo CD
   ignoreDifferences:
     - group: ""
