@@ -196,6 +196,7 @@ fi
 
 echo "installing VPA CRDs..."
 git clone https://github.com/kubernetes/autoscaler.git || true
+cp -f ./scripts/gencerts.sh ./autoscaler/vertical-pod-autoscaler/pkg/admission-controller/
 cd autoscaler/vertical-pod-autoscaler
 ./hack/vpa-up.sh
 cd ../..
