@@ -68,11 +68,11 @@ matchmaking-db:
       replicationPasswordKey: db-password
   primary:
     persistence:
-      size: 10Gi
+      size: 5Gi
   readReplicas:
     count: 2
     persistence:
-      size: 10Gi
+      size: 5Gi
 
 ranking-db:
   architecture: replication
@@ -86,11 +86,11 @@ ranking-db:
       replicationPasswordKey: db-password
   primary:
     persistence:
-      size: 10Gi
+      size: 5Gi
   readReplicas:
     count: 2
     persistence:
-      size: 10Gi
+      size: 5Gi
 
 history-db:
   architecture: replication
@@ -104,11 +104,11 @@ history-db:
       replicationPasswordKey: db-password
   primary:
     persistence:
-      size: 10Gi
+      size: 5Gi
   readReplicas:
     count: 2
     persistence:
-      size: 10Gi
+      size: 5Gi
 
 matchmaking-redis:
   architecture: standalone
@@ -158,9 +158,9 @@ services:
     resources:
       requests:
         cpu: "100m"
-        memory: "512Mi"
+        memory: "256Mi"
       limits:
-        memory: "512Mi"
+        memory: "256Mi"
     autoscaling:
       enabled: true
       minReplicas: 1
@@ -187,9 +187,9 @@ services:
     resources:
       requests:
         cpu: "100m"
-        memory: "512Mi"
+        memory: "256Mi"
       limits:
-        memory: "512Mi"
+        memory: "256Mi"
     autoscaling:
       enabled: true
       minReplicas: 1
@@ -216,9 +216,9 @@ services:
     resources:
       requests:
         cpu: "100m"
-        memory: "512Mi"
+        memory: "256Mi"
       limits:
-        memory: "512Mi"
+        memory: "256Mi"
     autoscaling:
       enabled: true
       minReplicas: 1
@@ -245,9 +245,9 @@ services:
     resources:
       requests:
         cpu: "100m"
-        memory: "512Mi"
+        memory: "256Mi"
       limits:
-        memory: "512Mi"
+        memory: "256Mi"
     autoscaling:
       enabled: true
       minReplicas: 1
@@ -270,9 +270,9 @@ services:
     resources:
       requests:
         cpu: "200m"
-        memory: "2Gi"
+        memory: "1Gi"
       limits:
-        memory: "2Gi"
+        memory: "1Gi"
     autoscaling:
       enabled: true
       minReplicas: 1
