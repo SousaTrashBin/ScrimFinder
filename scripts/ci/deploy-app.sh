@@ -46,36 +46,36 @@ wait
 
 helm dependency update "$ROOT_DIR/k8s/charts/scrimfinder"
 
-helm upgrade --install scrimfinder "$ROOT_DIR/k8s/charts/scrimfinder" \
-  --namespace "$SCRIM_NAMESPACE" \
-  --create-namespace \
-  --wait \
-  --timeout 25m \
-  --set global.namespace="$SCRIM_NAMESPACE" \
-  --set global.projectID="$SCRIM_PROJECT_ID" \
-  --set global.microservicesRegistry="$registry" \
-  --set global.imageTag="$SCRIM_IMAGE_TAG" \
-  --set global.useSecretManager=true \
-  --set global.useArgoApplications=true \
-  --set global.useVerticalPodAutoscaler=true \
-  --set detailFillingExternal.enabled=true \
-  --set detailFillingExternal.externalName="${DETAIL_FILLING_DOMAIN}" \
-  --set global.rabbitmqHost="$SCRIM_RABBITMQ_HOST" \
-  --set global.rabbitmqPort="$SCRIM_RABBITMQ_PORT" \
-  --set matchmaking-db.readReplicas.count=0 \
-  --set ranking-db.readReplicas.count=0 \
-  --set history-db.readReplicas.count=0 \
-  --set secrets.riotApiKey="$RIOT_API_KEY" \
-  --set secrets.dbUser="$SCRIM_DB_USER" \
-  --set secrets.dbPassword="$SCRIM_DB_PASSWORD" \
-  --set secrets.redisPassword="$SCRIM_REDIS_PASSWORD" \
-  --set secrets.rabbitmqUser="$SCRIM_RABBITMQ_USER" \
-  --set secrets.rabbitmqPassword="$SCRIM_RABBITMQ_PASSWORD" \
-  --set secrets.rabbitmqErlangCookie="$SCRIM_RABBITMQ_ERLANG_COOKIE" \
-  --set services.detail-filling-service.enabled=false \
-  --set services.ranking-service.env.DETAIL_FILLING_SERVICE_URL="http://scrimfinder-traefik/api/v1/riot" \
-  --set services.match-history-service.env.PLAYER_FILLING_SVC_URL="http://scrimfinder-traefik/api/v1/riot" \
-  --set services.training-service.env.DETAIL_FILLING_URL="http://scrimfinder-traefik/api/v1/riot"
+#helm upgrade --install scrimfinder "$ROOT_DIR/k8s/charts/scrimfinder" \
+#  --namespace "$SCRIM_NAMESPACE" \
+#  --create-namespace \
+#  --wait \
+#  --timeout 25m \
+#  --set global.namespace="$SCRIM_NAMESPACE" \
+#  --set global.projectID="$SCRIM_PROJECT_ID" \
+#  --set global.microservicesRegistry="$registry" \
+#  --set global.imageTag="$SCRIM_IMAGE_TAG" \
+#  --set global.useSecretManager=true \
+#  --set global.useArgoApplications=true \
+#  --set global.useVerticalPodAutoscaler=true \
+#  --set detailFillingExternal.enabled=true \
+#  --set detailFillingExternal.externalName="${DETAIL_FILLING_DOMAIN}" \
+#  --set global.rabbitmqHost="$SCRIM_RABBITMQ_HOST" \
+#  --set global.rabbitmqPort="$SCRIM_RABBITMQ_PORT" \
+#  --set matchmaking-db.readReplicas.count=0 \
+#  --set ranking-db.readReplicas.count=0 \
+#  --set history-db.readReplicas.count=0 \
+#  --set secrets.riotApiKey="$RIOT_API_KEY" \
+#  --set secrets.dbUser="$SCRIM_DB_USER" \
+#  --set secrets.dbPassword="$SCRIM_DB_PASSWORD" \
+#  --set secrets.redisPassword="$SCRIM_REDIS_PASSWORD" \
+#  --set secrets.rabbitmqUser="$SCRIM_RABBITMQ_USER" \
+#  --set secrets.rabbitmqPassword="$SCRIM_RABBITMQ_PASSWORD" \
+#  --set secrets.rabbitmqErlangCookie="$SCRIM_RABBITMQ_ERLANG_COOKIE" \
+#  --set services.detail-filling-service.enabled=false \
+#  --set services.ranking-service.env.DETAIL_FILLING_SERVICE_URL="http://scrimfinder-traefik/api/v1/riot" \
+#  --set services.match-history-service.env.PLAYER_FILLING_SVC_URL="http://scrimfinder-traefik/api/v1/riot" \
+#  --set services.training-service.env.DETAIL_FILLING_URL="http://scrimfinder-traefik/api/v1/riot"
 
 echo "deploying Argo CD..."
 

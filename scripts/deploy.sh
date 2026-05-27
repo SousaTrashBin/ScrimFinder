@@ -92,30 +92,30 @@ wait
 echo "updating Helm dependencies..."
 helm dependency update k8s/charts/scrimfinder
 
-echo "deploying application with local Helm chart..."
-helm upgrade --install scrimfinder "$ROOT_DIR/k8s/charts/scrimfinder" \
-    --namespace "$SCRIM_NAMESPACE" \
-    --create-namespace \
-    --wait \
-    --timeout 25m \
-    --set global.namespace="${SCRIM_NAMESPACE}" \
-    --set global.projectID="${PROJECT_ID}" \
-    --set global.microservicesRegistry="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}" \
-    --set global.imageTag="${SCRIM_IMAGE_TAG}" \
-    --set global.region="${REGION}" \
-    --set global.projectId="${PROJECT_ID}" \
-    --set global.repoName="${REPO_NAME}" \
-    --set global.rabbitmqHost="${SCRIM_RABBITMQ_HOST}" \
-    --set global.rabbitmqPort="${SCRIM_RABBITMQ_PORT}" \
-    --set global.useSecretManager=true \
-    --set global.useArgoApplications=true \
-    --set global.useVerticalPodAutoscaler=true \
-    --set detailFillingExternal.enabled=true \
-    --set detailFillingExternal.externalName="${DETAIL_FILLING_DOMAIN}" \
-    --set services.detail-filling-service.enabled=false \
-    --set services.ranking-service.env.DETAIL_FILLING_SERVICE_URL="http://scrimfinder-traefik/api/v1/riot" \
-    --set services.match-history-service.env.PLAYER_FILLING_SVC_URL="http://scrimfinder-traefik/api/v1/riot" \
-    --set services.training-service.env.DETAIL_FILLING_URL="http://scrimfinder-traefik/api/v1/riot"#
+#echo "deploying application with local Helm chart..."
+#helm upgrade --install scrimfinder "$ROOT_DIR/k8s/charts/scrimfinder" \
+#    --namespace "$SCRIM_NAMESPACE" \
+#    --create-namespace \
+#    --wait \
+#    --timeout 25m \
+#    --set global.namespace="${SCRIM_NAMESPACE}" \
+#    --set global.projectID="${PROJECT_ID}" \
+#    --set global.microservicesRegistry="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}" \
+#    --set global.imageTag="${SCRIM_IMAGE_TAG}" \
+#    --set global.region="${REGION}" \
+#    --set global.projectId="${PROJECT_ID}" \
+#    --set global.repoName="${REPO_NAME}" \
+#    --set global.rabbitmqHost="${SCRIM_RABBITMQ_HOST}" \
+#    --set global.rabbitmqPort="${SCRIM_RABBITMQ_PORT}" \
+#    --set global.useSecretManager=true \
+#    --set global.useArgoApplications=true \
+#    --set global.useVerticalPodAutoscaler=true \
+#    --set detailFillingExternal.enabled=true \
+#    --set detailFillingExternal.externalName="${DETAIL_FILLING_DOMAIN}" \
+#    --set services.detail-filling-service.enabled=false \
+#    --set services.ranking-service.env.DETAIL_FILLING_SERVICE_URL="http://scrimfinder-traefik/api/v1/riot" \
+#    --set services.match-history-service.env.PLAYER_FILLING_SVC_URL="http://scrimfinder-traefik/api/v1/riot" \
+#    --set services.training-service.env.DETAIL_FILLING_URL="http://scrimfinder-traefik/api/v1/riot"#
 
 echo "deploying Argo CD..."
 
