@@ -40,13 +40,6 @@ spec:
           value: "http://scrimfinder-traefik/api/v1/riot"
         - name: services.training-service.env.DETAIL_FILLING_URL
           value: "http://scrimfinder-traefik/api/v1/riot"
-  # Allow VPA to change resources and limits without being considered Off-Sync by Argo CD
-  ignoreDifferences:
-    - group: ""
-      kind: Pod
-      jqPathExpressions:
-        - .spec.containers[].resources
-        - .spec.containers[].limits
   destination:
     server: https://kubernetes.default.svc
     namespace: scrimfinder
