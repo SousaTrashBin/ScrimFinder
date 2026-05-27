@@ -107,14 +107,15 @@ helm upgrade --install scrimfinder "$ROOT_DIR/k8s/charts/scrimfinder" \
     --set global.repoName="${REPO_NAME}" \
     --set global.rabbitmqHost="${SCRIM_RABBITMQ_HOST}" \
     --set global.rabbitmqPort="${SCRIM_RABBITMQ_PORT}" \
-    --set global.useArgoApplications=false \
-    --set global.useVerticalPodAutoscaler=false \
+    --set global.useSecretManager=true \
+    --set global.useArgoApplications=true \
+    --set global.useVerticalPodAutoscaler=true \
     --set detailFillingExternal.enabled=true \
     --set detailFillingExternal.externalName="${DETAIL_FILLING_DOMAIN}" \
     --set services.detail-filling-service.enabled=false \
     --set services.ranking-service.env.DETAIL_FILLING_SERVICE_URL="http://scrimfinder-traefik/api/v1/riot" \
     --set services.match-history-service.env.PLAYER_FILLING_SVC_URL="http://scrimfinder-traefik/api/v1/riot" \
-    --set services.training-service.env.DETAIL_FILLING_URL="http://scrimfinder-traefik/api/v1/riot"
+    --set services.training-service.env.DETAIL_FILLING_URL="http://scrimfinder-traefik/api/v1/riot"#
 
 echo "deploying Argo CD..."
 

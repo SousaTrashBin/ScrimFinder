@@ -55,9 +55,9 @@ helm upgrade --install scrimfinder "$ROOT_DIR/k8s/charts/scrimfinder" \
   --set global.projectID="$SCRIM_PROJECT_ID" \
   --set global.microservicesRegistry="$registry" \
   --set global.imageTag="$SCRIM_IMAGE_TAG" \
-  --set global.useSecretManager=false \
-  --set global.useArgoApplications=false \
-  --set global.useVerticalPodAutoscaler=false \
+  --set global.useSecretManager=true \
+  --set global.useArgoApplications=true \
+  --set global.useVerticalPodAutoscaler=true \
   --set detailFillingExternal.enabled=true \
   --set detailFillingExternal.externalName="${DETAIL_FILLING_DOMAIN}" \
   --set global.rabbitmqHost="$SCRIM_RABBITMQ_HOST" \
