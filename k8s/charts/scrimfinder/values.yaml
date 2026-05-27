@@ -157,10 +157,10 @@ services:
         containerPort: 9000
     resources:
       requests:
-        cpu: "500m"
+        cpu: "100m"
         memory: "512Mi"
       limits:
-        cpu: "500m"
+        cpu: "100m"
         memory: "512Mi"
     autoscaling:
       enabled: true
@@ -187,10 +187,10 @@ services:
         containerPort: 9001
     resources:
       requests:
-        cpu: "400m"
+        cpu: "100m"
         memory: "512Mi"
       limits:
-        cpu: "400m"
+        cpu: "100m"
         memory: "512Mi"
     autoscaling:
       enabled: true
@@ -217,10 +217,10 @@ services:
         containerPort: 9002
     resources:
       requests:
-        cpu: "400m"
+        cpu: "100m"
         memory: "512Mi"
       limits:
-        cpu: "400m"
+        cpu: "100m"
         memory: "512Mi"
     autoscaling:
       enabled: true
@@ -247,10 +247,10 @@ services:
         containerPort: 9000
     resources:
       requests:
-        cpu: "400m"
+        cpu: "100m"
         memory: "512Mi"
       limits:
-        cpu: "400m"
+        cpu: "100m"
         memory: "512Mi"
     autoscaling:
       enabled: true
@@ -273,10 +273,10 @@ services:
         containerPort: 50051
     resources:
       requests:
-        cpu: "600m"
+        cpu: "200m"
         memory: "2Gi"
       limits:
-        cpu: "600m"
+        cpu: "200m"
         memory: "2Gi"
     autoscaling:
       enabled: true
@@ -299,10 +299,10 @@ services:
         containerPort: 8001
     resources:
       requests:
-        cpu: "500m"
+        cpu: "200m"
         memory: "1Gi"
       limits:
-        cpu: "500m"
+        cpu: "200m"
         memory: "1Gi"
     autoscaling:
       enabled: true
