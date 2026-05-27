@@ -24,6 +24,7 @@ locals {
 
   secret_values = {
     RIOT_API_KEY           = var.riot_api_key
+    riot-api-key           = var.riot_api_key
     db-user                = var.db_user
     db-password            = var.db_password
     redis-password         = var.redis_password
@@ -163,5 +164,5 @@ resource "google_secret_manager_secret_iam_member" "secrets_access" {
   project   = var.project_id
   secret_id = each.key
   role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${google_service_account.secrets_sa.account_id}@${var.project_id}.iam.gserviceaccount.com"
+  member    = "serviceAccount:${google_service_account.secrets_sa[0].email}"
 }
