@@ -91,7 +91,7 @@ resource "google_container_node_pool" "default_pool" {
 
   node_config {
     machine_type = "e2-standard-4"
-    disk_size_gb = 40
+    disk_size_gb = 15
     disk_type    = "pd-standard"
     spot         = true
     labels       = local.common_labels
