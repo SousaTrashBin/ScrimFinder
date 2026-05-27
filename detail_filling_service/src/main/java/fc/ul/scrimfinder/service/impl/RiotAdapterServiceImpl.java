@@ -24,6 +24,8 @@ import org.jboss.logging.Logger;
 @ApplicationScoped
 public class RiotAdapterServiceImpl implements RiotAdapterService {
 
+    @Inject RiotMapper riotMapper;
+
     @Inject @RestClient RiotAccountServiceClient accountServiceClient;
 
     @Inject @RestClient RiotPlayerServiceClient playerServiceClient;
@@ -62,7 +64,7 @@ public class RiotAdapterServiceImpl implements RiotAdapterService {
 
     @Override
     public MatchStatsDTO getMatchData(String matchId) {
-        return RiotMapper.toMatchStatsDTO(
+        return riotMapper.toMatchStatsDTO(
                 Objects.requireNonNull(
                                 new JsonNodeFinder(null)
                                         .fromStringOrThrow(getRawMatchData(matchId), InvalidMatchFormatException.class))
@@ -93,7 +95,7 @@ public class RiotAdapterServiceImpl implements RiotAdapterService {
                         .jsonNode();
         Set<PlayerQueueStatsDTO> queues =
                 StreamSupport.stream(playerQueueStats.spliterator(), true)
-                        .map(RiotMapper::toPlayerQueueStatsDTO)
+                        .map(riotMapper::toPlayerQueueStatsDTO)
                         .collect(Collectors.toSet());
 
         return new PlayerDTO(account, region, summoner, queues);
@@ -106,7 +108,7 @@ public class RiotAdapterServiceImpl implements RiotAdapterService {
                         LogColor.GREEN));
         clientUrlPrefixProvider.setPrefix(region);
         String rawAccount = accountServiceClient.getByRiotId(name, tag);
-        return RiotMapper.toAccountDTO(
+        return riotMapper.toAccountDTO(
                 Objects.requireNonNull(
                                 new JsonNodeFinder(null)
                                         .fromStringOrThrow(rawAccount, InvalidPlayerFormatException.class))
@@ -119,7 +121,7 @@ public class RiotAdapterServiceImpl implements RiotAdapterService {
                         String.format("Fetch summoner data for player %s", puuid), LogColor.GREEN));
         clientUrlPrefixProvider.setPrefix(subregion);
         String rawSummoner = summonerServiceClient.getByAccessToken(puuid);
-        return RiotMapper.toSummonerDTO(
+        return riotMapper.toSummonerDTO(
                 Objects.requireNonNull(
                                 new JsonNodeFinder(null)
                                         .fromStringOrThrow(rawSummoner, InvalidPlayerFormatException.class))

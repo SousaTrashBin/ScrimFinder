@@ -1,6 +1,9 @@
 global:
   namespace: scrimfinder
   imageTag: "latest"
+  useSecretManager: true
+  useArgoApplications: true
+  useVerticalPodAutoscaler: true
   # Registry for microservices only
   projectID: "${PROJECT_ID}"
   microservicesRegistry: "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}"
@@ -11,6 +14,9 @@ global:
   security:
     allowInsecureImages: true
 
+detailFillingExternal:
+  enabled: true
+  externalName: "example.cloudfunctions.net"
 detailFillingExternalName: "example.cloudfunctions.net"
 
 secrets:
@@ -21,13 +27,6 @@ secrets:
   rabbitmqUser: "user"
   rabbitmqPassword: "rabbitmqpassword"
   rabbitmqErlangCookie: "erlangcookie"
-  jwtSecret: "REPLACE_ME"
-  discordBotSecret: "REPLACE_ME"
-  mlDbPassword: "REPLACE_ME"
-  jwtDbPassword: "REPLACE_ME"
-  # RS256 key pair — generate with: openssl genrsa 2048 | tee private.pem && openssl rsa -in private.pem -pubout -out public.pem
-  jwtPrivateKey: ""
-  jwtPublicKey: ""
 
 traefik:
   installCRDs: false
@@ -144,33 +143,6 @@ rabbitmq-broker:
   persistence:
     size: 2Gi
 
-
-ml-db:
-  architecture: standalone
-  auth:
-    database: ml
-    username: postgres
-    existingSecret: scrimfinder-secrets
-    secretKeys:
-      adminPasswordKey: ml-db-password
-      userPasswordKey: ml-db-password
-  primary:
-    persistence:
-      size: 5Gi
-
-jwt-db:
-  architecture: standalone
-  auth:
-    database: jwt_manager
-    username: postgres
-    existingSecret: scrimfinder-secrets
-    secretKeys:
-      adminPasswordKey: jwt-db-password
-      userPasswordKey: jwt-db-password
-  primary:
-    persistence:
-      size: 2Gi
-
 infrastructure:
   aiStorage:
     storage: 1Gi
@@ -186,10 +158,15 @@ services:
     resources:
       requests:
         cpu: "500m"
-        memory: "1Gi"
+        memory: "512Mi"
       limits:
         cpu: "500m"
-        memory: "1Gi"
+        memory: "512Mi"
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
     env:
       DB_URL: "jdbc:postgresql://scrimfinder-matchmaking-db-primary:5432/matchmaking"
       READ_DB_URL: "jdbc:postgresql://scrimfinder-matchmaking-db-read:5432/matchmaking"
@@ -199,8 +176,6 @@ services:
       RANKING_SERVICE_URL: "http://ranking-service:8080"
       PLAYER_FILLING_SVC_HOST: "detail-filling-service"
       PLAYER_FILLING_SVC_PORT: "9000"
-    envFromSecrets:
-      DISCORD_BOT_SECRET: discord-bot-secret
     healthPath: "/api/v1/matchmaking/q/health"
 
   ranking-service:
@@ -212,11 +187,16 @@ services:
         containerPort: 9001
     resources:
       requests:
-        cpu: "500m"
-        memory: "1Gi"
+        cpu: "400m"
+        memory: "512Mi"
       limits:
-        cpu: "500m"
-        memory: "1Gi"
+        cpu: "400m"
+        memory: "512Mi"
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
     env:
       DB_URL: "jdbc:postgresql://scrimfinder-ranking-db-primary:5432/ranking"
       READ_DB_URL: "jdbc:postgresql://scrimfinder-ranking-db-read:5432/ranking"
@@ -237,11 +217,16 @@ services:
         containerPort: 9002
     resources:
       requests:
-        cpu: "500m"
-        memory: "1Gi"
+        cpu: "400m"
+        memory: "512Mi"
       limits:
-        cpu: "500m"
-        memory: "1Gi"
+        cpu: "400m"
+        memory: "512Mi"
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
     env:
       DB_URL: "jdbc:postgresql://scrimfinder-history-db-primary:5432/history"
       READ_DB_URL: "jdbc:postgresql://scrimfinder-history-db-read:5432/history"
@@ -253,6 +238,7 @@ services:
     healthPath: "/api/v1/history/q/health"
 
   detail-filling-service:
+    enabled: false
     imageName: "detail-filling-service"
     ports:
       - name: http
@@ -261,13 +247,18 @@ services:
         containerPort: 9000
     resources:
       requests:
-        cpu: "500m"
-        memory: "1Gi"
+        cpu: "400m"
+        memory: "512Mi"
       limits:
-        cpu: "500m"
-        memory: "1Gi"
+        cpu: "400m"
+        memory: "512Mi"
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
     env:
-      QUARKUS_REDIS_HOSTS: "redis://scrimfinder-filling-cache-master:6379"
+      DETAIL_FILLING_REDIS_URL: "redis://scrimfinder-filling-cache-master:6379"
       REDIS_URL: "redis://scrimfinder-filling-cache-master:6379"
       TRAINING_SVC_HOST: "training-service"
       TRAINING_SVC_RPC_PORT: "50051"
@@ -282,68 +273,24 @@ services:
         containerPort: 50051
     resources:
       requests:
-        cpu: "2000m"
-        memory: "4Gi"
+        cpu: "600m"
+        memory: "2Gi"
       limits:
-        cpu: "2000m"
-        memory: "4Gi"
+        cpu: "600m"
+        memory: "2Gi"
     autoscaling:
       enabled: true
       minReplicas: 1
       maxReplicas: 3
       targetCPUUtilizationPercentage: 80
-      targetMemoryUtilizationPercentage: 80
     env:
       DETAIL_FILLING_URL: "http://scrimfinder-traefik/api/v1/riot"
-      BQ_PROJECT: ""
-      PLATFORM_DB_HOST: "scrimfinder-ml-db-primary"
-      PLATFORM_DB_PORT: "5432"
-      PLATFORM_DB_NAME: "ml"
-      PLATFORM_DB_USER: "postgres"
-      LEAGUE_DB_HOST: "scrimfinder-ml-db-primary"
-      LEAGUE_DB_PORT: "5432"
-      LEAGUE_DB_NAME: "ml"
-      LEAGUE_DB_USER: "postgres"
-      MODELS_DIR: "/app/data/models"
-      GAMES_DIR: "/app/data/games"
-      DATASETS_DIR: "/app/data/datasets"
-    envFromSecrets:
-      PLATFORM_DB_PASSWORD: ml-db-password
-      LEAGUE_DB_PASSWORD: ml-db-password
     healthType: "http"
     healthPath: "/api/v1/training/q/health"
     persistence:
       enabled: true
       mountPath: /app/data
       claimName: ai-storage-pvc
-
-
-  jwt-manager:
-    imageName: "jwt-manager"
-    ports:
-      - name: http
-        containerPort: 8002
-    resources:
-      requests:
-        cpu: "250m"
-        memory: "256Mi"
-      limits:
-        cpu: "250m"
-        memory: "256Mi"
-    env:
-      JWT_DB_HOST: "scrimfinder-jwt-db-primary"
-      JWT_DB_PORT: "5432"
-      JWT_DB_NAME: "jwt_manager"
-      JWT_DB_USER: "postgres"
-      REDIS_URL: "redis://scrimfinder-matchmaking-redis-master:6379/2"
-      JWT_ISSUER: "scrimfinder/jwt-manager"
-    envFromSecrets:
-      JWT_SECRET: jwt-secret
-      JWT_DB_PASSWORD: jwt-db-password
-      JWT_PRIVATE_KEY: jwt-private-key
-      JWT_PUBLIC_KEY: jwt-public-key
-    healthType: "http"
-    healthPath: "/api/v1/auth/q/health"
 
   analysis-service:
     imageName: "analysis-service"
@@ -352,27 +299,18 @@ services:
         containerPort: 8001
     resources:
       requests:
-        cpu: "200m"
-        memory: "512Mi"
+        cpu: "500m"
+        memory: "1Gi"
       limits:
-        cpu: "1000m"
+        cpu: "500m"
         memory: "1Gi"
     autoscaling:
       enabled: true
       minReplicas: 1
       maxReplicas: 3
       targetCPUUtilizationPercentage: 80
-      targetMemoryUtilizationPercentage: 80
     env:
       TRAINING_GRPC_URL: "training-service:50051"
-      BQ_PROJECT: ""
-      LEAGUE_DB_HOST: "scrimfinder-ml-db-primary"
-      LEAGUE_DB_PORT: "5432"
-      LEAGUE_DB_NAME: "ml"
-      LEAGUE_DB_USER: "postgres"
-      MODELS_DIR: "/app/data/models"
-    envFromSecrets:
-      LEAGUE_DB_PASSWORD: ml-db-password
     healthType: "http"
     healthPath: "/api/v1/analysis/q/health"
     persistence:

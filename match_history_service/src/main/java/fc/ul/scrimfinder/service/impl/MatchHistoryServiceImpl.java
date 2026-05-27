@@ -227,4 +227,12 @@ public class MatchHistoryServiceImpl implements MatchHistoryService {
         }
         return matchDTO;
     }
+
+    @Override
+    public void cleanUp() {
+        logger.warn(ColoredMessage.withColor("Database Cleaned", LogColor.YELLOW));
+        playerMatchStatsRepository.deleteAll();
+        matchHistoryRepository.deleteAll();
+        playerRepository.deleteAll();
+    }
 }

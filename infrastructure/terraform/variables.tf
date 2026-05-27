@@ -1,88 +1,86 @@
 variable "project_id" {
-  description = "GCP project ID."
-  type        = string
+  type = string
 }
 
 variable "region" {
-  description = "GCP region."
-  type        = string
-  default     = "europe-west1"
-}
-
-variable "zone_suffix" {
-  description = "Zone suffix appended to the region."
-  type        = string
-  default     = "a"
-}
-
-variable "cluster_name" {
-  description = "GKE cluster name."
-  type        = string
-  default     = "scrimfinder"
-}
-
-variable "node_machine_type" {
-  description = "Machine type for the default node pool."
-  type        = string
-  default     = "e2-standard-4"
-}
-
-variable "node_count" {
-  description = "Initial node count."
-  type        = number
-  default     = 1
-}
-
-variable "min_nodes" {
-  description = "Minimum autoscaled nodes."
-  type        = number
-  default     = 1
-}
-
-variable "max_nodes" {
-  description = "Maximum autoscaled nodes."
-  type        = number
-  default     = 3
-}
-
-variable "disk_size_gb" {
-  description = "GKE node boot disk size."
-  type        = number
-  default     = 40
+  type = string
 }
 
 variable "repo_name" {
-  description = "Artifact Registry Docker repository name."
-  type        = string
-  default     = "scrimfinder"
+  type = string
 }
 
-variable "enable_spot" {
-  description = "Whether to use Spot VMs for the node pool."
-  type        = bool
-  default     = true
-}
-
-variable "gke_channel" {
-  description = "GKE release channel."
-  type        = string
-  default     = "REGULAR"
-}
-
-variable "master_cidr" {
-  description = "CIDR allowed to access the public GKE control plane endpoint."
-  type        = string
-  default     = "0.0.0.0/0"
+variable "cluster_name" {
+  type = string
 }
 
 variable "namespace" {
-  description = "Kubernetes namespace used by Workload Identity bindings."
-  type        = string
-  default     = "scrimfinder"
+  type    = string
+  default = "scrimfinder"
 }
 
-variable "environment" {
-  description = "Environment suffix used in resource names."
+variable "riot_api_key" {
+  type      = string
+  sensitive = true
+}
+
+variable "db_user" {
+  type      = string
+  sensitive = true
+}
+
+variable "db_password" {
+  type      = string
+  sensitive = true
+}
+
+variable "redis_password" {
+  type      = string
+  sensitive = true
+}
+
+variable "rabbitmq_user" {
+  type      = string
+  sensitive = true
+}
+
+variable "rabbitmq_password" {
+  type      = string
+  sensitive = true
+}
+
+variable "rabbitmq_erlang_cookie" {
+  type      = string
+  sensitive = true
+}
+
+variable "manage_artifact_registry_repository" {
+  type    = bool
+  default = true
+}
+
+variable "manage_secret_manager" {
+  type    = bool
+  default = true
+}
+
+variable "environment_name" {
+  type    = string
+  default = "manual"
+}
+
+variable "github_run_id" {
+  type    = string
+  default = ""
+}
+
+variable "github_pr" {
+  type    = string
+  default = ""
+}
+
+variable "cloud_functions_deployer_member" {
   type        = string
-  default     = "dev"
+  default     = ""
+  description = "Optional IAM member, for example serviceAccount:name@project.iam.gserviceaccount.com, allowed to deploy Cloud Functions in CI."
 }

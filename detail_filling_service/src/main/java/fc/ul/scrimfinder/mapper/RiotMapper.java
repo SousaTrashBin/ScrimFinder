@@ -12,12 +12,19 @@ import fc.ul.scrimfinder.exception.InvalidMatchFormatException;
 import fc.ul.scrimfinder.exception.InvalidPlayerFormatException;
 import fc.ul.scrimfinder.exception.InvalidTeamFormatException;
 import fc.ul.scrimfinder.util.*;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.StreamSupport;
+import org.jboss.logging.Logger;
 
+@ApplicationScoped
 public class RiotMapper {
-    public static MatchStatsDTO toMatchStatsDTO(JsonNode match) {
+
+    @Inject Logger logger;
+
+    public MatchStatsDTO toMatchStatsDTO(JsonNode match) {
         String riotMatchId =
                 new JsonNodeFinder(match)
                         .jsonGetOrThrow("metadata", InvalidMatchFormatException.class)
@@ -35,6 +42,10 @@ public class RiotMapper {
                         .asText();
         String[] gameVersionElements = gameVersion.split("\\.");
         if (gameVersionElements.length < 2) {
+            logger.error(
+                    ColoredMessage.withColor(
+                            "Not enough elements in gameVersion field of Riot response: " + gameVersion,
+                            LogColor.RED));
             throw new InvalidMatchFormatException(
                     "Not enough elements in gameVersion field of Riot response: " + gameVersion);
         }
@@ -55,9 +66,7 @@ public class RiotMapper {
         JsonNode participants =
                 jsonNodeFinder.jsonGetOrThrow("participants", InvalidMatchFormatException.class).jsonNode();
         List<PlayerStatsDTO> players =
-                StreamSupport.stream(participants.spliterator(), true)
-                        .map(RiotMapper::toPlayerStatsDTO)
-                        .toList();
+                StreamSupport.stream(participants.spliterator(), true).map(this::toPlayerStatsDTO).toList();
 
         JsonNode teamsNode =
                 jsonNodeFinder.jsonGetOrThrow("teams", InvalidMatchFormatException.class).jsonNode();
@@ -69,7 +78,7 @@ public class RiotMapper {
         return new MatchStatsDTO(riotMatchId, patch, gameCreation, gameDuration, players, teams);
     }
 
-    public static PlayerStatsDTO toPlayerStatsDTO(JsonNode player) {
+    public PlayerStatsDTO toPlayerStatsDTO(JsonNode player) {
         JsonNodeFinder playerNodeFinder = new JsonNodeFinder(player);
 
         String puuid =
@@ -192,9 +201,14 @@ public class RiotMapper {
                 switch (teamId) {
                     case 100 -> TeamSide.BLUE;
                     case 200 -> TeamSide.RED;
-                    default ->
-                            throw new InvalidPlayerFormatException(
-                                    "Invalid team id from Riot response. Should be 100 or 200. Got: " + teamId);
+                    default -> {
+                        logger.error(
+                                ColoredMessage.withColor(
+                                        "Invalid team id from Riot response. Should be 100 or 200. Got: " + teamId,
+                                        LogColor.RED));
+                        throw new InvalidPlayerFormatException(
+                                "Invalid team id from Riot response. Should be 100 or 200. Got: " + teamId);
+                    }
                 };
 
         Boolean won =
@@ -222,7 +236,7 @@ public class RiotMapper {
                 won);
     }
 
-    public static TeamStatsDTO toTeamStatsDTO(JsonNode team, List<PlayerStatsDTO> players) {
+    public TeamStatsDTO toTeamStatsDTO(JsonNode team, List<PlayerStatsDTO> players) {
         JsonNodeFinder teamNodeFinder = new JsonNodeFinder(team);
 
         int teamId =
@@ -234,9 +248,14 @@ public class RiotMapper {
                 switch (teamId) {
                     case 100 -> TeamSide.BLUE;
                     case 200 -> TeamSide.RED;
-                    default ->
-                            throw new InvalidTeamFormatException(
-                                    "Invalid team id from Riot response. Should be 100 or 200. Got: " + teamId);
+                    default -> {
+                        logger.error(
+                                ColoredMessage.withColor(
+                                        "Invalid team id from Riot response. Should be 100 or 200. Got: " + teamId,
+                                        LogColor.RED));
+                        throw new InvalidTeamFormatException(
+                                "Invalid team id from Riot response. Should be 100 or 200. Got: " + teamId);
+                    }
                 };
 
         List<PlayerStatsDTO> teamPlayers =
@@ -250,7 +269,7 @@ public class RiotMapper {
         return new TeamStatsDTO(side, teamKills, teamDeaths, teamAssists, teamHealing);
     }
 
-    public static AccountDTO toAccountDTO(JsonNode account) {
+    public AccountDTO toAccountDTO(JsonNode account) {
         JsonNodeFinder accountNodeFinder = new JsonNodeFinder(account);
 
         String puuid =
@@ -274,7 +293,7 @@ public class RiotMapper {
         return new AccountDTO(puuid, name, tag);
     }
 
-    public static RegionDTO toRegionDTO(JsonNode region) {
+    public RegionDTO toRegionDTO(JsonNode region) {
         JsonNodeFinder regionNodeFinder = new JsonNodeFinder(region);
 
         String subregion =
@@ -289,7 +308,7 @@ public class RiotMapper {
         return new RegionDTO(regionStr, subregion);
     }
 
-    public static SummonerDTO toSummonerDTO(JsonNode summoner) {
+    public SummonerDTO toSummonerDTO(JsonNode summoner) {
         JsonNodeFinder summonerNodeFinder = new JsonNodeFinder(summoner);
 
         Integer icon =
@@ -307,7 +326,7 @@ public class RiotMapper {
         return new SummonerDTO(icon, level);
     }
 
-    public static PlayerQueueStatsDTO toPlayerQueueStatsDTO(JsonNode queue) {
+    public PlayerQueueStatsDTO toPlayerQueueStatsDTO(JsonNode queue) {
         JsonNodeFinder queueFinder = new JsonNodeFinder(queue);
 
         String queueType =
@@ -333,7 +352,7 @@ public class RiotMapper {
         return new PlayerQueueStatsDTO(queueType, rank, wins, losses, hotStreak);
     }
 
-    public static Rank toRank(JsonNode queue) {
+    public Rank toRank(JsonNode queue) {
         JsonNodeFinder queueFinder = new JsonNodeFinder(queue);
 
         Tier tier =

@@ -1,5 +1,6 @@
 package fc.ul.scrimfinder.health;
 
+import fc.ul.scrimfinder.Config;
 import fc.ul.scrimfinder.client.ClientUrlPrefixProvider;
 import fc.ul.scrimfinder.client.RiotHealthClient;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -18,8 +19,13 @@ public class ReadinessRiotApiCheck implements HealthCheck {
 
     @Inject ClientUrlPrefixProvider clientUrlPrefixProvider;
 
+    @Inject Config config;
+
     @Override
     public HealthCheckResponse call() {
+        if (!config.riotApiReadinessEnabled()) {
+            return HealthCheckResponse.named("Riot API availability check").up().build();
+        }
         clientUrlPrefixProvider.setPrefix("euw1"); // Use EUW1 as default health check region
         if (isRiotApiAvailable()) {
             return HealthCheckResponse.named("Riot API availability check").up().build();

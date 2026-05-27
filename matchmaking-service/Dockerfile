@@ -12,10 +12,7 @@ RUN mvn package -DskipTests -Dspotless.skip=true -B
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /deployments
 
-COPY --from=build --chown=185 /code/target/quarkus-app/lib/ /deployments/lib/
-COPY --from=build --chown=185 /code/target/quarkus-app/*.jar /deployments/
-COPY --from=build --chown=185 /code/target/quarkus-app/app/ /deployments/app/
-COPY --from=build --chown=185 /code/target/quarkus-app/quarkus/ /deployments/quarkus/
+COPY --from=build --chown=185 /code/target/quarkus-app/ /deployments/
 
 EXPOSE 8080
 USER 185

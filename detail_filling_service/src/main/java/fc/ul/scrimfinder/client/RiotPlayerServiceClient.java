@@ -3,6 +3,8 @@ package fc.ul.scrimfinder.client;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import java.net.http.HttpConnectTimeoutException;
+import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.rest.client.annotation.ClientHeaderParam;
 import org.eclipse.microprofile.rest.client.annotation.RegisterProvider;
@@ -18,5 +20,6 @@ public interface RiotPlayerServiceClient {
     @GET
     @Path("/lol/league/v4/entries/by-puuid/{encryptedPUUID}")
     @Retry(maxRetries = 4)
+    @CircuitBreaker(failOn = HttpConnectTimeoutException.class)
     String getLeagueEntriesByPUUID(@PathParam("encryptedPUUID") @NotBlank String encryptedPUUID);
 }

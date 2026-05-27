@@ -12,6 +12,7 @@ import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,17 +38,24 @@ public class PlayerRankingRepository implements PanacheRepositoryBase<PlayerRank
     public PaginatedResponseDTO<PlayerRankingDTO> findLeaderboard(
             int page, int size, Optional<QueueEntity> queue, Optional<Region> region) {
 
-        StringBuilder query = new StringBuilder("1=1");
+        List<String> clauses = new ArrayList<>();
+        List<Object> params = new ArrayList<>();
+
         if (queue.isPresent()) {
-            query.append(" and queue = :queue");
+            clauses.add("queue = ?" + (params.size() + 1));
+            params.add(queue.get());
         }
 
-        PanacheQuery<PlayerRanking> panacheQuery;
-        if (queue.isPresent()) {
-            panacheQuery = find("queue = ?1 order by mmr desc", queue.get());
-        } else {
-            panacheQuery = find("order by mmr desc");
+        if (region.isPresent()) {
+            clauses.add(
+                    "player.id in (select account.player.id from RiotAccount account where account.isPrimary = true and account.region = ?"
+                            + (params.size() + 1)
+                            + ")");
+            params.add(region.get());
         }
+
+        String query = clauses.isEmpty() ? "" : String.join(" and ", clauses) + " ";
+        PanacheQuery<PlayerRanking> panacheQuery = find(query + "order by mmr desc", params.toArray());
 
         panacheQuery.page(Page.of(page, size));
 

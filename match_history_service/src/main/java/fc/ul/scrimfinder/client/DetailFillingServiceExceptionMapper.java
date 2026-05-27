@@ -24,9 +24,13 @@ public class DetailFillingServiceExceptionMapper
 
             if (code.equalsIgnoreCase("UNAUTHORIZED_ACCESS")
                     || code.equalsIgnoreCase("EXTERNAL_SERVICE_UNAVAILABLE")) {
-                logger.error(ColoredMessage.withColor(message, LogColor.RED));
+                logger.error(
+                        ColoredMessage.withColor(
+                                String.format("status: %d; %s", response.getStatus(), message), LogColor.RED));
             } else {
-                logger.warn(ColoredMessage.withColor(message, LogColor.YELLOW));
+                logger.warn(
+                        ColoredMessage.withColor(
+                                String.format("status: %d; %s", response.getStatus(), message), LogColor.YELLOW));
             }
 
             return switch (code) {

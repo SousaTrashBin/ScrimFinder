@@ -1,21 +1,20 @@
 package fc.ul.scrimfinder.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import fc.ul.scrimfinder.dto.request.PlayerStatsDTO;
+import fc.ul.scrimfinder.dto.request.TeamStatsDTO;
 import fc.ul.scrimfinder.dto.response.MatchDTO;
 import fc.ul.scrimfinder.exception.ExternalServiceUnavailableException;
 import fc.ul.scrimfinder.exception.InvalidExternalJsonFormatException;
-import fc.ul.scrimfinder.exception.PlayerNotFoundException;
 
 public interface DetailFillingAdapterService {
     MatchDTO getMatch(String riotMatchId)
             throws InvalidExternalJsonFormatException, ExternalServiceUnavailableException;
 
-    String getPlayerPuuid(String server, String name, String tag)
-            throws PlayerNotFoundException,
-                    InvalidExternalJsonFormatException,
-                    ExternalServiceUnavailableException;
+    MatchDTO mapToMatchFromDetailFilling(JsonNode match) throws InvalidExternalJsonFormatException;
 
-    Integer getPlayerIcon(String server, String name, String tag)
-            throws PlayerNotFoundException,
-                    InvalidExternalJsonFormatException,
-                    ExternalServiceUnavailableException;
+    PlayerStatsDTO mapToPlayerFromDetailFilling(JsonNode player, Long gameDuration)
+            throws InvalidExternalJsonFormatException;
+
+    TeamStatsDTO mapToTeamFromDetailFilling(JsonNode team) throws InvalidExternalJsonFormatException;
 }

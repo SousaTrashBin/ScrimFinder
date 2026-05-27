@@ -2,7 +2,6 @@ package fc.ul.scrimfinder.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.inject.Inject;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.jboss.logging.Logger;
@@ -10,12 +9,13 @@ import org.jboss.logging.Logger;
 @NoArgsConstructor
 @Setter
 public class JsonNodeFinder {
-    @Inject Logger logger;
+    private Logger logger;
 
     private JsonNode jsonNode;
 
     public JsonNodeFinder(JsonNode jsonNode) {
         this.jsonNode = jsonNode;
+        this.logger = Logger.getLogger(JsonNodeFinder.class);
     }
 
     public JsonNode jsonNode() {
@@ -47,11 +47,16 @@ public class JsonNodeFinder {
     }
 
     private void throwException(Class<? extends RuntimeException> exception, String message) {
+        RuntimeException x1;
         try {
-            throw (RuntimeException)
-                    Class.forName(exception.getName()).getConstructor(String.class).newInstance(message);
-        } catch (Exception x) {
+            x1 =
+                    (RuntimeException)
+                            Class.forName(exception.getCanonicalName())
+                                    .getConstructor(String.class)
+                                    .newInstance(message);
+        } catch (Exception x2) {
             throw new IllegalArgumentException("Invalid exception class: " + exception.getName());
         }
+        throw x1;
     }
 }

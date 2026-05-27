@@ -27,8 +27,10 @@ import java.util.List;
 import java.util.UUID;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+@Tag("integration-heavy")
 @QuarkusTest
 @TestTransaction
 public class MatchmakingServiceTest {

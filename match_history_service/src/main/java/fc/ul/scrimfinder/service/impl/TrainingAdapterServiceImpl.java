@@ -7,6 +7,7 @@ import fc.ul.scrimfinder.service.TrainingAdapterService;
 import io.quarkus.grpc.GrpcClient;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import java.net.http.HttpConnectTimeoutException;
 import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.faulttolerance.Timeout;
@@ -23,7 +24,7 @@ public class TrainingAdapterServiceImpl implements TrainingAdapterService {
     @Override
     @Retry(maxRetries = 4)
     @Timeout(10000)
-    @CircuitBreaker()
+    @CircuitBreaker(failOn = HttpConnectTimeoutException.class)
     public boolean sendMatchForAnalysis(String riotMatchId) {
         try {
             ForwardMatchRequest request =

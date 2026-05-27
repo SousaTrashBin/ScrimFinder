@@ -3,6 +3,8 @@ package fc.ul.scrimfinder.client;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import java.net.http.HttpConnectTimeoutException;
+import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.rest.client.annotation.ClientHeaderParam;
 import org.eclipse.microprofile.rest.client.annotation.RegisterProvider;
@@ -18,6 +20,7 @@ public interface RiotAccountServiceClient {
     @GET
     @Path("/riot/account/v1/accounts/by-riot-id/{gameName}/{tagLine}")
     @Retry(maxRetries = 4)
+    @CircuitBreaker(failOn = HttpConnectTimeoutException.class)
     String getByRiotId(
             @PathParam("gameName") @NotBlank String gameName,
             @PathParam("tagLine") @NotBlank String tagLine);
