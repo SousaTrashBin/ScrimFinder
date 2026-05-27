@@ -90,9 +90,9 @@ resource "google_container_node_pool" "default_pool" {
   }
 
   node_config {
-    machine_type = "e2-small"
-    disk_size_gb = 10
-    disk_type    = "pd-balanced"
+    machine_type = "e2-standard-4"
+    disk_size_gb = 40
+    disk_type    = "pd-standard"
     spot         = true
     labels       = local.common_labels
     oauth_scopes = ["https://www.googleapis.com/auth/cloud-platform"]
