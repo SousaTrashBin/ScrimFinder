@@ -87,8 +87,8 @@ def extract(body: FeatureExtractRequest):
     responses={404: {"model": ErrorResponse}},
 )
 def get_features_by_query(
-        game_id: str = Query(..., description="Game ID to fetch features for"),
-        concern: Optional[str] = Query(None, description="Optional concern filter"),
+    game_id: str = Query(..., description="Game ID to fetch features for"),
+    concern: Optional[str] = Query(None, description="Optional concern filter"),
 ):
     """
     Get stored features for a specific game.

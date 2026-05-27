@@ -10,8 +10,7 @@ training (which needs flat float vectors with consistent feature_names).
 
 from __future__ import annotations
 
-import json
-from typing import Any, Optional
+from typing import Optional
 
 import numpy as np
 
@@ -54,7 +53,9 @@ def extract_features(raw: dict, concern: str) -> tuple[list[float], list[str]]:
         return [0.0], ["unknown_concern"]
 
 
-def extract_features_batch(raw_matches: list[dict], concern: str) -> list[tuple[list[float], list[str]]]:
+def extract_features_batch(
+    raw_matches: list[dict], concern: str
+) -> list[tuple[list[float], list[str]]]:
     """Batch version for efficient ingestion of multiple matches."""
     results = []
     for raw in raw_matches:
@@ -81,8 +82,19 @@ def _flatten_draft(draft: Optional[dict]) -> tuple[list[float], list[str]]:
     the real training vectors are built by data_loader.load_draft_data().
     """
     if draft is None or not draft.get("valid"):
-        return [0.0] * 11, ["blue_0", "blue_1", "blue_2", "blue_3", "blue_4",
-                            "red_0", "red_1", "red_2", "red_3", "red_4", "winner"]
+        return [0.0] * 11, [
+            "blue_0",
+            "blue_1",
+            "blue_2",
+            "blue_3",
+            "blue_4",
+            "red_0",
+            "red_1",
+            "red_2",
+            "red_3",
+            "red_4",
+            "winner",
+        ]
 
     blue = draft.get("blue_champs", [])
     red = draft.get("red_champs", [])
@@ -96,7 +108,9 @@ def _flatten_draft(draft: Optional[dict]) -> tuple[list[float], list[str]]:
     vector += [_hash_champ(c) for c in (red + [""] * 5)[:5]]
     vector.append(winner)
 
-    names = [f"blue_{i}" for i in range(5)] + [f"red_{i}" for i in range(5)] + ["winner"]
+    names = (
+        [f"blue_{i}" for i in range(5)] + [f"red_{i}" for i in range(5)] + ["winner"]
+    )
     return vector, names
 
 
@@ -109,7 +123,14 @@ def _flatten_build_aggregate(builds: list[dict]) -> tuple[list[float], list[str]
       - win rate
     """
     if not builds:
-        return [0.0] * 6, ["avg_gold", "avg_cs", "avg_dmg", "item_diversity", "rune_diversity", "win_rate"]
+        return [0.0] * 6, [
+            "avg_gold",
+            "avg_cs",
+            "avg_dmg",
+            "item_diversity",
+            "rune_diversity",
+            "win_rate",
+        ]
 
     golds = [b.get("gold", 0) for b in builds]
     css = [b.get("cs", 0) for b in builds]
@@ -137,7 +158,14 @@ def _flatten_build_aggregate(builds: list[dict]) -> tuple[list[float], list[str]
         round(len(all_runes) / max(total_rune_slots, 1), 4),
         round(wins / n, 4),
     ]
-    names = ["avg_gold", "avg_cs", "avg_dmg", "item_diversity", "rune_diversity", "win_rate"]
+    names = [
+        "avg_gold",
+        "avg_cs",
+        "avg_dmg",
+        "item_diversity",
+        "rune_diversity",
+        "win_rate",
+    ]
     return vector, names
 
 
@@ -147,11 +175,30 @@ def _flatten_performance_aggregate(perfs: list[dict]) -> tuple[list[float], list
       - avg kills, deaths, assists, gold, cs, dmg, vision, kda, kp
     """
     if not perfs:
-        return [0.0] * 9, ["avg_kills", "avg_deaths", "avg_assists", "avg_gold", "avg_cs",
-                           "avg_dmg", "avg_vision", "avg_kda", "avg_kp"]
+        return [0.0] * 9, [
+            "avg_kills",
+            "avg_deaths",
+            "avg_assists",
+            "avg_gold",
+            "avg_cs",
+            "avg_dmg",
+            "avg_vision",
+            "avg_kda",
+            "avg_kp",
+        ]
 
-    keys = ["kills", "deaths", "assists", "gold", "cs", "dmg_champs", "vision", "kda", "kp"]
-    n = len(perfs)
+    keys = [
+        "kills",
+        "deaths",
+        "assists",
+        "gold",
+        "cs",
+        "dmg_champs",
+        "vision",
+        "kda",
+        "kp",
+    ]
+    len(perfs)
     vector = []
     for k in keys:
         vals = [p.get(k, 0) for p in perfs if p.get(k) is not None]
@@ -166,7 +213,9 @@ def _flatten_performance_aggregate(perfs: list[dict]) -> tuple[list[float], list
 # ═════════════════════════════════════════════════════════════
 
 
-def build_draft_vectors(matches: list[dict], champion_id_map: dict) -> tuple[np.ndarray, np.ndarray, list[str]]:
+def build_draft_vectors(
+    matches: list[dict], champion_id_map: dict
+) -> tuple[np.ndarray, np.ndarray, list[str]]:
     """
     Convert a list of raw matches into X, y arrays for draft training.
 
@@ -191,7 +240,12 @@ def build_draft_vectors(matches: list[dict], champion_id_map: dict) -> tuple[np.
 
         blue_ids = [champion_id_map.get(c) for c in draft["blue_champs"]]
         red_ids = [champion_id_map.get(c) for c in draft["red_champs"]]
-        if None in blue_ids or None in red_ids or len(blue_ids) != 5 or len(red_ids) != 5:
+        if (
+            None in blue_ids
+            or None in red_ids
+            or len(blue_ids) != 5
+            or len(red_ids) != 5
+        ):
             continue
 
         blue_teams.append(blue_ids)
@@ -209,12 +263,16 @@ def build_draft_vectors(matches: list[dict], champion_id_map: dict) -> tuple[np.
     red_enc = mlb.transform(red_teams)
     X = np.hstack([blue_enc, red_enc]).astype(np.float32)
     y = np.array(winners, dtype=np.int32)
-    feature_names = [f"blue_{c}" for c in mlb.classes_] + [f"red_{c}" for c in mlb.classes_]
+    feature_names = [f"blue_{c}" for c in mlb.classes_] + [
+        f"red_{c}" for c in mlb.classes_
+    ]
 
     return X, y, feature_names
 
 
-def build_performance_vectors(perfs: list[dict], pos_le, champ_le) -> tuple[np.ndarray, np.ndarray]:
+def build_performance_vectors(
+    perfs: list[dict], pos_le, champ_le
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Convert performance feature dicts into X, y arrays.
 
@@ -235,10 +293,22 @@ def build_performance_vectors(perfs: list[dict], pos_le, champ_le) -> tuple[np.n
         try:
             pos_enc = pos_le.transform([p["position"]]).reshape(-1, 1)
             champ_enc = champ_le.transform([p["champion_id"]]).reshape(-1, 1)
-            numeric = np.array([
-                [p["kills"], p["deaths"], p["assists"], p["gold"],
-                 p["cs"], p["dmg_champs"], p["vision"], p["kda"], p["kp"]]
-            ], dtype=np.float32)
+            numeric = np.array(
+                [
+                    [
+                        p["kills"],
+                        p["deaths"],
+                        p["assists"],
+                        p["gold"],
+                        p["cs"],
+                        p["dmg_champs"],
+                        p["vision"],
+                        p["kda"],
+                        p["kp"],
+                    ]
+                ],
+                dtype=np.float32,
+            )
             row = np.hstack([pos_enc, champ_enc, numeric]).astype(np.float32)
             rows.append(row[0])
             labels.append(1 if p.get("win") else 0)

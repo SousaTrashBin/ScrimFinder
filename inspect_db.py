@@ -1,5 +1,5 @@
 import sqlite3
-import os
+
 
 def list_tables(db_path):
     conn = sqlite3.connect(db_path)
@@ -8,6 +8,7 @@ def list_tables(db_path):
     tables = [t[0] for t in cursor.fetchall()]
     conn.close()
     return tables
+
 
 if __name__ == "__main__":
     db_path = "../league_clean.db"

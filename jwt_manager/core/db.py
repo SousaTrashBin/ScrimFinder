@@ -71,7 +71,9 @@ def init_db():
     for ddl in tables:
         job = client.query(ddl)
         job.result()
-    print(f"JWT Manager tables initialized in {cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}")
+    print(
+        f"JWT Manager tables initialized in {cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}"
+    )
 
 
 def _bq_query(sql: str, params: Optional[List[Any]] = None):
@@ -79,13 +81,14 @@ def _bq_query(sql: str, params: Optional[List[Any]] = None):
     job_config = QueryJobConfig()
     if params:
         job_config.query_parameters = [
-            ScalarQueryParameter(f"p{i}", _bq_type(p), p)
-            for i, p in enumerate(params)
+            ScalarQueryParameter(f"p{i}", _bq_type(p), p) for i, p in enumerate(params)
         ]
         # Only rewrite if SQL uses %s placeholders (legacy compat)
         if "%s" in sql:
             parts = sql.split("%s")
-            sql = "".join(f"{part}@p{i}" for i, part in enumerate(parts[:-1])) + parts[-1]
+            sql = (
+                "".join(f"{part}@p{i}" for i, part in enumerate(parts[:-1])) + parts[-1]
+            )
     location = getattr(cfg, "BQ_LOCATION", None)
     return client.query(sql, job_config=job_config, location=location).result()
 
@@ -130,8 +133,13 @@ def create_user(username: str, email: str, password_hash: str) -> Dict[str, Any]
     VALUES (@p0, @p1, @p2, @p3, TRUE, CURRENT_TIMESTAMP())
     """
     _bq_query(sql, [user_id, username, email, password_hash])
-    return {"id": user_id, "username": username, "email": email,
-            "password_hash": password_hash, "is_active": True}
+    return {
+        "id": user_id,
+        "username": username,
+        "email": email,
+        "password_hash": password_hash,
+        "is_active": True,
+    }
 
 
 def get_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:

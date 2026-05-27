@@ -166,9 +166,12 @@ class TrainingJobCreate(BaseModel):
     sample: Optional[float] = Field(
         None, ge=0.01, le=1.0, description="Fraction of dataset to sample (0.01-1.0)"
     )
-    limit: Optional[int] = Field(None, ge=1, le=100000, description="Max rows to train on")
+    limit: Optional[int] = Field(
+        None, ge=1, le=100000, description="Max rows to train on"
+    )
     match_type: Optional[str] = Field(
-        None, description="Filter by match type (e.g., CLASSIC, ARAM). Leave empty for all."
+        None,
+        description="Filter by match type (e.g., CLASSIC, ARAM). Leave empty for all.",
     )
 
 

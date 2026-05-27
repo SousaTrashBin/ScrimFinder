@@ -35,7 +35,9 @@ def _meta(r):
     )
 
 
-@router.get("", response_model=ModelListResponse, summary="List models or get one by ID")
+@router.get(
+    "", response_model=ModelListResponse, summary="List models or get one by ID"
+)
 def list_or_get_models(
     model_id: Optional[str] = Query(None, description="Specific model ID to fetch"),
     concern: Optional[str] = Query(None, description="Filter by concern"),
@@ -50,7 +52,9 @@ def list_or_get_models(
     if model_id:
         row = db.get_model_by_id(model_id)
         if row is None:
-            raise HTTPException(status_code=404, detail=f"Model id={model_id} not found.")
+            raise HTTPException(
+                status_code=404, detail=f"Model id={model_id} not found."
+            )
         return ModelListResponse(models=[_meta(row)])
 
     return ModelListResponse(

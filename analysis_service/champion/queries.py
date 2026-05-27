@@ -2,18 +2,23 @@
 SQL queries for the league dataset using BigQuery.
 """
 
-from typing import Any, List, Dict, Optional, Tuple
-from analysis_service.core.db import query_league, _row_to_dict
+from typing import Any
+
+from analysis_service.core.db import _row_to_dict, query_league
 
 
-def _one(query: str, params: List[Any] = []) -> Optional[Dict[str, Any]]:
+def _one(query: str, params: list[Any] = None) -> dict[str, Any] | None:
+    if params is None:
+        params = []
     rows = list(query_league(query, params))
     if not rows:
         return None
     return _row_to_dict(rows[0])
 
 
-def _all(query: str, params: List[Any] = []) -> List[Dict[str, Any]]:
+def _all(query: str, params: list[Any] = None) -> list[dict[str, Any]]:
+    if params is None:
+        params = []
     return [_row_to_dict(r) for r in query_league(query, params)]
 
 
@@ -24,24 +29,24 @@ def _placeholders(values: list[Any]) -> str:
 # ── Champion lookups ──────────────────────────────────────────
 
 
-def get_champion_id(name: str) -> Optional[str]:
+def get_champion_id(name: str) -> str | None:
     row = _one("SELECT id FROM dim_champions WHERE LOWER(name) = LOWER(%s)", [name])
     return row["id"] if row else None
 
 
-def get_champion_name_by_id(champion_id: Any) -> Optional[str]:
+def get_champion_name_by_id(champion_id: Any) -> str | None:
     row = _one("SELECT name FROM dim_champions WHERE id = %s", [str(champion_id)])
     return row["name"] if row else None
 
 
-def get_champion_name(champion_id: Any) -> Optional[str]:
+def get_champion_name(champion_id: Any) -> str | None:
     return get_champion_name_by_id(champion_id)
 
 
 # ── Item lookups ──────────────────────────────────────────────
 
 
-def get_item_names(item_ids: list) -> List[str]:
+def get_item_names(item_ids: list) -> list[str]:
     if not item_ids:
         return []
     ids = [str(i) for i in item_ids]
@@ -50,7 +55,7 @@ def get_item_names(item_ids: list) -> List[str]:
     return [id_to_name.get(str(i), str(i)) for i in item_ids]
 
 
-def get_item_ids(item_names: list) -> List[str]:
+def get_item_ids(item_names: list) -> list[str]:
     if not item_names:
         return []
     rows = _all(f"SELECT id, name FROM dim_items WHERE name IN ({_placeholders(item_names)})", item_names)
@@ -61,9 +66,9 @@ def get_item_ids(item_names: list) -> List[str]:
 # ── Win rate ──────────────────────────────────────────────────
 
 
-def query_winrate(champion_id: Any, position: Optional[str] = None, match_type: Optional[str] = None) -> Dict[str, Any]:
+def query_winrate(champion_id: Any, position: str | None = None, match_type: str | None = None) -> dict[str, Any]:
     clauses = ["ps.champion_id = %s"]
-    params: List[Any] = [str(champion_id)]
+    params: list[Any] = [str(champion_id)]
     if position:
         clauses.append("ps.position = %s")
         params.append(position)
@@ -82,9 +87,9 @@ def query_winrate(champion_id: Any, position: Optional[str] = None, match_type: 
 # ── Average stats ─────────────────────────────────────────────
 
 
-def query_stats(champion_id: Any, position: Optional[str] = None, match_type: Optional[str] = None) -> Dict[str, Any]:
+def query_stats(champion_id: Any, position: str | None = None, match_type: str | None = None) -> dict[str, Any]:
     clauses = ["ps.champion_id = %s"]
-    params: List[Any] = [str(champion_id)]
+    params: list[Any] = [str(champion_id)]
     if position:
         clauses.append("ps.position = %s")
         params.append(position)
@@ -112,15 +117,15 @@ def query_stats(champion_id: Any, position: Optional[str] = None, match_type: Op
 
 
 def query_top_items(
-    champion_id: Any, position: Optional[str] = None, match_type: Optional[str] = None, limit: int = 6
-) -> List[str]:
+    champion_id: Any, position: str | None = None, match_type: str | None = None, limit: int = 6
+) -> list[str]:
     clauses = [
         "ps.champion_id = %s",
         "ps.win = 1",
         "pi.item_id != '0'",
         "pi.item_id NOT IN ('1001','2003','2031','2055','3340','3364','3363')",
     ]
-    params: List[Any] = [str(champion_id)]
+    params: list[Any] = [str(champion_id)]
     if position:
         clauses.append("ps.position = %s")
         params.append(position)
@@ -145,9 +150,9 @@ def query_top_items(
 # ── Counter matchups ──────────────────────────────────────────
 
 
-def query_counters(champion_id: Any, position: Optional[str] = None, limit: int = 5) -> Tuple[List[str], List[str]]:
+def query_counters(champion_id: Any, position: str | None = None, limit: int = 5) -> tuple[list[str], list[str]]:
     pos_clause = "AND ps1.position = %s" if position else ""
-    params_step1: List[Any] = [str(champion_id)]
+    params_step1: list[Any] = [str(champion_id)]
     if position:
         params_step1.append(position)
 
@@ -187,7 +192,7 @@ def query_counters(champion_id: Any, position: Optional[str] = None, limit: int 
 # ── Top champions ─────────────────────────────────────────────
 
 
-def query_top_champions(position: Optional[str] = None, match_type: Optional[str] = None, limit: int = 10) -> List[Dict]:
+def query_top_champions(position: str | None = None, match_type: str | None = None, limit: int = 10) -> list[dict]:
     clauses, params = [], []
     if position:
         clauses.append("ps.position = %s")
@@ -218,10 +223,10 @@ def query_top_champions(position: Optional[str] = None, match_type: Optional[str
 def query_player_stats(
     summoner_id: str,
     last_n: int = 20,
-    champion: Optional[str] = None,
-    role: Optional[str] = None,
-    match_type: Optional[str] = None,
-) -> List[Dict]:
+    champion: str | None = None,
+    role: str | None = None,
+    match_type: str | None = None,
+) -> list[dict]:
     role_to_db = {
         "TOP": "TOP",
         "JUNGLE": "JUNGLE",
@@ -241,7 +246,7 @@ def query_player_stats(
     puuid = row["puuid"]
 
     clauses = ["ps.puuid = %s"]
-    params: List[Any] = [puuid]
+    params: list[Any] = [puuid]
 
     if champion:
         cid = get_champion_id(champion)

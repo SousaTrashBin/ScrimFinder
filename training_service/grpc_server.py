@@ -222,7 +222,11 @@ def process_match_for_training(match_id: str, source: str = "matchmaking") -> di
     draft_ok = build_ok = perf_ok = False
     for concern in ("draft", "build", "performance"):
         vector, names = extract_features(raw, concern)
-        ok = bool(vector) and bool(names) and not names[0].startswith(("invalid:", "error:", "unknown_"))
+        ok = (
+            bool(vector)
+            and bool(names)
+            and not names[0].startswith(("invalid:", "error:", "unknown_"))
+        )
         if ok:
             db.upsert_features(match_id, concern, vector, names)
         if concern == "draft":

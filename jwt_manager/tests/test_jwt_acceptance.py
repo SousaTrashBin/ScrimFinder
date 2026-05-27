@@ -21,7 +21,7 @@ def client(monkeypatch):
     from jwt_manager.main import app
     from jwt_manager.core import db
 
-    mock = BQMock(monkeypatch)
+    BQMock(monkeypatch)
     # Seed a test user
     db.create_user("testuser", "test@scrimfinder.gg", "")
 
@@ -38,7 +38,7 @@ def logged_in_client(client):
     from jwt_manager.core import db
     import jwt_manager.core.db as db_mod
 
-    user = db.get_user_by_username("testuser")
+    db.get_user_by_username("testuser")
     hashed = security.hash_password("Password1!")
 
     original_get = db_mod.get_user_by_username
@@ -50,6 +50,7 @@ def logged_in_client(client):
         return u
 
     import jwt_manager.routers.auth as auth_mod
+
     auth_mod.db.get_user_by_username = patched_get
 
     r = client.post(

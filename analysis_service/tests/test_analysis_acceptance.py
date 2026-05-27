@@ -1,4 +1,3 @@
-
 """
 analysis_service/tests/test_acceptance.py  —  Acceptance / contract tests
 
@@ -22,46 +21,103 @@ def client(monkeypatch):
     from analysis_service.main import app
 
     mock = BQMock(monkeypatch)
-    mock.seed("dim_champions", [
-        {"id": "22", "name": "Ashe"}, {"id": "24", "name": "Jax"},
-        {"id": "1", "name": "Annie"}, {"id": "2", "name": "Olaf"},
-        {"id": "3", "name": "Galio"}, {"id": "4", "name": "Malphite"},
-        {"id": "5", "name": "Amumu"}, {"id": "6", "name": "Orianna"},
-        {"id": "7", "name": "Jinx"}, {"id": "8", "name": "Lulu"},
-        {"id": "9", "name": "Fiora"}, {"id": "10", "name": "Vi"},
-        {"id": "11", "name": "Zed"}, {"id": "12", "name": "Caitlyn"},
-        {"id": "13", "name": "Thresh"},
-    ])
-    mock.seed("dim_items", [
-        {"id": "3031", "name": "Infinity Edge"},
-        {"id": "3078", "name": "Trinity Force"},
-        {"id": "3153", "name": "Blade of the Ruined King"},
-    ])
-    mock.seed("dim_players", [
-        {"puuid": "P1", "name": "Rodrigo", "tag": "EUW"},
-    ])
-    mock.seed("matches", [
-        {"match_id": "M1", "match_type": "RANKED", "duration": 1800, "patch": "14.10", "timestamp": 1},
-        {"match_id": "M2", "match_type": "NORMAL", "duration": 2100, "patch": "14.10", "timestamp": 2},
-    ])
-    mock.seed("player_stats", [
-        {"match_id": "M1", "puuid": "P1", "champion_id": "22", "team_id": "100", "win": 1,
-         "position": "BOTTOM", "kills": 8, "deaths": 2, "assists": 9, "gold": 14000,
-         "cs": 240, "dmg_champs": 21000, "vision": 30, "kda": 8.5, "kp": 0.8},
-        {"match_id": "M2", "puuid": "P1", "champion_id": "24", "team_id": "200", "win": 0,
-         "position": "TOP", "kills": 3, "deaths": 5, "assists": 2, "gold": 9000,
-         "cs": 150, "dmg_champs": 12000, "vision": 15, "kda": 1.0, "kp": 0.3},
-    ])
-    mock.seed("player_items", [
-        {"match_id": "M1", "puuid": "P1", "item_id": "3031", "slot": 0},
-        {"match_id": "M2", "puuid": "P1", "item_id": "3078", "slot": 0},
-    ])
-    mock.seed("player_runes", [
-        {"match_id": "M1", "puuid": "P1", "rune_id": "8005"},
-    ])
+    mock.seed(
+        "dim_champions",
+        [
+            {"id": "22", "name": "Ashe"},
+            {"id": "24", "name": "Jax"},
+            {"id": "1", "name": "Annie"},
+            {"id": "2", "name": "Olaf"},
+            {"id": "3", "name": "Galio"},
+            {"id": "4", "name": "Malphite"},
+            {"id": "5", "name": "Amumu"},
+            {"id": "6", "name": "Orianna"},
+            {"id": "7", "name": "Jinx"},
+            {"id": "8", "name": "Lulu"},
+            {"id": "9", "name": "Fiora"},
+            {"id": "10", "name": "Vi"},
+            {"id": "11", "name": "Zed"},
+            {"id": "12", "name": "Caitlyn"},
+            {"id": "13", "name": "Thresh"},
+        ],
+    )
+    mock.seed(
+        "dim_items",
+        [
+            {"id": "3031", "name": "Infinity Edge"},
+            {"id": "3078", "name": "Trinity Force"},
+            {"id": "3153", "name": "Blade of the Ruined King"},
+        ],
+    )
+    mock.seed(
+        "dim_players",
+        [
+            {"puuid": "P1", "name": "Rodrigo", "tag": "EUW"},
+        ],
+    )
+    mock.seed(
+        "matches",
+        [
+            {"match_id": "M1", "match_type": "RANKED", "duration": 1800, "patch": "14.10", "timestamp": 1},
+            {"match_id": "M2", "match_type": "NORMAL", "duration": 2100, "patch": "14.10", "timestamp": 2},
+        ],
+    )
+    mock.seed(
+        "player_stats",
+        [
+            {
+                "match_id": "M1",
+                "puuid": "P1",
+                "champion_id": "22",
+                "team_id": "100",
+                "win": 1,
+                "position": "BOTTOM",
+                "kills": 8,
+                "deaths": 2,
+                "assists": 9,
+                "gold": 14000,
+                "cs": 240,
+                "dmg_champs": 21000,
+                "vision": 30,
+                "kda": 8.5,
+                "kp": 0.8,
+            },
+            {
+                "match_id": "M2",
+                "puuid": "P1",
+                "champion_id": "24",
+                "team_id": "200",
+                "win": 0,
+                "position": "TOP",
+                "kills": 3,
+                "deaths": 5,
+                "assists": 2,
+                "gold": 9000,
+                "cs": 150,
+                "dmg_champs": 12000,
+                "vision": 15,
+                "kda": 1.0,
+                "kp": 0.3,
+            },
+        ],
+    )
+    mock.seed(
+        "player_items",
+        [
+            {"match_id": "M1", "puuid": "P1", "item_id": "3031", "slot": 0},
+            {"match_id": "M2", "puuid": "P1", "item_id": "3078", "slot": 0},
+        ],
+    )
+    mock.seed(
+        "player_runes",
+        [
+            {"match_id": "M1", "puuid": "P1", "rune_id": "8005"},
+        ],
+    )
+
+    import numpy as np
 
     import analysis_service.routers.analysis as analysis_mod
-    import numpy as np
 
     class ProbModel:
         def predict_proba(self, x):
@@ -73,6 +129,7 @@ def client(monkeypatch):
 
     class FakeMultiLabel:
         classes_ = ["22", "24", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"]
+
         def transform(self, values):
             return np.zeros((len(values), len(self.classes_)), dtype=np.float32)
 

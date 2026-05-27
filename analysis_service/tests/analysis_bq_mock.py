@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import datetime, timezone
-from typing import Any, Optional, List, Dict
+from datetime import UTC, datetime
+from typing import Any
 from unittest.mock import MagicMock
 
 
@@ -43,25 +43,40 @@ class BQMock:
     """In-memory mock for BigQuery analysis tables."""
 
     TABLES = [
-        "matches", "player_stats", "team_stats", "bans", "player_items", "player_runes",
-        "dim_champions", "dim_items", "dim_runes", "dim_players", "models"
+        "matches",
+        "player_stats",
+        "team_stats",
+        "bans",
+        "player_items",
+        "player_runes",
+        "dim_champions",
+        "dim_items",
+        "dim_runes",
+        "dim_players",
+        "models",
     ]
 
-    def __init__(self, monkeypatch, project: str = "test-project", dataset: str = "test_league", platform_dataset: str = "test_platform"):
+    def __init__(
+        self,
+        monkeypatch,
+        project: str = "test-project",
+        dataset: str = "test_league",
+        platform_dataset: str = "test_platform",
+    ):
         self.project = project
         self.dataset = dataset
         self.platform_dataset = platform_dataset
-        self.tables: Dict[str, List[Dict[str, Any]]] = {t: [] for t in self.TABLES}
+        self.tables: dict[str, list[dict[str, Any]]] = {t: [] for t in self.TABLES}
         self._patch(monkeypatch)
 
-    def seed(self, table: str, rows: List[dict]):
+    def seed(self, table: str, rows: list[dict]):
         self.tables[table] = [dict(r) for r in rows]
 
     def clear(self):
         for t in self.TABLES:
             self.tables[t] = []
 
-    def _execute(self, sql: str, params: Optional[List[Any]] = None) -> List[FakeRow]:
+    def _execute(self, sql: str, params: list[Any] | None = None) -> list[FakeRow]:
         sql = sql.strip()
         params = params or []
         for i in sorted(range(len(params)), reverse=True):
@@ -96,7 +111,7 @@ class BQMock:
             return "'" + value.replace("'", "''") + "'"
         return str(value)
 
-    def _table_from_sql(self, sql: str) -> Optional[str]:
+    def _table_from_sql(self, sql: str) -> str | None:
         """Extract the primary table from the FROM clause."""
         # Find the table right after FROM (before any JOIN)
         from_match = re.search(r"FROM\s+`[^`]*\.([^`.]+)`(?:\s+(?:AS\s+)?\w+)?", sql, re.IGNORECASE)
@@ -115,7 +130,7 @@ class BQMock:
                 return t
         return None
 
-    def _handle_merge(self, sql: str) -> List[FakeRow]:
+    def _handle_merge(self, sql: str) -> list[FakeRow]:
         table = self._table_from_sql(sql)
         if table is None:
             return []
@@ -130,14 +145,14 @@ class BQMock:
         on_keys = [k for k in (on_match.group(1), on_match.group(2)) if k] if on_match else ["id"]
 
         row = {}
-        for col, val in zip(cols, vals):
+        for col, val in zip(cols, vals, strict=False):
             val = val.strip()
             if val.startswith("'") and val.endswith("'"):
                 val = val[1:-1]
             elif val.startswith("PARSE_JSON('"):
                 val = json.loads(val[12:-2])
             elif val == "CURRENT_TIMESTAMP()":
-                val = datetime.now(timezone.utc).isoformat()
+                val = datetime.now(UTC).isoformat()
             elif val in ("TRUE", "true"):
                 val = True
             elif val in ("FALSE", "false"):
@@ -153,7 +168,9 @@ class BQMock:
                 break
 
         if existing:
-            update_match = re.search(r"WHEN\s+MATCHED\s+THEN\s+UPDATE\s+SET(.+?)(?:WHEN\s+NOT\s+MATCHED|$)", sql, re.DOTALL | re.IGNORECASE)
+            update_match = re.search(
+                r"WHEN\s+MATCHED\s+THEN\s+UPDATE\s+SET(.+?)(?:WHEN\s+NOT\s+MATCHED|$)", sql, re.DOTALL | re.IGNORECASE
+            )
             if update_match:
                 sets = update_match.group(1)
                 set_pairs = re.findall(r"(\w+)\s*=\s*S\.(\w+)", sets)
@@ -161,20 +178,26 @@ class BQMock:
                     if source in row:
                         existing[target] = row[source]
         else:
-            insert_match = re.search(r"WHEN\s+NOT\s+MATCHED\s+THEN\s+INSERT\s*\(([^)]+)\)\s*VALUES\s*\(([^)]+)\)", sql, re.DOTALL | re.IGNORECASE)
+            insert_match = re.search(
+                r"WHEN\s+NOT\s+MATCHED\s+THEN\s+INSERT\s*\(([^)]+)\)\s*VALUES\s*\(([^)]+)\)",
+                sql,
+                re.DOTALL | re.IGNORECASE,
+            )
             if insert_match:
                 insert_cols = [c.strip() for c in insert_match.group(1).split(",")]
-                val_refs = re.findall(r"S\.(\w+)", insert_match.group(2))
+                re.findall(r"S\.(\w+)", insert_match.group(2))
                 new_row = {c: row.get(c) for c in insert_cols}
                 self.tables[table].append(new_row)
 
         return []
 
-    def _handle_insert(self, sql: str) -> List[FakeRow]:
+    def _handle_insert(self, sql: str) -> list[FakeRow]:
         table = self._table_from_sql(sql)
         if table is None:
             return []
-        cols_match = re.search(r"INSERT\s+INTO\s+`?[^`]+`?\.\s*`?[^`]+`?\.\s*`?([^`]+)`?\s*\(([^)]+)\)", sql, re.IGNORECASE)
+        cols_match = re.search(
+            r"INSERT\s+INTO\s+`?[^`]+`?\.\s*`?[^`]+`?\.\s*`?([^`]+)`?\s*\(([^)]+)\)", sql, re.IGNORECASE
+        )
         if not cols_match:
             return []
         cols = [c.strip() for c in cols_match.group(2).split(",")]
@@ -185,14 +208,14 @@ class BQMock:
         vals = re.findall(r"(@p\d+|'[^']*'|\d+|TRUE|FALSE|CURRENT_TIMESTAMP\(\)|PARSE_JSON\([^)]+\))", vals_str)
 
         row = {}
-        for col, val in zip(cols, vals):
+        for col, val in zip(cols, vals, strict=False):
             val = val.strip()
             if val.startswith("'") and val.endswith("'"):
                 val = val[1:-1]
             elif val.startswith("PARSE_JSON('"):
                 val = json.loads(val[12:-2])
             elif val == "CURRENT_TIMESTAMP()":
-                val = datetime.now(timezone.utc).isoformat()
+                val = datetime.now(UTC).isoformat()
             elif val in ("TRUE", "true"):
                 val = True
             elif val in ("FALSE", "false"):
@@ -204,7 +227,7 @@ class BQMock:
         self.tables[table].append(row)
         return []
 
-    def _handle_update(self, sql: str) -> List[FakeRow]:
+    def _handle_update(self, sql: str) -> list[FakeRow]:
         table = self._table_from_sql(sql)
         if table is None:
             return []
@@ -230,12 +253,12 @@ class BQMock:
                     elif v.isdigit():
                         r[k] = int(v)
                     elif v == "CURRENT_TIMESTAMP()":
-                        r[k] = datetime.now(timezone.utc).isoformat()
+                        r[k] = datetime.now(UTC).isoformat()
                     elif v.startswith("'") and v.endswith("'"):
                         r[k] = v[1:-1]
         return []
 
-    def _handle_delete(self, sql: str) -> List[FakeRow]:
+    def _handle_delete(self, sql: str) -> list[FakeRow]:
         table = self._table_from_sql(sql)
         if table is None:
             return []
@@ -244,7 +267,7 @@ class BQMock:
         self.tables[table] = [r for r in self.tables[table] if not self._matches_where(r, where)]
         return []
 
-    def _handle_select(self, sql: str) -> List[FakeRow]:
+    def _handle_select(self, sql: str) -> list[FakeRow]:
         table = self._table_from_sql(sql)
         if table is None:
             return []
@@ -278,7 +301,7 @@ class BQMock:
         offset_match = re.search(r"OFFSET\s+(\d+)", sql, re.IGNORECASE)
         limit = int(limit_match.group(1)) if limit_match else len(rows)
         offset = int(offset_match.group(1)) if offset_match else 0
-        rows = rows[offset:offset + limit]
+        rows = rows[offset : offset + limit]
 
         # Handle aggregation queries
         select_part = re.search(r"SELECT\s+(.+?)\s+FROM", sql, re.DOTALL | re.IGNORECASE)
@@ -301,7 +324,7 @@ class BQMock:
             return raw[1:-1].replace("''", "'")
         return raw
 
-    def _extract_eq(self, where: str, column: str, alias: Optional[str] = None) -> Optional[str]:
+    def _extract_eq(self, where: str, column: str, alias: str | None = None) -> str | None:
         prefixes = [rf"{re.escape(alias)}\."] if alias else [r"(?:\w+\.)?", ""]
         for prefix in prefixes:
             pattern = rf"{prefix}{re.escape(column)}\s*=\s*('[^']*'|\d+|TRUE|FALSE)"
@@ -310,13 +333,13 @@ class BQMock:
                 return self._literal(match.group(1))
         return None
 
-    def _match_for_id(self, match_id: Any) -> Optional[dict]:
+    def _match_for_id(self, match_id: Any) -> dict | None:
         for row in self.tables["matches"]:
             if str(row.get("match_id")) == str(match_id):
                 return row
         return None
 
-    def _player_stats_rows(self, where: str) -> List[dict]:
+    def _player_stats_rows(self, where: str) -> list[dict]:
         champion_id = self._extract_eq(where, "champion_id", "ps")
         position = self._extract_eq(where, "position", "ps")
         puuid = self._extract_eq(where, "puuid", "ps")
@@ -340,7 +363,7 @@ class BQMock:
             rows.append(row)
         return rows
 
-    def _handle_player_stats_join_select(self, sql: str, where: str) -> Optional[List[FakeRow]]:
+    def _handle_player_stats_join_select(self, sql: str, where: str) -> list[FakeRow] | None:
         select_match = re.search(r"SELECT\s+(.+?)\s+FROM", sql, re.DOTALL | re.IGNORECASE)
         if not select_match:
             return None
@@ -353,6 +376,7 @@ class BQMock:
             return [FakeRow({"wins": wins, "losses": len(rows) - wins, "total": len(rows)})]
 
         if "AVG(PS.KDA)" in select_upper:
+
             def avg(column: str) -> float:
                 vals = [r.get(column) for r in rows if r.get(column) is not None]
                 return sum(vals) / len(vals) if vals else 0.0
@@ -369,44 +393,47 @@ class BQMock:
                 )
             ]
 
-        if "JOIN DIM_CHAMPIONS" in select_upper or "JOIN `" in sql.upper() and "DIM_CHAMPIONS" in sql.upper():
-            if "GROUP BY" in sql.upper():
-                grouped: Dict[str, Dict[str, Any]] = {}
-                for row in rows:
-                    cid = str(row.get("champion_id"))
-                    bucket = grouped.setdefault(cid, {"total": 0, "wins": 0})
-                    bucket["total"] += 1
-                    bucket["wins"] += int(bool(row.get("win")))
-
-                min_games = 101 if re.search(r"HAVING\s+COUNT\(\*\)\s*>\s*100", sql, re.IGNORECASE) else 0
-                name_by_id = {str(r.get("id")): r.get("name") for r in self.tables["dim_champions"]}
-                result = []
-                for cid, stats in grouped.items():
-                    if stats["total"] < min_games:
-                        continue
-                    result.append(
-                        {
-                            "name": name_by_id.get(cid),
-                            "total": stats["total"],
-                            "wins": stats["wins"],
-                            "win_rate": round(stats["wins"] / max(stats["total"], 1) * 100, 2),
-                        }
-                    )
-                result.sort(key=lambda r: r["win_rate"], reverse=True)
-                limit_match = re.search(r"LIMIT\s+(\d+)", sql, re.IGNORECASE)
-                limit = int(limit_match.group(1)) if limit_match else len(result)
-                return [FakeRow(r) for r in result[:limit]]
+        if (
+            "JOIN DIM_CHAMPIONS" in select_upper
+            or "JOIN `" in sql.upper()
+            and "DIM_CHAMPIONS" in sql.upper()
+            and "GROUP BY" in sql.upper()
+        ):
+            grouped: dict[str, dict[str, Any]] = {}
+            for row in rows:
+                cid = str(row.get("champion_id"))
+                bucket = grouped.setdefault(cid, {"total": 0, "wins": 0})
+                bucket["total"] += 1
+                bucket["wins"] += int(bool(row.get("win")))
+            min_games = 101 if re.search(r"HAVING\s+COUNT\(\*\)\s*>\s*100", sql, re.IGNORECASE) else 0
+            name_by_id = {str(r.get("id")): r.get("name") for r in self.tables["dim_champions"]}
+            result = []
+            for cid, stats in grouped.items():
+                if stats["total"] < min_games:
+                    continue
+                result.append(
+                    {
+                        "name": name_by_id.get(cid),
+                        "total": stats["total"],
+                        "wins": stats["wins"],
+                        "win_rate": round(stats["wins"] / max(stats["total"], 1) * 100, 2),
+                    }
+                )
+            result.sort(key=lambda r: r["win_rate"], reverse=True)
+            limit_match = re.search(r"LIMIT\s+(\d+)", sql, re.IGNORECASE)
+            limit = int(limit_match.group(1)) if limit_match else len(result)
+            return [FakeRow(r) for r in result[:limit]]
 
         return None
 
-    def _handle_top_items_select(self, sql: str, where: str) -> Optional[List[FakeRow]]:
+    def _handle_top_items_select(self, sql: str, where: str) -> list[FakeRow] | None:
         if "PLAYER_STATS" not in sql.upper() or "DIM_ITEMS" not in sql.upper():
             return None
 
         stat_rows = self._player_stats_rows(where)
         players = {(str(r.get("match_id")), str(r.get("puuid"))) for r in stat_rows}
         excluded = {"0", "1001", "2003", "2031", "2055", "3340", "3364", "3363"}
-        counts: Dict[str, int] = {}
+        counts: dict[str, int] = {}
         for item in self.tables["player_items"]:
             key = (str(item.get("match_id")), str(item.get("puuid")))
             item_id = str(item.get("item_id"))
@@ -415,10 +442,7 @@ class BQMock:
             counts[item_id] = counts.get(item_id, 0) + 1
 
         name_by_id = {str(r.get("id")): r.get("name") for r in self.tables["dim_items"]}
-        rows = [
-            {"name": name_by_id.get(item_id, item_id), "cnt": count}
-            for item_id, count in counts.items()
-        ]
+        rows = [{"name": name_by_id.get(item_id, item_id), "cnt": count} for item_id, count in counts.items()]
         rows.sort(key=lambda r: r["cnt"], reverse=True)
         limit_match = re.search(r"LIMIT\s+(\d+)", sql, re.IGNORECASE)
         limit = int(limit_match.group(1)) if limit_match else len(rows)
@@ -431,7 +455,7 @@ class BQMock:
                 return v
         return None
 
-    def _aggregate_row(self, rows: List[dict], select_cols: str) -> FakeRow:
+    def _aggregate_row(self, rows: list[dict], select_cols: str) -> FakeRow:
         """Compute aggregated values from rows."""
         result = {}
 
@@ -528,7 +552,7 @@ class BQMock:
             elif char == ")":
                 depth -= 1
                 current += char
-            elif depth == 0 and where[i:i+4].upper() == "AND ":
+            elif depth == 0 and where[i : i + 4].upper() == "AND ":
                 if current.strip():
                     clauses.append(current.strip())
                 current = ""
@@ -637,8 +661,8 @@ class BQMock:
         return True
 
     def _patch(self, monkeypatch):
-        import analysis_service.core.db as db_mod
         import analysis_service.core.config as cfg_mod
+        import analysis_service.core.db as db_mod
 
         monkeypatch.setattr(cfg_mod.cfg, "BQ_PROJECT", self.project)
         monkeypatch.setattr(cfg_mod.cfg, "BQ_DATASET", self.dataset)

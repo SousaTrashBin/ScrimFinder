@@ -1,4 +1,3 @@
-
 """
 analysis_service/tests/test_unit.py  —  Unit tests (no DB required)
 
@@ -21,27 +20,50 @@ def client(monkeypatch):
     from analysis_service.main import app
 
     mock = BQMock(monkeypatch)
-    mock.seed("dim_champions", [
-        {"id": "22", "name": "Ashe"},
-        {"id": "24", "name": "Jax"},
-        {"id": "1", "name": "Annie"},
-        {"id": "2", "name": "Olaf"},
-        {"id": "3", "name": "Galio"},
-    ])
+    mock.seed(
+        "dim_champions",
+        [
+            {"id": "22", "name": "Ashe"},
+            {"id": "24", "name": "Jax"},
+            {"id": "1", "name": "Annie"},
+            {"id": "2", "name": "Olaf"},
+            {"id": "3", "name": "Galio"},
+        ],
+    )
     mock.seed("dim_items", [{"id": "3031", "name": "Infinity Edge"}])
     mock.seed("dim_players", [{"puuid": "P1", "name": "Rodrigo", "tag": "EUW"}])
-    mock.seed("matches", [{"match_id": "M1", "match_type": "RANKED", "duration": 1800, "patch": "14.10", "timestamp": 1}])
-    mock.seed("player_stats", [
-        {"match_id": "M1", "puuid": "P1", "champion_id": "22", "team_id": "100", "win": 1,
-         "position": "BOTTOM", "kills": 8, "deaths": 2, "assists": 9, "gold": 14000,
-         "cs": 240, "dmg_champs": 21000, "vision": 30, "kda": 8.5, "kp": 0.8},
-    ])
+    mock.seed(
+        "matches", [{"match_id": "M1", "match_type": "RANKED", "duration": 1800, "patch": "14.10", "timestamp": 1}]
+    )
+    mock.seed(
+        "player_stats",
+        [
+            {
+                "match_id": "M1",
+                "puuid": "P1",
+                "champion_id": "22",
+                "team_id": "100",
+                "win": 1,
+                "position": "BOTTOM",
+                "kills": 8,
+                "deaths": 2,
+                "assists": 9,
+                "gold": 14000,
+                "cs": 240,
+                "dmg_champs": 21000,
+                "vision": 30,
+                "kda": 8.5,
+                "kp": 0.8,
+            },
+        ],
+    )
     mock.seed("player_items", [{"match_id": "M1", "puuid": "P1", "item_id": "3031", "slot": 0}])
     mock.seed("player_runes", [{"match_id": "M1", "puuid": "P1", "rune_id": "8005"}])
 
     # Mock model loading to avoid file system deps
-    import analysis_service.routers.analysis as analysis_mod
     import numpy as np
+
+    import analysis_service.routers.analysis as analysis_mod
 
     class ProbModel:
         def predict_proba(self, x):
@@ -53,6 +75,7 @@ def client(monkeypatch):
 
     class FakeMultiLabel:
         classes_ = ["22", "24"]
+
         def transform(self, values):
             return np.zeros((len(values), len(self.classes_)), dtype=np.float32)
 
@@ -94,12 +117,14 @@ def client(monkeypatch):
 
 def test_champion_queries_resolve_names(client):
     from analysis_service.champion.queries import get_champion_id, get_champion_name_by_id
+
     assert get_champion_id("ashe") == "22"
     assert get_champion_name_by_id("22") == "Ashe"
 
 
 def test_winrate_query(client):
     from analysis_service.champion.queries import query_winrate
+
     result = query_winrate("22")
     assert result["total"] == 1
     assert result["wins"] == 1
@@ -107,12 +132,14 @@ def test_winrate_query(client):
 
 def test_stats_query(client):
     from analysis_service.champion.queries import query_stats
+
     result = query_stats("22")
     assert "avgKda" in result
 
 
 def test_top_items_query(client):
     from analysis_service.champion.queries import query_top_items
+
     result = query_top_items("22")
     assert "Infinity Edge" in result
 

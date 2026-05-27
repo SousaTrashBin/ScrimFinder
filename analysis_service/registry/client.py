@@ -2,8 +2,8 @@ import pickle
 import threading
 from pathlib import Path
 
-from analysis_service.core.db import get_active_model
 from analysis_service.core.config import cfg
+from analysis_service.core.db import get_active_model
 
 
 class RegistryClient:

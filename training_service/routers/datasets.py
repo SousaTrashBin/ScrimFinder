@@ -70,10 +70,12 @@ def build_dataset(body: DatasetBuildRequest, background_tasks: BackgroundTasks):
     return _meta(db.get_dataset(ds_id))
 
 
-@router.get("", response_model=DatasetListResponse, summary="List datasets or get one by ID")
+@router.get(
+    "", response_model=DatasetListResponse, summary="List datasets or get one by ID"
+)
 def list_or_get_dataset(
-        dataset_id: Optional[str] = Query(None, description="Specific dataset ID to fetch"),
-        concern: Optional[str] = Query(None, description="Filter by concern")
+    dataset_id: Optional[str] = Query(None, description="Specific dataset ID to fetch"),
+    concern: Optional[str] = Query(None, description="Filter by concern"),
 ):
     """
     List datasets with optional filtering, or fetch a single dataset by ID.
@@ -84,7 +86,9 @@ def list_or_get_dataset(
     if dataset_id:
         row = db.get_dataset(dataset_id)
         if row is None:
-            raise HTTPException(status_code=404, detail=f"Dataset '{dataset_id}' not found.")
+            raise HTTPException(
+                status_code=404, detail=f"Dataset '{dataset_id}' not found."
+            )
         return DatasetListResponse(datasets=[_meta(row)])
 
     return DatasetListResponse(

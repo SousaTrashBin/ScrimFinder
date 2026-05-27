@@ -7,7 +7,6 @@ BigQuery mock for JWT Manager unit/acceptance tests.
 from __future__ import annotations
 
 import json
-import uuid
 from datetime import datetime, timezone
 from typing import Any, Optional, List, Dict
 from unittest.mock import MagicMock
@@ -32,7 +31,12 @@ class BQMock:
 
     TABLES = ["users", "refresh_tokens", "access_sessions"]
 
-    def __init__(self, monkeypatch, project: str = "test-project", platform_dataset: str = "test_platform"):
+    def __init__(
+        self,
+        monkeypatch,
+        project: str = "test-project",
+        platform_dataset: str = "test_platform",
+    ):
         self.project = project
         self.platform_dataset = platform_dataset
         self.tables: Dict[str, List[Dict[str, Any]]] = {t: [] for t in self.TABLES}
@@ -79,18 +83,28 @@ class BQMock:
 
     def _handle_insert(self, sql: str) -> List[FakeRow]:
         import re
+
         table = self._table_from_sql(sql)
         if table is None:
             return []
-        cols_match = re.search(r"INSERT\s+INTO\s+`?[^`]+`?\.\s*`?[^`]+`?\.\s*`?([^`]+)`?\s*\(([^)]+)\)", sql, re.IGNORECASE)
+        cols_match = re.search(
+            r"INSERT\s+INTO\s+`?[^`]+`?\.\s*`?[^`]+`?\.\s*`?([^`]+)`?\s*\(([^)]+)\)",
+            sql,
+            re.IGNORECASE,
+        )
         if not cols_match:
             return []
         cols = [c.strip() for c in cols_match.group(2).split(",")]
-        vals_match = re.search(r"VALUES\s*\((.+?)\)\s*$", sql, re.DOTALL | re.IGNORECASE)
+        vals_match = re.search(
+            r"VALUES\s*\((.+?)\)\s*$", sql, re.DOTALL | re.IGNORECASE
+        )
         if not vals_match:
             return []
         vals_str = vals_match.group(1)
-        vals = re.findall(r"(@p\d+|'[^']*'|\d+|TRUE|FALSE|CURRENT_TIMESTAMP\(\)|PARSE_JSON\([^)]+\))", vals_str)
+        vals = re.findall(
+            r"(@p\d+|'[^']*'|\d+|TRUE|FALSE|CURRENT_TIMESTAMP\(\)|PARSE_JSON\([^)]+\))",
+            vals_str,
+        )
 
         row = {}
         for col, val in zip(cols, vals):
@@ -114,6 +128,7 @@ class BQMock:
 
     def _handle_update(self, sql: str) -> List[FakeRow]:
         import re
+
         table = self._table_from_sql(sql)
         if table is None:
             return []
@@ -146,20 +161,28 @@ class BQMock:
 
     def _handle_delete(self, sql: str) -> List[FakeRow]:
         import re
+
         table = self._table_from_sql(sql)
         if table is None:
             return []
         where_match = re.search(r"WHERE\s+(.+)$", sql, re.DOTALL | re.IGNORECASE)
         where = where_match.group(1).strip() if where_match else ""
-        self.tables[table] = [r for r in self.tables[table] if not self._matches_where(r, where)]
+        self.tables[table] = [
+            r for r in self.tables[table] if not self._matches_where(r, where)
+        ]
         return []
 
     def _handle_select(self, sql: str) -> List[FakeRow]:
         import re
+
         table = self._table_from_sql(sql)
         if table is None:
             return []
-        where_match = re.search(r"WHERE\s+(.+?)(?:ORDER\s+BY|LIMIT|OFFSET|$)", sql, re.DOTALL | re.IGNORECASE)
+        where_match = re.search(
+            r"WHERE\s+(.+?)(?:ORDER\s+BY|LIMIT|OFFSET|$)",
+            sql,
+            re.DOTALL | re.IGNORECASE,
+        )
         where = where_match.group(1).strip() if where_match else ""
 
         rows = [r for r in self.tables[table] if self._matches_where(r, where)]
@@ -174,7 +197,7 @@ class BQMock:
         offset_match = re.search(r"OFFSET\s+(\d+)", sql, re.IGNORECASE)
         limit = int(limit_match.group(1)) if limit_match else len(rows)
         offset = int(offset_match.group(1)) if offset_match else 0
-        rows = rows[offset:offset + limit]
+        rows = rows[offset : offset + limit]
 
         if "COUNT(*)" in sql.upper():
             return [FakeRow({"c": len(rows)})]
@@ -187,21 +210,25 @@ class BQMock:
         import re
 
         # Remove parenthesized IS NULL OR ... clauses (mock assumes no NULLs)
-        where = re.sub(r'\(\s*\w+\s+IS\s+NULL\s+OR\s+[^)]+\)', '', where, flags=re.IGNORECASE)
+        where = re.sub(
+            r"\(\s*\w+\s+IS\s+NULL\s+OR\s+[^)]+\)", "", where, flags=re.IGNORECASE
+        )
         # Remove standalone IS NULL checks
-        where = re.sub(r'\b\w+\s+IS\s+NULL\b', '', where, flags=re.IGNORECASE)
+        where = re.sub(r"\b\w+\s+IS\s+NULL\b", "", where, flags=re.IGNORECASE)
         # Clean up dangling ANDs
-        where = re.sub(r'\bAND\s+AND\b', 'AND', where, flags=re.IGNORECASE)
-        where = where.strip().strip('AND').strip()
+        where = re.sub(r"\bAND\s+AND\b", "AND", where, flags=re.IGNORECASE)
+        where = where.strip().strip("AND").strip()
         if not where:
             return True
 
-        clauses = [c.strip() for c in re.split(r'\s+AND\s+', where, flags=re.IGNORECASE)]
+        clauses = [
+            c.strip() for c in re.split(r"\s+AND\s+", where, flags=re.IGNORECASE)
+        ]
         for clause in clauses:
             if not clause:
                 continue
             # expires_at > CURRENT_TIMESTAMP()  -- assume not expired in mock
-            if re.search(r'>\s*CURRENT_TIMESTAMP\(\)', clause, re.IGNORECASE):
+            if re.search(r">\s*CURRENT_TIMESTAMP\(\)", clause, re.IGNORECASE):
                 continue
             # col = 'string'
             m = re.match(r"(\w+)\s*=\s*'([^']*)'", clause)

@@ -1,4 +1,3 @@
-
 """
 training_service/tests/test_unit.py  —  Unit tests (no live DB required)
 
@@ -43,15 +42,36 @@ def client(monkeypatch):
     app.include_router(training.router, prefix="/api/v1/training")
 
     # Seed some data
-    mock.seed_games([
-        {"id": "G1", "source": "test", "patch": "14.10", "match_type": "RANKED",
-         "duration_sec": 1800, "platform": "EUW", "raw_json": {"matchId": "G1"}, "ingested_at": "2026-01-01T00:00:00"},
-    ])
-    mock.seed_models([
-        {"id": "M1", "concern": "draft", "algorithm": "gbm", "version": "v1",
-         "file_path": "/tmp/m1.pkl", "metrics": {}, "hyperparams": {},
-         "feature_names": [], "is_active": True, "created_at": "2026-01-01T00:00:00"},
-    ])
+    mock.seed_games(
+        [
+            {
+                "id": "G1",
+                "source": "test",
+                "patch": "14.10",
+                "match_type": "RANKED",
+                "duration_sec": 1800,
+                "platform": "EUW",
+                "raw_json": {"matchId": "G1"},
+                "ingested_at": "2026-01-01T00:00:00",
+            },
+        ]
+    )
+    mock.seed_models(
+        [
+            {
+                "id": "M1",
+                "concern": "draft",
+                "algorithm": "gbm",
+                "version": "v1",
+                "file_path": "/tmp/m1.pkl",
+                "metrics": {},
+                "hyperparams": {},
+                "feature_names": [],
+                "is_active": True,
+                "created_at": "2026-01-01T00:00:00",
+            },
+        ]
+    )
 
     return TestClient(app, raise_server_exceptions=False)
 
@@ -296,13 +316,34 @@ class TestFeatureEngineering:
                 "queueId": 420,
                 "gameDuration": 1800,
                 "participants": [
-                    {"puuid": f"P{i}", "championName": f"Champ{i}", "teamId": 100 if i < 5 else 200,
-                     "teamPosition": ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"][i % 5],
-                     "win": i < 5, "kills": 5, "deaths": 2, "assists": 8,
-                     "goldEarned": 12000, "totalMinionsKilled": 200,
-                     "totalDamageDealtToChampions": 15000, "visionScore": 25,
-                     "item0": 3031, "item1": 0, "item2": 0, "item3": 0, "item4": 0, "item5": 0, "item6": 0,
-                     "perks": {"styles": [{"selections": [{"perk": 8005}]}]}}
+                    {
+                        "puuid": f"P{i}",
+                        "championName": f"Champ{i}",
+                        "teamId": 100 if i < 5 else 200,
+                        "teamPosition": [
+                            "TOP",
+                            "JUNGLE",
+                            "MIDDLE",
+                            "BOTTOM",
+                            "UTILITY",
+                        ][i % 5],
+                        "win": i < 5,
+                        "kills": 5,
+                        "deaths": 2,
+                        "assists": 8,
+                        "goldEarned": 12000,
+                        "totalMinionsKilled": 200,
+                        "totalDamageDealtToChampions": 15000,
+                        "visionScore": 25,
+                        "item0": 3031,
+                        "item1": 0,
+                        "item2": 0,
+                        "item3": 0,
+                        "item4": 0,
+                        "item5": 0,
+                        "item6": 0,
+                        "perks": {"styles": [{"selections": [{"perk": 8005}]}]},
+                    }
                     for i in range(10)
                 ],
             },
@@ -321,12 +362,30 @@ class TestFeatureEngineering:
                 "queueId": 420,
                 "gameDuration": 1800,
                 "participants": [
-                    {"puuid": f"P{i}", "championName": f"Champ{i}", "teamId": 100 if i < 5 else 200,
-                     "teamPosition": "MIDDLE", "win": True, "kills": 5, "deaths": 2, "assists": 8,
-                     "goldEarned": 12000, "totalMinionsKilled": 200,
-                     "totalDamageDealtToChampions": 15000, "visionScore": 25,
-                     "item0": 3031, "item1": 3078, "item2": 0, "item3": 0, "item4": 0, "item5": 0, "item6": 0,
-                     "perks": {"styles": [{"selections": [{"perk": 8005}, {"perk": 9111}]}]}}
+                    {
+                        "puuid": f"P{i}",
+                        "championName": f"Champ{i}",
+                        "teamId": 100 if i < 5 else 200,
+                        "teamPosition": "MIDDLE",
+                        "win": True,
+                        "kills": 5,
+                        "deaths": 2,
+                        "assists": 8,
+                        "goldEarned": 12000,
+                        "totalMinionsKilled": 200,
+                        "totalDamageDealtToChampions": 15000,
+                        "visionScore": 25,
+                        "item0": 3031,
+                        "item1": 3078,
+                        "item2": 0,
+                        "item3": 0,
+                        "item4": 0,
+                        "item5": 0,
+                        "item6": 0,
+                        "perks": {
+                            "styles": [{"selections": [{"perk": 8005}, {"perk": 9111}]}]
+                        },
+                    }
                     for i in range(10)
                 ],
             },
@@ -345,12 +404,28 @@ class TestFeatureEngineering:
                 "queueId": 420,
                 "gameDuration": 1800,
                 "participants": [
-                    {"puuid": f"P{i}", "championName": f"Champ{i}", "teamId": 100 if i < 5 else 200,
-                     "teamPosition": "MIDDLE", "win": True, "kills": 5, "deaths": 2, "assists": 8,
-                     "goldEarned": 12000, "totalMinionsKilled": 200,
-                     "totalDamageDealtToChampions": 15000, "visionScore": 25,
-                     "item0": 3031, "item1": 0, "item2": 0, "item3": 0, "item4": 0, "item5": 0, "item6": 0,
-                     "perks": {"styles": [{"selections": [{"perk": 8005}]}]}}
+                    {
+                        "puuid": f"P{i}",
+                        "championName": f"Champ{i}",
+                        "teamId": 100 if i < 5 else 200,
+                        "teamPosition": "MIDDLE",
+                        "win": True,
+                        "kills": 5,
+                        "deaths": 2,
+                        "assists": 8,
+                        "goldEarned": 12000,
+                        "totalMinionsKilled": 200,
+                        "totalDamageDealtToChampions": 15000,
+                        "visionScore": 25,
+                        "item0": 3031,
+                        "item1": 0,
+                        "item2": 0,
+                        "item3": 0,
+                        "item4": 0,
+                        "item5": 0,
+                        "item6": 0,
+                        "perks": {"styles": [{"selections": [{"perk": 8005}]}]},
+                    }
                     for i in range(10)
                 ],
             },

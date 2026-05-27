@@ -1,5 +1,3 @@
-from typing import Annotated
-
 import jwt as pyjwt
 from fastapi import APIRouter, HTTPException, Response, Security, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -59,6 +57,7 @@ def _current_user_from_access(
 
 # ── Public endpoints ──────────────────────────────────────────────────────────
 
+
 @router.post(
     "/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED
 )
@@ -72,9 +71,7 @@ def register(body: RegisterRequest) -> RegisterResponse:
         raise HTTPException(status_code=409, detail="Email already exists.")
 
     password_hash = security.hash_password(body.password)
-    user = db.create_user(
-        username=username, email=email, password_hash=password_hash
-    )
+    user = db.create_user(username=username, email=email, password_hash=password_hash)
 
     return RegisterResponse(
         id=str(user["id"]), username=user["username"], email=user["email"]
@@ -150,6 +147,7 @@ def public_key() -> Response:
 
 
 # ── Protected endpoints ───────────────────────────────────────────────────────
+
 
 @router.get("/validate", response_model=ValidateResponse)
 def validate(

@@ -6,7 +6,7 @@ _HERE = Path(__file__).resolve().parent.parent
 
 class _Config:
     MODELS_DIR: str = os.environ.get("MODELS_DIR", str(_HERE / "data" / "models"))
-    
+
     # ── BigQuery ─────────────────────────────────────────────────────────
     BQ_PROJECT: str = os.environ.get("BQ_PROJECT", os.environ.get("SCRIM_PROJECT_ID", ""))
     BQ_DATASET: str = os.environ.get("BQ_DATASET", "scrimfinder")

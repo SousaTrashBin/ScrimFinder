@@ -5,8 +5,6 @@ Chunked data loading with live progress and cancellation support.
 Pure BigQuery implementation. PostgreSQL/SQLite fallbacks removed.
 """
 
-import os
-from pathlib import Path
 from typing import Callable, Optional
 
 import numpy as np
@@ -65,7 +63,9 @@ def _sql(query: str) -> str:
     return query
 
 
-def _read_bq(query: str, params: Optional[list] = None, label: str = "") -> pd.DataFrame:
+def _read_bq(
+    query: str, params: Optional[list] = None, label: str = ""
+) -> pd.DataFrame:
     """
     Execute query via _bq_query and return a DataFrame.
     Uses %s placeholders (converted to @pN by _bq_query).
@@ -340,7 +340,7 @@ def load_performance_data(report: Report, filters: Optional[Filters] = None):
     mc = match_clause.replace("ps.match_id", "match_id") if match_clause else ""
 
     sample = filters.get("sample", 1.0)
-    approx = int(APPROX_ROWS["player_stats"] * (sample or 1.0))
+    int(APPROX_ROWS["player_stats"] * (sample or 1.0))
 
     report(2, "Loading performance data…")
     df = _read_bq(

@@ -19,48 +19,85 @@ pytestmark = pytest.mark.acceptance
 @pytest.fixture
 def client(monkeypatch):
     from training_service.main import app
-    from training_service.core import db
 
     mock = BQMock(monkeypatch)
     # Seed realistic data
-    mock.seed_games([
-        {
-            "id": "EUW1_TEST_001",
-            "source": "test",
-            "patch": "14.10",
-            "match_type": "RANKED",
-            "duration_sec": 1823,
-            "platform": "EUW1",
-            "raw_json": {
-                "metadata": {"matchId": "EUW1_TEST_001"},
-                "info": {
-                    "gameVersion": "14.10.1",
-                    "queueId": 420,
-                    "gameDuration": 1823,
-                    "participants": [
-                        {"puuid": f"P{i}", "championName": f"Champ{i}", "teamId": 100 if i < 5 else 200,
-                         "teamPosition": ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"][i % 5],
-                         "win": i < 5, "kills": 5, "deaths": 2, "assists": 8,
-                         "goldEarned": 12000, "totalMinionsKilled": 200,
-                         "totalDamageDealtToChampions": 15000, "visionScore": 25,
-                         "item0": 3031, "item1": 0, "item2": 0, "item3": 0, "item4": 0, "item5": 0, "item6": 0,
-                         "perks": {"styles": [{"selections": [{"perk": 8005}]}]}}
-                        for i in range(10)
-                    ],
+    mock.seed_games(
+        [
+            {
+                "id": "EUW1_TEST_001",
+                "source": "test",
+                "patch": "14.10",
+                "match_type": "RANKED",
+                "duration_sec": 1823,
+                "platform": "EUW1",
+                "raw_json": {
+                    "metadata": {"matchId": "EUW1_TEST_001"},
+                    "info": {
+                        "gameVersion": "14.10.1",
+                        "queueId": 420,
+                        "gameDuration": 1823,
+                        "participants": [
+                            {
+                                "puuid": f"P{i}",
+                                "championName": f"Champ{i}",
+                                "teamId": 100 if i < 5 else 200,
+                                "teamPosition": [
+                                    "TOP",
+                                    "JUNGLE",
+                                    "MIDDLE",
+                                    "BOTTOM",
+                                    "UTILITY",
+                                ][i % 5],
+                                "win": i < 5,
+                                "kills": 5,
+                                "deaths": 2,
+                                "assists": 8,
+                                "goldEarned": 12000,
+                                "totalMinionsKilled": 200,
+                                "totalDamageDealtToChampions": 15000,
+                                "visionScore": 25,
+                                "item0": 3031,
+                                "item1": 0,
+                                "item2": 0,
+                                "item3": 0,
+                                "item4": 0,
+                                "item5": 0,
+                                "item6": 0,
+                                "perks": {"styles": [{"selections": [{"perk": 8005}]}]},
+                            }
+                            for i in range(10)
+                        ],
+                    },
                 },
+                "ingested_at": "2026-05-01T12:00:00",
             },
-            "ingested_at": "2026-05-01T12:00:00",
-        },
-    ])
-    mock.seed_models([
-        {"id": "MODEL_1", "concern": "draft", "algorithm": "gbm", "version": "2026-W20-20260524T185912",
-         "file_path": "/tmp/draft.pkl", "metrics": {"accuracy": 0.72}, "hyperparams": {"n_estimators": 100},
-         "feature_names": ["blue_22", "red_22"], "is_active": True, "created_at": "2026-05-01T00:00:00"},
-    ])
+        ]
+    )
+    mock.seed_models(
+        [
+            {
+                "id": "MODEL_1",
+                "concern": "draft",
+                "algorithm": "gbm",
+                "version": "2026-W20-20260524T185912",
+                "file_path": "/tmp/draft.pkl",
+                "metrics": {"accuracy": 0.72},
+                "hyperparams": {"n_estimators": 100},
+                "feature_names": ["blue_22", "red_22"],
+                "is_active": True,
+                "created_at": "2026-05-01T00:00:00",
+            },
+        ]
+    )
 
     # Prevent lifespan from trying to start gRPC / RabbitMQ
-    monkeypatch.setattr("training_service.grpc_server.start_background_server", lambda: None)
-    monkeypatch.setattr("training_service.rabbitmq_consumer.start_background_consumer", lambda: None)
+    monkeypatch.setattr(
+        "training_service.grpc_server.start_background_server", lambda: None
+    )
+    monkeypatch.setattr(
+        "training_service.rabbitmq_consumer.start_background_consumer", lambda: None
+    )
 
     return TestClient(app, raise_server_exceptions=False)
 
@@ -146,7 +183,11 @@ class TestFeaturesAcceptance:
     def test_extract_by_game_id(self, client):
         r = client.post(
             "/api/v1/training/features/extract",
-            json={"game_id": "EUW1_TEST_001", "concerns": ["draft", "build", "performance"], "store": True},
+            json={
+                "game_id": "EUW1_TEST_001",
+                "concerns": ["draft", "build", "performance"],
+                "store": True,
+            },
         )
         assert r.status_code == 200, f"Extract failed: {r.text}"
         feats = r.json()["features"]
@@ -157,7 +198,11 @@ class TestFeaturesAcceptance:
     def test_extract_inline(self, client):
         r = client.post(
             "/api/v1/training/features/extract",
-            json={"raw_data": {"matchId": "INLINE"}, "concerns": ["draft"], "store": False},
+            json={
+                "raw_data": {"matchId": "INLINE"},
+                "concerns": ["draft"],
+                "store": False,
+            },
         )
         assert r.status_code == 200
 
@@ -227,7 +272,10 @@ class TestDatasetsAcceptance:
         )
         ds_id = r.json()["id"]
         assert client.delete(f"/api/v1/training/datasets/{ds_id}").status_code == 204
-        assert client.get(f"/api/v1/training/datasets?dataset_id={ds_id}").status_code == 404
+        assert (
+            client.get(f"/api/v1/training/datasets?dataset_id={ds_id}").status_code
+            == 404
+        )
 
 
 # -- Training Jobs ------------------------------------------
@@ -315,8 +363,17 @@ class TestModelsAcceptance:
     def test_activate_deactivate_cycle(self, client):
         # Seed an inactive model
         from training_service.core import db
-        db.register_model("build", "random_forest", "v2", "/tmp/b.pkl",
-                         {"acc": 0.6}, {}, "ds1", ["f1"])
+
+        db.register_model(
+            "build",
+            "random_forest",
+            "v2",
+            "/tmp/b.pkl",
+            {"acc": 0.6},
+            {},
+            "ds1",
+            ["f1"],
+        )
         # Find it
         models = db.list_models(concern="build")
         mid = models[0]["id"]
@@ -343,11 +400,18 @@ class TestModelsAcceptance:
         job_id = "job_acc_001"
         model_id = "model_acc_001"
         db.create_job(job_id, "draft", "gbm", None, {"sample": 0.5})
-        db.update_job(job_id, status="COMPLETED", progress=100, stage="Done",
-                      model_id=model_id, completed_at="2026-05-01T00:00:00")
+        db.update_job(
+            job_id,
+            status="COMPLETED",
+            progress=100,
+            stage="Done",
+            model_id=model_id,
+            completed_at="2026-05-01T00:00:00",
+        )
         # Register the model so activate succeeds
-        db.register_model("draft", "gbm", "v_acc", "/tmp/fake.pkl",
-                         {"acc": 0.7}, {}, None, ["f1"])
+        db.register_model(
+            "draft", "gbm", "v_acc", "/tmp/fake.pkl", {"acc": 0.7}, {}, None, ["f1"]
+        )
 
         # Link job to the newly registered model
         models = db.list_models(concern="draft")

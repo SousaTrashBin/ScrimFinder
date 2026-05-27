@@ -5,7 +5,6 @@ training_service/core/db.py
 
 import json
 import uuid
-import os
 from datetime import datetime, timezone
 from typing import Optional, Any, List, Dict
 
@@ -41,14 +40,15 @@ def _uuid() -> str:
     return str(uuid.uuid4())
 
 
-def _bq_query(sql: str, params: Optional[List[Any]] = None) -> bigquery.table.RowIterator:
+def _bq_query(
+    sql: str, params: Optional[List[Any]] = None
+) -> bigquery.table.RowIterator:
     """Execute a query with optional parameters."""
     client = get_bq_client()
     job_config = QueryJobConfig()
     if params:
         job_config.query_parameters = [
-            ScalarQueryParameter(f"p{i}", _bq_type(p), p)
-            for i, p in enumerate(params)
+            ScalarQueryParameter(f"p{i}", _bq_type(p), p) for i, p in enumerate(params)
         ]
         # Replace %s placeholders with @pN
         parts = sql.split("%s")
@@ -56,6 +56,7 @@ def _bq_query(sql: str, params: Optional[List[Any]] = None) -> bigquery.table.Ro
     # Respect dataset location (EU/US) to avoid 404 "not found in location US"
     location = getattr(cfg, "BQ_LOCATION", None)
     return client.query(sql, job_config=job_config, location=location).result()
+
 
 def _bq_type(value: Any) -> str:
     if isinstance(value, bool):
@@ -84,6 +85,7 @@ def _row_to_dict(row: bigquery.Row) -> Dict[str, Any]:
             # Handle case where BQ mock returns the SQL expression as string
             # Extract the JSON part from expressions like "PARSE_JSON('{...}')"
             import re
+
             m = re.search(r"PARSE_JSON\('(.+?)'\)", val, re.DOTALL)
             if m:
                 try:
@@ -97,7 +99,9 @@ def _row_to_dict(row: bigquery.Row) -> Dict[str, Any]:
 
 
 def count_games() -> int:
-    sql = f"SELECT COUNT(*) as c FROM `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.games`"
+    sql = (
+        f"SELECT COUNT(*) as c FROM `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.games`"
+    )
     for row in _bq_query(sql):
         return row.c
     return 0
@@ -120,9 +124,10 @@ def insert_game(game_id: str, raw: dict, source: str = "manual"):
     WHEN NOT MATCHED THEN INSERT (id, source, patch, match_type, duration_sec, platform, raw_json, ingested_at)
     VALUES (S.id, S.source, S.patch, S.match_type, S.duration_sec, S.platform, S.raw_json, CURRENT_TIMESTAMP())
     """
-    _bq_query(sql, [
-        game_id, source, patch, match_type, duration_sec, platform, json.dumps(raw)
-    ])
+    _bq_query(
+        sql,
+        [game_id, source, patch, match_type, duration_sec, platform, json.dumps(raw)],
+    )
 
 
 def get_game(game_id: str) -> Optional[Dict[str, Any]]:
@@ -164,7 +169,9 @@ def list_games(source=None, patch=None, match_type=None, limit=50, offset=0):
 
 
 def delete_game(game_id: str) -> bool:
-    sql = f"DELETE FROM `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.games` WHERE id = @p0"
+    sql = (
+        f"DELETE FROM `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.games` WHERE id = @p0"
+    )
     _bq_query(sql, [game_id])
     return True
 
@@ -182,7 +189,9 @@ def upsert_features(game_id, concern, vector, names, schema_version="1"):
     WHEN NOT MATCHED THEN INSERT (game_id, concern, feature_vector, feature_names, schema_version, extracted_at)
     VALUES (@p0, @p1, PARSE_JSON(@p2), PARSE_JSON(@p3), @p4, CURRENT_TIMESTAMP())
     """
-    _bq_query(sql, [game_id, concern, json.dumps(vector), json.dumps(names), schema_version])
+    _bq_query(
+        sql, [game_id, concern, json.dumps(vector), json.dumps(names), schema_version]
+    )
 
 
 def get_features(game_id: str, concern: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -209,7 +218,16 @@ def delete_features(game_id: str, concern: Optional[str] = None) -> int:
 # ── Models ─────────────────────────────────────────────────────────────────
 
 
-def register_model(concern, algorithm, version, file_path, metrics, hyperparams=None, dataset_id=None, feature_names=None) -> str:
+def register_model(
+    concern,
+    algorithm,
+    version,
+    file_path,
+    metrics,
+    hyperparams=None,
+    dataset_id=None,
+    feature_names=None,
+) -> str:
     model_id = _uuid()
     artifact = None
     try:
@@ -223,10 +241,21 @@ def register_model(concern, algorithm, version, file_path, metrics, hyperparams=
     (id, concern, algorithm, dataset_id, version, file_path, artifact, metrics, hyperparams, feature_names, is_active, created_at)
     VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, PARSE_JSON(@p7), PARSE_JSON(@p8), PARSE_JSON(@p9), FALSE, CURRENT_TIMESTAMP())
     """
-    _bq_query(sql, [
-        model_id, concern, algorithm, dataset_id, version, file_path,
-        artifact, json.dumps(metrics), json.dumps(hyperparams or {}), json.dumps(feature_names or [])
-    ])
+    _bq_query(
+        sql,
+        [
+            model_id,
+            concern,
+            algorithm,
+            dataset_id,
+            version,
+            file_path,
+            artifact,
+            json.dumps(metrics),
+            json.dumps(hyperparams or {}),
+            json.dumps(feature_names or []),
+        ],
+    )
     return model_id
 
 
@@ -279,7 +308,7 @@ def list_models(concern=None, active_only=False) -> List[Dict[str, Any]]:
         where_clauses.append("concern = @p0")
         params.append(concern)
     if active_only:
-        where_clauses.append(f"is_active = TRUE")
+        where_clauses.append("is_active = TRUE")
     where = " AND ".join(where_clauses)
     where_sql = f"WHERE {where}" if where else ""
     sql = f"SELECT * FROM `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.models` {where_sql} ORDER BY created_at DESC"
@@ -289,7 +318,9 @@ def list_models(concern=None, active_only=False) -> List[Dict[str, Any]]:
 # ── Datasets ─────────────────────────────────────────────────────────────
 
 
-def insert_dataset(dataset_id: str, name: str, concern: str, filters: dict, description: str = ""):
+def insert_dataset(
+    dataset_id: str, name: str, concern: str, filters: dict, description: str = ""
+):
     sql = f"""
     INSERT INTO `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.datasets`
     (id, name, description, concern, filters, game_count, row_count, status, created_at)
@@ -328,7 +359,7 @@ def update_dataset_status(dataset_id: str, **kwargs):
         return
     params.append(dataset_id)
     set_sql = ", ".join(sets)
-    sql = f"UPDATE `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.datasets` SET {set_sql} WHERE id = @p{len(params)-1}"
+    sql = f"UPDATE `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.datasets` SET {set_sql} WHERE id = @p{len(params) - 1}"
     _bq_query(sql, params)
 
 
@@ -374,7 +405,7 @@ def update_job(job_id: str, **kwargs):
             params.append(v)
     params.append(job_id)
     set_sql = ", ".join(sets)
-    sql = f"UPDATE `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.training_jobs` SET {set_sql} WHERE id = @p{len(params)-1}"
+    sql = f"UPDATE `{cfg.BQ_PROJECT}.{cfg.BQ_PLATFORM_DATASET}.training_jobs` SET {set_sql} WHERE id = @p{len(params) - 1}"
     _bq_query(sql, params)
 
 
@@ -411,11 +442,25 @@ def list_jobs(concern=None, status=None, limit=100) -> List[Dict[str, Any]]:
 
 def query_league(sql: str, params: Optional[List[Any]] = None):
     """Execute query against the league data dataset."""
-    league_tables = ["matches", "player_stats", "team_stats", "bans", "player_items", "player_runes",
-                     "dim_champions", "dim_items", "dim_runes", "dim_players"]
+    league_tables = [
+        "matches",
+        "player_stats",
+        "team_stats",
+        "bans",
+        "player_items",
+        "player_runes",
+        "dim_champions",
+        "dim_items",
+        "dim_runes",
+        "dim_players",
+    ]
     for table in league_tables:
-        sql = sql.replace(f"FROM {table}", f"FROM `{cfg.BQ_PROJECT}.{cfg.BQ_DATASET}.{table}`")
-        sql = sql.replace(f"JOIN {table}", f"JOIN `{cfg.BQ_PROJECT}.{cfg.BQ_DATASET}.{table}`")
+        sql = sql.replace(
+            f"FROM {table}", f"FROM `{cfg.BQ_PROJECT}.{cfg.BQ_DATASET}.{table}`"
+        )
+        sql = sql.replace(
+            f"JOIN {table}", f"JOIN `{cfg.BQ_PROJECT}.{cfg.BQ_DATASET}.{table}`"
+        )
     return _bq_query(sql, params)
 
 
@@ -491,13 +536,16 @@ def upsert_league_match(raw: dict) -> None:
     WHEN NOT MATCHED THEN INSERT (match_id, patch, duration, timestamp, match_type)
     VALUES (S.match_id, S.patch, S.duration, S.timestamp, S.match_type)
     """
-    _bq_query(sql, [
-        str(match_id),
-        raw.get("patch") or raw.get("gameVersion"),
-        raw.get("duration") or raw.get("duration_sec") or raw.get("gameDuration"),
-        raw.get("timestamp"),
-        raw.get("match_type") or raw.get("gameType") or raw.get("queueType"),
-    ])
+    _bq_query(
+        sql,
+        [
+            str(match_id),
+            raw.get("patch") or raw.get("gameVersion"),
+            raw.get("duration") or raw.get("duration_sec") or raw.get("gameDuration"),
+            raw.get("timestamp"),
+            raw.get("match_type") or raw.get("gameType") or raw.get("queueType"),
+        ],
+    )
 
     # Clear existing child rows
     for table in ["player_items", "player_runes", "bans", "team_stats"]:
@@ -521,11 +569,14 @@ def upsert_league_match(raw: dict) -> None:
         WHEN NOT MATCHED THEN INSERT (puuid, name, tag)
         VALUES (S.puuid, S.name, S.tag)
         """
-        _bq_query(player_sql, [
-            str(puuid),
-            p.get("name") or p.get("riotIdGameName") or p.get("summonerName"),
-            p.get("tag") or p.get("riotIdTagline"),
-        ])
+        _bq_query(
+            player_sql,
+            [
+                str(puuid),
+                p.get("name") or p.get("riotIdGameName") or p.get("summonerName"),
+                p.get("tag") or p.get("riotIdTagline"),
+            ],
+        )
 
         # Insert player_stats
         stats_sql = f"""
@@ -534,41 +585,55 @@ def upsert_league_match(raw: dict) -> None:
          gold, cs, dmg_champs, vision, kda, kp, summ1, summ2)
         VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14, @p15, @p16)
         """
-        _bq_query(stats_sql, [
-            str(match_id), str(puuid),
-            str(p.get("champion_id") or p.get("championId") or ""),
-            str(p.get("team_id") or p.get("teamId") or ""),
-            int(bool(p.get("win", 0))),
-            p.get("position") or p.get("teamPosition"),
-            p.get("kills", 0),
-            p.get("deaths", 0),
-            p.get("assists", 0),
-            p.get("gold") or p.get("goldEarned", 0),
-            p.get("cs") or p.get("totalMinionsKilled", 0),
-            p.get("dmg_champs") or p.get("totalDamageDealtToChampions") or p.get("totalDamageDealt", 0),
-            p.get("vision") or p.get("visionScore") or p.get("wardsPlaced", 0),
-            p.get("kda", 0.0),
-            p.get("kp", 0.0),
-            p.get("summ1"),
-            p.get("summ2"),
-        ])
+        _bq_query(
+            stats_sql,
+            [
+                str(match_id),
+                str(puuid),
+                str(p.get("champion_id") or p.get("championId") or ""),
+                str(p.get("team_id") or p.get("teamId") or ""),
+                int(bool(p.get("win", 0))),
+                p.get("position") or p.get("teamPosition"),
+                p.get("kills", 0),
+                p.get("deaths", 0),
+                p.get("assists", 0),
+                p.get("gold") or p.get("goldEarned", 0),
+                p.get("cs") or p.get("totalMinionsKilled", 0),
+                p.get("dmg_champs")
+                or p.get("totalDamageDealtToChampions")
+                or p.get("totalDamageDealt", 0),
+                p.get("vision") or p.get("visionScore") or p.get("wardsPlaced", 0),
+                p.get("kda", 0.0),
+                p.get("kp", 0.0),
+                p.get("summ1"),
+                p.get("summ2"),
+            ],
+        )
 
         # Insert items
         for item in p.get("items") or []:
             item_sql = f"INSERT INTO `{cfg.BQ_PROJECT}.{cfg.BQ_DATASET}.player_items` (match_id, puuid, item_id, slot) VALUES (@p0, @p1, @p2, @p3)"
-            _bq_query(item_sql, [
-                str(match_id), str(puuid),
-                str(item.get("item_id") or item.get("itemId") or ""),
-                item.get("slot"),
-            ])
+            _bq_query(
+                item_sql,
+                [
+                    str(match_id),
+                    str(puuid),
+                    str(item.get("item_id") or item.get("itemId") or ""),
+                    item.get("slot"),
+                ],
+            )
 
         # Insert runes
         for rune in p.get("runes") or []:
             rune_sql = f"INSERT INTO `{cfg.BQ_PROJECT}.{cfg.BQ_DATASET}.player_runes` (match_id, puuid, rune_id) VALUES (@p0, @p1, @p2)"
-            _bq_query(rune_sql, [
-                str(match_id), str(puuid),
-                str(rune.get("rune_id") or rune.get("runeId") or ""),
-            ])
+            _bq_query(
+                rune_sql,
+                [
+                    str(match_id),
+                    str(puuid),
+                    str(rune.get("rune_id") or rune.get("runeId") or ""),
+                ],
+            )
 
     # Insert team stats
     for t in team_rows:
@@ -577,29 +642,35 @@ def upsert_league_match(raw: dict) -> None:
         (match_id, team_id, win, baron, dragon, tower, inhibitor, horde, first_blood, first_tower, first_dragon)
         VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10)
         """
-        _bq_query(team_sql, [
-            str(match_id),
-            str(t.get("team_id") or t.get("teamId") or ""),
-            t.get("win"),
-            t.get("baron"),
-            t.get("dragon"),
-            t.get("tower"),
-            t.get("inhibitor"),
-            t.get("horde"),
-            t.get("first_blood"),
-            t.get("first_tower"),
-            t.get("first_dragon"),
-        ])
+        _bq_query(
+            team_sql,
+            [
+                str(match_id),
+                str(t.get("team_id") or t.get("teamId") or ""),
+                t.get("win"),
+                t.get("baron"),
+                t.get("dragon"),
+                t.get("tower"),
+                t.get("inhibitor"),
+                t.get("horde"),
+                t.get("first_blood"),
+                t.get("first_tower"),
+                t.get("first_dragon"),
+            ],
+        )
 
     # Insert bans
     for ban in bans:
         ban_sql = f"INSERT INTO `{cfg.BQ_PROJECT}.{cfg.BQ_DATASET}.bans` (match_id, team_id, champion_id, pick_turn) VALUES (@p0, @p1, @p2, @p3)"
-        _bq_query(ban_sql, [
-            str(match_id),
-            str(ban.get("team_id") or ban.get("teamId") or ""),
-            str(ban.get("champion_id") or ban.get("championId") or ""),
-            ban.get("pick_turn") or ban.get("pickTurn"),
-        ])
+        _bq_query(
+            ban_sql,
+            [
+                str(match_id),
+                str(ban.get("team_id") or ban.get("teamId") or ""),
+                str(ban.get("champion_id") or ban.get("championId") or ""),
+                ban.get("pick_turn") or ban.get("pickTurn"),
+            ],
+        )
 
 
 def upsert_dimension_rows(table: str, rows: List[Dict[str, Any]]) -> int:
@@ -618,11 +689,11 @@ def upsert_dimension_rows(table: str, rows: List[Dict[str, Any]]) -> int:
         params = [row.get(c) for c in columns]
         sql = f"""
         MERGE `{cfg.BQ_PROJECT}.{cfg.BQ_DATASET}.{table}` T
-        USING (SELECT {', '.join(f"@p{i} as {columns[i]}" for i in range(len(columns)))}) S
+        USING (SELECT {", ".join(f"@p{i} as {columns[i]}" for i in range(len(columns)))}) S
         ON T.{conflict_col} = S.{conflict_col}
-        WHEN MATCHED THEN UPDATE SET {', '.join(sets)}
-        WHEN NOT MATCHED THEN INSERT ({', '.join(columns)})
-        VALUES ({', '.join(vals)})
+        WHEN MATCHED THEN UPDATE SET {", ".join(sets)}
+        WHEN NOT MATCHED THEN INSERT ({", ".join(columns)})
+        VALUES ({", ".join(vals)})
         """
         _bq_query(sql, params)
 

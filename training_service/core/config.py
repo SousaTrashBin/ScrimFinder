@@ -12,10 +12,14 @@ _HERE = Path(__file__).resolve().parent.parent
 
 class _Config:
     # ── BigQuery ─────────────────────────────────────────────────────────
-    BQ_PROJECT: str = os.environ.get("BQ_PROJECT", os.environ.get("SCRIM_PROJECT_ID", ""))
+    BQ_PROJECT: str = os.environ.get(
+        "BQ_PROJECT", os.environ.get("SCRIM_PROJECT_ID", "")
+    )
     BQ_LOCATION: str = os.environ.get("BQ_LOCATION", "EU")
     BQ_DATASET: str = os.environ.get("BQ_DATASET", "scrimfinder")
-    BQ_PLATFORM_DATASET: str = os.environ.get("BQ_PLATFORM_DATASET", "scrimfinder_platform")
+    BQ_PLATFORM_DATASET: str = os.environ.get(
+        "BQ_PLATFORM_DATASET", "scrimfinder_platform"
+    )
 
     # ── GCS for model artifacts (if using GCS instead of BigQuery BYTES) ──
     GCS_MODEL_BUCKET: str = os.environ.get("GCS_MODEL_BUCKET", "scrimfinder-models")

@@ -58,7 +58,12 @@ class BQMock:
 
     TABLES = ["games", "features", "models", "training_jobs", "datasets"]
 
-    def __init__(self, monkeypatch, project: str = "test-project", platform_dataset: str = "test_platform"):
+    def __init__(
+        self,
+        monkeypatch,
+        project: str = "test-project",
+        platform_dataset: str = "test_platform",
+    ):
         self.project = project
         self.platform_dataset = platform_dataset
         self.tables: Dict[str, List[Dict[str, Any]]] = {t: [] for t in self.TABLES}
@@ -183,7 +188,7 @@ class BQMock:
         i = 0
         while i < len(s):
             ch = s[i]
-            if not in_str and ch in "\'\"":
+            if not in_str and ch in "'\"":
                 in_str = True
                 str_char = ch
                 current.append(ch)
@@ -286,7 +291,8 @@ class BQMock:
         # Find the ON clause, stopping at WHEN MATCHED or WHEN NOT MATCHED
         on_match = re.search(
             r"ON\s+(.+?)(?:WHEN\s+(?:MATCHED|NOT\s+MATCHED))",
-            sql, re.DOTALL | re.IGNORECASE,
+            sql,
+            re.DOTALL | re.IGNORECASE,
         )
         on_keys = []
         if on_match:
@@ -307,7 +313,8 @@ class BQMock:
             # UPDATE matched row
             update_match = re.search(
                 r"WHEN\s+MATCHED\s+THEN\s+UPDATE\s+SET\s+(.+?)(?:WHEN\s+NOT\s+MATCHED|$)",
-                sql, re.DOTALL | re.IGNORECASE,
+                sql,
+                re.DOTALL | re.IGNORECASE,
             )
             if update_match:
                 for set_expr in self._split_exprs(update_match.group(1)):
@@ -324,7 +331,7 @@ class BQMock:
             if insert_match:
                 cols_match = re.search(
                     r"INSERT\s*\(([^)]+)\)",
-                    sql[insert_match.start():],
+                    sql[insert_match.start() :],
                     re.IGNORECASE,
                 )
                 val_pos = sql.find("VALUES", insert_match.start())
@@ -339,11 +346,14 @@ class BQMock:
                             elif sql[close_idx] == ")":
                                 depth -= 1
                             close_idx += 1
-                        vals_str = sql[open_idx + 1:close_idx - 1]
+                        vals_str = sql[open_idx + 1 : close_idx - 1]
                         vals = self._split_exprs(vals_str)
                         insert_cols = []
                         if cols_match:
-                            insert_cols = [c.strip() for c in self._split_exprs(cols_match.group(1))]
+                            insert_cols = [
+                                c.strip()
+                                for c in self._split_exprs(cols_match.group(1))
+                            ]
                         new_row = {}
                         for col, val in zip(insert_cols, vals):
                             new_row[col] = self._eval_expr(val, source_row)
@@ -356,7 +366,8 @@ class BQMock:
             return []
         cols_match = re.search(
             r"INSERT\s+INTO\s+`?[^`]+`?\.\s*`?[^`]+`?\.\s*`?([^`]+)`?\s*\(([^)]+)\)",
-            sql, re.IGNORECASE,
+            sql,
+            re.IGNORECASE,
         )
         if not cols_match:
             return []
@@ -376,7 +387,7 @@ class BQMock:
             elif sql[close_idx] == ")":
                 depth -= 1
             close_idx += 1
-        vals_str = sql[open_idx + 1:close_idx - 1]
+        vals_str = sql[open_idx + 1 : close_idx - 1]
         vals = self._split_exprs(vals_str)
 
         row = {}
@@ -389,9 +400,7 @@ class BQMock:
         table = self._table_from_sql(sql)
         if table is None:
             return []
-        set_match = re.search(
-            r"SET\s+(.+?)\s+WHERE", sql, re.DOTALL | re.IGNORECASE
-        )
+        set_match = re.search(r"SET\s+(.+?)\s+WHERE", sql, re.DOTALL | re.IGNORECASE)
         if not set_match:
             return []
         sets = {}
@@ -415,7 +424,9 @@ class BQMock:
             return []
         where_match = re.search(r"WHERE\s+(.+)$", sql, re.DOTALL | re.IGNORECASE)
         where = where_match.group(1).strip() if where_match else ""
-        self.tables[table] = [r for r in self.tables[table] if not self._matches_where(r, where)]
+        self.tables[table] = [
+            r for r in self.tables[table] if not self._matches_where(r, where)
+        ]
         return []
 
     def _handle_select(self, sql: str) -> List[FakeRow]:
@@ -429,8 +440,18 @@ class BQMock:
 
         # Also check for league tables
         if table is None:
-            league_tables = ["matches", "player_stats", "team_stats", "bans", "player_items", "player_runes",
-                           "dim_champions", "dim_items", "dim_runes", "dim_players"]
+            league_tables = [
+                "matches",
+                "player_stats",
+                "team_stats",
+                "bans",
+                "player_items",
+                "player_runes",
+                "dim_champions",
+                "dim_items",
+                "dim_runes",
+                "dim_players",
+            ]
             for t in league_tables:
                 if f".{t}`" in sql or f".{t} " in sql.upper():
                     table = t
@@ -440,7 +461,9 @@ class BQMock:
             return []
 
         where_match = re.search(
-            r"WHERE\s+(.+?)(?:ORDER\s+BY|LIMIT|OFFSET|$)", sql, re.DOTALL | re.IGNORECASE
+            r"WHERE\s+(.+?)(?:ORDER\s+BY|LIMIT|OFFSET|$)",
+            sql,
+            re.DOTALL | re.IGNORECASE,
         )
         where = where_match.group(1).strip() if where_match else ""
 
@@ -458,7 +481,7 @@ class BQMock:
         offset_match = re.search(r"OFFSET\s+(\d+)", sql, re.IGNORECASE)
         limit = int(limit_match.group(1)) if limit_match else len(rows)
         offset = int(offset_match.group(1)) if offset_match else 0
-        rows = rows[offset:offset + limit]
+        rows = rows[offset : offset + limit]
 
         # COUNT(*) special case
         if "COUNT(*)" in sql.upper():
@@ -475,15 +498,25 @@ class BQMock:
         current = []
         in_str = False
         for ch in where:
-            if ch == "\'":
+            if ch == "'":
                 in_str = not in_str
                 current.append(ch)
             elif ch.upper() == "A" and not in_str and len(current) >= 2:
                 tail = "".join(current[-2:]).upper()
-                if tail == " A" and len(where) > len(current) and where[len(current)].upper() == "N":
+                if (
+                    tail == " A"
+                    and len(where) > len(current)
+                    and where[len(current)].upper() == "N"
+                ):
                     # Check next char is D and then space/end
-                    if len(where) > len(current) + 1 and where[len(current) + 1].upper() == "D":
-                        if len(where) > len(current) + 2 and where[len(current) + 2].isspace():
+                    if (
+                        len(where) > len(current) + 1
+                        and where[len(current) + 1].upper() == "D"
+                    ):
+                        if (
+                            len(where) > len(current) + 2
+                            and where[len(current) + 2].isspace()
+                        ):
                             clauses.append("".join(current[:-2]).strip())
                             current = []
                             continue
@@ -509,7 +542,7 @@ class BQMock:
             m = re.match(r"(\w+)\s+IN\s*\(([^)]+)\)", clause, re.IGNORECASE)
             if m:
                 col, vals_str = m.group(1), m.group(2)
-                vals = [v.strip().strip("\'") for v in vals_str.split(",")]
+                vals = [v.strip().strip("'") for v in vals_str.split(",")]
                 if str(row.get(col, "")) not in vals:
                     return False
                 continue
@@ -531,7 +564,9 @@ class BQMock:
                 continue
 
             # LOWER(col) = LOWER('val')
-            m = re.match(r"LOWER\((\w+)\)\s*=\s*LOWER\(\'([^\']*)\'\)", clause, re.IGNORECASE)
+            m = re.match(
+                r"LOWER\((\w+)\)\s*=\s*LOWER\(\'([^\']*)\'\)", clause, re.IGNORECASE
+            )
             if m:
                 col, val = m.group(1), m.group(2).lower()
                 if str(row.get(col, "")).lower() != val:

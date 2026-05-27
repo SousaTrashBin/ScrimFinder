@@ -1,9 +1,9 @@
 import requests
-import os
 import sys
 
 TRAINING_API = "http://localhost:8000/api/v1/training/games"
 ANALYSIS_API = "http://localhost:8001/api/v1/analysis"
+
 
 def main():
     print("Checking if services are running...")
@@ -12,11 +12,11 @@ def main():
         req = {
             "champion": "Jinx",
             "position": "BOTTOM",
-            "match_type": "RANKED_SOLO_5x5"
+            "match_type": "RANKED_SOLO_5x5",
         }
         print(f"POST {ANALYSIS_API}/champion")
         res = requests.post(f"{ANALYSIS_API}/champion", json=req)
-        
+
         if res.status_code == 200:
             data = res.json()
             stats = data.get("stats", {})
@@ -31,16 +31,13 @@ def main():
         else:
             print(f"[ERROR] Failed to query champion: {res.status_code} {res.text}")
             sys.exit(1)
-            
+
         print("\nTesting league data import (training service)...")
         # Try to trigger a small import to see if it can connect to BigQuery
-        req = {
-            "limit": 5,
-            "match_type": "RANKED_SOLO_5x5"
-        }
+        req = {"limit": 5, "match_type": "RANKED_SOLO_5x5"}
         print(f"POST {TRAINING_API}/import/league")
         res = requests.post(f"{TRAINING_API}/import/league", json=req)
-        
+
         if res.status_code == 200:
             data = res.json()
             print("[SUCCESS] Import endpoint successful via BigQuery!")
@@ -49,12 +46,15 @@ def main():
         else:
             print(f"[ERROR] Failed to run import: {res.status_code} {res.text}")
             sys.exit(1)
-            
+
         print("\nAll integration tests passed!")
-            
+
     except requests.exceptions.ConnectionError:
-        print("[ERROR] Services not running! Run `docker compose -f docker-compose.local.yml up -d` first, with BQ_PROJECT set.")
+        print(
+            "[ERROR] Services not running! Run `docker compose -f docker-compose.local.yml up -d` first, with BQ_PROJECT set."
+        )
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
