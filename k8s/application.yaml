@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: "https://github.com/SousaTrashBin/ScrimFinder.git"
-    targetRevision: work/bruno
+    targetRevision: main
     path: k8s/charts/scrimfinder
     helm:
       releaseName: scrimfinder
@@ -40,17 +40,6 @@ spec:
           value: "http://scrimfinder-traefik/api/v1/riot"
         - name: services.training-service.env.DETAIL_FILLING_URL
           value: "http://scrimfinder-traefik/api/v1/riot"
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: scrimfinder
-  syncPolicy:
-    syncOptions:
-      - CreateNamespace=true
-      - RespectIgnoreDifferences=true
-    automated:
-      enabled: false
-      prune: false
-      selfHeal: false
   # Allow VPA to change resources and limits without being considered Off-Sync by Argo CD
   ignoreDifferences:
     - group: ""
@@ -58,3 +47,12 @@ spec:
       jqPathExpressions:
         - .spec.containers[].resources
         - .spec.containers[].limits
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: scrimfinder
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+    automated:
+      prune: true
+      selfHeal: true

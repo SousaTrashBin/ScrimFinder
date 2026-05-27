@@ -24,7 +24,6 @@ locals {
 
   secret_values = {
     RIOT_API_KEY           = var.riot_api_key
-    riot-api-key           = var.riot_api_key
     db-user                = var.db_user
     db-password            = var.db_password
     redis-password         = var.redis_password
@@ -162,7 +161,7 @@ resource "google_secret_manager_secret_version" "scrim_secret_versions" {
 resource "google_secret_manager_secret_iam_member" "secrets_access" {
   for_each  = var.manage_secret_manager ? google_secret_manager_secret.scrim_secrets : {}
   project   = var.project_id
-  secret_id = each.key
+  secret_id = each.value.secret_id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.secrets_sa[0].email}"
 }

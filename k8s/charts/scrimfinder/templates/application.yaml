@@ -69,10 +69,6 @@ kind: Application
 metadata:
   name: vpa
   namespace: argocd
-  annotations:
-    argocd.argoproj.io/hook: PreSync
-    argocd.argoproj.io/sync-wave: "-15"
-    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 spec:
   project: default
   source:
