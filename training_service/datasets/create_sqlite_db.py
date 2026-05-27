@@ -4,8 +4,9 @@ from pathlib import Path
 
 import pandas as pd
 
-DB_NAME = "league_data.db"
-DATA_DIR = ""
+SCRIPT_DIR = Path(__file__).resolve().parent
+DB_NAME = Path(os.environ.get("LEAGUE_DB", SCRIPT_DIR / "league_data.db"))
+DATA_DIR = Path(os.environ.get("CLEAN_DATASET_DIR", SCRIPT_DIR / "clean_dataset"))
 
 
 def create_tables(cursor):
@@ -294,8 +295,8 @@ def import_csv_to_db(conn):
 
 
 def main():
-    if os.path.exists(DB_NAME):
-        os.remove(DB_NAME)
+    if DB_NAME.exists():
+        DB_NAME.unlink()
         print(f"Deleted old {DB_NAME} to refresh schema.")
 
     conn = sqlite3.connect(DB_NAME)

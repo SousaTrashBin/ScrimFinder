@@ -29,6 +29,10 @@ bin/
 ### Mac OS ###
 .DS_Store
 
+### Archives and local backups ###
+*.zip
+*.bak
+
 ../.idea/
 
 ScrimFinder.iml
@@ -37,6 +41,8 @@ ScrimFinder.iml
 __pycache__/
 *.py[cod]
 *$py.class
+**/training_service_pb2.py
+**/training_service_pb2_grpc.py
 *.so
 .Python
 env/
@@ -47,6 +53,8 @@ downloads/
 eggs/
 .eggs/
 lib/
+!scripts/lib/
+!scripts/lib/**
 lib64/
 parts/
 sdist/
@@ -57,6 +65,15 @@ wheels/
 *.egg
 venv/
 ENV/
+
+### Java / Maven ###
+target/
+
+### Terraform local state ###
+*.tfstate
+*.tfstate.*
+backend-ci.tf
+.terraform/
 
 ### Machine Learning & Data ###
 # Ignore the actual trained model files

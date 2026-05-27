@@ -12,9 +12,7 @@ Run alongside the REST API:
   The grpc server runs on port 50051 in a separate thread.
   Started automatically when training_service/main.py starts.
 
-Generated stubs (from training_service.proto):
-  Run: python -m grpc_tools.protoc -I proto --python_out=. --grpc_python_out=. proto/training_service.proto
-  Then import: training_service_pb2, training_service_pb2_grpc
+Generated stubs are built by scripts/python/generate-grpc.sh and are not committed.
 """
 
 import json
@@ -178,8 +176,7 @@ def start_server(block: bool = False) -> grpc.Server:
     except ImportError:
         print(
             "[gRPC] ERROR: training_service_pb2_grpc not found. "
-            "Run: python -m grpc_tools.protoc -I proto "
-            "--python_out=. --grpc_python_out=. proto/training_service.proto"
+            "Run: ./scripts/python/generate-grpc.sh training_service"
         )
         return None
 

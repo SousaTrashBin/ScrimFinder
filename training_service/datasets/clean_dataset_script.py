@@ -10,10 +10,12 @@ from tqdm import tqdm
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+
 TEST_MODE = False
-OUTPUT_DIR = "clean_dataset"
-RIOT_ROOT = "./"
-ESPORTS_ROOT = "esports_db"
+OUTPUT_DIR = Path(os.environ.get("CLEAN_DATASET_DIR", SCRIPT_DIR / "clean_dataset"))
+RIOT_ROOT = Path(os.environ.get("RIOT_MATCHES_ROOT", Path.cwd()))
+ESPORTS_ROOT = Path(os.environ.get("ESPORTS_DB_ROOT", SCRIPT_DIR / "esports_db"))
 
 
 def get_static_data():
@@ -198,7 +200,7 @@ def parse_riot_file(file_path):
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    riot_files = [f for f in Path(RIOT_ROOT).rglob("*.json") if "matches_raw" in str(f)]
+    riot_files = [f for f in RIOT_ROOT.rglob("*.json") if "matches_raw" in str(f)]
     if TEST_MODE:
         riot_files = riot_files[:100]
 
@@ -220,7 +222,7 @@ def main():
         for key in big_tables:
             if batch_data[key]:
                 df = pd.DataFrame(batch_data[key])
-                file_path = f"{OUTPUT_DIR}/{key}.csv"
+                file_path = OUTPUT_DIR / f"{key}.csv"
                 include_header = not headers_written[key]
                 df.to_csv(file_path, mode="a", index=False, header=include_header)
                 headers_written[key] = True
@@ -261,7 +263,7 @@ def main():
     for data_dict, filename in dim_configs:
         df = pd.DataFrame([{"id": k, "name": v} for k, v in data_dict.items()])
         df.drop_duplicates(subset=["id"]).to_csv(
-            f"{OUTPUT_DIR}/{filename}.csv", index=False
+            OUTPUT_DIR / f"{filename}.csv", index=False
         )
 
     if results["dim_players"]:
@@ -269,10 +271,10 @@ def main():
             [{"puuid": k, **v} for k, v in results["dim_players"].items()]
         )
         df_p.drop_duplicates(subset=["puuid"]).to_csv(
-            f"{OUTPUT_DIR}/dim_players.csv", index=False
+            OUTPUT_DIR / "dim_players.csv", index=False
         )
 
-    print(f"Done! Data flushed to /{OUTPUT_DIR}")
+    print(f"Done! Data flushed to {OUTPUT_DIR}")
 
 
 if __name__ == "__main__":

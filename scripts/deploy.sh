@@ -1,6 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# shellcheck source=lib/cloud-functions.sh
+source "$ROOT_DIR/scripts/lib/cloud-functions.sh"
+
 REQUIRED_VARS="SCRIM_PROJECT_ID SCRIM_REGION SCRIM_REPO_NAME SCRIM_CLUSTER_NAME RIOT_API_KEY SCRIM_DB_USER SCRIM_DB_PASSWORD"
 
 for var in $REQUIRED_VARS; do
@@ -25,11 +30,9 @@ echo "checking GCP configuration..."
 gcloud config set project "$PROJECT_ID" --quiet
 
 echo "provisioning infrastructure with Terraform..."
-"$(dirname "$0")/deploy-infra.sh"
+"$ROOT_DIR/scripts/deploy-infra.sh"
 
-PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format="value(projectNumber)")
-FUNCTIONS_BUILD_SERVICE_ACCOUNT_EMAIL="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
-FUNCTIONS_BUILD_SERVICE_ACCOUNT="projects/${PROJECT_ID}/serviceAccounts/${FUNCTIONS_BUILD_SERVICE_ACCOUNT_EMAIL}"
+FUNCTIONS_BUILD_SERVICE_ACCOUNT="$(functions_build_service_account "$PROJECT_ID")"
 SECRETS_SERVICE_ACCOUNT_EMAIL="secrets-service-account@${PROJECT_ID}.iam.gserviceaccount.com"
 
 ZONE="${REGION}-a"
@@ -57,7 +60,7 @@ if [ "${SKIP_BUILD:-false}" != "true" ]; then
             docker buildx build \
                 --platform linux/amd64 \
                 -t "$IMAGE_PATH" \
-                "./$SERVICE" \
+                "$ROOT_DIR/$SERVICE" \
                 --push \
                 --quiet
 
@@ -71,107 +74,47 @@ else
     echo "skipping build phase."
 fi
 
-echo "packaging services with serverless functions..."
-
-SERVERLESS_SERVICES="detail_filling_service"
-
-for SERVICE in ${SERVERLESS_SERVICES}; do
-    cd "${SERVICE}"
-    ./redisInit.sh || true
-    mvn clean package
-    ./redisShutdown.sh || true
-    cd ..
-done
-
-echo "deploying serverless functions in parallel..."
-
-SERVERLESS_FUNCTIONS="detail_filling_service|getFilledMatch|RIOT_API_KEY"
-SERVERLESS_FUNCTIONS+=" detail_filling_service|getRawMatchData|RIOT_API_KEY"
-SERVERLESS_FUNCTIONS+=" detail_filling_service|getFilledPlayer|RIOT_API_KEY"
-
-SERVERLESS_DEPLOY_PIDS=()
-SERVERLESS_DEPLOY_NAMES=()
-
-for SERVICE_FUNCTION in ${SERVERLESS_FUNCTIONS}; do
-    temp=${SERVICE_FUNCTION#*|}
-    FUNCTION=${temp%%|*}
-
-    (
-        SERVICE=${SERVICE_FUNCTION%%|*}
-
-        gcloud functions deploy "${FUNCTION}" \
-            --region="${REGION}" \
-            --entry-point=io.quarkus.gcp.functions.http.QuarkusHttpFunction \
-            --runtime=java21 \
-            --trigger-http \
-            --allow-unauthenticated \
-            --source="${SERVICE}"/target/deployment \
-            --min-instances=0 \
-            --max-instances=30 \
-            --memory=512Mi \
-            --cpu=800m \
-            --build-service-account="${FUNCTIONS_BUILD_SERVICE_ACCOUNT}" \
-            --service-account="${SECRETS_SERVICE_ACCOUNT_EMAIL}" \
-            --set-secrets 'RIOT_API_KEY=RIOT_API_KEY:latest' # from Google Cloud secret manager
-    ) &
-
-    SERVERLESS_DEPLOY_PIDS+=("$!")
-    SERVERLESS_DEPLOY_NAMES+=("${FUNCTION}")
-done
-
-SERVERLESS_DEPLOY_FAILED=0
-for i in "${!SERVERLESS_DEPLOY_PIDS[@]}"; do
-    if ! wait "${SERVERLESS_DEPLOY_PIDS[$i]}"; then
-        echo "serverless function deploy failed: ${SERVERLESS_DEPLOY_NAMES[$i]}"
-        SERVERLESS_DEPLOY_FAILED=1
-    fi
-done
-
-if [ "$SERVERLESS_DEPLOY_FAILED" -ne 0 ]; then
-    exit 1
-fi
-
+ensure_riot_api_secret "$PROJECT_ID" "$RIOT_API_KEY"
+package_detail_filling_function_source "$ROOT_DIR" true clean package
+deploy_detail_filling_functions "$ROOT_DIR" "$REGION" "$FUNCTIONS_BUILD_SERVICE_ACCOUNT" "$SECRETS_SERVICE_ACCOUNT_EMAIL"
 echo "all serverless functions done deploying."
+discover_detail_filling_domain "$REGION"
 
-echo "function endpoints:"
-
-DETAIL_FILLING_FUNCTION_URL=""
-
-for SERVICE_FUNCTION in ${SERVERLESS_FUNCTIONS}; do
-    temp=${SERVICE_FUNCTION#*|}
-    FUNCTION=${temp%%|*}
-    FUNCTION_URL=$(gcloud functions describe "${FUNCTION}" --region="${REGION}" --format="value(url)")
-
-    if [ -z "${DETAIL_FILLING_FUNCTION_URL}" ]; then
-        DETAIL_FILLING_FUNCTION_URL="${FUNCTION_URL}"
-        DETAIL_FILLING_DOMAIN=$(echo "$FUNCTION_URL" | awk -F/ '{print $3}')
-    fi
-
-    case "${FUNCTION}" in
-        getFilledMatch)
-            echo "${FUNCTION}: ${FUNCTION_URL}/api/v1/riot/matches/{matchId}"
-            ;;
-        getRawMatchData)
-            echo "${FUNCTION}: ${FUNCTION_URL}/api/v1/riot/matches/{matchId}/raw"
-            ;;
-        getFilledPlayer)
-            echo "${FUNCTION}: ${FUNCTION_URL}/api/v1/riot/players/{server}/{name}/{tag}"
-            ;;
-        *)
-            echo "${FUNCTION}: ${FUNCTION_URL}"
-            ;;
-    esac
-done
-
-if [ -z "${DETAIL_FILLING_FUNCTION_URL}" ]; then
-    echo "error: no detail filling serverless function URL was found."
-    exit 1
-fi
-
-echo "using detail filling domain for Traefik ExternalName: ${DETAIL_FILLING_DOMAIN}"
+echo "installing VPA CRDs..."
+git clone https://github.com/kubernetes/autoscaler.git || true
+cp -f ./scripts/gencerts.sh ./autoscaler/vertical-pod-autoscaler/pkg/admission-controller/
+cd autoscaler/vertical-pod-autoscaler
+./hack/vpa-up.sh
+cd ../..
+rm -r autoscaler &
+wait
 
 echo "updating Helm dependencies..."
 helm dependency update k8s/charts/scrimfinder
+
+echo "deploying application with local Helm chart..."
+helm upgrade --install scrimfinder "$ROOT_DIR/k8s/charts/scrimfinder" \
+    --namespace "$SCRIM_NAMESPACE" \
+    --create-namespace \
+    --wait \
+    --timeout 25m \
+    --set global.namespace="${SCRIM_NAMESPACE}" \
+    --set global.projectID="${PROJECT_ID}" \
+    --set global.microservicesRegistry="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}" \
+    --set global.imageTag="${SCRIM_IMAGE_TAG}" \
+    --set global.region="${REGION}" \
+    --set global.projectId="${PROJECT_ID}" \
+    --set global.repoName="${REPO_NAME}" \
+    --set global.rabbitmqHost="${SCRIM_RABBITMQ_HOST}" \
+    --set global.rabbitmqPort="${SCRIM_RABBITMQ_PORT}" \
+    --set global.useArgoApplications=false \
+    --set global.useVerticalPodAutoscaler=false \
+    --set detailFillingExternal.enabled=true \
+    --set detailFillingExternal.externalName="${DETAIL_FILLING_DOMAIN}" \
+    --set services.detail-filling-service.enabled=false \
+    --set services.ranking-service.env.DETAIL_FILLING_SERVICE_URL="http://scrimfinder-traefik/api/v1/riot" \
+    --set services.match-history-service.env.PLAYER_FILLING_SVC_URL="http://scrimfinder-traefik/api/v1/riot" \
+    --set services.training-service.env.DETAIL_FILLING_URL="http://scrimfinder-traefik/api/v1/riot"
 
 echo "deploying Argo CD..."
 
@@ -193,16 +136,6 @@ else
     echo "warning: envsubst not found. applying manifests without variable substitution..."
     kubectl apply -n argocd --server-side --force-conflicts -f k8s/application.yaml
 fi
-
-echo "installing VPA CRDs..."
-git clone https://github.com/kubernetes/autoscaler.git || true
-cp -f ./scripts/gencerts.sh ./autoscaler/vertical-pod-autoscaler/pkg/admission-controller/
-cd autoscaler/vertical-pod-autoscaler
-./hack/vpa-up.sh
-cd ../..
-rm -r autoscaler &
-
-wait
 
 echo "waiting for Argo CD LoadBalancer External IP/Hostname..."
 

@@ -3,6 +3,7 @@ global:
   imageTag: "latest"
   useSecretManager: true
   useArgoApplications: true
+  useVerticalPodAutoscaler: true
   # Registry for microservices only
   projectID: "${PROJECT_ID}"
   microservicesRegistry: "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}"

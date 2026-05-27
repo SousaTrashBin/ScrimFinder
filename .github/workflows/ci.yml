@@ -90,6 +90,9 @@ jobs:
           pip install -r requirements.txt
           pip install ruff pytest pytest-asyncio
 
+      - name: generate gRPC stubs
+        run: ./scripts/python/generate-grpc.sh "${{ matrix.service }}"
+
       - name: lint with ruff
         run: |
           ruff check "${{ matrix.service }}"
@@ -132,9 +135,6 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - name: run integration-heavy tests
-        run: ./scripts/ci/run-java-service-tests.sh integration-tests
-
       - name: derive environment
         run: ./scripts/ci/derive-env.sh
 
@@ -158,8 +158,19 @@ jobs:
       - name: set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: deploy ephemeral GKE stack
-        run: ./scripts/ci/deploy-ephemeral-gke.sh
+      - name: pre-warm maven wrapper
+        run: ./matchmaking-service/mvnw -version
+
+      - name: deploy ephemeral GKE stack and run tests in parallel
+        run: |
+          ./scripts/ci/run-java-service-tests.sh integration-tests &
+          TESTS_PID=$!
+          
+          # Proceed with infrastructure deployment while tests run
+          ./scripts/ci/deploy-ephemeral-gke.sh
+          
+          # Now wait for the background tests to finish
+          wait "$TESTS_PID"
 
       - name: build and push images
         run: ./scripts/ci/build-and-push-images.sh
@@ -174,3 +185,52 @@ jobs:
       - name: teardown ephemeral GKE stack
         if: always()
         run: ./scripts/ci/destroy-ephemeral-gke.sh
+
+#  deploy_staging_cd:
+#    name: deploy staging (CD)
+#    runs-on: ubuntu-latest
+#    needs:
+#      - java_fast_tests
+#      - python_fast_tests
+#      - java_heavy_and_gke_system_tests
+#    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+#    env:
+#      SCRIM_PROJECT_ID: ${{ secrets.SCRIM_PROJECT_ID }}
+#      SCRIM_REGION: ${{ secrets.SCRIM_REGION }}
+#      SCRIM_REPO_NAME: ${{ secrets.SCRIM_REPO_NAME }}
+#      SCRIM_CLUSTER_NAME: ${{ secrets.CD_SCRIM_CLUSTER_NAME }}
+#      SCRIM_NAMESPACE: ${{ secrets.CD_SCRIM_NAMESPACE }}
+#      SCRIM_IMAGE_TAG: ${{ github.sha }}
+#      RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
+#      SCRIM_DB_USER: ${{ secrets.SCRIM_DB_USER }}
+#      SCRIM_DB_PASSWORD: ${{ secrets.SCRIM_DB_PASSWORD }}
+#      SCRIM_REDIS_PASSWORD: ${{ secrets.SCRIM_REDIS_PASSWORD }}
+#      SCRIM_RABBITMQ_USER: ${{ secrets.SCRIM_RABBITMQ_USER }}
+#      SCRIM_RABBITMQ_PASSWORD: ${{ secrets.SCRIM_RABBITMQ_PASSWORD }}
+#      SCRIM_RABBITMQ_ERLANG_COOKIE: ${{ secrets.SCRIM_RABBITMQ_ERLANG_COOKIE }}
+#
+#    steps:
+#      - uses: actions/checkout@v6
+#
+#      - name: authenticate to Google Cloud
+#        uses: google-github-actions/auth@v2
+#        with:
+#          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+#          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+#
+#      - name: set up Google Cloud SDK
+#        uses: google-github-actions/setup-gcloud@v2
+#        with:
+#          install_components: gke-gcloud-auth-plugin
+#
+#      - name: set up Docker Buildx
+#        uses: docker/setup-buildx-action@v3
+#
+#      - name: set up Helm
+#        uses: azure/setup-helm@v4
+#
+#      - name: build and push images
+#        run: ./scripts/ci/build-and-push-images.sh
+#
+#      - name: deploy app to staging
+#        run: ./scripts/ci/deploy-app.sh
