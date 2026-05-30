@@ -14,6 +14,7 @@ import java.util.UUID;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
@@ -28,7 +29,7 @@ public class QueueController {
 
     @GET
     @Path("/{queueId}")
-    @Operation(summary = "Get queue details")
+    @Operation(operationId = "getQueue", summary = "Get queue details")
     @APIResponses(
             value = {
                 @APIResponse(
@@ -46,14 +47,17 @@ public class QueueController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    public Response getQueue(@PathParam("queueId") UUID queueId) {
+    public Response getQueue(
+            @Parameter(description = "Queue UUID", example = "550e8400-e29b-41d4-a716-446655440010")
+                    @PathParam("queueId")
+                    UUID queueId) {
         var queue = queueService.getQueue(queueId);
         return Response.ok(queue).build();
     }
 
     @PUT
     @Path("/{queueId}")
-    @Operation(summary = "Update an existing queue's configuration")
+    @Operation(operationId = "updateQueue", summary = "Update an existing queue's configuration")
     @APIResponses(
             value = {
                 @APIResponse(
@@ -86,7 +90,7 @@ public class QueueController {
 
     @DELETE
     @Path("/{queueId}")
-    @Operation(summary = "Delete a specific queue")
+    @Operation(operationId = "deleteQueue", summary = "Delete a specific queue")
     @APIResponses(
             value = {
                 @APIResponse(responseCode = "204", description = "Queue successfully deleted"),

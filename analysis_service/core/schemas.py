@@ -130,7 +130,14 @@ class PlayerAnalysisResponse(BaseModel):
 
 
 class GameAnalysisRequest(BaseModel):
-    game_id: str | None = None
+    game_id: str | None = Field(
+        None,
+        description=(
+            "Game id to analyze. Riot-style values like 'VN_1417849076' are supported. "
+            "From LeagueOfGraphs URLs, combine region + '_' + id (for example, "
+            "https://www.leagueofgraphs.com/match/vn/1417849076#participant8 -> VN_1417849076)."
+        ),
+    )
     raw_data: dict | None = None
     model_id: int | None = None
     concern: Concern = Concern.PERFORMANCE

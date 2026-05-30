@@ -41,7 +41,12 @@ class PaginatedMeta(BaseModel):
 
 
 class GameIngest(BaseModel):
-    id: Optional[str] = None
+    id: Optional[str] = Field(
+        None,
+        description=(
+            "Optional custom match id. Prefer Riot format REGION_MATCHID (example: VN_1417849076)."
+        ),
+    )
     data: dict = Field(..., description="Full match JSON")
     source: str = "manual"
 
@@ -77,7 +82,14 @@ class BatchIngestResponse(BaseModel):
 
 
 class FeatureExtractRequest(BaseModel):
-    game_id: Optional[str] = None
+    game_id: Optional[str] = Field(
+        None,
+        description=(
+            "Stored game id. Riot-style ids like 'VN_1417849076' are supported. "
+            "You can derive this from LeagueOfGraphs match URLs, e.g. "
+            "https://www.leagueofgraphs.com/match/vn/1417849076#participant8 -> VN_1417849076."
+        ),
+    )
     raw_data: Optional[dict] = None
     concerns: list[Concern] = Field(
         default=[Concern.DRAFT, Concern.BUILD, Concern.PERFORMANCE]

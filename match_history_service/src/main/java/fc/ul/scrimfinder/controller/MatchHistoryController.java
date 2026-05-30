@@ -15,6 +15,7 @@ import org.eclipse.microprofile.faulttolerance.Timeout;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
@@ -31,7 +32,7 @@ public class MatchHistoryController {
 
     @GET
     @Path("/{riotMatchId}")
-    @Operation(summary = "Get simplified match information by ID")
+    @Operation(operationId = "getMatchById", summary = "Get simplified match information by ID")
     @APIResponses(
             value = {
                 @APIResponse(
@@ -71,13 +72,19 @@ public class MatchHistoryController {
                                         schema = @Schema(implementation = ErrorResponse.class))),
             })
     @Timeout(2000)
-    public Response getMatchById(@PathParam("riotMatchId") @NotBlank String riotMatchId) {
+    public Response getMatchById(
+            @Parameter(description = "Riot match id in REGION_MATCHID format", example = "VN_1417849076")
+                    @PathParam("riotMatchId")
+                    @NotBlank
+                    String riotMatchId) {
         MatchDTO match = matchHistoryService.getMatchById(riotMatchId);
         return Response.ok(match).build();
     }
 
     @GET
-    @Operation(summary = "Get paginated match history with filters and sorting")
+    @Operation(
+            operationId = "getMatches",
+            summary = "Get paginated match history with filters and sorting")
     @APIResponses(
             value = {
                 @APIResponse(
@@ -104,8 +111,16 @@ public class MatchHistoryController {
             })
     @Timeout(5000)
     public Response getMatches(
-            @QueryParam("page") @DefaultValue("0") int page,
-            @QueryParam("size") @DefaultValue("20") @Min(1) @Max(100) int size,
+            @Parameter(description = "0-based page index", example = "0")
+                    @QueryParam("page")
+                    @DefaultValue("0")
+                    int page,
+            @Parameter(description = "Page size (1..100)", example = "20")
+                    @QueryParam("size")
+                    @DefaultValue("20")
+                    @Min(1)
+                    @Max(100)
+                    int size,
             @Valid MatchFilters filterParams) {
         PaginatedResponseDTO<MatchDTO> matches =
                 matchHistoryService.getMatches(page, size, filterParams);
