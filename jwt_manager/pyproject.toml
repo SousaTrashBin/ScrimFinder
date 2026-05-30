@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jwt-manager"
+version = "0.1.0"
+description = "JWT Manager service for ScrimFinder"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["ruff", "pytest", "pytest-asyncio"]
