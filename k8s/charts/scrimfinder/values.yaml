@@ -308,6 +308,18 @@ services:
       TRAINING_GRPC_URL: "training-service:50051"
     healthType: "http"
     healthPath: "/api/v1/analysis/q/health"
+    readinessPath: "/api/v1/analysis/q/health/ready"
+    startupProbe:
+      enabled: true
+      path: "/api/v1/analysis/q/health/live"
+      initialDelaySeconds: 0
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 30
+    livenessInitialDelaySeconds: 120
+    readinessInitialDelaySeconds: 60
+    readinessPeriodSeconds: 10
+    readinessFailureThreshold: 12
     persistence:
       enabled: true
       mountPath: /app/data

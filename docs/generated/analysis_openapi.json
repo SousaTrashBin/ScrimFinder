@@ -1,0 +1,1449 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ScrimFinder Analysis Service",
+    "description": "\n    Real-time draft, build, player performance and champion analysis.\n\n    \n**Student:** Rodrigo Neto (fc59850)\n    ",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/analysis/draft": {
+      "post": {
+        "tags": [
+          "Analysis"
+        ],
+        "summary": "Win probability for a 5v5 draft",
+        "description": "Returns ML-predicted win probabilities for both teams, plus synergy analysis, counter matchups, and win conditions. Requires an active draft model.",
+        "operationId": "analyze_draft_api_v1_analysis_draft_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftAnalysisRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftAnalysisResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analysis/build": {
+      "post": {
+        "tags": [
+          "Analysis"
+        ],
+        "summary": "Build effectiveness score (0\u2013100)",
+        "description": "Scores an item build for a champion using the trained build model. Score is derived from predicted win probability. Optionally considers enemy composition for alternative suggestions.",
+        "operationId": "analyze_build_api_v1_analysis_build_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BuildAnalysisRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuildAnalysisResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analysis/player": {
+      "post": {
+        "tags": [
+          "Analysis"
+        ],
+        "summary": "Player performance analysis and improvement tips",
+        "description": "Aggregates a player's recent match stats and benchmarks each metric against the EUW population for their role using stored percentile data. Returns prioritised improvement tips.",
+        "operationId": "analyze_player_api_v1_analysis_player_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlayerAnalysisRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerAnalysisResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analysis/game": {
+      "post": {
+        "tags": [
+          "Analysis"
+        ],
+        "summary": "Post-game breakdown for all 10 players",
+        "description": "Scores each player's performance using the performance model. Supply a `game_id` (stored game) or inline `raw_data`. Participants must have: puuid, championId, teamId, position, win, kills, deaths, assists, gold, cs, dmg_champs, vision, kda, kp.",
+        "operationId": "analyze_game_api_v1_analysis_game_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GameAnalysisRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameAnalysisResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analysis/champion": {
+      "post": {
+        "tags": [
+          "Analysis"
+        ],
+        "summary": "Champion stats from EUW dataset",
+        "description": "Returns win rate, pick rate, average stats, and counter data for a champion. Queries the EUW dataset directly \u2014 no model required.",
+        "operationId": "analyze_champion_api_v1_analysis_champion_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChampionAnalysisRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChampionAnalysisResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analysis/": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "Root",
+        "operationId": "root_api_v1_analysis__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analysis/health": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "Health",
+        "operationId": "health_api_v1_analysis_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analysis/q/health/ready": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "Health",
+        "operationId": "health_api_v1_analysis_q_health_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analysis/q/health/live": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "Health",
+        "operationId": "health_api_v1_analysis_q_health_live_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AlternativeItem": {
+        "properties": {
+          "replaces": {
+            "type": "string",
+            "title": "Replaces"
+          },
+          "suggested_item": {
+            "type": "string",
+            "title": "Suggested Item"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "replaces",
+          "suggested_item",
+          "reason"
+        ],
+        "title": "AlternativeItem"
+      },
+      "BuildAnalysisRequest": {
+        "properties": {
+          "champion": {
+            "type": "string",
+            "title": "Champion"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Role"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "items": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Items"
+          },
+          "enemy_composition": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enemy Composition"
+          },
+          "model_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "champion",
+          "items"
+        ],
+        "title": "BuildAnalysisRequest"
+      },
+      "BuildAnalysisResponse": {
+        "properties": {
+          "champion": {
+            "type": "string",
+            "title": "Champion"
+          },
+          "items": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "score": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Score"
+          },
+          "win_rate_with_build": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Win Rate With Build"
+          },
+          "strengths": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Strengths"
+          },
+          "weaknesses": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Weaknesses"
+          },
+          "alternative_items": {
+            "items": {
+              "$ref": "#/components/schemas/AlternativeItem"
+            },
+            "type": "array",
+            "title": "Alternative Items"
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "champion",
+          "items",
+          "score",
+          "win_rate_with_build",
+          "strengths",
+          "weaknesses",
+          "alternative_items",
+          "model_version"
+        ],
+        "title": "BuildAnalysisResponse"
+      },
+      "ChampionAnalysisRequest": {
+        "properties": {
+          "champion": {
+            "type": "string",
+            "title": "Champion"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "patch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Patch"
+          },
+          "match_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Match Type"
+          },
+          "model_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "champion"
+        ],
+        "title": "ChampionAnalysisRequest"
+      },
+      "ChampionAnalysisResponse": {
+        "properties": {
+          "champion": {
+            "type": "string",
+            "title": "Champion"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/ChampionStats"
+          },
+          "tier": {
+            "type": "string",
+            "title": "Tier"
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "champion",
+          "stats",
+          "tier",
+          "model_version"
+        ],
+        "title": "ChampionAnalysisResponse"
+      },
+      "ChampionInDraft": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "role"
+        ],
+        "title": "ChampionInDraft"
+      },
+      "ChampionStats": {
+        "properties": {
+          "champion": {
+            "type": "string",
+            "title": "Champion"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "win_rate": {
+            "type": "number",
+            "title": "Win Rate"
+          },
+          "pick_rate": {
+            "type": "number",
+            "title": "Pick Rate"
+          },
+          "total_games": {
+            "type": "integer",
+            "title": "Total Games"
+          },
+          "avg_kda": {
+            "type": "number",
+            "title": "Avg Kda"
+          },
+          "avg_damage": {
+            "type": "number",
+            "title": "Avg Damage"
+          },
+          "avg_gold": {
+            "type": "number",
+            "title": "Avg Gold"
+          },
+          "avg_cs": {
+            "type": "number",
+            "title": "Avg Cs"
+          },
+          "avg_vision": {
+            "type": "number",
+            "title": "Avg Vision"
+          },
+          "best_items": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Best Items"
+          },
+          "best_runes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Best Runes"
+          },
+          "counters": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Counters"
+          },
+          "countered_by": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Countered By"
+          }
+        },
+        "type": "object",
+        "required": [
+          "champion",
+          "position",
+          "win_rate",
+          "pick_rate",
+          "total_games",
+          "avg_kda",
+          "avg_damage",
+          "avg_gold",
+          "avg_cs",
+          "avg_vision",
+          "best_items",
+          "best_runes",
+          "counters",
+          "countered_by"
+        ],
+        "title": "ChampionStats"
+      },
+      "Concern": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "build",
+          "performance"
+        ],
+        "title": "Concern"
+      },
+      "DraftAnalysisRequest": {
+        "properties": {
+          "team_blue": {
+            "$ref": "#/components/schemas/DraftTeam"
+          },
+          "team_red": {
+            "$ref": "#/components/schemas/DraftTeam"
+          },
+          "model_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "team_blue",
+          "team_red"
+        ],
+        "title": "DraftAnalysisRequest"
+      },
+      "DraftAnalysisResponse": {
+        "properties": {
+          "blue_win_probability": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Blue Win Probability"
+          },
+          "red_win_probability": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Red Win Probability"
+          },
+          "blue_synergies": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Blue Synergies"
+          },
+          "red_synergies": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Red Synergies"
+          },
+          "blue_counters": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Blue Counters"
+          },
+          "red_counters": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Red Counters"
+          },
+          "win_conditions": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Win Conditions"
+          },
+          "tips": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tips"
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "blue_win_probability",
+          "red_win_probability",
+          "blue_synergies",
+          "red_synergies",
+          "blue_counters",
+          "red_counters",
+          "win_conditions",
+          "tips",
+          "model_version"
+        ],
+        "title": "DraftAnalysisResponse"
+      },
+      "DraftTeam": {
+        "properties": {
+          "champions": {
+            "items": {
+              "$ref": "#/components/schemas/ChampionInDraft"
+            },
+            "type": "array",
+            "maxItems": 5,
+            "minItems": 1,
+            "title": "Champions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "champions"
+        ],
+        "title": "DraftTeam"
+      },
+      "ErrorResponse": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorResponse"
+      },
+      "GameAnalysisRequest": {
+        "properties": {
+          "game_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Game Id",
+            "description": "Game id to analyze. Riot-style values like 'VN_1417849076' are supported. From LeagueOfGraphs URLs, combine region + '_' + id (for example, https://www.leagueofgraphs.com/match/vn/1417849076#participant8 -> VN_1417849076)."
+          },
+          "raw_data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Data"
+          },
+          "model_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Id"
+          },
+          "concern": {
+            "$ref": "#/components/schemas/Concern",
+            "default": "performance"
+          }
+        },
+        "type": "object",
+        "title": "GameAnalysisRequest"
+      },
+      "GameAnalysisResponse": {
+        "properties": {
+          "game_id": {
+            "type": "string",
+            "title": "Game Id"
+          },
+          "patch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Patch"
+          },
+          "duration_sec": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Sec"
+          },
+          "winner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Winner"
+          },
+          "players": {
+            "items": {
+              "$ref": "#/components/schemas/PlayerOutcome"
+            },
+            "type": "array",
+            "title": "Players"
+          },
+          "team_synergies": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Team Synergies"
+          },
+          "key_moments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Key Moments"
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "game_id",
+          "patch",
+          "duration_sec",
+          "winner",
+          "players",
+          "team_synergies",
+          "key_moments",
+          "model_version"
+        ],
+        "title": "GameAnalysisResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ImpactLevel": {
+        "type": "string",
+        "enum": [
+          "LOW",
+          "MEDIUM",
+          "HIGH"
+        ],
+        "title": "ImpactLevel"
+      },
+      "ImprovementTip": {
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/TipCategory"
+          },
+          "tip": {
+            "type": "string",
+            "title": "Tip"
+          },
+          "impact": {
+            "$ref": "#/components/schemas/ImpactLevel"
+          },
+          "related_metric": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Related Metric"
+          }
+        },
+        "type": "object",
+        "required": [
+          "category",
+          "tip",
+          "impact"
+        ],
+        "title": "ImprovementTip"
+      },
+      "PerformanceMetric": {
+        "properties": {
+          "value": {
+            "type": "number",
+            "title": "Value"
+          },
+          "tier_average": {
+            "type": "number",
+            "title": "Tier Average"
+          },
+          "percentile": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Percentile"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value",
+          "tier_average",
+          "percentile"
+        ],
+        "title": "PerformanceMetric"
+      },
+      "PlayerAnalysisRequest": {
+        "properties": {
+          "summoner_id": {
+            "type": "string",
+            "title": "Summoner Id"
+          },
+          "champion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Champion"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Role"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_n_games": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Last N Games",
+            "default": 20
+          },
+          "match_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Match Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "summoner_id"
+        ],
+        "title": "PlayerAnalysisRequest"
+      },
+      "PlayerAnalysisResponse": {
+        "properties": {
+          "summoner_id": {
+            "type": "string",
+            "title": "Summoner Id"
+          },
+          "matches_analyzed": {
+            "type": "integer",
+            "title": "Matches Analyzed"
+          },
+          "champion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Champion"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "win_rate": {
+            "type": "number",
+            "title": "Win Rate"
+          },
+          "kda": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PerformanceMetric"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "avg_damage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PerformanceMetric"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "avg_vision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PerformanceMetric"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "avg_gold_pm": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PerformanceMetric"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "obj_participation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PerformanceMetric"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tips": {
+            "items": {
+              "$ref": "#/components/schemas/ImprovementTip"
+            },
+            "type": "array",
+            "title": "Tips"
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "summoner_id",
+          "matches_analyzed",
+          "champion",
+          "role",
+          "win_rate",
+          "kda",
+          "avg_damage",
+          "avg_vision",
+          "avg_gold_pm",
+          "obj_participation",
+          "tips",
+          "model_version"
+        ],
+        "title": "PlayerAnalysisResponse"
+      },
+      "PlayerOutcome": {
+        "properties": {
+          "puuid": {
+            "type": "string",
+            "title": "Puuid"
+          },
+          "champion": {
+            "type": "string",
+            "title": "Champion"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "win": {
+            "type": "boolean",
+            "title": "Win"
+          },
+          "kda": {
+            "type": "number",
+            "title": "Kda"
+          },
+          "damage": {
+            "type": "integer",
+            "title": "Damage"
+          },
+          "gold": {
+            "type": "integer",
+            "title": "Gold"
+          },
+          "cs": {
+            "type": "integer",
+            "title": "Cs"
+          },
+          "vision": {
+            "type": "integer",
+            "title": "Vision"
+          },
+          "performance_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Performance Score"
+          },
+          "highlights": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Highlights",
+            "default": []
+          },
+          "lowlights": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Lowlights",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "puuid",
+          "champion",
+          "role",
+          "win",
+          "kda",
+          "damage",
+          "gold",
+          "cs",
+          "vision"
+        ],
+        "title": "PlayerOutcome"
+      },
+      "Role": {
+        "type": "string",
+        "enum": [
+          "TOP",
+          "JUNGLE",
+          "MID",
+          "BOT",
+          "SUPPORT"
+        ],
+        "title": "Role"
+      },
+      "TipCategory": {
+        "type": "string",
+        "enum": [
+          "VISION",
+          "FARMING",
+          "DAMAGE",
+          "POSITIONING",
+          "OBJECTIVE_CONTROL",
+          "BUILDS",
+          "GAME_SENSE"
+        ],
+        "title": "TipCategory"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
