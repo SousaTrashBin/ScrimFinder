@@ -24,6 +24,7 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: kube-system
+    serviceAccount: {{ .Values.global.secretsServiceAccountName | default "scrimfinder-secrets-reader" }}
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
