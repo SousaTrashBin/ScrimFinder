@@ -1,0 +1,574 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "title" : "Match History Service",
+    "version" : "0.0.1"
+  },
+  "tags" : [ {
+    "name" : "Match History",
+    "description" : "Operations for retrieving and managing League of Legends match history"
+  } ],
+  "components" : {
+    "schemas" : {
+      "Champion" : {
+        "type" : "string",
+        "enum" : [ "NONE", "AATROX", "AHRI", "AKALI", "AKSHAN", "ALISTAR", "AMBESSA", "AMUMU", "ANIVIA", "ANNIE", "APHELIOS", "ASHE", "AURELION_SOL", "AURORA", "AZIR", "BARD", "BELVETH", "BLITZCRANK", "BRAND", "BRAUM", "BRIAR", "CAITLYN", "CAMILLE", "CASSIOPEIA", "CHOGATH", "CORKI", "DARIUS", "DIANA", "DR_MUNDO", "DRAVEN", "EKKO", "ELISE", "EVELYNN", "EZREAL", "FIDDLESTICKS", "FIORA", "FIZZ", "GALIO", "GANGPLANK", "GAREN", "GNAR", "GRAGAS", "GRAVES", "GWEN", "HECARIM", "HEIMERDINGER", "HWEI", "ILLAOI", "IRELIA", "IVERN", "JANNA", "JARVAN_IV", "JAX", "JAYCE", "JHIN", "JINX", "KSANTE", "KAISA", "KALISTA", "KARMA", "KARTHUS", "KASSADIN", "KATARINA", "KAYLE", "KAYN", "KENNEN", "KHAZIX", "KINDRED", "KLED", "KOGMAW", "LEBLANC", "LEE_SIN", "LEONA", "LILLIA", "LISSANDRA", "LUCIAN", "LULU", "LUX", "MALPHITE", "MALZAHAR", "MAOKAI", "MASTER_YI", "MEL", "MILIO", "MISS_FORTUNE", "MORDEKAISER", "MORGANA", "NAAFIRI", "NAMI", "NASUS", "NAUTILUS", "NEEKO", "NIDALEE", "NILAH", "NOCTURNE", "NUNU_WILLUMP", "OLAF", "ORIANNA", "ORNN", "PANTHEON", "POPPY", "PYKE", "QIYANA", "QUINN", "RAKAN", "RAMMUS", "REKSAI", "RELL", "RENATA_GLASC", "RENEKTON", "RENGAR", "RIVEN", "RUMBLE", "RYZE", "SAMIRA", "SEJUANI", "SENNA", "SERAPHINE", "SETT", "SHACO", "SHEN", "SHYVANA", "SINGED", "SION", "SIVIR", "SKARNER", "SMOLDER", "SONA", "SORAKA", "SWAIN", "SYLAS", "SYNDRA", "TAHM_KENCH", "TALIYAH", "TALON", "TARIC", "TEEMO", "THRESH", "TRISTANA", "TRUNDLE", "TRYNDAMERE", "TWISTED_FATE", "TWITCH", "UDYR", "URGOT", "VARUS", "VAYNE", "VEIGAR", "VELKOZ", "VEX", "VI", "VIEGO", "VIKTOR", "VLADIMIR", "VOLIBEAR", "WARWICK", "WUKONG", "XAYAH", "XERATH", "XIN_ZHAO", "YASUO", "YONE", "YORICK", "YUNARA", "YUUMI", "ZAAHEN", "ZAC", "ZED", "ZERI", "ZIGGS", "ZILEAN", "ZOE", "ZYRA" ]
+      },
+      "DoubleInterval" : {
+        "type" : "object",
+        "properties" : {
+          "min" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "max" : {
+            "type" : "number",
+            "format" : "double"
+          }
+        }
+      },
+      "ErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          }
+        }
+      },
+      "IntegerInterval" : {
+        "type" : "object",
+        "properties" : {
+          "min" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "max" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "LongInterval" : {
+        "type" : "object",
+        "properties" : {
+          "min" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "max" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "MatchDTO" : {
+        "type" : "object",
+        "properties" : {
+          "riotMatchId" : {
+            "type" : "string"
+          },
+          "queueId" : {
+            "$ref" : "#/components/schemas/UUID"
+          },
+          "patch" : {
+            "type" : "string"
+          },
+          "gameCreation" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Reflected as the number of seconds since January 1st, 1970 at UTC (Unix timestamp)"
+          },
+          "gameDuration" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "players" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PlayerStatsDTO"
+            }
+          },
+          "teams" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TeamStatsDTO"
+            }
+          }
+        }
+      },
+      "MatchFilters" : {
+        "type" : "object",
+        "properties" : {
+          "queueId" : {
+            "$ref" : "#/components/schemas/UUID"
+          },
+          "champions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Champion"
+            }
+          },
+          "patch" : {
+            "$ref" : "#/components/schemas/PatchInterval"
+          },
+          "time" : {
+            "$ref" : "#/components/schemas/LongInterval"
+          },
+          "players" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PlayerFilters"
+            }
+          },
+          "teams" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TeamFilters"
+            }
+          },
+          "sortParams" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SortParams"
+            }
+          }
+        }
+      },
+      "PaginatedResponseDTO" : {
+        "type" : "object",
+        "properties" : {
+          "data" : {
+            "type" : "array",
+            "items" : { }
+          },
+          "currentPage" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "PatchInterval" : {
+        "type" : "object",
+        "properties" : {
+          "min" : {
+            "type" : "string",
+            "default" : "16.5",
+            "pattern" : "\\d+(\\.\\d+)*"
+          },
+          "max" : {
+            "type" : "string",
+            "default" : "16.5",
+            "pattern" : "\\d+(\\.\\d+)*"
+          }
+        }
+      },
+      "PlayerFilters" : {
+        "type" : "object",
+        "properties" : {
+          "puuid" : {
+            "type" : "string"
+          },
+          "playerName" : {
+            "type" : "string"
+          },
+          "playerTag" : {
+            "type" : "string"
+          },
+          "summonerIcon" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "summonerLevel" : {
+            "$ref" : "#/components/schemas/IntegerInterval"
+          },
+          "kills" : {
+            "$ref" : "#/components/schemas/IntegerInterval"
+          },
+          "deaths" : {
+            "$ref" : "#/components/schemas/IntegerInterval"
+          },
+          "assists" : {
+            "$ref" : "#/components/schemas/IntegerInterval"
+          },
+          "healing" : {
+            "$ref" : "#/components/schemas/IntegerInterval"
+          },
+          "damageToPlayers" : {
+            "$ref" : "#/components/schemas/IntegerInterval"
+          },
+          "wards" : {
+            "$ref" : "#/components/schemas/IntegerInterval"
+          },
+          "gold" : {
+            "$ref" : "#/components/schemas/IntegerInterval"
+          },
+          "role" : {
+            "$ref" : "#/components/schemas/Role"
+          },
+          "champions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Champion"
+            }
+          },
+          "csPerMinute" : {
+            "$ref" : "#/components/schemas/DoubleInterval"
+          },
+          "killedMinions" : {
+            "$ref" : "#/components/schemas/IntegerInterval"
+          },
+          "tripleKills" : {
+            "$ref" : "#/components/schemas/IntegerInterval"
+          },
+          "quadKills" : {
+            "$ref" : "#/components/schemas/IntegerInterval"
+          },
+          "pentaKills" : {
+            "$ref" : "#/components/schemas/IntegerInterval"
+          },
+          "teamSide" : {
+            "$ref" : "#/components/schemas/TeamSide"
+          },
+          "won" : {
+            "type" : "boolean"
+          },
+          "mmrDelta" : {
+            "$ref" : "#/components/schemas/IntegerInterval"
+          }
+        }
+      },
+      "PlayerStatsDTO" : {
+        "type" : "object",
+        "properties" : {
+          "riotId" : {
+            "$ref" : "#/components/schemas/RiotId"
+          },
+          "kills" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "deaths" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "assists" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "healing" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "damageToPlayers" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "wards" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "gold" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "role" : {
+            "$ref" : "#/components/schemas/Role"
+          },
+          "champion" : {
+            "$ref" : "#/components/schemas/Champion"
+          },
+          "csPerMinute" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "killedMinions" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "tripleKills" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "quadKills" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pentaKills" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "side" : {
+            "$ref" : "#/components/schemas/TeamSide"
+          },
+          "won" : {
+            "type" : "boolean"
+          },
+          "mmrDelta" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "RiotId" : {
+        "type" : "object",
+        "properties" : {
+          "puuid" : {
+            "type" : "string"
+          },
+          "playerName" : {
+            "type" : "string"
+          },
+          "playerTag" : {
+            "type" : "string"
+          },
+          "summonerIcon" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "summonerLevel" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "Role" : {
+        "type" : "string",
+        "enum" : [ "NONE", "TOP", "JUNGLE", "MID", "BOTTOM", "SUPPORT" ]
+      },
+      "SortColumn" : {
+        "type" : "string",
+        "enum" : [ "QUEUE_ID", "PATCH", "TIME", "BLUE_KILLS", "BLUE_DEATHS", "BLUE_ASSISTS", "BLUE_HEALING", "RED_KILLS", "RED_DEATHS", "RED_ASSISTS", "RED_HEALING" ]
+      },
+      "SortDirection" : {
+        "type" : "string",
+        "enum" : [ "ASC", "DESC" ]
+      },
+      "SortParams" : {
+        "type" : "object",
+        "properties" : {
+          "column" : {
+            "$ref" : "#/components/schemas/SortColumn"
+          },
+          "direction" : {
+            "$ref" : "#/components/schemas/SortDirection"
+          }
+        }
+      },
+      "TeamFilters" : {
+        "type" : "object",
+        "properties" : {
+          "teamSide" : {
+            "$ref" : "#/components/schemas/TeamSide"
+          },
+          "teamKills" : {
+            "$ref" : "#/components/schemas/IntegerInterval"
+          },
+          "teamDeaths" : {
+            "$ref" : "#/components/schemas/IntegerInterval"
+          },
+          "teamAssists" : {
+            "$ref" : "#/components/schemas/IntegerInterval"
+          },
+          "teamHealing" : {
+            "$ref" : "#/components/schemas/IntegerInterval"
+          }
+        }
+      },
+      "TeamSide" : {
+        "type" : "string",
+        "enum" : [ "BLUE", "RED" ]
+      },
+      "TeamStatsDTO" : {
+        "type" : "object",
+        "properties" : {
+          "side" : {
+            "$ref" : "#/components/schemas/TeamSide"
+          },
+          "teamKills" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "teamDeaths" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "teamAssists" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "teamHealing" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "UUID" : {
+        "type" : "string",
+        "format" : "uuid",
+        "pattern" : "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
+      }
+    }
+  },
+  "paths" : {
+    "/api/v1/history/matches" : {
+      "get" : {
+        "summary" : "Get paginated match history with filters and sorting",
+        "operationId" : "getMatches",
+        "tags" : [ "Match History" ],
+        "parameters" : [ {
+          "description" : "0-based page index",
+          "example" : 0,
+          "name" : "page",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0
+          }
+        }, {
+          "description" : "Page size (1..100)",
+          "example" : 20,
+          "name" : "size",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 100,
+            "minimum" : 1,
+            "default" : 20
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MatchFilters"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Successfully retrieved filtered matches",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PaginatedResponseDTO"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid query or pagination parameters",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "408" : {
+            "description" : "Request timeout",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/history/matches/{riotMatchId}" : {
+      "get" : {
+        "summary" : "Get simplified match information by ID",
+        "operationId" : "getMatchById",
+        "tags" : [ "Match History" ],
+        "parameters" : [ {
+          "description" : "Riot match id in REGION_MATCHID format",
+          "example" : "VN_1417849076",
+          "name" : "riotMatchId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "pattern" : "\\S"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Successfully retrieved the match details",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MatchDTO"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Match not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "408" : {
+            "description" : "Request timeout",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal error in communicating with other services",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503" : {
+            "description" : "Some of the needed servers cannot process requests",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers" : [ {
+    "url" : "http://localhost:8080",
+    "description" : "Auto generated value"
+  }, {
+    "url" : "http://0.0.0.0:8080",
+    "description" : "Auto generated value"
+  } ]
+}
