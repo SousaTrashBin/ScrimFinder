@@ -37,7 +37,7 @@ discover_detail_filling_domain "$SCRIM_REGION"
 
 helm dependency update "$ROOT_DIR/k8s/charts/scrimfinder"
 
-helm upgrade --install scrimfinder "$ROOT_DIR/k8s/charts/scrimfinder" \
+if ! helm upgrade --install scrimfinder "$ROOT_DIR/k8s/charts/scrimfinder" \
   --namespace "$SCRIM_NAMESPACE" \
   --create-namespace \
   --wait \
@@ -66,7 +66,23 @@ helm upgrade --install scrimfinder "$ROOT_DIR/k8s/charts/scrimfinder" \
   --set services.detail-filling-service.enabled=false \
   --set services.ranking-service.env.DETAIL_FILLING_SERVICE_URL="http://scrimfinder-traefik/api/v1/riot" \
   --set services.match-history-service.env.PLAYER_FILLING_SVC_URL="http://scrimfinder-traefik/api/v1/riot" \
-  --set services.training-service.env.DETAIL_FILLING_URL="http://scrimfinder-traefik/api/v1/riot"
+  --set services.training-service.env.DETAIL_FILLING_URL="http://scrimfinder-traefik/api/v1/riot"; then
+  echo "helm deploy failed; collecting kubernetes diagnostics for namespace: $SCRIM_NAMESPACE"
+  kubectl get deploy,sts,po,svc -n "$SCRIM_NAMESPACE" -o wide || true
+  kubectl get events -n "$SCRIM_NAMESPACE" --sort-by=.metadata.creationTimestamp | tail -n 200 || true
+  kubectl describe deployment analysis-service -n "$SCRIM_NAMESPACE" || true
+
+  for pod in $(kubectl get pods -n "$SCRIM_NAMESPACE" -l app=analysis-service -o name 2>/dev/null); do
+    echo "=== describe $pod ==="
+    kubectl describe "$pod" -n "$SCRIM_NAMESPACE" || true
+    echo "=== logs $pod (current) ==="
+    kubectl logs "$pod" -n "$SCRIM_NAMESPACE" --all-containers=true --tail=300 || true
+    echo "=== logs $pod (previous) ==="
+    kubectl logs "$pod" -n "$SCRIM_NAMESPACE" --all-containers=true --previous --tail=300 || true
+  done
+
+  exit 1
+fi
 
 base_url=""
 for _ in $(seq 1 90); do
