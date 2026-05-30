@@ -103,9 +103,7 @@ jobs:
           ruff format --check "${{ matrix.service }}"
 
       - name: run pytest
-        run: |
-          cd "${{ matrix.service }}"
-          pytest
+        run: pytest ${{ matrix.service }}/tests/
 
   python_heavy_tests:
     name: python heavy tests - emulator integration
