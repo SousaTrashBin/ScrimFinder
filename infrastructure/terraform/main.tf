@@ -39,6 +39,7 @@ locals {
     "roles/iam.serviceAccountUser",
     "roles/run.admin",
     "roles/secretmanager.admin",
+    "roles/resourcemanager.projectIamAdmin"
   ])
 }
 
