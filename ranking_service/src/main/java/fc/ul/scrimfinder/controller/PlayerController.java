@@ -18,6 +18,7 @@ import java.util.UUID;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
@@ -35,7 +36,7 @@ public class PlayerController {
 
     @GET
     @Path("/{playerId}")
-    @Operation(summary = "Get player details")
+    @Operation(operationId = "getPlayer", summary = "Get player details")
     @APIResponses(
             value = {
                 @APIResponse(
@@ -53,14 +54,20 @@ public class PlayerController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    public Response getPlayer(@PathParam("playerId") @NotNull UUID playerId) {
+    public Response getPlayer(
+            @Parameter(description = "Player UUID", example = "550e8400-e29b-41d4-a716-446655440002")
+                    @PathParam("playerId")
+                    @NotNull
+                    UUID playerId) {
         var player = playerService.getPlayer(playerId);
         return Response.ok(player).build();
     }
 
     @GET
     @Path("/{playerId}/primary-account")
-    @Operation(summary = "Get the primary linked Riot account for a player")
+    @Operation(
+            operationId = "getPrimaryAccount",
+            summary = "Get the primary linked Riot account for a player")
     @APIResponses(
             value = {
                 @APIResponse(
@@ -85,14 +92,23 @@ public class PlayerController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    public Response getPrimaryAccount(@PathParam("playerId") @NotNull UUID playerId) {
+    public Response getPrimaryAccount(
+            @Parameter(description = "Player UUID", example = "550e8400-e29b-41d4-a716-446655440002")
+                    @PathParam("playerId")
+                    @NotNull
+                    UUID playerId) {
         RiotAccountDTO account = playerService.getPrimaryAccount(playerId);
         return Response.ok(account).build();
     }
 
     @PUT
     @Path("/{playerId}/link-lol-account")
-    @Operation(summary = "Link a League of Legends account to a player")
+    @Operation(
+            operationId = "linkLolAccount",
+            summary = "Link a League of Legends account to a player",
+            description =
+                    "For gameName/tagLine discovery, you can use https://www.leagueofgraphs.com/rankings/summoners . "
+                            + "Region should be the Riot routing region enum (AMERICAS, EUROPE, ASIA, SEA).")
     @APIResponses(
             value = {
                 @APIResponse(
@@ -128,7 +144,9 @@ public class PlayerController {
 
     @PUT
     @Path("/{playerId}/set-primary-account")
-    @Operation(summary = "Set one of the linked Riot accounts as the primary account")
+    @Operation(
+            operationId = "setPrimaryAccount",
+            summary = "Set one of the linked Riot accounts as the primary account")
     @APIResponses(
             value = {
                 @APIResponse(
@@ -155,7 +173,9 @@ public class PlayerController {
 
     @POST
     @Path("/{playerId}/sync-mmr")
-    @Operation(summary = "Manually fetch and sync the player's MMR from the external LoL service")
+    @Operation(
+            operationId = "syncExternalMMR",
+            summary = "Manually fetch and sync the player's MMR from the external LoL service")
     @APIResponses(
             value = {
                 @APIResponse(
@@ -187,7 +207,7 @@ public class PlayerController {
 
     @DELETE
     @Path("/links/{gameName}/{tagLine}")
-    @Operation(summary = "Unlink a League of Legends account")
+    @Operation(operationId = "unlinkLolAccount", summary = "Unlink a League of Legends account")
     @APIResponses(
             value = {
                 @APIResponse(

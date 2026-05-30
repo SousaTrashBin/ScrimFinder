@@ -1,5 +1,9 @@
 name: ScrimFinder CI
 
+concurrency:
+  group: scrimfinder-ci
+  cancel-in-progress: false
+
 on:
   push:
     branches:
@@ -106,6 +110,9 @@ jobs:
   java_heavy_and_gke_system_tests:
     name: integration-heavy and ephemeral GKE system tests
     runs-on: ubuntu-latest
+    concurrency:
+      group: gke-ephemeral-stack
+      cancel-in-progress: false
     needs:
       - java_fast_tests
       - python_fast_tests

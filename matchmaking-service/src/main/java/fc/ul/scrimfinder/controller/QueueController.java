@@ -16,6 +16,7 @@ import java.util.UUID;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
@@ -31,7 +32,9 @@ public class QueueController {
     @Inject QueueService queueService;
 
     @POST
-    @Operation(summary = "Create a new queue (can be global or namespaced/local)")
+    @Operation(
+            operationId = "createQueue",
+            summary = "Create a new queue (can be global or namespaced/local)")
     @APIResponses(
             value = {
                 @APIResponse(
@@ -69,7 +72,7 @@ public class QueueController {
 
     @GET
     @Path("/{id}")
-    @Operation(summary = "Get queue details")
+    @Operation(operationId = "getQueue", summary = "Get queue details")
     @APIResponses(
             value = {
                 @APIResponse(
@@ -87,7 +90,10 @@ public class QueueController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    public Response getQueue(@PathParam("id") UUID id) {
+    public Response getQueue(
+            @Parameter(description = "Queue UUID", example = "550e8400-e29b-41d4-a716-446655440010")
+                    @PathParam("id")
+                    UUID id) {
         QueueDTO queue = queueService.getQueue(id);
         return Response.ok(queue).build();
     }

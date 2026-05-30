@@ -72,11 +72,17 @@ def ingest_batch(body: BatchIngestRequest):
 
 @router.get("", response_model=GameListResponse, summary="List games")
 def list_games(
-    source: Optional[str] = None,
-    patch: Optional[str] = None,
-    match_type: Optional[str] = None,
-    limit: int = Query(50, ge=1, le=500),
-    offset: int = Query(0, ge=0),
+    source: Optional[str] = Query(
+        None, description="Data source filter", examples=["manual"]
+    ),
+    patch: Optional[str] = Query(
+        None, description="Game patch filter", examples=["14.10"]
+    ),
+    match_type: Optional[str] = Query(
+        None, description="Queue/mode filter", examples=["RANKED_SOLO_5x5"]
+    ),
+    limit: int = Query(50, ge=1, le=500, description="Page size", examples=[50]),
+    offset: int = Query(0, ge=0, description="Pagination offset", examples=[0]),
 ):
     rows, total = db.list_games(
         source=source, patch=patch, match_type=match_type, limit=limit, offset=offset
@@ -93,7 +99,13 @@ def list_games(
     summary="Fetch stored match",
     responses={404: {"model": ErrorResponse}},
 )
-def get_game(game_id: str = Path(...)):
+def get_game(
+    game_id: str = Path(
+        ...,
+        description="Stored game id. Riot ids like REGION_MATCHID are supported.",
+        examples=["VN_1417849076"],
+    ),
+):
     row = db.get_game(game_id)
     if row is None:
         raise HTTPException(status_code=404, detail=f"Game '{game_id}' not found.")
@@ -115,7 +127,13 @@ def get_game(game_id: str = Path(...)):
     summary="Delete a game",
     responses={404: {"model": ErrorResponse}},
 )
-def delete_game(game_id: str = Path(...)):
+def delete_game(
+    game_id: str = Path(
+        ...,
+        description="Stored game id to delete.",
+        examples=["VN_1417849076"],
+    ),
+):
     if db.get_game(game_id) is None:
         raise HTTPException(status_code=404, detail=f"Game '{game_id}' not found.")
     with db.get_conn() as conn:

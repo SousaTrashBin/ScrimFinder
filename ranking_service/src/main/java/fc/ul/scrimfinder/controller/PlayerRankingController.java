@@ -13,6 +13,7 @@ import java.util.UUID;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
@@ -28,7 +29,7 @@ public class PlayerRankingController {
 
     @GET
     @Path("/{playerId}/queue-rankings")
-    @Operation(summary = "Get all queue rankings for a player")
+    @Operation(operationId = "getPlayerRankings", summary = "Get all queue rankings for a player")
     @APIResponses(
             value = {
                 @APIResponse(
@@ -46,14 +47,19 @@ public class PlayerRankingController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    public Response getPlayerRankings(@PathParam("playerId") UUID playerId) {
+    public Response getPlayerRankings(
+            @Parameter(description = "Player UUID", example = "550e8400-e29b-41d4-a716-446655440002")
+                    @PathParam("playerId")
+                    UUID playerId) {
         var rankings = playerRankingService.getPlayerRanking(playerId, java.util.Optional.empty());
         return Response.ok(rankings).build();
     }
 
     @GET
     @Path("/{playerId}/queue-rankings/{queueId}")
-    @Operation(summary = "Get a player's ranking for a specific queue")
+    @Operation(
+            operationId = "getPlayerRankingByQueue",
+            summary = "Get a player's ranking for a specific queue")
     @APIResponses(
             value = {
                 @APIResponse(

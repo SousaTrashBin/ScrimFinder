@@ -163,9 +163,13 @@ def create_job(body: TrainingJobCreate):
 
 @router.get("", response_model=TrainingJobListResponse, summary="List jobs")
 def list_jobs(
-    concern: Optional[str] = None,
-    status: Optional[JobStatus] = None,
-    limit: int = Query(100, ge=1, le=500),
+    concern: Optional[str] = Query(
+        None, description="Concern filter", examples=["draft"]
+    ),
+    status: Optional[JobStatus] = Query(None, description="Job status filter"),
+    limit: int = Query(
+        100, ge=1, le=500, description="Maximum jobs to return", examples=[100]
+    ),
 ):
     rows = db.list_jobs(
         concern=concern, status=status.value if status else None, limit=limit
@@ -179,7 +183,11 @@ def list_jobs(
     summary="Get job status",
     responses={404: {"model": ErrorResponse}},
 )
-def get_job(job_id: str = Path(...)):
+def get_job(
+    job_id: str = Path(
+        ..., description="Training job id", examples=["job_123456abcdef"]
+    ),
+):
     row = db.get_job(job_id)
     if row is None:
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found.")
@@ -192,7 +200,11 @@ def get_job(job_id: str = Path(...)):
     summary="Cancel a job",
     responses={404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
 )
-def cancel_job(job_id: str = Path(...)):
+def cancel_job(
+    job_id: str = Path(
+        ..., description="Training job id", examples=["job_123456abcdef"]
+    ),
+):
     row = db.get_job(job_id)
     if row is None:
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found.")
@@ -219,7 +231,11 @@ def cancel_job(job_id: str = Path(...)):
     summary="Deploy model from job",
     responses={404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
 )
-def deploy_job(job_id: str = Path(...)):
+def deploy_job(
+    job_id: str = Path(
+        ..., description="Training job id", examples=["job_123456abcdef"]
+    ),
+):
     row = db.get_job(job_id)
     if row is None:
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found.")

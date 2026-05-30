@@ -1,0 +1,856 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "title" : "Ranking Service",
+    "version" : "0.0.1"
+  },
+  "tags" : [ {
+    "name" : "Leaderboard",
+    "description" : "Global and queue-specific leaderboard operations"
+  }, {
+    "name" : "Player Management",
+    "description" : "Operations for managing player profiles and external account links"
+  }, {
+    "name" : "Player Ranking",
+    "description" : "Operations for player MMR and ranking history"
+  }, {
+    "name" : "Queue Management",
+    "description" : "Operations for managing MMR-based queues and rules"
+  } ],
+  "components" : {
+    "schemas" : {
+      "ErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          }
+        }
+      },
+      "LinkLolAccountRequest" : {
+        "type" : "object",
+        "properties" : {
+          "puuid" : {
+            "type" : "string"
+          },
+          "gameName" : {
+            "type" : "string",
+            "pattern" : "\\S"
+          },
+          "tagLine" : {
+            "type" : "string",
+            "pattern" : "\\S"
+          },
+          "region" : {
+            "$ref" : "#/components/schemas/Region"
+          }
+        },
+        "required" : [ "gameName", "tagLine", "region" ]
+      },
+      "MMRRuleType" : {
+        "type" : "string",
+        "enum" : [ "FLEX_RANK", "SOLOQ_RANK", "NONE" ]
+      },
+      "PaginatedResponseDTO" : {
+        "type" : "object",
+        "properties" : {
+          "data" : {
+            "type" : "array",
+            "items" : { }
+          },
+          "currentPage" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "PlayerDTO" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "$ref" : "#/components/schemas/UUID"
+          },
+          "discordUsername" : {
+            "type" : "string"
+          },
+          "riotAccounts" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RiotAccountDTO"
+            }
+          },
+          "soloqMMR" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "flexMMR" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "PlayerRankingDTO" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "$ref" : "#/components/schemas/UUID"
+          },
+          "playerId" : {
+            "$ref" : "#/components/schemas/UUID"
+          },
+          "discordUsername" : {
+            "type" : "string"
+          },
+          "lolAccountPPUID" : {
+            "type" : "string"
+          },
+          "region" : {
+            "$ref" : "#/components/schemas/Region"
+          },
+          "queueId" : {
+            "$ref" : "#/components/schemas/UUID"
+          },
+          "mmr" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "wins" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "losses" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "QueueDTO" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "$ref" : "#/components/schemas/UUID"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "mmrRuleType" : {
+            "$ref" : "#/components/schemas/MMRRuleType"
+          },
+          "initialMMR" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "active" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "Region" : {
+        "type" : "string",
+        "enum" : [ "BR", "EUNE", "EUW", "LAN", "LAS", "NA", "OCE", "RU", "TR", "ME", "JP", "KR", "SEA", "TW", "VN", "PBE" ]
+      },
+      "RiotAccountDTO" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "$ref" : "#/components/schemas/UUID"
+          },
+          "puuid" : {
+            "type" : "string"
+          },
+          "gameName" : {
+            "type" : "string"
+          },
+          "tagLine" : {
+            "type" : "string"
+          },
+          "region" : {
+            "$ref" : "#/components/schemas/Region"
+          },
+          "isPrimary" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "SetPrimaryAccountRequest" : {
+        "type" : "object",
+        "required" : [ "puuid" ],
+        "properties" : {
+          "puuid" : {
+            "type" : "string",
+            "pattern" : "\\S"
+          }
+        }
+      },
+      "UUID" : {
+        "type" : "string",
+        "format" : "uuid",
+        "pattern" : "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
+      },
+      "UpdateQueueRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "mmrRuleType" : {
+            "$ref" : "#/components/schemas/MMRRuleType"
+          },
+          "initialMMR" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "active" : {
+            "type" : [ "boolean", "null" ]
+          }
+        }
+      }
+    }
+  },
+  "paths" : {
+    "/api/v1/ranking/leaderboards" : {
+      "get" : {
+        "summary" : "Get global leaderboard with pagination",
+        "operationId" : "getGlobalLeaderboard",
+        "tags" : [ "Leaderboard" ],
+        "parameters" : [ {
+          "description" : "0-based page index",
+          "example" : 0,
+          "name" : "page",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0
+          }
+        }, {
+          "description" : "Optional region filter",
+          "name" : "region",
+          "in" : "query",
+          "schema" : {
+            "$ref" : "#/components/schemas/Region"
+          },
+          "required" : false
+        }, {
+          "description" : "Page size (1..100)",
+          "example" : 20,
+          "name" : "size",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 100,
+            "minimum" : 0,
+            "default" : 20
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Successfully retrieved the leaderboard",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PaginatedResponseDTO"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid pagination parameters",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Queue not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ranking/leaderboards/queues/{queueId}" : {
+      "get" : {
+        "summary" : "Get queue leaderboard with pagination",
+        "operationId" : "getQueueLeaderboard",
+        "tags" : [ "Leaderboard" ],
+        "parameters" : [ {
+          "description" : "Queue UUID",
+          "example" : "550e8400-e29b-41d4-a716-446655440010",
+          "name" : "queueId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/UUID"
+          }
+        }, {
+          "description" : "0-based page index",
+          "example" : 0,
+          "name" : "page",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0
+          }
+        }, {
+          "description" : "Optional region filter",
+          "name" : "region",
+          "in" : "query",
+          "schema" : {
+            "$ref" : "#/components/schemas/Region"
+          },
+          "required" : false
+        }, {
+          "description" : "Page size (1..100)",
+          "example" : 20,
+          "name" : "size",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 100,
+            "minimum" : 0,
+            "default" : 20
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Successfully retrieved the leaderboard",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PaginatedResponseDTO"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid pagination parameters",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Queue not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ranking/players/links/{gameName}/{tagLine}" : {
+      "delete" : {
+        "summary" : "Unlink a League of Legends account",
+        "operationId" : "unlinkLolAccount",
+        "tags" : [ "Player Management" ],
+        "parameters" : [ {
+          "name" : "gameName",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "pattern" : "\\S"
+          }
+        }, {
+          "name" : "tagLine",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "pattern" : "\\S"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Account successfully unlinked or not found"
+          }
+        }
+      }
+    },
+    "/api/v1/ranking/players/{playerId}" : {
+      "get" : {
+        "summary" : "Get player details",
+        "operationId" : "getPlayer",
+        "tags" : [ "Player Management" ],
+        "parameters" : [ {
+          "description" : "Player UUID",
+          "example" : "550e8400-e29b-41d4-a716-446655440002",
+          "name" : "playerId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/UUID"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Player found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PlayerDTO"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Player not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ranking/players/{playerId}/link-lol-account" : {
+      "put" : {
+        "summary" : "Link a League of Legends account to a player",
+        "description" : "For gameName/tagLine discovery, you can use https://www.leagueofgraphs.com/rankings/summoners . Region should be the Riot routing region enum (AMERICAS, EUROPE, ASIA, SEA).",
+        "operationId" : "linkLolAccount",
+        "tags" : [ "Player Management" ],
+        "parameters" : [ {
+          "name" : "playerId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/UUID"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LinkLolAccountRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Account successfully linked",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PlayerDTO"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid account info or already linked",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Player not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ranking/players/{playerId}/primary-account" : {
+      "get" : {
+        "summary" : "Get the primary linked Riot account for a player",
+        "operationId" : "getPrimaryAccount",
+        "tags" : [ "Player Management" ],
+        "parameters" : [ {
+          "description" : "Player UUID",
+          "example" : "550e8400-e29b-41d4-a716-446655440002",
+          "name" : "playerId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/UUID"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Primary account found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RiotAccountDTO"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "No League of Legends account linked",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Player not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ranking/players/{playerId}/queue-rankings" : {
+      "get" : {
+        "summary" : "Get all queue rankings for a player",
+        "operationId" : "getPlayerRankings",
+        "tags" : [ "Player Ranking" ],
+        "parameters" : [ {
+          "description" : "Player UUID",
+          "example" : "550e8400-e29b-41d4-a716-446655440002",
+          "name" : "playerId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/UUID"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Successfully retrieved player ranking(s)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PlayerRankingDTO"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Player ranking not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ranking/players/{playerId}/queue-rankings/{queueId}" : {
+      "get" : {
+        "summary" : "Get a player's ranking for a specific queue",
+        "operationId" : "getPlayerRankingByQueue",
+        "tags" : [ "Player Ranking" ],
+        "parameters" : [ {
+          "name" : "playerId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/UUID"
+          }
+        }, {
+          "name" : "queueId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/UUID"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Successfully retrieved player queue ranking",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PlayerRankingDTO"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Player ranking not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ranking/players/{playerId}/set-primary-account" : {
+      "put" : {
+        "summary" : "Set one of the linked Riot accounts as the primary account",
+        "operationId" : "setPrimaryAccount",
+        "tags" : [ "Player Management" ],
+        "parameters" : [ {
+          "name" : "playerId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/UUID"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetPrimaryAccountRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Primary account successfully updated",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PlayerDTO"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Player or Riot account not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request"
+          }
+        }
+      }
+    },
+    "/api/v1/ranking/players/{playerId}/sync-mmr" : {
+      "post" : {
+        "summary" : "Manually fetch and sync the player's MMR from the external LoL service",
+        "operationId" : "syncExternalMMR",
+        "tags" : [ "Player Management" ],
+        "parameters" : [ {
+          "name" : "playerId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/UUID"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "MMR successfully synced",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PlayerDTO"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "League of Legends account not linked",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Player not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ranking/queue/{queueId}" : {
+      "put" : {
+        "summary" : "Update an existing queue's configuration",
+        "operationId" : "updateQueue",
+        "tags" : [ "Queue Management" ],
+        "parameters" : [ {
+          "name" : "queueId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/UUID"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateQueueRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Queue configuration successfully updated",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QueueDTO"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid update payload",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Queue not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "Get queue details",
+        "operationId" : "getQueue",
+        "tags" : [ "Queue Management" ],
+        "parameters" : [ {
+          "description" : "Queue UUID",
+          "example" : "550e8400-e29b-41d4-a716-446655440010",
+          "name" : "queueId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/UUID"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Queue found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QueueDTO"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Queue not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Delete a specific queue",
+        "operationId" : "deleteQueue",
+        "tags" : [ "Queue Management" ],
+        "parameters" : [ {
+          "name" : "queueId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/UUID"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Queue successfully deleted"
+          },
+          "404" : {
+            "description" : "Queue not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers" : [ {
+    "url" : "http://localhost:8080",
+    "description" : "Auto generated value"
+  }, {
+    "url" : "http://0.0.0.0:8080",
+    "description" : "Auto generated value"
+  } ]
+}
