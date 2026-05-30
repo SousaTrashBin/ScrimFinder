@@ -11,8 +11,8 @@ services:
       - BIGQUERY_EMULATOR_GRPC_PORT=9060
       - BIGQUERY_EMULATOR_PROJECT_ID=test-project
       - BIGQUERY_EMULATOR_DATASET_ID=test_league,test_platform
-    volumes:
-      - ./bq_emulator_data:/data
+    # volumes:
+    #   - ./bq_emulator_data:/data
     networks:
       - scrimfinder_net
     healthcheck:
@@ -24,10 +24,10 @@ services:
   # ── Training Service (for integration tests with emulator) ─────────────────
   training-test:
     build:
-      context: ../training_service
+      context: ./training_service
       dockerfile: Dockerfile
     container_name: scrimfinder_training_test
-    command: pytest training_service/tests/test_integration.py -v -m integration
+    command: pytest tests/test_training_integration.py -v -m integration
     environment:
       - PYTHONPATH=/app
       - BQ_EMULATOR_HOST=http://bq-emulator:9050
@@ -41,8 +41,8 @@ services:
       - GRPC_PORT=0
       - RABBITMQ_HOST=""
     volumes:
-      - ../training_service:/app/training_service
-      - ../ml_data:/app/data
+      - ./training_service:/app/training_service
+      - ./ml_data:/app/data
     depends_on:
       bq-emulator:
         condition: service_healthy
@@ -52,10 +52,10 @@ services:
   # ── Analysis Service (for integration tests with emulator) ─────────────────
   analysis-test:
     build:
-      context: ../analysis_service
+      context: ./analysis_service
       dockerfile: Dockerfile
     container_name: scrimfinder_analysis_test
-    command: pytest analysis_service/tests/test_integration.py -v -m integration
+    command: pytest tests/test_analysis_integration.py -v -m integration
     environment:
       - PYTHONPATH=/app
       - BQ_EMULATOR_HOST=http://bq-emulator:9050
@@ -67,8 +67,30 @@ services:
       - MODEL_RELOAD_INTERVAL=60
       - TRAINING_GRPC_URL=""
     volumes:
-      - ../analysis_service:/app/analysis_service
-      - ../ml_data:/app/data
+      - ./analysis_service:/app/analysis_service
+      - ./ml_data:/app/data
+    depends_on:
+      bq-emulator:
+        condition: service_healthy
+    networks:
+      - scrimfinder_net
+
+  # ── JWT Manager (for integration tests with emulator) ──────────────────────
+  jwt-test:
+    build:
+      context: ./jwt_manager
+      dockerfile: Dockerfile
+    container_name: scrimfinder_jwt_test
+    command: pytest tests/test_jwt_integration.py -v -m integration
+    environment:
+      - PYTHONPATH=/app
+      - BQ_EMULATOR_HOST=http://bq-emulator:9050
+      - BQ_PROJECT=test-project
+      - BQ_DATASET=test_league
+      - BQ_PLATFORM_DATASET=test_platform
+      - BQ_LOCATION=US
+    volumes:
+      - ./jwt_manager:/app/jwt_manager
     depends_on:
       bq-emulator:
         condition: service_healthy
@@ -77,4 +99,4 @@ services:
 
 networks:
   scrimfinder_net:
-    external: true
+    driver: bridge

@@ -593,7 +593,7 @@ class BQMock:
         monkeypatch.setattr(cfg_mod.cfg, "BQ_PROJECT", self.project)
         monkeypatch.setattr(cfg_mod.cfg, "BQ_PLATFORM_DATASET", self.platform_dataset)
         monkeypatch.setattr(cfg_mod.cfg, "BQ_DATASET", "test_league")
-        monkeypatch.setattr(cfg_mod.cfg, "BQ_LOCATION", "US")
+        monkeypatch.setattr(cfg_mod.cfg, "BQ_LOCATION", "EU")
 
         # Patch _bq_query
         monkeypatch.setattr(db_mod, "_bq_query", self._execute)

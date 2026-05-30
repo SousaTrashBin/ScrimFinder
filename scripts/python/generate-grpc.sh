@@ -22,8 +22,8 @@ for service in $services; do
     proto_file="$ROOT_DIR/$service/proto/training_service.proto"
 
     if [ ! -f "$proto_file" ]; then
-        echo "error: missing proto file: $proto_file"
-        exit 1
+        echo "skipping gRPC generation for $service: missing proto file ($proto_file)"
+        continue
     fi
 
     echo "generating Python gRPC stubs for $service..."

@@ -77,6 +77,10 @@ spec:
             secretKeyRef:
               name: scrimfinder-secrets
               key: rabbitmq-password
+        - name: SCRIM_PROJECT_ID
+          value: {{ $.Values.global.projectID | quote }}
+        - name: BQ_PROJECT
+          value: {{ $.Values.global.projectID | quote }}
 
         resources:
           {{- toYaml $config.resources | nindent 10 }}

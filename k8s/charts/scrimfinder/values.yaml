@@ -317,3 +317,23 @@ services:
       enabled: true
       mountPath: /app/data
       claimName: ai-storage-pvc
+
+  jwt-manager:
+    imageName: "jwt-manager"
+    ports:
+      - name: http
+        containerPort: 8000
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "256Mi"
+      limits:
+        cpu: "200m"
+        memory: "256Mi"
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 80
+    healthType: "http"
+    healthPath: "/api/v1/auth/q/health"

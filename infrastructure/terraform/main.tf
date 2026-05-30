@@ -11,6 +11,7 @@ locals {
 
   required_services = toset([
     "artifactregistry.googleapis.com",
+    "bigquery.googleapis.com",
     "cloudbuild.googleapis.com",
     "cloudfunctions.googleapis.com",
     "cloudresourcemanager.googleapis.com",
@@ -20,6 +21,7 @@ locals {
     "iam.googleapis.com",
     "run.googleapis.com",
     "secretmanager.googleapis.com",
+    "storage.googleapis.com",
   ])
 
   secret_values = {
@@ -89,12 +91,13 @@ resource "google_container_node_pool" "default_pool" {
   }
 
   node_config {
-    machine_type = "e2-standard-4"
-    disk_size_gb = 40
-    disk_type    = "pd-standard"
-    spot         = true
-    labels       = local.common_labels
-    oauth_scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+    machine_type    = "e2-standard-4"
+    disk_size_gb    = 40
+    disk_type       = "pd-standard"
+    spot            = true
+    service_account = google_service_account.gke_nodes_sa.email
+    labels          = local.common_labels
+    oauth_scopes    = ["https://www.googleapis.com/auth/cloud-platform"]
     workload_metadata_config {
       mode = "GKE_METADATA"
     }
@@ -124,17 +127,44 @@ resource "google_project_iam_member" "cloud_functions_deployer" {
   member   = var.cloud_functions_deployer_member
 }
 
-resource "google_service_account" "secrets_sa" {
-  count        = var.manage_secret_manager ? 1 : 0
+# ── GKE Service Accounts & IAM ───────────────────────────────────────────────
+
+resource "google_service_account" "gke_nodes_sa" {
   project      = var.project_id
-  account_id   = "secrets-service-account"
-  display_name = "secrets-service-account"
-  description  = "Service account with access to ScrimFinder secrets"
+  account_id   = "scrim-gke-nodes-sa"
+  display_name = "ScrimFinder GKE Nodes Service Account"
+}
+
+resource "google_project_iam_member" "gke_nodes_standard" {
+  for_each = toset([
+    "roles/logging.logWriter",
+    "roles/monitoring.metricWriter",
+    "roles/monitoring.viewer",
+    "roles/stackdriver.resourceMetadata.writer",
+    "roles/artifactregistry.reader",
+  ])
+  project = var.project_id
+  role    = each.key
+  member  = "serviceAccount:${google_service_account.gke_nodes_sa.email}"
+}
+
+# Permission for the CI runner to use the GKE node service account
+resource "google_service_account_iam_member" "ci_gke_node_user" {
+  count              = var.cloud_functions_deployer_member != "" ? 1 : 0
+  service_account_id = google_service_account.gke_nodes_sa.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = var.cloud_functions_deployer_member
+}
+
+resource "google_service_account" "secrets_sa" {
+  project      = var.project_id
+  account_id   = "scrim-secrets-sa"
+  display_name = "ScrimFinder Secrets & BigQuery SA"
+  description  = "Service account with access to ScrimFinder secrets and BigQuery datasets"
 }
 
 resource "google_service_account_iam_member" "workload_identity_user" {
-  count              = var.manage_secret_manager ? 1 : 0
-  service_account_id = google_service_account.secrets_sa[0].name
+  service_account_id = google_service_account.secrets_sa.name
   role               = "roles/iam.workloadIdentityUser"
   member             = "serviceAccount:${var.project_id}.svc.id.goog[${var.namespace}/scrimfinder-secrets-reader]"
 }
@@ -163,5 +193,71 @@ resource "google_secret_manager_secret_iam_member" "secrets_access" {
   project   = var.project_id
   secret_id = each.value.secret_id
   role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${google_service_account.secrets_sa[0].email}"
+  member    = "serviceAccount:${google_service_account.secrets_sa.email}"
+}
+
+# ── BigQuery Datasets ────────────────────────────────────────────────────────
+
+resource "google_bigquery_dataset" "scrimfinder" {
+  project                    = var.project_id
+  dataset_id                 = "scrimfinder"
+  location                   = "EU"
+  description                = "League data (read-only in ML services)"
+  labels                     = local.common_labels
+  delete_contents_on_destroy = false
+  depends_on                 = [google_project_service.required]
+}
+
+resource "google_bigquery_dataset" "scrimfinder_platform" {
+  project                    = var.project_id
+  dataset_id                 = "scrimfinder_platform"
+  location                   = "EU"
+  description                = "ML platform metadata (read-write)"
+  labels                     = local.common_labels
+  delete_contents_on_destroy = false
+  depends_on                 = [google_project_service.required]
+}
+
+# ── GCS Bucket for ML Models ─────────────────────────────────────────────────
+
+resource "google_storage_bucket" "models_bucket" {
+  project                     = var.project_id
+  name                        = "scrimfinder-models-${var.project_id}"
+  location                    = "EU"
+  force_destroy               = true
+  uniform_bucket_level_access = true
+  labels                      = local.common_labels
+  depends_on                  = [google_project_service.required]
+}
+
+# ── IAM for BigQuery and Storage ─────────────────────────────────────────────
+
+resource "google_project_iam_member" "bigquery_job_user" {
+  count   = var.manage_secret_manager ? 1 : 0
+  project = var.project_id
+  role    = "roles/bigquery.jobUser"
+  member  = "serviceAccount:${google_service_account.secrets_sa.email}"
+}
+
+resource "google_bigquery_dataset_iam_member" "scrimfinder_viewer" {
+  count      = var.manage_secret_manager ? 1 : 0
+  project    = var.project_id
+  dataset_id = google_bigquery_dataset.scrimfinder.dataset_id
+  role       = "roles/bigquery.dataViewer"
+  member     = "serviceAccount:${google_service_account.secrets_sa.email}"
+}
+
+resource "google_bigquery_dataset_iam_member" "platform_editor" {
+  count      = var.manage_secret_manager ? 1 : 0
+  project    = var.project_id
+  dataset_id = google_bigquery_dataset.scrimfinder_platform.dataset_id
+  role       = "roles/bigquery.dataEditor"
+  member     = "serviceAccount:${google_service_account.secrets_sa.email}"
+}
+
+resource "google_storage_bucket_iam_member" "models_bucket_admin" {
+  count  = var.manage_secret_manager ? 1 : 0
+  bucket = google_storage_bucket.models_bucket.name
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${google_service_account.secrets_sa.email}"
 }
