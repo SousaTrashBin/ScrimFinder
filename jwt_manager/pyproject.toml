@@ -14,4 +14,4 @@ dev = ["ruff", "pytest", "pytest-asyncio"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["core", "routers"]
+include = ["jwt_manager*"]
