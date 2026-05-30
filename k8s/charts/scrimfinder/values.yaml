@@ -9,6 +9,7 @@ global:
   microservicesRegistry: "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}"
   rabbitmqHost: "scrimfinder-rabbitmq-broker"
   rabbitmqPort: "5672"
+  secretsServiceAccountName: "scrimfinder-secrets-reader"
   podSecurityContext: {}
   securityContext: {}
   security:
