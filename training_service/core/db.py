@@ -11,8 +11,8 @@ from typing import Optional, Any, List, Dict
 from google.cloud import bigquery
 from google.cloud.bigquery import QueryJobConfig, ScalarQueryParameter
 
-from training_service.core.config import cfg
-from training_service.core.bq_schema import init_bq_platform
+from .config import cfg
+from .bq_schema import init_bq_platform
 
 _client: Optional[bigquery.Client] = None
 

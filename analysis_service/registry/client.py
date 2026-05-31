@@ -1,12 +1,13 @@
 import pickle
 import threading
-from pathlib import Path
+from typing import Any
 
-from analysis_service.core.config import cfg
-from analysis_service.core.db import get_active_model
+from ..core.config import cfg
+from ..core.db import get_active_model
 
 
-class RegistryClient:
+class ModelRegistryClient:
+
     def __init__(self, concern: str):
         self._concern = concern
         self._artifact = None

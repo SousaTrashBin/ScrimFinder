@@ -21,10 +21,10 @@ USING_EMULATOR = bool(EMULATOR_HOST)
 
 @pytest.fixture
 def client(monkeypatch):
-    from analysis_service.main import app
+    from ..main import app
 
     if not USING_EMULATOR:
-        from analysis_service.tests.analysis_bq_mock import BQMock
+        from .analysis_bq_mock import BQMock
 
         mock = BQMock(monkeypatch)
         # Seed minimal data so endpoints don't 503
@@ -73,8 +73,8 @@ def client(monkeypatch):
 class TestModelQueryIntegration:
     def test_get_active_model_from_bq_mock(self, monkeypatch):
         """When a model is seeded in BQ, get_active_model returns it."""
-        from analysis_service.core.db import get_active_model
-        from analysis_service.tests.analysis_bq_mock import BQMock
+        from ..core.db import get_active_model
+        from .analysis_bq_mock import BQMock
 
         mock = BQMock(monkeypatch)
         mock.seed(
@@ -103,8 +103,8 @@ class TestModelQueryIntegration:
 
     def test_get_active_model_missing(self, monkeypatch):
         """When no active model exists, get_active_model returns None."""
-        from analysis_service.core.db import get_active_model
-        from analysis_service.tests.analysis_bq_mock import BQMock
+        from ..core.db import get_active_model
+        from .analysis_bq_mock import BQMock
 
         BQMock(monkeypatch)
         result = get_active_model("performance")
@@ -116,7 +116,7 @@ class TestModelQueryIntegration:
 
 class TestChampionQueriesIntegration:
     def test_counters_query(self, client, monkeypatch):
-        from analysis_service.tests.analysis_bq_mock import BQMock
+        from .analysis_bq_mock import BQMock
 
         mock = BQMock(monkeypatch)
         mock.seed(
@@ -170,14 +170,14 @@ class TestChampionQueriesIntegration:
             ],
         )
 
-        from analysis_service.champion.queries import query_counters
+        from ..champion.queries import query_counters
 
         counters, countered_by = query_counters("22", limit=3)
         assert isinstance(counters, list)
         assert isinstance(countered_by, list)
 
     def test_top_champions_query(self, client, monkeypatch):
-        from analysis_service.tests.analysis_bq_mock import BQMock
+        from .analysis_bq_mock import BQMock
 
         mock = BQMock(monkeypatch)
         mock.seed(
@@ -212,9 +212,10 @@ class TestChampionQueriesIntegration:
             ],
         )
 
-        from analysis_service.champion.queries import query_top_champions
+        from ..champion.queries import query_top_champions
 
         result = query_top_champions(position="BOTTOM", limit=5)
         assert isinstance(result, list)
         # Note: BQMock does not support GROUP BY / HAVING; this test validates
         # the query runs without error and returns a list.
+eturns a list.

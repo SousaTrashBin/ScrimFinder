@@ -4,9 +4,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from jwt_manager.core.db import init_db
-from jwt_manager.core.security import init_keys
-from jwt_manager.routers import auth
+from .core.db import init_db
+from .core.security import init_keys
+from .routers import auth
 
 
 @asynccontextmanager

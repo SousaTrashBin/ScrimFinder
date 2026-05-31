@@ -22,7 +22,7 @@ from concurrent import futures
 
 import grpc
 
-from training_service.core import db
+from .core import db
 
 _server = None
 
@@ -59,7 +59,7 @@ def _fetch_raw_match(match_id: str) -> dict:
 # We import the base class inside a function or use a try-except to avoid
 # startup failures if the .proto hasn't been compiled yet.
 try:
-    from training_service import training_service_pb2_grpc
+    from . import training_service_pb2_grpc
 
     _BaseServicer = training_service_pb2_grpc.TrainingServiceServicer
 except ImportError:
@@ -76,7 +76,7 @@ class TrainingServiceServicer(_BaseServicer):
         Receive a match_id, fetch raw JSON, store, extract features.
         Called by match_history_service after a match is saved.
         """
-        from training_service.training_service_pb2 import ForwardMatchResponse
+        from .training_service_pb2 import ForwardMatchResponse
 
         match_id = request.match_id
         source = request.source or "matchmaking"
@@ -107,7 +107,7 @@ class TrainingServiceServicer(_BaseServicer):
 
     def HealthCheck(self, request, context):
         """Return training service health status."""
-        from training_service.training_service_pb2 import HealthCheckResponse
+        from .training_service_pb2 import HealthCheckResponse
 
         try:
             games = db.count_games()
@@ -143,7 +143,7 @@ def start_server(block: bool = False) -> grpc.Server:
         return _server
 
     try:
-        from training_service import training_service_pb2_grpc
+        from . import training_service_pb2_grpc
     except ImportError:
         print(
             "[gRPC] ERROR: training_service_pb2_grpc not found. "

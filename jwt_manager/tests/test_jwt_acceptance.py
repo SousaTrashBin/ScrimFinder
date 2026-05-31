@@ -11,15 +11,15 @@ Run:
 import pytest
 from fastapi.testclient import TestClient
 
-from jwt_manager.tests.jwt_bq_mock import BQMock
+from .jwt_bq_mock import BQMock
 
 pytestmark = pytest.mark.acceptance
 
 
 @pytest.fixture
 def client(monkeypatch):
-    from jwt_manager.main import app
-    from jwt_manager.core import db
+    from ..main import app
+    from ..core import db
 
     BQMock(monkeypatch)
     # Seed a test user
@@ -34,9 +34,9 @@ def client(monkeypatch):
 @pytest.fixture
 def logged_in_client(client):
     """Returns (client, tokens) tuple with a logged-in session."""
-    from jwt_manager.core import security
-    from jwt_manager.core import db
-    import jwt_manager.core.db as db_mod
+    from ..core import security
+    from ..core import db
+    from ..core import db as db_mod
 
     db.get_user_by_username("testuser")
     hashed = security.hash_password("Password1!")
@@ -49,7 +49,7 @@ def logged_in_client(client):
             u["password_hash"] = hashed
         return u
 
-    import jwt_manager.routers.auth as auth_mod
+    from ..routers import auth as auth_mod
 
     auth_mod.db.get_user_by_username = patched_get
 

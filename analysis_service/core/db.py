@@ -11,7 +11,7 @@ from typing import Any
 from google.cloud import bigquery
 from google.cloud.bigquery import QueryJobConfig, ScalarQueryParameter
 
-from analysis_service.core.config import cfg
+from .config import cfg
 
 _client: bigquery.Client | None = None
 

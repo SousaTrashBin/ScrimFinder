@@ -7,8 +7,8 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Path, Query
 
-from training_service.core import db
-from training_service.core.schemas import ErrorResponse, ModelListResponse, ModelMeta
+from ..core import db
+from ..core.schemas import ErrorResponse, ModelListResponse, ModelMeta
 
 router = APIRouter(prefix="/models", tags=["Models"])
 

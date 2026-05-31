@@ -18,8 +18,8 @@ from pathlib import Path
 import numpy as np
 from fastapi import APIRouter, HTTPException
 
-from analysis_service.core.db import get_active_model
-from analysis_service.core.schemas import (
+from ..core.db import get_active_model
+from ..core.schemas import (
     AlternativeItem,
     BuildAnalysisRequest,
     BuildAnalysisResponse,
@@ -224,7 +224,7 @@ def _generate_tips(stats: dict, percentiles: dict, role: str) -> list[Improvemen
     responses=_ERR,
 )
 def analyze_draft(body: DraftAnalysisRequest) -> DraftAnalysisResponse:
-    from analysis_service.champion.queries import get_champion_id
+    from ..champion.queries import get_champion_id
 
     prob_blue = 0.5
     prob_red = 0.5
@@ -275,7 +275,7 @@ def analyze_draft(body: DraftAnalysisRequest) -> DraftAnalysisResponse:
     responses=_ERR,
 )
 def analyze_build(body: BuildAnalysisRequest) -> BuildAnalysisResponse:
-    from analysis_service.champion.queries import get_champion_id, get_item_ids
+    from ..champion.queries import get_champion_id, get_item_ids
 
     score = 50
     win_rate = None
@@ -336,7 +336,7 @@ def analyze_build(body: BuildAnalysisRequest) -> BuildAnalysisResponse:
     responses=_ERR,
 )
 def analyze_player(body: PlayerAnalysisRequest) -> PlayerAnalysisResponse:
-    from analysis_service.champion.queries import (
+    from ..champion.queries import (
         query_player_stats,
     )
 
@@ -433,7 +433,7 @@ def analyze_player(body: PlayerAnalysisRequest) -> PlayerAnalysisResponse:
     responses=_ERR,
 )
 def analyze_game(body: GameAnalysisRequest) -> GameAnalysisResponse:
-    from analysis_service.champion.queries import get_champion_name_by_id
+    from ..champion.queries import get_champion_name_by_id
 
     # ── Resolve raw match data ────────────────────────────────
     if body.game_id:
@@ -557,7 +557,7 @@ def analyze_game(body: GameAnalysisRequest) -> GameAnalysisResponse:
     responses=_ERR,
 )
 def analyze_champion(body: ChampionAnalysisRequest) -> ChampionAnalysisResponse:
-    from analysis_service.champion.queries import (
+    from ..champion.queries import (
         get_champion_id,
         query_counters,
         query_stats,

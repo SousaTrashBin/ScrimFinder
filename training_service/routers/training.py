@@ -4,9 +4,9 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Path, Query
 
-from training_service.core import db
-from training_service.core.db import now_iso
-from training_service.core.schemas import (
+from ..core import db
+from ..core.db import now_iso
+from ..core.schemas import (
     ErrorResponse,
     JobStatus,
     TrainingJobCreate,

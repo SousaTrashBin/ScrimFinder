@@ -10,8 +10,8 @@ Run:
 
 import pytest
 
-from jwt_manager.core import security
-from jwt_manager.core.schemas import RegisterRequest
+from ..core import security
+from ..core.schemas import RegisterRequest
 
 pytestmark = pytest.mark.unit
 

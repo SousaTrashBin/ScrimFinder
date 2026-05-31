@@ -2,8 +2,8 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Path, Query
 
-from training_service.core import db
-from training_service.core.schemas import (
+from ..core import db
+from ..core.schemas import (
     ErrorResponse,
     FeatureExtractRequest,
     FeatureExtractResponse,
@@ -39,7 +39,7 @@ def extract(body: FeatureExtractRequest):
     - If `raw_data` is provided, uses it directly.
     - If `store=True`, persists features to DB.
     """
-    from training_service.core.feature_engineering import extract_features
+    from ..core.feature_engineering import extract_features
 
     raw = None
     if body.game_id:

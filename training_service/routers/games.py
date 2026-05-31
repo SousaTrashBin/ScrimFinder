@@ -5,9 +5,9 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Path, Query
 from pydantic import BaseModel
 
-from training_service.core import db
-from training_service.core.config import cfg
-from training_service.core.schemas import (
+from ..core import db
+from ..core.config import cfg
+from ..core.schemas import (
     BatchIngestRequest,
     BatchIngestResponse,
     ErrorResponse,

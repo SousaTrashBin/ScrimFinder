@@ -12,7 +12,7 @@ from typing import Optional, Any, List, Dict
 from google.cloud import bigquery
 from google.cloud.bigquery import QueryJobConfig, ScalarQueryParameter
 
-from jwt_manager.core.config import cfg
+from .config import cfg
 
 _client: Optional[bigquery.Client] = None
 

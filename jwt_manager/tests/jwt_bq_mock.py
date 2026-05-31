@@ -254,8 +254,8 @@ class BQMock:
         return True
 
     def _patch(self, monkeypatch):
-        import jwt_manager.core.db as db_mod
-        import jwt_manager.core.config as cfg_mod
+        from ..core import db as db_mod
+        from ..core import config as cfg_mod
 
         monkeypatch.setattr(cfg_mod.cfg, "BQ_PROJECT", self.project)
         monkeypatch.setattr(cfg_mod.cfg, "BQ_PLATFORM_DATASET", self.platform_dataset)

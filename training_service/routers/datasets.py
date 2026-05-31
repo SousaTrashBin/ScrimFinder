@@ -3,8 +3,8 @@ from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Path, Query
 
-from training_service.core import db
-from training_service.core.schemas import (
+from ..core import db
+from ..core.schemas import (
     DatasetBuildRequest,
     DatasetCreateRequest,
     DatasetListResponse,

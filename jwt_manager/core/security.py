@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 import jwt as pyjwt
 
-from jwt_manager.core.config import cfg
+from .config import cfg
 
 
 # ── Lazy RSA key loading (does NOT run at import time) ───────────────────────

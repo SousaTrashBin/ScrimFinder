@@ -2,9 +2,9 @@ import jwt as pyjwt
 from fastapi import APIRouter, HTTPException, Response, Security, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-from jwt_manager.core import db, security
-from jwt_manager.core.config import cfg
-from jwt_manager.core.schemas import (
+from ..core import db, security
+from ..core.config import cfg
+from ..core.schemas import (
     LoginRequest,
     LoginResponse,
     RefreshRequest,

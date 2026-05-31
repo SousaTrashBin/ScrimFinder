@@ -11,14 +11,15 @@ Run:
 import pytest
 from fastapi.testclient import TestClient
 
-from analysis_service.tests.analysis_bq_mock import BQMock
+from ..tests.analysis_bq_mock import BQMock
 
 pytestmark = pytest.mark.acceptance
 
 
 @pytest.fixture
 def client(monkeypatch):
-    from analysis_service.main import app
+
+    from ..main import app
 
     mock = BQMock(monkeypatch)
     mock.seed(

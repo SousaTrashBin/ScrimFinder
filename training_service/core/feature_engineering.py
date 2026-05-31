@@ -14,7 +14,7 @@ from typing import Optional
 
 import numpy as np
 
-from training_service.ingestion.feature_extractor import extract, validate_riot_match
+from ..ingestion.feature_extractor import extract, validate_riot_match
 
 
 # ═════════════════════════════════════════════════════════════

@@ -27,7 +27,7 @@ FAKE_USER = {
 @pytest.fixture(autouse=True)
 def mock_db_and_redis():
     """Patch all DB and Redis calls so tests run without infrastructure."""
-    from jwt_manager.core import security
+    from ..core import security
 
     FAKE_USER["password_hash"] = security.hash_password("Password1!")
 
@@ -65,7 +65,7 @@ def mock_db_and_redis():
 
 @pytest.fixture
 def client():
-    from jwt_manager.main import app
+    from ..main import app
 
     return TestClient(app, raise_server_exceptions=True)
 
@@ -242,7 +242,7 @@ def test_validate_session_evicted(client, mock_db_and_redis):
 def test_refresh_success(client, mock_db_and_redis):
     tokens = _login(client, mock_db_and_redis)
 
-    from jwt_manager.core import security
+    from ..core import security
 
     payload = security.decode_token(tokens["refresh_token"])
 

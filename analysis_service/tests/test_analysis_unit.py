@@ -10,14 +10,14 @@ Run:
 import pytest
 from fastapi.testclient import TestClient
 
-from analysis_service.tests.analysis_bq_mock import BQMock
+from .analysis_bq_mock import BQMock
 
 pytestmark = pytest.mark.unit
 
 
 @pytest.fixture
 def client(monkeypatch):
-    from analysis_service.main import app
+    from ..main import app
 
     mock = BQMock(monkeypatch)
     mock.seed(
@@ -116,14 +116,14 @@ def client(monkeypatch):
 
 
 def test_champion_queries_resolve_names(client):
-    from analysis_service.champion.queries import get_champion_id, get_champion_name_by_id
+    from ..champion.queries import get_champion_id, get_champion_name_by_id
 
     assert get_champion_id("ashe") == "22"
     assert get_champion_name_by_id("22") == "Ashe"
 
 
 def test_winrate_query(client):
-    from analysis_service.champion.queries import query_winrate
+    from ..champion.queries import query_winrate
 
     result = query_winrate("22")
     assert result["total"] == 1
@@ -131,14 +131,14 @@ def test_winrate_query(client):
 
 
 def test_stats_query(client):
-    from analysis_service.champion.queries import query_stats
+    from ..champion.queries import query_stats
 
     result = query_stats("22")
     assert "avgKda" in result
 
 
 def test_top_items_query(client):
-    from analysis_service.champion.queries import query_top_items
+    from ..champion.queries import query_top_items
 
     result = query_top_items("22")
     assert "Infinity Edge" in result

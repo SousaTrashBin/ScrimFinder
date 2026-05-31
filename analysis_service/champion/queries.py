@@ -4,7 +4,7 @@ SQL queries for the league dataset using BigQuery.
 
 from typing import Any
 
-from analysis_service.core.db import _row_to_dict, query_league
+from ..core.db import _row_to_dict, query_league
 
 
 def _one(query: str, params: list[Any] = None) -> dict[str, Any] | None:

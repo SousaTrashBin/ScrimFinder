@@ -4,20 +4,20 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from training_service.routers import datasets, features, games, models, training
+from .routers import datasets, features, games, models, training
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Import here so env vars set before import are picked up correctly in tests
-    from training_service.core.config import cfg
-    from training_service.core.db import init_db
+    from .core.config import cfg
+    from .core.db import init_db
 
     cfg.ensure_dirs()
     init_db()
 
-    from training_service.grpc_server import start_background_server, stop_server
-    from training_service.rabbitmq_consumer import (
+    from .grpc_server import start_background_server, stop_server
+    from .rabbitmq_consumer import (
         start_background_consumer,
         stop_consumer,
     )
@@ -52,7 +52,7 @@ app.include_router(models.router, prefix="/api/v1/training")
 
 @app.get("/api/v1/training/", tags=["System"])
 def root():
-    from training_service.core.db import count_games, list_models
+    from .core.db import count_games, list_models
 
     return {
         "service": "ScrimFinder Training Service",

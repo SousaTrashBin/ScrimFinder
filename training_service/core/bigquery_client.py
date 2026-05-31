@@ -1,6 +1,6 @@
 """Deprecated: use training_service.core.db directly."""
 
-from training_service.core.db import get_bq_client, _bq_query
+from .db import get_bq_client, _bq_query
 
 
 class BQClient:

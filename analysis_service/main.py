@@ -8,8 +8,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from analysis_service.core.config import cfg
-from analysis_service.routers import analysis
+from .core.config import cfg
+from .routers import analysis
 
 cfg.ensure_dirs()
 
