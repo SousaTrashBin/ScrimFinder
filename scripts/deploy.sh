@@ -93,6 +93,37 @@ wait
 echo "updating Helm dependencies..."
 helm dependency update k8s/charts/scrimfinder
 
+echo "bootstrapping Traefik CRDs..."
+helm show crds "$ROOT_DIR/k8s/charts/scrimfinder/charts/traefik-35.2.0.tgz" | kubectl apply --server-side --force-conflicts -f -
+for crd in \
+    accesscontrolpolicies.hub.traefik.io \
+    aiservices.hub.traefik.io \
+    apibundles.hub.traefik.io \
+    apicatalogitems.hub.traefik.io \
+    apiplans.hub.traefik.io \
+    apiportals.hub.traefik.io \
+    apiratelimits.hub.traefik.io \
+    apis.hub.traefik.io \
+    apiversions.hub.traefik.io \
+    gatewayclasses.gateway.networking.k8s.io \
+    gateways.gateway.networking.k8s.io \
+    grpcroutes.gateway.networking.k8s.io \
+    httproutes.gateway.networking.k8s.io \
+    ingressroutes.traefik.io \
+    ingressroutetcps.traefik.io \
+    ingressrouteudps.traefik.io \
+    managedsubscriptions.hub.traefik.io \
+    middlewares.traefik.io \
+    middlewaretcps.traefik.io \
+    referencegrants.gateway.networking.k8s.io \
+    serverstransports.traefik.io \
+    serverstransporttcps.traefik.io \
+    tlsoptions.traefik.io \
+    tlsstores.traefik.io \
+    traefikservices.traefik.io; do
+    kubectl wait --for=condition=Established "crd/${crd}" --timeout=120s
+done
+
 echo "bootstrapping Secrets Store CSI driver..."
 helm upgrade --install secrets-store-csi-driver \
     "$ROOT_DIR/k8s/charts/scrimfinder/charts/secrets-store-csi-driver-1.6.0.tgz" \
