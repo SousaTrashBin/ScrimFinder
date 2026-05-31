@@ -218,4 +218,3 @@ class TestChampionQueriesIntegration:
         assert isinstance(result, list)
         # Note: BQMock does not support GROUP BY / HAVING; this test validates
         # the query runs without error and returns a list.
-eturns a list.
