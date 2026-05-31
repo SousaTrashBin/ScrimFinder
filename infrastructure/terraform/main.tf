@@ -141,6 +141,20 @@ resource "google_service_account_iam_member" "workload_identity_user" {
   member             = "serviceAccount:${var.project_id}.svc.id.goog[${var.namespace}/scrimfinder-secrets-reader]"
 }
 
+resource "google_service_account_iam_member" "workload_identity_token_creator" {
+  count              = var.manage_secret_manager ? 1 : 0
+  service_account_id = google_service_account.secrets_sa[0].name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "serviceAccount:${var.project_id}.svc.id.goog[${var.namespace}/scrimfinder-secrets-reader]"
+}
+
+resource "google_project_iam_member" "secrets_sa_secret_accessor" {
+  count   = var.manage_secret_manager ? 1 : 0
+  project = var.project_id
+  role    = "roles/secretmanager.secretAccessor"
+  member  = "serviceAccount:${google_service_account.secrets_sa[0].email}"
+}
+
 resource "google_secret_manager_secret" "scrim_secrets" {
   for_each  = var.manage_secret_manager ? local.secret_values : {}
   project   = var.project_id

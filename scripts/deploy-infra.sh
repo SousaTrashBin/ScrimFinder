@@ -99,6 +99,61 @@ wait_for_secret_manager_create_permission() {
     return 1
 }
 
+ensure_secret() {
+    local secret_name="$1"
+    local secret_value="$2"
+
+    if gcloud secrets describe "$secret_name" --project="${SCRIM_PROJECT_ID}" >/dev/null 2>&1; then
+        printf '%s' "$secret_value" | gcloud secrets versions add "$secret_name" \
+            --project="${SCRIM_PROJECT_ID}" \
+            --data-file=- >/dev/null
+    else
+        printf '%s' "$secret_value" | gcloud secrets create "$secret_name" \
+            --project="${SCRIM_PROJECT_ID}" \
+            --replication-policy=automatic \
+            --data-file=- >/dev/null
+    fi
+}
+
+ensure_secret_manager_runtime_access() {
+    if [ "${SCRIM_MANAGE_SECRET_MANAGER}" != "true" ]; then
+        return 0
+    fi
+
+    local sa_email="secrets-service-account@${SCRIM_PROJECT_ID}.iam.gserviceaccount.com"
+    local workload_identity_member="serviceAccount:${SCRIM_PROJECT_ID}.svc.id.goog[${SCRIM_NAMESPACE}/scrimfinder-secrets-reader]"
+
+    if ! gcloud iam service-accounts describe "$sa_email" --project="${SCRIM_PROJECT_ID}" >/dev/null 2>&1; then
+        gcloud iam service-accounts create secrets-service-account \
+            --project="${SCRIM_PROJECT_ID}" \
+            --display-name=secrets-service-account \
+            --description="Service account with access to ScrimFinder secrets" >/dev/null
+    fi
+
+    gcloud iam service-accounts add-iam-policy-binding "$sa_email" \
+        --project="${SCRIM_PROJECT_ID}" \
+        --role=roles/iam.workloadIdentityUser \
+        --member="$workload_identity_member" \
+        --quiet >/dev/null
+    gcloud iam service-accounts add-iam-policy-binding "$sa_email" \
+        --project="${SCRIM_PROJECT_ID}" \
+        --role=roles/iam.serviceAccountTokenCreator \
+        --member="$workload_identity_member" \
+        --quiet >/dev/null
+    gcloud projects add-iam-policy-binding "${SCRIM_PROJECT_ID}" \
+        --role=roles/secretmanager.secretAccessor \
+        --member="serviceAccount:${sa_email}" \
+        --quiet >/dev/null
+
+    ensure_secret "${SCRIM_SECRET_NAME_PREFIX}riot-api-key" "$RIOT_API_KEY"
+    ensure_secret "${SCRIM_SECRET_NAME_PREFIX}db-user" "$SCRIM_DB_USER"
+    ensure_secret "${SCRIM_SECRET_NAME_PREFIX}db-password" "$SCRIM_DB_PASSWORD"
+    ensure_secret "${SCRIM_SECRET_NAME_PREFIX}redis-password" "$SCRIM_REDIS_PASSWORD"
+    ensure_secret "${SCRIM_SECRET_NAME_PREFIX}rabbitmq-user" "$SCRIM_RABBITMQ_USER"
+    ensure_secret "${SCRIM_SECRET_NAME_PREFIX}rabbitmq-password" "$SCRIM_RABBITMQ_PASSWORD"
+    ensure_secret "${SCRIM_SECRET_NAME_PREFIX}rabbitmq-erlang-cookie" "$SCRIM_RABBITMQ_ERLANG_COOKIE"
+}
+
 if [ "${SCRIM_MANAGE_SECRET_MANAGER}" = "true" ] && \
    [ "${SCRIM_MANAGE_CLOUD_FUNCTIONS_IAM}" = "true" ] && \
    [ -n "${SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER}" ]; then
@@ -166,5 +221,8 @@ if [ "${SCRIM_MANAGE_SECRET_MANAGER}" = "true" ] && [ "${secret_manager_import_i
 fi
 
 terraform apply -input=false -auto-approve "${TF_VAR_ARGS[@]}"
+
+echo "ensuring Secret Manager runtime access and values..."
+ensure_secret_manager_runtime_access
 
 echo "Terraform apply complete."
