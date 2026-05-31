@@ -12,6 +12,7 @@ import org.eclipse.microprofile.faulttolerance.Timeout;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
@@ -28,7 +29,13 @@ public class PlayerFillingController {
 
     @GET
     @Path("/{server}/{name}/{tag}")
-    @Operation(summary = "Get complete player information by server, player name and tag")
+    @Operation(
+            operationId = "getFilledPlayer",
+            summary = "Get complete player information by server, player name and tag",
+            description =
+                    "Tip: you can discover valid summoner names/tags and server codes in "
+                            + "https://www.leagueofgraphs.com/rankings/summoners . "
+                            + "Use this endpoint path as /players/{server}/{name}/{tag} (example: /players/VN/Faker/KR1).")
     @APIResponses(
             value = {
                 @APIResponse(
@@ -83,14 +90,18 @@ public class PlayerFillingController {
             })
     @Timeout(10000)
     public Response getFilledPlayer(
-            @PathParam("server") String server,
-            @PathParam("name")
+            @Parameter(description = "Server shard (e.g. VN, EUW, NA)", example = "VN")
+                    @PathParam("server")
+                    String server,
+            @Parameter(description = "Summoner name", example = "Faker")
+                    @PathParam("name")
                     @Size(
                             min = 3,
                             max = 16,
                             message = "The player name must have between 3 and 16 characters")
                     String name,
-            @PathParam("tag")
+            @Parameter(description = "Tag line (without '#')", example = "KR1")
+                    @PathParam("tag")
                     @Size(min = 3, max = 5, message = "The player tag must have between 3 and 5 characters")
                     String tag) {
         PlayerDTO player = playerFillingService.getFilledPlayer(server, name, tag);

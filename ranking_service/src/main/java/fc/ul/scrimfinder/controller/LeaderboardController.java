@@ -15,6 +15,7 @@ import java.util.UUID;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
@@ -28,7 +29,9 @@ public class LeaderboardController {
     @Inject PlayerRankingService playerRankingService;
 
     @GET
-    @Operation(summary = "Get global leaderboard with pagination")
+    @Operation(
+            operationId = "getGlobalLeaderboard",
+            summary = "Get global leaderboard with pagination")
     @APIResponses(
             value = {
                 @APIResponse(
@@ -54,9 +57,18 @@ public class LeaderboardController {
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     public Response getGlobalLeaderboard(
-            @QueryParam("page") @DefaultValue("0") int page,
-            @QueryParam("size") @DefaultValue("20") @Min(0) @Max(100) int size,
-            @QueryParam("region") Optional<Region> region) {
+            @Parameter(description = "0-based page index", example = "0")
+                    @QueryParam("page")
+                    @DefaultValue("0")
+                    int page,
+            @Parameter(description = "Page size (1..100)", example = "20")
+                    @QueryParam("size")
+                    @DefaultValue("20")
+                    @Min(0)
+                    @Max(100)
+                    int size,
+            @Parameter(description = "Optional region filter") @QueryParam("region")
+                    Optional<Region> region) {
         var leaderboard =
                 playerRankingService.getQueueLeaderboard(page, size, Optional.empty(), region);
         return Response.ok(leaderboard).build();
@@ -64,7 +76,7 @@ public class LeaderboardController {
 
     @GET
     @Path("/queues/{queueId}")
-    @Operation(summary = "Get queue leaderboard with pagination")
+    @Operation(operationId = "getQueueLeaderboard", summary = "Get queue leaderboard with pagination")
     @APIResponses(
             value = {
                 @APIResponse(
@@ -90,10 +102,21 @@ public class LeaderboardController {
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     public Response getQueueLeaderboard(
-            @PathParam("queueId") UUID queueId,
-            @QueryParam("page") @DefaultValue("0") int page,
-            @QueryParam("size") @DefaultValue("20") @Min(0) @Max(100) int size,
-            @QueryParam("region") Optional<Region> region) {
+            @Parameter(description = "Queue UUID", example = "550e8400-e29b-41d4-a716-446655440010")
+                    @PathParam("queueId")
+                    UUID queueId,
+            @Parameter(description = "0-based page index", example = "0")
+                    @QueryParam("page")
+                    @DefaultValue("0")
+                    int page,
+            @Parameter(description = "Page size (1..100)", example = "20")
+                    @QueryParam("size")
+                    @DefaultValue("20")
+                    @Min(0)
+                    @Max(100)
+                    int size,
+            @Parameter(description = "Optional region filter") @QueryParam("region")
+                    Optional<Region> region) {
         var leaderboard =
                 playerRankingService.getQueueLeaderboard(page, size, Optional.of(queueId), region);
         return Response.ok(leaderboard).build();

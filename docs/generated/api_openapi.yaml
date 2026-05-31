@@ -1,0 +1,4671 @@
+openapi: 3.1.0
+info:
+  title: ScrimFinder API (Group 21)
+  version: 1.0.0
+paths:
+  /api/v1/analysis/draft:
+    post:
+      tags:
+      - Analysis
+      summary: Win probability for a 5v5 draft
+      description: Returns ML-predicted win probabilities for both teams, plus synergy
+        analysis, counter matchups, and win conditions. Requires an active draft model.
+      operationId: analyze_draft_api_v1_analysis_draft_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/analysis_DraftAnalysisRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/analysis_DraftAnalysisResponse'
+        '503':
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/analysis_ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/analysis_ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/analysis_HTTPValidationError'
+  /api/v1/analysis/build:
+    post:
+      tags:
+      - Analysis
+      summary: "Build effectiveness score (0\u2013100)"
+      description: Scores an item build for a champion using the trained build model.
+        Score is derived from predicted win probability. Optionally considers enemy
+        composition for alternative suggestions.
+      operationId: analyze_build_api_v1_analysis_build_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/analysis_BuildAnalysisRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/analysis_BuildAnalysisResponse'
+        '503':
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/analysis_ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/analysis_ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/analysis_HTTPValidationError'
+  /api/v1/analysis/player:
+    post:
+      tags:
+      - Analysis
+      summary: Player performance analysis and improvement tips
+      description: Aggregates a player's recent match stats and benchmarks each metric
+        against the EUW population for their role using stored percentile data. Returns
+        prioritised improvement tips.
+      operationId: analyze_player_api_v1_analysis_player_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/analysis_PlayerAnalysisRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/analysis_PlayerAnalysisResponse'
+        '503':
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/analysis_ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/analysis_ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/analysis_HTTPValidationError'
+  /api/v1/analysis/game:
+    post:
+      tags:
+      - Analysis
+      summary: Post-game breakdown for all 10 players
+      description: 'Scores each player''s performance using the performance model.
+        Supply a `game_id` (stored game) or inline `raw_data`. Participants must have:
+        puuid, championId, teamId, position, win, kills, deaths, assists, gold, cs,
+        dmg_champs, vision, kda, kp.'
+      operationId: analyze_game_api_v1_analysis_game_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/analysis_GameAnalysisRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/analysis_GameAnalysisResponse'
+        '503':
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/analysis_ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/analysis_ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/analysis_HTTPValidationError'
+  /api/v1/analysis/champion:
+    post:
+      tags:
+      - Analysis
+      summary: Champion stats from EUW dataset
+      description: "Returns win rate, pick rate, average stats, and counter data for\
+        \ a champion. Queries the EUW dataset directly \u2014 no model required."
+      operationId: analyze_champion_api_v1_analysis_champion_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/analysis_ChampionAnalysisRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/analysis_ChampionAnalysisResponse'
+        '503':
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/analysis_ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/analysis_ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/analysis_HTTPValidationError'
+  /api/v1/analysis/:
+    get:
+      tags:
+      - System
+      summary: Root
+      operationId: root_api_v1_analysis__get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/v1/analysis/health:
+    get:
+      tags:
+      - System
+      summary: Health
+      operationId: health_api_v1_analysis_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/v1/analysis/q/health/ready:
+    get:
+      tags:
+      - System
+      summary: Health
+      operationId: health_api_v1_analysis_q_health_ready_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/v1/analysis/q/health/live:
+    get:
+      tags:
+      - System
+      summary: Health
+      operationId: health_api_v1_analysis_q_health_live_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/v1/training/games:
+    post:
+      tags:
+      - Games
+      summary: Ingest a single match
+      operationId: ingest_game_api_v1_training_games_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/training_GameIngest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_GameIngested'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_HTTPValidationError'
+    get:
+      tags:
+      - Games
+      summary: List games
+      operationId: list_games_api_v1_training_games_get
+      parameters:
+      - name: source
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Data source filter
+          examples:
+          - manual
+          title: Source
+        description: Data source filter
+      - name: patch
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Game patch filter
+          examples:
+          - '14.10'
+          title: Patch
+        description: Game patch filter
+      - name: match_type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Queue/mode filter
+          examples:
+          - RANKED_SOLO_5x5
+          title: Match Type
+        description: Queue/mode filter
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          description: Page size
+          examples:
+          - 50
+          default: 50
+          title: Limit
+        description: Page size
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          description: Pagination offset
+          examples:
+          - 0
+          default: 0
+          title: Offset
+        description: Pagination offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_GameListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_HTTPValidationError'
+  /api/v1/training/games/batch:
+    post:
+      tags:
+      - Games
+      summary: Ingest up to 1000 matches
+      operationId: ingest_batch_api_v1_training_games_batch_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/training_BatchIngestRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_BatchIngestResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_HTTPValidationError'
+  /api/v1/training/games/{game_id}:
+    get:
+      tags:
+      - Games
+      summary: Fetch stored match
+      operationId: get_game_api_v1_training_games__game_id__get
+      parameters:
+      - name: game_id
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Stored game id. Riot ids like REGION_MATCHID are supported.
+          examples:
+          - VN_1417849076
+          title: Game Id
+        description: Stored game id. Riot ids like REGION_MATCHID are supported.
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_GameDetail'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_ErrorResponse'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_HTTPValidationError'
+    delete:
+      tags:
+      - Games
+      summary: Delete a game
+      operationId: delete_game_api_v1_training_games__game_id__delete
+      parameters:
+      - name: game_id
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Stored game id to delete.
+          examples:
+          - VN_1417849076
+          title: Game Id
+        description: Stored game id to delete.
+      responses:
+        '204':
+          description: Successful Response
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_ErrorResponse'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_HTTPValidationError'
+  /api/v1/training/features/extract:
+    post:
+      tags:
+      - Features
+      summary: Extract feature vectors
+      operationId: extract_features_api_v1_training_features_extract_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/training_FeatureExtractRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_FeatureExtractResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_HTTPValidationError'
+  /api/v1/training/features/{game_id}:
+    get:
+      tags:
+      - Features
+      summary: Get cached features
+      operationId: get_features_api_v1_training_features__game_id__get
+      parameters:
+      - name: game_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Game Id
+      - name: concern
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/training_Concern'
+          - type: 'null'
+          title: Concern
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/training_FeatureVector'
+                title: Response Get Features Api V1 Training Features  Game Id  Get
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_ErrorResponse'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_HTTPValidationError'
+    delete:
+      tags:
+      - Features
+      summary: Delete cached features
+      operationId: delete_features_api_v1_training_features__game_id__delete
+      parameters:
+      - name: game_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Game Id
+      - name: concern
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/training_Concern'
+          - type: 'null'
+          title: Concern
+      responses:
+        '204':
+          description: Successful Response
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_ErrorResponse'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_HTTPValidationError'
+  /api/v1/training/datasets:
+    post:
+      tags:
+      - Datasets
+      summary: Register dataset
+      operationId: create_dataset_api_v1_training_datasets_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/training_DatasetCreateRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_DatasetMeta'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_HTTPValidationError'
+    get:
+      tags:
+      - Datasets
+      summary: List datasets
+      operationId: list_datasets_api_v1_training_datasets_get
+      parameters:
+      - name: concern
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Concern
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_DatasetListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_HTTPValidationError'
+  /api/v1/training/datasets/build:
+    post:
+      tags:
+      - Datasets
+      summary: Create and build dataset
+      operationId: build_dataset_api_v1_training_datasets_build_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/training_DatasetBuildRequest'
+        required: true
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_DatasetMeta'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_HTTPValidationError'
+  /api/v1/training/datasets/{dataset_id}:
+    get:
+      tags:
+      - Datasets
+      summary: Get dataset
+      operationId: get_dataset_api_v1_training_datasets__dataset_id__get
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Dataset Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_DatasetMeta'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_ErrorResponse'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_HTTPValidationError'
+    delete:
+      tags:
+      - Datasets
+      summary: Delete dataset
+      operationId: delete_dataset_api_v1_training_datasets__dataset_id__delete
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Dataset Id
+      responses:
+        '204':
+          description: Successful Response
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_ErrorResponse'
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_ErrorResponse'
+          description: Conflict
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_HTTPValidationError'
+  /api/v1/training/datasets/{dataset_id}/build:
+    post:
+      tags:
+      - Datasets
+      summary: Rebuild dataset
+      operationId: rebuild_dataset_api_v1_training_datasets__dataset_id__build_post
+      parameters:
+      - name: dataset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Dataset Id
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_DatasetMeta'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_ErrorResponse'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_HTTPValidationError'
+  /api/v1/training/jobs:
+    post:
+      tags:
+      - Training
+      summary: Start a training job
+      operationId: create_job_api_v1_training_jobs_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/training_TrainingJobCreate'
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_TrainingJobResponse'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_ErrorResponse'
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_ErrorResponse'
+          description: Conflict
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_HTTPValidationError'
+    get:
+      tags:
+      - Training
+      summary: List jobs
+      operationId: list_jobs_api_v1_training_jobs_get
+      parameters:
+      - name: concern
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Concern filter
+          examples:
+          - draft
+          title: Concern
+        description: Concern filter
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/training_JobStatus'
+          - type: 'null'
+          description: Job status filter
+          title: Status
+        description: Job status filter
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          description: Maximum jobs to return
+          examples:
+          - 100
+          default: 100
+          title: Limit
+        description: Maximum jobs to return
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_TrainingJobListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_HTTPValidationError'
+  /api/v1/training/jobs/{job_id}:
+    get:
+      tags:
+      - Training
+      summary: Get job status
+      operationId: get_job_api_v1_training_jobs__job_id__get
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Training job id
+          examples:
+          - job_123456abcdef
+          title: Job Id
+        description: Training job id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_TrainingJobResponse'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_ErrorResponse'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_HTTPValidationError'
+  /api/v1/training/jobs/{job_id}/cancel:
+    post:
+      tags:
+      - Training
+      summary: Cancel a job
+      operationId: cancel_job_api_v1_training_jobs__job_id__cancel_post
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Training job id
+          examples:
+          - job_123456abcdef
+          title: Job Id
+        description: Training job id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_TrainingJobResponse'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_ErrorResponse'
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_ErrorResponse'
+          description: Conflict
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_HTTPValidationError'
+  /api/v1/training/jobs/{job_id}/deploy:
+    post:
+      tags:
+      - Training
+      summary: Deploy model from job
+      operationId: deploy_job_api_v1_training_jobs__job_id__deploy_post
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Training job id
+          examples:
+          - job_123456abcdef
+          title: Job Id
+        description: Training job id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_TrainingJobResponse'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_ErrorResponse'
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_ErrorResponse'
+          description: Conflict
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_HTTPValidationError'
+  /api/v1/training/models:
+    get:
+      tags:
+      - Models
+      summary: List all models
+      operationId: list_models_api_v1_training_models_get
+      parameters:
+      - name: concern
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Concern
+      - name: active_only
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Active Only
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_ModelListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_HTTPValidationError'
+  /api/v1/training/models/active:
+    get:
+      tags:
+      - Models
+      summary: List active models
+      operationId: list_active_api_v1_training_models_active_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_ModelListResponse'
+  /api/v1/training/models/{model_id}:
+    get:
+      tags:
+      - Models
+      summary: Get model metadata
+      operationId: get_model_api_v1_training_models__model_id__get
+      parameters:
+      - name: model_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Model Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_ModelMeta'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_ErrorResponse'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_HTTPValidationError'
+    delete:
+      tags:
+      - Models
+      summary: Delete a model
+      operationId: delete_model_api_v1_training_models__model_id__delete
+      parameters:
+      - name: model_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Model Id
+      responses:
+        '204':
+          description: Successful Response
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_ErrorResponse'
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_ErrorResponse'
+          description: Conflict
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_HTTPValidationError'
+  /api/v1/training/models/{model_id}/activate:
+    post:
+      tags:
+      - Models
+      summary: Activate a model
+      operationId: activate_api_v1_training_models__model_id__activate_post
+      parameters:
+      - name: model_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Model Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_ModelMeta'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_ErrorResponse'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_HTTPValidationError'
+  /api/v1/training/models/{model_id}/deactivate:
+    post:
+      tags:
+      - Models
+      summary: Deactivate a model
+      operationId: deactivate_api_v1_training_models__model_id__deactivate_post
+      parameters:
+      - name: model_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Model Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_ModelMeta'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_ErrorResponse'
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/training_HTTPValidationError'
+  /api/v1/training/:
+    get:
+      tags:
+      - System
+      summary: Root
+      operationId: root_api_v1_training__get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/v1/training/health:
+    get:
+      tags:
+      - System
+      summary: Health
+      operationId: health_api_v1_training_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/v1/training/q/health/ready:
+    get:
+      tags:
+      - System
+      summary: Health
+      operationId: health_api_v1_training_q_health_ready_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/v1/training/q/health/live:
+    get:
+      tags:
+      - System
+      summary: Health
+      operationId: health_api_v1_training_q_health_live_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/v1/riot/matches/{matchId}:
+    get:
+      summary: Get simplified match information by Riot ID
+      description: 'You can extract Riot match IDs from LeagueOfGraphs match URLs.
+        Example: https://www.leagueofgraphs.com/match/vn/1417849076#participant8 maps
+        to VN_1417849076 (region prefix + ''_'' + match id).'
+      operationId: getFilledMatch
+      tags:
+      - Match Filling
+      parameters:
+      - description: Riot match id in REGION_MATCHID format
+        example: VN_1417849076
+        name: matchId
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: \S
+      responses:
+        '200':
+          description: Successfully retrieved the match details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/detail_filling_MatchStatsDTO'
+        '400':
+          description: Invalid match ID provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/detail_filling_ErrorResponse'
+        '404':
+          description: Match not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/detail_filling_ErrorResponse'
+        '408':
+          description: Request timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/detail_filling_ErrorResponse'
+        '500':
+          description: Internal error communication with Riot - unexpected response
+            format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/detail_filling_ErrorResponse'
+        '503':
+          description: Riot service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/detail_filling_ErrorResponse'
+        '511':
+          description: The server has an invalid/expired API key with Riot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/detail_filling_ErrorResponse'
+  /api/v1/riot/matches/{matchId}/raw:
+    get:
+      summary: Get complete match information by Riot ID
+      description: Accepts the same Riot match ID format, e.g. VN_1417849076.
+      operationId: getRawMatchData
+      tags:
+      - Match Filling
+      parameters:
+      - description: Riot match id in REGION_MATCHID format
+        example: VN_1417849076
+        name: matchId
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: \S
+      responses:
+        '200':
+          description: Successfully retrieved the match details
+          content:
+            application/json:
+              schema: {}
+        '400':
+          description: Invalid match ID provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/detail_filling_ErrorResponse'
+        '404':
+          description: Match not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/detail_filling_ErrorResponse'
+        '408':
+          description: Request timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/detail_filling_ErrorResponse'
+        '500':
+          description: Internal error communication with Riot - unexpected response
+            format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/detail_filling_ErrorResponse'
+        '503':
+          description: Riot service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/detail_filling_ErrorResponse'
+        '511':
+          description: The server has an invalid/expired API key with Riot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/detail_filling_ErrorResponse'
+  /api/v1/riot/players/{server}/{name}/{tag}:
+    get:
+      summary: Get complete player information by server, player name and tag
+      description: 'Tip: you can discover valid summoner names/tags and server codes
+        in https://www.leagueofgraphs.com/rankings/summoners . Use this endpoint path
+        as /players/{server}/{name}/{tag} (example: /players/VN/Faker/KR1).'
+      operationId: getFilledPlayer
+      tags:
+      - Player Filling
+      parameters:
+      - description: Summoner name
+        example: Faker
+        name: name
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 3
+          maxLength: 16
+      - description: Server shard (e.g. VN, EUW, NA)
+        example: VN
+        name: server
+        in: path
+        required: true
+        schema:
+          type: string
+      - description: Tag line (without '#')
+        example: KR1
+        name: tag
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 3
+          maxLength: 5
+      responses:
+        '200':
+          description: Successfully retrieved the player details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/detail_filling_PlayerDTO'
+        '400':
+          description: Invalid server or player ID provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/detail_filling_ErrorResponse'
+        '404':
+          description: Player not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/detail_filling_ErrorResponse'
+        '408':
+          description: Request timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/detail_filling_ErrorResponse'
+        '500':
+          description: Internal error communication with Riot - unexpected response
+            format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/detail_filling_ErrorResponse'
+        '503':
+          description: Riot service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/detail_filling_ErrorResponse'
+        '511':
+          description: The server has an invalid/expired API key with Riot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/detail_filling_ErrorResponse'
+  /api/v1/matchmaking/players:
+    post:
+      summary: Register a new player in the matchmaking platform
+      operationId: createPlayer
+      tags:
+      - Player Management
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/matchmaking_CreatePlayerRequest'
+        required: true
+      responses:
+        '201':
+          description: Player registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/matchmaking_PlayerDTO'
+        '400':
+          description: Invalid input or registration failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/matchmaking_ErrorResponse'
+        '409':
+          description: Player or Discord Username already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/matchmaking_ErrorResponse'
+  /api/v1/matchmaking/players/{id}:
+    get:
+      summary: Get player details
+      operationId: getPlayer
+      tags:
+      - Player Management
+      parameters:
+      - description: Player UUID
+        example: 550e8400-e29b-41d4-a716-446655440002
+        name: id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/matchmaking_UUID'
+      responses:
+        '200':
+          description: Player found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/matchmaking_PlayerDTO'
+        '404':
+          description: Player not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/matchmaking_ErrorResponse'
+  /api/v1/matchmaking/players/{id}/lobbies:
+    get:
+      summary: Get all lobbies associated with a player's tickets
+      operationId: getPlayerLobbies
+      tags:
+      - Player Management
+      parameters:
+      - description: Player UUID
+        example: 550e8400-e29b-41d4-a716-446655440002
+        name: id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/matchmaking_UUID'
+      responses:
+        '200':
+          description: Player lobbies retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/matchmaking_LobbyDTO'
+        '404':
+          description: Player not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/matchmaking_ErrorResponse'
+  /api/v1/matchmaking/players/{id}/tickets:
+    get:
+      summary: Get all tickets for a player
+      operationId: getPlayerTickets
+      tags:
+      - Player Management
+      parameters:
+      - description: Player UUID
+        example: 550e8400-e29b-41d4-a716-446655440002
+        name: id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/matchmaking_UUID'
+      responses:
+        '200':
+          description: Player tickets retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/matchmaking_MatchTicketDTO'
+        '404':
+          description: Player not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/matchmaking_ErrorResponse'
+  /api/v1/matchmaking/queues:
+    post:
+      summary: Create a new queue (can be global or namespaced/local)
+      operationId: createQueue
+      tags:
+      - Queue Management
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/matchmaking_CreateQueueRequest'
+        required: true
+      responses:
+        '201':
+          description: Queue created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/matchmaking_QueueDTO'
+        '409':
+          description: Queue ID already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/matchmaking_ErrorResponse'
+        '400':
+          description: Bad Request
+  /api/v1/matchmaking/queues/{id}:
+    get:
+      summary: Get queue details
+      operationId: getQueue
+      tags:
+      - Queue Management
+      parameters:
+      - description: Queue UUID
+        example: 550e8400-e29b-41d4-a716-446655440010
+        name: id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/matchmaking_UUID'
+      responses:
+        '200':
+          description: Queue found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/matchmaking_QueueDTO'
+        '404':
+          description: Queue not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/matchmaking_ErrorResponse'
+  /api/v1/matchmaking/tickets:
+    post:
+      summary: Join a matchmaking queue
+      description: Requires a linked League of Legends Account via Ranking Service.
+      operationId: joinQueue
+      tags:
+      - Matchmaking
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/matchmaking_JoinQueueRequest'
+        required: true
+      responses:
+        '202':
+          description: Ticket created and joined queue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/matchmaking_MatchTicketDTO'
+        '400':
+          description: League of Legends Account not linked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/matchmaking_ErrorResponse'
+        '404':
+          description: Player or Queue not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/matchmaking_ErrorResponse'
+  /api/v1/matchmaking/tickets/matches/{matchId}/complete:
+    post:
+      summary: Calculate deltas and report match results to Ranking Service
+      operationId: completeMatch
+      tags:
+      - Matchmaking
+      parameters:
+      - description: Match UUID
+        example: 550e8400-e29b-41d4-a716-446655440001
+        name: matchId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/matchmaking_UUID'
+      responses:
+        '200':
+          description: Match completed and results reported
+          content:
+            application/json:
+              schema: {}
+        '404':
+          description: Match not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/matchmaking_ErrorResponse'
+        '500':
+          description: Internal error or remote service communication failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/matchmaking_ErrorResponse'
+  /api/v1/matchmaking/tickets/matches/{matchId}/link:
+    put:
+      summary: Link an external League of Legends Game ID to the match
+      description: 'The externalGameId should follow Riot format REGION_MATCHID (example:
+        VN_1417849076). You can obtain it from a LeagueOfGraphs match URL such as
+        https://www.leagueofgraphs.com/match/vn/1417849076#participant8.'
+      operationId: linkMatch
+      tags:
+      - Matchmaking
+      parameters:
+      - description: Match UUID
+        example: 550e8400-e29b-41d4-a716-446655440001
+        name: matchId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/matchmaking_UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/matchmaking_LinkMatchRequest'
+        required: true
+      responses:
+        '200':
+          description: Match linked successfully
+          content:
+            application/json:
+              schema: {}
+        '404':
+          description: Match not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/matchmaking_ErrorResponse'
+        '400':
+          description: Bad Request
+  /api/v1/matchmaking/tickets/matches/{matchId}/players/{playerId}/accept:
+    post:
+      summary: Accept a match proposal
+      operationId: acceptMatch
+      tags:
+      - Matchmaking
+      parameters:
+      - description: Match UUID
+        example: 550e8400-e29b-41d4-a716-446655440001
+        name: matchId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/matchmaking_UUID'
+      - description: Player UUID
+        example: 550e8400-e29b-41d4-a716-446655440002
+        name: playerId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/matchmaking_UUID'
+      responses:
+        '200':
+          description: Match accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/matchmaking_MatchDTO'
+        '404':
+          description: Match not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/matchmaking_ErrorResponse'
+  /api/v1/matchmaking/tickets/matches/{matchId}/players/{playerId}/decline:
+    post:
+      summary: Decline a match proposal
+      description: If declined, the match is cancelled and the decliner's ticket is
+        removed.
+      operationId: declineMatch
+      tags:
+      - Matchmaking
+      parameters:
+      - description: Match UUID
+        example: 550e8400-e29b-41d4-a716-446655440001
+        name: matchId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/matchmaking_UUID'
+      - description: Player UUID
+        example: 550e8400-e29b-41d4-a716-446655440002
+        name: playerId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/matchmaking_UUID'
+      responses:
+        '204':
+          description: Match declined and cancelled
+        '404':
+          description: Match not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/matchmaking_ErrorResponse'
+  /api/v1/matchmaking/tickets/{ticketId}:
+    delete:
+      summary: Leave a matchmaking queue
+      operationId: leaveQueue
+      tags:
+      - Matchmaking
+      parameters:
+      - description: Match ticket UUID
+        example: 550e8400-e29b-41d4-a716-446655440000
+        name: ticketId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/matchmaking_UUID'
+      responses:
+        '204':
+          description: Successfully left the queue
+        '404':
+          description: Ticket not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/matchmaking_ErrorResponse'
+  /api/v1/matchmaking/tickets/{ticketId}/lobby:
+    get:
+      summary: Get the lobby for a specific ticket if matched
+      operationId: getLobbyByTicket
+      tags:
+      - Matchmaking
+      parameters:
+      - description: Match ticket UUID
+        example: 550e8400-e29b-41d4-a716-446655440000
+        name: ticketId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/matchmaking_UUID'
+      responses:
+        '200':
+          description: Successfully retrieved lobby info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/matchmaking_LobbyDTO'
+        '404':
+          description: Ticket not found or match not yet formed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/matchmaking_ErrorResponse'
+  /api/v1/ranking/leaderboards:
+    get:
+      summary: Get global leaderboard with pagination
+      operationId: getGlobalLeaderboard
+      tags:
+      - Leaderboard
+      parameters:
+      - description: 0-based page index
+        example: 0
+        name: page
+        in: query
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - description: Optional region filter
+        name: region
+        in: query
+        schema:
+          $ref: '#/components/schemas/ranking_Region'
+        required: false
+      - description: Page size (1..100)
+        example: 20
+        name: size
+        in: query
+        schema:
+          type: integer
+          format: int32
+          maximum: 100
+          minimum: 0
+          default: 20
+      responses:
+        '200':
+          description: Successfully retrieved the leaderboard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_PaginatedResponseDTO'
+        '400':
+          description: Invalid pagination parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_ErrorResponse'
+        '404':
+          description: Queue not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_ErrorResponse'
+  /api/v1/ranking/leaderboards/queues/{queueId}:
+    get:
+      summary: Get queue leaderboard with pagination
+      operationId: getQueueLeaderboard
+      tags:
+      - Leaderboard
+      parameters:
+      - description: Queue UUID
+        example: 550e8400-e29b-41d4-a716-446655440010
+        name: queueId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/ranking_UUID'
+      - description: 0-based page index
+        example: 0
+        name: page
+        in: query
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - description: Optional region filter
+        name: region
+        in: query
+        schema:
+          $ref: '#/components/schemas/ranking_Region'
+        required: false
+      - description: Page size (1..100)
+        example: 20
+        name: size
+        in: query
+        schema:
+          type: integer
+          format: int32
+          maximum: 100
+          minimum: 0
+          default: 20
+      responses:
+        '200':
+          description: Successfully retrieved the leaderboard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_PaginatedResponseDTO'
+        '400':
+          description: Invalid pagination parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_ErrorResponse'
+        '404':
+          description: Queue not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_ErrorResponse'
+  /api/v1/ranking/players/links/{gameName}/{tagLine}:
+    delete:
+      summary: Unlink a League of Legends account
+      operationId: unlinkLolAccount
+      tags:
+      - Player Management
+      parameters:
+      - name: gameName
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: \S
+      - name: tagLine
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: \S
+      responses:
+        '204':
+          description: Account successfully unlinked or not found
+  /api/v1/ranking/players/{playerId}:
+    get:
+      summary: Get player details
+      operationId: getPlayer
+      tags:
+      - Player Management
+      parameters:
+      - description: Player UUID
+        example: 550e8400-e29b-41d4-a716-446655440002
+        name: playerId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/ranking_UUID'
+      responses:
+        '200':
+          description: Player found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_PlayerDTO'
+        '404':
+          description: Player not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_ErrorResponse'
+  /api/v1/ranking/players/{playerId}/link-lol-account:
+    put:
+      summary: Link a League of Legends account to a player
+      description: For gameName/tagLine discovery, you can use https://www.leagueofgraphs.com/rankings/summoners
+        . Region should be the Riot routing region enum (AMERICAS, EUROPE, ASIA, SEA).
+      operationId: linkLolAccount
+      tags:
+      - Player Management
+      parameters:
+      - name: playerId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/ranking_UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ranking_LinkLolAccountRequest'
+        required: true
+      responses:
+        '200':
+          description: Account successfully linked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_PlayerDTO'
+        '400':
+          description: Invalid account info or already linked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_ErrorResponse'
+        '404':
+          description: Player not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_ErrorResponse'
+  /api/v1/ranking/players/{playerId}/primary-account:
+    get:
+      summary: Get the primary linked Riot account for a player
+      operationId: getPrimaryAccount
+      tags:
+      - Player Management
+      parameters:
+      - description: Player UUID
+        example: 550e8400-e29b-41d4-a716-446655440002
+        name: playerId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/ranking_UUID'
+      responses:
+        '200':
+          description: Primary account found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_RiotAccountDTO'
+        '400':
+          description: No League of Legends account linked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_ErrorResponse'
+        '404':
+          description: Player not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_ErrorResponse'
+  /api/v1/ranking/players/{playerId}/queue-rankings:
+    get:
+      summary: Get all queue rankings for a player
+      operationId: getPlayerRankings
+      tags:
+      - Player Ranking
+      parameters:
+      - description: Player UUID
+        example: 550e8400-e29b-41d4-a716-446655440002
+        name: playerId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/ranking_UUID'
+      responses:
+        '200':
+          description: Successfully retrieved player ranking(s)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_PlayerRankingDTO'
+        '404':
+          description: Player ranking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_ErrorResponse'
+  /api/v1/ranking/players/{playerId}/queue-rankings/{queueId}:
+    get:
+      summary: Get a player's ranking for a specific queue
+      operationId: getPlayerRankingByQueue
+      tags:
+      - Player Ranking
+      parameters:
+      - name: playerId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/ranking_UUID'
+      - name: queueId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/ranking_UUID'
+      responses:
+        '200':
+          description: Successfully retrieved player queue ranking
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_PlayerRankingDTO'
+        '404':
+          description: Player ranking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_ErrorResponse'
+  /api/v1/ranking/players/{playerId}/set-primary-account:
+    put:
+      summary: Set one of the linked Riot accounts as the primary account
+      operationId: setPrimaryAccount
+      tags:
+      - Player Management
+      parameters:
+      - name: playerId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/ranking_UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ranking_SetPrimaryAccountRequest'
+        required: true
+      responses:
+        '200':
+          description: Primary account successfully updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_PlayerDTO'
+        '404':
+          description: Player or Riot account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_ErrorResponse'
+        '400':
+          description: Bad Request
+  /api/v1/ranking/players/{playerId}/sync-mmr:
+    post:
+      summary: Manually fetch and sync the player's MMR from the external LoL service
+      operationId: syncExternalMMR
+      tags:
+      - Player Management
+      parameters:
+      - name: playerId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/ranking_UUID'
+      responses:
+        '200':
+          description: MMR successfully synced
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_PlayerDTO'
+        '400':
+          description: League of Legends account not linked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_ErrorResponse'
+        '404':
+          description: Player not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_ErrorResponse'
+  /api/v1/ranking/queue/{queueId}:
+    put:
+      summary: Update an existing queue's configuration
+      operationId: updateQueue
+      tags:
+      - Queue Management
+      parameters:
+      - name: queueId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/ranking_UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ranking_UpdateQueueRequest'
+        required: true
+      responses:
+        '200':
+          description: Queue configuration successfully updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_QueueDTO'
+        '400':
+          description: Invalid update payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_ErrorResponse'
+        '404':
+          description: Queue not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_ErrorResponse'
+    get:
+      summary: Get queue details
+      operationId: getQueue
+      tags:
+      - Queue Management
+      parameters:
+      - description: Queue UUID
+        example: 550e8400-e29b-41d4-a716-446655440010
+        name: queueId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/ranking_UUID'
+      responses:
+        '200':
+          description: Queue found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_QueueDTO'
+        '404':
+          description: Queue not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_ErrorResponse'
+    delete:
+      summary: Delete a specific queue
+      operationId: deleteQueue
+      tags:
+      - Queue Management
+      parameters:
+      - name: queueId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/ranking_UUID'
+      responses:
+        '204':
+          description: Queue successfully deleted
+        '404':
+          description: Queue not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ranking_ErrorResponse'
+  /api/v1/history/matches:
+    get:
+      summary: Get paginated match history with filters and sorting
+      operationId: getMatches
+      tags:
+      - Match History
+      parameters:
+      - description: 0-based page index
+        example: 0
+        name: page
+        in: query
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - description: Page size (1..100)
+        example: 20
+        name: size
+        in: query
+        schema:
+          type: integer
+          format: int32
+          maximum: 100
+          minimum: 1
+          default: 20
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/match_history_MatchFilters'
+        required: true
+      responses:
+        '200':
+          description: Successfully retrieved filtered matches
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/match_history_PaginatedResponseDTO'
+        '400':
+          description: Invalid query or pagination parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/match_history_ErrorResponse'
+        '408':
+          description: Request timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/match_history_ErrorResponse'
+  /api/v1/history/matches/{riotMatchId}:
+    get:
+      summary: Get simplified match information by ID
+      operationId: getMatchById
+      tags:
+      - Match History
+      parameters:
+      - description: Riot match id in REGION_MATCHID format
+        example: VN_1417849076
+        name: riotMatchId
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: \S
+      responses:
+        '200':
+          description: Successfully retrieved the match details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/match_history_MatchDTO'
+        '404':
+          description: Match not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/match_history_ErrorResponse'
+        '408':
+          description: Request timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/match_history_ErrorResponse'
+        '500':
+          description: Internal error in communicating with other services
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/match_history_ErrorResponse'
+        '503':
+          description: Some of the needed servers cannot process requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/match_history_ErrorResponse'
+components:
+  schemas:
+    analysis_AlternativeItem:
+      properties:
+        replaces:
+          type: string
+          title: Replaces
+        suggested_item:
+          type: string
+          title: Suggested Item
+        reason:
+          type: string
+          title: Reason
+      type: object
+      required:
+      - replaces
+      - suggested_item
+      - reason
+      title: AlternativeItem
+    analysis_BuildAnalysisRequest:
+      properties:
+        champion:
+          type: string
+          title: Champion
+        role:
+          anyOf:
+          - $ref: '#/components/schemas/analysis_Role'
+          - type: 'null'
+        items:
+          items:
+            type: string
+          type: array
+          minItems: 1
+          title: Items
+        enemy_composition:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Enemy Composition
+        model_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Model Id
+      type: object
+      required:
+      - champion
+      - items
+      title: BuildAnalysisRequest
+    analysis_BuildAnalysisResponse:
+      properties:
+        champion:
+          type: string
+          title: Champion
+        items:
+          items:
+            type: string
+          type: array
+          title: Items
+        score:
+          type: integer
+          maximum: 100.0
+          minimum: 0.0
+          title: Score
+        win_rate_with_build:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Win Rate With Build
+        strengths:
+          items:
+            type: string
+          type: array
+          title: Strengths
+        weaknesses:
+          items:
+            type: string
+          type: array
+          title: Weaknesses
+        alternative_items:
+          items:
+            $ref: '#/components/schemas/analysis_AlternativeItem'
+          type: array
+          title: Alternative Items
+        model_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model Version
+      type: object
+      required:
+      - champion
+      - items
+      - score
+      - win_rate_with_build
+      - strengths
+      - weaknesses
+      - alternative_items
+      - model_version
+      title: BuildAnalysisResponse
+    analysis_ChampionAnalysisRequest:
+      properties:
+        champion:
+          type: string
+          title: Champion
+        position:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Position
+        patch:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Patch
+        match_type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Match Type
+        model_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Model Id
+      type: object
+      required:
+      - champion
+      title: ChampionAnalysisRequest
+    analysis_ChampionAnalysisResponse:
+      properties:
+        champion:
+          type: string
+          title: Champion
+        stats:
+          $ref: '#/components/schemas/analysis_ChampionStats'
+        tier:
+          type: string
+          title: Tier
+        model_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model Version
+      type: object
+      required:
+      - champion
+      - stats
+      - tier
+      - model_version
+      title: ChampionAnalysisResponse
+    analysis_ChampionInDraft:
+      properties:
+        name:
+          type: string
+          title: Name
+        role:
+          $ref: '#/components/schemas/analysis_Role'
+      type: object
+      required:
+      - name
+      - role
+      title: ChampionInDraft
+    analysis_ChampionStats:
+      properties:
+        champion:
+          type: string
+          title: Champion
+        position:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Position
+        win_rate:
+          type: number
+          title: Win Rate
+        pick_rate:
+          type: number
+          title: Pick Rate
+        total_games:
+          type: integer
+          title: Total Games
+        avg_kda:
+          type: number
+          title: Avg Kda
+        avg_damage:
+          type: number
+          title: Avg Damage
+        avg_gold:
+          type: number
+          title: Avg Gold
+        avg_cs:
+          type: number
+          title: Avg Cs
+        avg_vision:
+          type: number
+          title: Avg Vision
+        best_items:
+          items:
+            type: string
+          type: array
+          title: Best Items
+        best_runes:
+          items:
+            type: string
+          type: array
+          title: Best Runes
+        counters:
+          items:
+            type: string
+          type: array
+          title: Counters
+        countered_by:
+          items:
+            type: string
+          type: array
+          title: Countered By
+      type: object
+      required:
+      - champion
+      - position
+      - win_rate
+      - pick_rate
+      - total_games
+      - avg_kda
+      - avg_damage
+      - avg_gold
+      - avg_cs
+      - avg_vision
+      - best_items
+      - best_runes
+      - counters
+      - countered_by
+      title: ChampionStats
+    analysis_Concern:
+      type: string
+      enum:
+      - draft
+      - build
+      - performance
+      title: Concern
+    analysis_DraftAnalysisRequest:
+      properties:
+        team_blue:
+          $ref: '#/components/schemas/analysis_DraftTeam'
+        team_red:
+          $ref: '#/components/schemas/analysis_DraftTeam'
+        model_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Model Id
+      type: object
+      required:
+      - team_blue
+      - team_red
+      title: DraftAnalysisRequest
+    analysis_DraftAnalysisResponse:
+      properties:
+        blue_win_probability:
+          type: number
+          maximum: 1.0
+          minimum: 0.0
+          title: Blue Win Probability
+        red_win_probability:
+          type: number
+          maximum: 1.0
+          minimum: 0.0
+          title: Red Win Probability
+        blue_synergies:
+          items:
+            type: string
+          type: array
+          title: Blue Synergies
+        red_synergies:
+          items:
+            type: string
+          type: array
+          title: Red Synergies
+        blue_counters:
+          items:
+            type: string
+          type: array
+          title: Blue Counters
+        red_counters:
+          items:
+            type: string
+          type: array
+          title: Red Counters
+        win_conditions:
+          additionalProperties: true
+          type: object
+          title: Win Conditions
+        tips:
+          items:
+            type: string
+          type: array
+          title: Tips
+        model_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model Version
+      type: object
+      required:
+      - blue_win_probability
+      - red_win_probability
+      - blue_synergies
+      - red_synergies
+      - blue_counters
+      - red_counters
+      - win_conditions
+      - tips
+      - model_version
+      title: DraftAnalysisResponse
+    analysis_DraftTeam:
+      properties:
+        champions:
+          items:
+            $ref: '#/components/schemas/analysis_ChampionInDraft'
+          type: array
+          maxItems: 5
+          minItems: 1
+          title: Champions
+      type: object
+      required:
+      - champions
+      title: DraftTeam
+    analysis_ErrorResponse:
+      properties:
+        code:
+          type: integer
+          title: Code
+        message:
+          type: string
+          title: Message
+        details:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Details
+      type: object
+      required:
+      - code
+      - message
+      title: ErrorResponse
+    analysis_GameAnalysisRequest:
+      properties:
+        game_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Game Id
+          description: Game id to analyze. Riot-style values like 'VN_1417849076'
+            are supported. From LeagueOfGraphs URLs, combine region + '_' + id (for
+            example, https://www.leagueofgraphs.com/match/vn/1417849076#participant8
+            -> VN_1417849076).
+        raw_data:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Raw Data
+        model_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Model Id
+        concern:
+          $ref: '#/components/schemas/analysis_Concern'
+          default: performance
+      type: object
+      title: GameAnalysisRequest
+    analysis_GameAnalysisResponse:
+      properties:
+        game_id:
+          type: string
+          title: Game Id
+        patch:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Patch
+        duration_sec:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Duration Sec
+        winner:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Winner
+        players:
+          items:
+            $ref: '#/components/schemas/analysis_PlayerOutcome'
+          type: array
+          title: Players
+        team_synergies:
+          additionalProperties: true
+          type: object
+          title: Team Synergies
+        key_moments:
+          items:
+            type: string
+          type: array
+          title: Key Moments
+        model_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model Version
+      type: object
+      required:
+      - game_id
+      - patch
+      - duration_sec
+      - winner
+      - players
+      - team_synergies
+      - key_moments
+      - model_version
+      title: GameAnalysisResponse
+    analysis_HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/analysis_ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    analysis_ImpactLevel:
+      type: string
+      enum:
+      - LOW
+      - MEDIUM
+      - HIGH
+      title: ImpactLevel
+    analysis_ImprovementTip:
+      properties:
+        category:
+          $ref: '#/components/schemas/analysis_TipCategory'
+        tip:
+          type: string
+          title: Tip
+        impact:
+          $ref: '#/components/schemas/analysis_ImpactLevel'
+        related_metric:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Related Metric
+      type: object
+      required:
+      - category
+      - tip
+      - impact
+      title: ImprovementTip
+    analysis_PerformanceMetric:
+      properties:
+        value:
+          type: number
+          title: Value
+        tier_average:
+          type: number
+          title: Tier Average
+        percentile:
+          type: number
+          maximum: 100.0
+          minimum: 0.0
+          title: Percentile
+      type: object
+      required:
+      - value
+      - tier_average
+      - percentile
+      title: PerformanceMetric
+    analysis_PlayerAnalysisRequest:
+      properties:
+        summoner_id:
+          type: string
+          title: Summoner Id
+        champion:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Champion
+        role:
+          anyOf:
+          - $ref: '#/components/schemas/analysis_Role'
+          - type: 'null'
+        last_n_games:
+          type: integer
+          maximum: 200.0
+          minimum: 1.0
+          title: Last N Games
+          default: 20
+        match_type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Match Type
+      type: object
+      required:
+      - summoner_id
+      title: PlayerAnalysisRequest
+    analysis_PlayerAnalysisResponse:
+      properties:
+        summoner_id:
+          type: string
+          title: Summoner Id
+        matches_analyzed:
+          type: integer
+          title: Matches Analyzed
+        champion:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Champion
+        role:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Role
+        win_rate:
+          type: number
+          title: Win Rate
+        kda:
+          anyOf:
+          - $ref: '#/components/schemas/analysis_PerformanceMetric'
+          - type: 'null'
+        avg_damage:
+          anyOf:
+          - $ref: '#/components/schemas/analysis_PerformanceMetric'
+          - type: 'null'
+        avg_vision:
+          anyOf:
+          - $ref: '#/components/schemas/analysis_PerformanceMetric'
+          - type: 'null'
+        avg_gold_pm:
+          anyOf:
+          - $ref: '#/components/schemas/analysis_PerformanceMetric'
+          - type: 'null'
+        obj_participation:
+          anyOf:
+          - $ref: '#/components/schemas/analysis_PerformanceMetric'
+          - type: 'null'
+        tips:
+          items:
+            $ref: '#/components/schemas/analysis_ImprovementTip'
+          type: array
+          title: Tips
+        model_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model Version
+      type: object
+      required:
+      - summoner_id
+      - matches_analyzed
+      - champion
+      - role
+      - win_rate
+      - kda
+      - avg_damage
+      - avg_vision
+      - avg_gold_pm
+      - obj_participation
+      - tips
+      - model_version
+      title: PlayerAnalysisResponse
+    analysis_PlayerOutcome:
+      properties:
+        puuid:
+          type: string
+          title: Puuid
+        champion:
+          type: string
+          title: Champion
+        role:
+          type: string
+          title: Role
+        win:
+          type: boolean
+          title: Win
+        kda:
+          type: number
+          title: Kda
+        damage:
+          type: integer
+          title: Damage
+        gold:
+          type: integer
+          title: Gold
+        cs:
+          type: integer
+          title: Cs
+        vision:
+          type: integer
+          title: Vision
+        performance_score:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Performance Score
+        highlights:
+          items:
+            type: string
+          type: array
+          title: Highlights
+          default: []
+        lowlights:
+          items:
+            type: string
+          type: array
+          title: Lowlights
+          default: []
+      type: object
+      required:
+      - puuid
+      - champion
+      - role
+      - win
+      - kda
+      - damage
+      - gold
+      - cs
+      - vision
+      title: PlayerOutcome
+    analysis_Role:
+      type: string
+      enum:
+      - TOP
+      - JUNGLE
+      - MID
+      - BOT
+      - SUPPORT
+      title: Role
+    analysis_TipCategory:
+      type: string
+      enum:
+      - VISION
+      - FARMING
+      - DAMAGE
+      - POSITIONING
+      - OBJECTIVE_CONTROL
+      - BUILDS
+      - GAME_SENSE
+      title: TipCategory
+    analysis_ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    training_Algorithm:
+      type: string
+      enum:
+      - logistic
+      - gbm
+      - random_forest
+      - lightgbm
+      - auto
+      title: Algorithm
+    training_BatchIngestRequest:
+      properties:
+        games:
+          items:
+            $ref: '#/components/schemas/training_GameIngest'
+          type: array
+          title: Games
+        source:
+          type: string
+          title: Source
+          default: manual
+      type: object
+      required:
+      - games
+      title: BatchIngestRequest
+    training_BatchIngestResponse:
+      properties:
+        ingested:
+          type: integer
+          title: Ingested
+        skipped:
+          type: integer
+          title: Skipped
+        errors:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Errors
+      type: object
+      required:
+      - ingested
+      - skipped
+      - errors
+      title: BatchIngestResponse
+    training_Concern:
+      type: string
+      enum:
+      - draft
+      - build
+      - performance
+      title: Concern
+    training_DatasetBuildRequest:
+      properties:
+        name:
+          type: string
+          title: Name
+        concern:
+          $ref: '#/components/schemas/training_Concern'
+        description:
+          type: string
+          title: Description
+          default: ''
+        filters:
+          $ref: '#/components/schemas/training_DatasetFilters'
+      type: object
+      required:
+      - name
+      - concern
+      title: DatasetBuildRequest
+    training_DatasetCreateRequest:
+      properties:
+        name:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Name
+        concern:
+          $ref: '#/components/schemas/training_Concern'
+        description:
+          type: string
+          title: Description
+          default: ''
+        filters:
+          $ref: '#/components/schemas/training_DatasetFilters'
+      type: object
+      required:
+      - name
+      - concern
+      title: DatasetCreateRequest
+    training_DatasetFilters:
+      properties:
+        patch:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Patch
+        patches:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Patches
+        match_type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Match Type
+        min_duration_sec:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Min Duration Sec
+        max_duration_sec:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Max Duration Sec
+        source:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source
+        date_from:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Date From
+        date_to:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Date To
+      type: object
+      title: DatasetFilters
+    training_DatasetListResponse:
+      properties:
+        datasets:
+          items:
+            $ref: '#/components/schemas/training_DatasetMeta'
+          type: array
+          title: Datasets
+      type: object
+      required:
+      - datasets
+      title: DatasetListResponse
+    training_DatasetMeta:
+      properties:
+        id:
+          type: string
+          title: Id
+        name:
+          type: string
+          title: Name
+        description:
+          type: string
+          title: Description
+        concern:
+          type: string
+          title: Concern
+        filters:
+          additionalProperties: true
+          type: object
+          title: Filters
+        game_count:
+          type: integer
+          title: Game Count
+        row_count:
+          type: integer
+          title: Row Count
+        status:
+          type: string
+          title: Status
+        created_at:
+          type: string
+          title: Created At
+        built_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Built At
+        file_path:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: File Path
+      type: object
+      required:
+      - id
+      - name
+      - description
+      - concern
+      - filters
+      - game_count
+      - row_count
+      - status
+      - created_at
+      - built_at
+      - file_path
+      title: DatasetMeta
+    training_ErrorResponse:
+      properties:
+        code:
+          type: integer
+          title: Code
+        message:
+          type: string
+          title: Message
+        details:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Details
+      type: object
+      required:
+      - code
+      - message
+      title: ErrorResponse
+    training_FeatureExtractRequest:
+      properties:
+        game_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Game Id
+          description: Stored game id. Riot-style ids like 'VN_1417849076' are supported.
+            You can derive this from LeagueOfGraphs match URLs, e.g. https://www.leagueofgraphs.com/match/vn/1417849076#participant8
+            -> VN_1417849076.
+        raw_data:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Raw Data
+        concerns:
+          items:
+            $ref: '#/components/schemas/training_Concern'
+          type: array
+          title: Concerns
+          default:
+          - draft
+          - build
+          - performance
+        store:
+          type: boolean
+          title: Store
+          default: true
+      type: object
+      title: FeatureExtractRequest
+    training_FeatureExtractResponse:
+      properties:
+        game_id:
+          type: string
+          title: Game Id
+        features:
+          items:
+            $ref: '#/components/schemas/training_FeatureVector'
+          type: array
+          title: Features
+        stored:
+          type: boolean
+          title: Stored
+      type: object
+      required:
+      - game_id
+      - features
+      - stored
+      title: FeatureExtractResponse
+    training_FeatureVector:
+      properties:
+        game_id:
+          type: string
+          title: Game Id
+        concern:
+          type: string
+          title: Concern
+        feature_vector:
+          items:
+            type: number
+          type: array
+          title: Feature Vector
+        feature_names:
+          items:
+            type: string
+          type: array
+          title: Feature Names
+        schema_version:
+          type: string
+          title: Schema Version
+        extracted_at:
+          type: string
+          title: Extracted At
+      type: object
+      required:
+      - game_id
+      - concern
+      - feature_vector
+      - feature_names
+      - schema_version
+      - extracted_at
+      title: FeatureVector
+    training_GameDetail:
+      properties:
+        id:
+          type: string
+          title: Id
+        source:
+          type: string
+          title: Source
+        patch:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Patch
+        match_type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Match Type
+        ingested_at:
+          type: string
+          title: Ingested At
+        duration_sec:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Duration Sec
+        platform:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Platform
+        raw_json:
+          additionalProperties: true
+          type: object
+          title: Raw Json
+      type: object
+      required:
+      - id
+      - source
+      - patch
+      - match_type
+      - ingested_at
+      - duration_sec
+      - platform
+      - raw_json
+      title: GameDetail
+    training_GameIngest:
+      properties:
+        id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Id
+          description: 'Optional custom match id. Prefer Riot format REGION_MATCHID
+            (example: VN_1417849076).'
+        data:
+          additionalProperties: true
+          type: object
+          title: Data
+          description: Full match JSON
+        source:
+          type: string
+          title: Source
+          default: manual
+      type: object
+      required:
+      - data
+      title: GameIngest
+    training_GameIngested:
+      properties:
+        id:
+          type: string
+          title: Id
+        source:
+          type: string
+          title: Source
+        patch:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Patch
+        match_type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Match Type
+        ingested_at:
+          type: string
+          title: Ingested At
+      type: object
+      required:
+      - id
+      - source
+      - patch
+      - match_type
+      - ingested_at
+      title: GameIngested
+    training_GameListResponse:
+      properties:
+        games:
+          items:
+            $ref: '#/components/schemas/training_GameIngested'
+          type: array
+          title: Games
+        meta:
+          $ref: '#/components/schemas/training_PaginatedMeta'
+      type: object
+      required:
+      - games
+      - meta
+      title: GameListResponse
+    training_HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/training_ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    training_JobStatus:
+      type: string
+      enum:
+      - PENDING
+      - RUNNING
+      - COMPLETED
+      - FAILED
+      - CANCELLED
+      title: JobStatus
+    training_ModelListResponse:
+      properties:
+        models:
+          items:
+            $ref: '#/components/schemas/training_ModelMeta'
+          type: array
+          title: Models
+      type: object
+      required:
+      - models
+      title: ModelListResponse
+    training_ModelMeta:
+      properties:
+        id:
+          type: integer
+          title: Id
+        concern:
+          type: string
+          title: Concern
+        algorithm:
+          type: string
+          title: Algorithm
+        dataset_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Dataset Id
+        version:
+          type: string
+          title: Version
+        metrics:
+          additionalProperties: true
+          type: object
+          title: Metrics
+        hyperparams:
+          additionalProperties: true
+          type: object
+          title: Hyperparams
+        is_active:
+          type: boolean
+          title: Is Active
+        created_at:
+          type: string
+          title: Created At
+        activated_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Activated At
+      type: object
+      required:
+      - id
+      - concern
+      - algorithm
+      - dataset_id
+      - version
+      - metrics
+      - hyperparams
+      - is_active
+      - created_at
+      - activated_at
+      title: ModelMeta
+    training_PaginatedMeta:
+      properties:
+        total:
+          type: integer
+          title: Total
+        limit:
+          type: integer
+          title: Limit
+        offset:
+          type: integer
+          title: Offset
+      type: object
+      required:
+      - total
+      - limit
+      - offset
+      title: PaginatedMeta
+    training_TrainingJobCreate:
+      properties:
+        concern:
+          $ref: '#/components/schemas/training_Concern'
+        algorithm:
+          $ref: '#/components/schemas/training_Algorithm'
+          default: auto
+        dataset_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Dataset Id
+          description: Leave empty to train from EUW DB directly.
+        sample:
+          anyOf:
+          - type: number
+            maximum: 1.0
+            minimum: 0.01
+          - type: 'null'
+          title: Sample
+        limit:
+          anyOf:
+          - type: integer
+            minimum: 1000.0
+          - type: 'null'
+          title: Limit
+        match_type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Match Type
+      type: object
+      required:
+      - concern
+      title: TrainingJobCreate
+    training_TrainingJobListResponse:
+      properties:
+        jobs:
+          items:
+            $ref: '#/components/schemas/training_TrainingJobResponse'
+          type: array
+          title: Jobs
+      type: object
+      required:
+      - jobs
+      title: TrainingJobListResponse
+    training_TrainingJobResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        concern:
+          type: string
+          title: Concern
+        algorithm:
+          type: string
+          title: Algorithm
+        dataset_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Dataset Id
+        status:
+          type: string
+          title: Status
+        progress:
+          type: integer
+          title: Progress
+        stage:
+          type: string
+          title: Stage
+        filters:
+          additionalProperties: true
+          type: object
+          title: Filters
+        metrics:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Metrics
+        model_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Model Id
+        error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error
+        created_at:
+          type: string
+          title: Created At
+        started_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Started At
+        completed_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Completed At
+      type: object
+      required:
+      - id
+      - concern
+      - algorithm
+      - dataset_id
+      - status
+      - progress
+      - stage
+      - filters
+      - metrics
+      - model_id
+      - error
+      - created_at
+      - started_at
+      - completed_at
+      title: TrainingJobResponse
+    training_ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    detail_filling_AccountDTO:
+      type: object
+      properties:
+        puuid:
+          type: string
+        name:
+          type: string
+        tag:
+          type: string
+    detail_filling_ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+    detail_filling_MatchStatsDTO:
+      type: object
+      properties:
+        riotMatchId:
+          type: string
+        patch:
+          type: string
+        gameCreation:
+          type: integer
+          format: int64
+          description: Reflected as the number of seconds since January 1st, 1970
+            at UTC (Unix timestamp)
+        gameDuration:
+          type: integer
+          format: int64
+        players:
+          type: array
+          items:
+            $ref: '#/components/schemas/detail_filling_PlayerStatsDTO'
+        teams:
+          type: array
+          items:
+            $ref: '#/components/schemas/detail_filling_TeamStatsDTO'
+    detail_filling_PlayerDTO:
+      type: object
+      properties:
+        account:
+          $ref: '#/components/schemas/detail_filling_AccountDTO'
+        region:
+          $ref: '#/components/schemas/detail_filling_RegionDTO'
+        summoner:
+          $ref: '#/components/schemas/detail_filling_SummonerDTO'
+        queues:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/detail_filling_PlayerQueueStatsDTO'
+    detail_filling_PlayerQueueStatsDTO:
+      type: object
+      properties:
+        queueType:
+          type: string
+        rank:
+          $ref: '#/components/schemas/detail_filling_Rank'
+        wins:
+          type: integer
+          format: int32
+        losses:
+          type: integer
+          format: int32
+        hotStreak:
+          type: boolean
+    detail_filling_PlayerStatsDTO:
+      type: object
+      properties:
+        riotId:
+          $ref: '#/components/schemas/detail_filling_RiotId'
+        kills:
+          type: integer
+          format: int32
+        deaths:
+          type: integer
+          format: int32
+        assists:
+          type: integer
+          format: int32
+        healing:
+          type: integer
+          format: int32
+        damageToPlayers:
+          type: integer
+          format: int32
+        wards:
+          type: integer
+          format: int32
+        gold:
+          type: integer
+          format: int32
+        role:
+          $ref: '#/components/schemas/detail_filling_Role'
+        champion:
+          type: string
+        killedMinions:
+          type: integer
+          format: int32
+        tripleKills:
+          type: integer
+          format: int32
+        quadKills:
+          type: integer
+          format: int32
+        pentaKills:
+          type: integer
+          format: int32
+        side:
+          $ref: '#/components/schemas/detail_filling_TeamSide'
+        won:
+          type: boolean
+    detail_filling_Rank:
+      type: object
+      properties:
+        tier:
+          $ref: '#/components/schemas/detail_filling_Tier'
+        division:
+          type: integer
+          format: int32
+        lps:
+          type: integer
+          format: int32
+    detail_filling_RegionDTO:
+      type: object
+      properties:
+        region:
+          type: string
+        subregion:
+          type: string
+    detail_filling_RiotId:
+      type: object
+      properties:
+        puuid:
+          type: string
+        playerName:
+          type: string
+        playerTag:
+          type: string
+        summonerIcon:
+          type: integer
+          format: int32
+        summonerLevel:
+          type: integer
+          format: int32
+    detail_filling_Role:
+      type: string
+      enum:
+      - TOP
+      - JUNGLE
+      - MID
+      - BOTTOM
+      - SUPPORT
+    detail_filling_SummonerDTO:
+      type: object
+      properties:
+        icon:
+          type: integer
+          format: int32
+        level:
+          type: integer
+          format: int64
+    detail_filling_TeamSide:
+      type: string
+      enum:
+      - BLUE
+      - RED
+    detail_filling_TeamStatsDTO:
+      type: object
+      properties:
+        side:
+          $ref: '#/components/schemas/detail_filling_TeamSide'
+        teamKills:
+          type: integer
+          format: int32
+        teamDeaths:
+          type: integer
+          format: int32
+        teamAssists:
+          type: integer
+          format: int32
+        teamHealing:
+          type: integer
+          format: int32
+    detail_filling_Tier:
+      type: string
+      enum:
+      - UNRANKED
+      - IRON
+      - BRONZE
+      - SILVER
+      - GOLD
+      - PLATINUM
+      - EMERALD
+      - DIAMOND
+      - MASTER
+      - GRANDMASTER
+      - CHALLENGER
+    matchmaking_CreatePlayerRequest:
+      type: object
+      required:
+      - id
+      - discordUsername
+      properties:
+        id:
+          $ref: '#/components/schemas/matchmaking_UUID'
+        discordUsername:
+          type: string
+          pattern: \S
+    matchmaking_CreateQueueRequest:
+      type: object
+      required:
+      - id
+      - name
+      - mode
+      properties:
+        id:
+          $ref: '#/components/schemas/matchmaking_UUID'
+        name:
+          type: string
+          pattern: \S
+        namespace:
+          type: string
+        requiredPlayers:
+          type: integer
+          format: int32
+          minimum: 2
+        isRoleQueue:
+          type: boolean
+        mode:
+          $ref: '#/components/schemas/matchmaking_MatchmakingMode'
+        mmrWindow:
+          type: integer
+          format: int32
+          minimum: 0
+        region:
+          $ref: '#/components/schemas/matchmaking_Region'
+    matchmaking_ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+    matchmaking_JoinQueueRequest:
+      type: object
+      required:
+      - playerId
+      - queueId
+      properties:
+        playerId:
+          $ref: '#/components/schemas/matchmaking_UUID'
+        queueId:
+          $ref: '#/components/schemas/matchmaking_UUID'
+        role:
+          $ref: '#/components/schemas/matchmaking_Role'
+    matchmaking_LinkMatchRequest:
+      type: object
+      required:
+      - externalGameId
+      properties:
+        externalGameId:
+          type: string
+          pattern: \S
+    matchmaking_LobbyDTO:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/matchmaking_UUID'
+        matchId:
+          $ref: '#/components/schemas/matchmaking_UUID'
+        queueId:
+          $ref: '#/components/schemas/matchmaking_UUID'
+        region:
+          $ref: '#/components/schemas/matchmaking_Region'
+        tickets:
+          type: array
+          items:
+            $ref: '#/components/schemas/matchmaking_MatchTicketDTO'
+        createdAt:
+          $ref: '#/components/schemas/matchmaking_LocalDateTime'
+    matchmaking_LocalDateTime:
+      type: string
+      format: date-time
+      examples:
+      - '2022-03-10T12:15:50'
+    matchmaking_MatchDTO:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/matchmaking_UUID'
+        lobbyId:
+          $ref: '#/components/schemas/matchmaking_UUID'
+        state:
+          $ref: '#/components/schemas/matchmaking_MatchState'
+        acceptedPlayerIds:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            format: uuid
+            pattern: '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}'
+        externalGameId:
+          type: string
+        startedAt:
+          $ref: '#/components/schemas/matchmaking_LocalDateTime'
+        endedAt:
+          $ref: '#/components/schemas/matchmaking_LocalDateTime'
+    matchmaking_MatchState:
+      type: string
+      enum:
+      - SEARCHING
+      - PENDING_ACCEPTANCE
+      - MATCH_FOUND
+      - ACCEPTED
+      - IN_PROGRESS
+      - COMPLETED
+      - RESULT_REPORTING_FAILED
+      - CANCELLED
+    matchmaking_MatchTicketDTO:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/matchmaking_UUID'
+        playerId:
+          $ref: '#/components/schemas/matchmaking_UUID'
+        queueId:
+          $ref: '#/components/schemas/matchmaking_UUID'
+        region:
+          $ref: '#/components/schemas/matchmaking_Region'
+        role:
+          $ref: '#/components/schemas/matchmaking_Role'
+        status:
+          $ref: '#/components/schemas/matchmaking_TicketStatus'
+        mmr:
+          type: integer
+          format: int32
+        createdAt:
+          $ref: '#/components/schemas/matchmaking_LocalDateTime'
+        lobbyId:
+          $ref: '#/components/schemas/matchmaking_UUID'
+    matchmaking_MatchmakingMode:
+      type: string
+      enum:
+      - RANK_BASED
+      - NORMAL
+    matchmaking_PlayerDTO:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/matchmaking_UUID'
+        discordUsername:
+          type: string
+    matchmaking_QueueDTO:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/matchmaking_UUID'
+        name:
+          type: string
+        region:
+          $ref: '#/components/schemas/matchmaking_Region'
+        namespace:
+          type: string
+        requiredPlayers:
+          type: integer
+          format: int32
+        isRoleQueue:
+          type: boolean
+        mode:
+          $ref: '#/components/schemas/matchmaking_MatchmakingMode'
+        mmrWindow:
+          type: integer
+          format: int32
+        roleQueue:
+          type: boolean
+    matchmaking_Region:
+      type: string
+      enum:
+      - BR
+      - EUNE
+      - EUW
+      - LAN
+      - LAS
+      - NA
+      - OCE
+      - RU
+      - TR
+      - ME
+      - JP
+      - KR
+      - SEA
+      - TW
+      - VN
+      - PBE
+    matchmaking_Role:
+      type: string
+      enum:
+      - TOP
+      - JUNGLE
+      - MID
+      - BOTTOM
+      - SUPPORT
+      - NONE
+    matchmaking_TicketStatus:
+      type: string
+      enum:
+      - IN_QUEUE
+      - MATCHED
+      - CANCELLED
+    matchmaking_UUID:
+      type: string
+      format: uuid
+      pattern: '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}'
+    ranking_ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+    ranking_LinkLolAccountRequest:
+      type: object
+      properties:
+        puuid:
+          type: string
+        gameName:
+          type: string
+          pattern: \S
+        tagLine:
+          type: string
+          pattern: \S
+        region:
+          $ref: '#/components/schemas/ranking_Region'
+      required:
+      - gameName
+      - tagLine
+      - region
+    ranking_MMRRuleType:
+      type: string
+      enum:
+      - FLEX_RANK
+      - SOLOQ_RANK
+      - NONE
+    ranking_PaginatedResponseDTO:
+      type: object
+      properties:
+        data:
+          type: array
+          items: {}
+        currentPage:
+          type: integer
+          format: int32
+        totalPages:
+          type: integer
+          format: int32
+        totalElements:
+          type: integer
+          format: int64
+    ranking_PlayerDTO:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/ranking_UUID'
+        discordUsername:
+          type: string
+        riotAccounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/ranking_RiotAccountDTO'
+        soloqMMR:
+          type: integer
+          format: int32
+        flexMMR:
+          type: integer
+          format: int32
+    ranking_PlayerRankingDTO:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/ranking_UUID'
+        playerId:
+          $ref: '#/components/schemas/ranking_UUID'
+        discordUsername:
+          type: string
+        lolAccountPPUID:
+          type: string
+        region:
+          $ref: '#/components/schemas/ranking_Region'
+        queueId:
+          $ref: '#/components/schemas/ranking_UUID'
+        mmr:
+          type: integer
+          format: int32
+        wins:
+          type: integer
+          format: int32
+        losses:
+          type: integer
+          format: int32
+    ranking_QueueDTO:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/ranking_UUID'
+        name:
+          type: string
+        mmrRuleType:
+          $ref: '#/components/schemas/ranking_MMRRuleType'
+        initialMMR:
+          type: integer
+          format: int32
+        active:
+          type: boolean
+    ranking_Region:
+      type: string
+      enum:
+      - BR
+      - EUNE
+      - EUW
+      - LAN
+      - LAS
+      - NA
+      - OCE
+      - RU
+      - TR
+      - ME
+      - JP
+      - KR
+      - SEA
+      - TW
+      - VN
+      - PBE
+    ranking_RiotAccountDTO:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/ranking_UUID'
+        puuid:
+          type: string
+        gameName:
+          type: string
+        tagLine:
+          type: string
+        region:
+          $ref: '#/components/schemas/ranking_Region'
+        isPrimary:
+          type: boolean
+    ranking_SetPrimaryAccountRequest:
+      type: object
+      required:
+      - puuid
+      properties:
+        puuid:
+          type: string
+          pattern: \S
+    ranking_UUID:
+      type: string
+      format: uuid
+      pattern: '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}'
+    ranking_UpdateQueueRequest:
+      type: object
+      properties:
+        name:
+          type:
+          - string
+          - 'null'
+        mmrRuleType:
+          $ref: '#/components/schemas/ranking_MMRRuleType'
+        initialMMR:
+          type:
+          - integer
+          - 'null'
+          format: int32
+        active:
+          type:
+          - boolean
+          - 'null'
+    match_history_Champion:
+      type: string
+      enum:
+      - NONE
+      - AATROX
+      - AHRI
+      - AKALI
+      - AKSHAN
+      - ALISTAR
+      - AMBESSA
+      - AMUMU
+      - ANIVIA
+      - ANNIE
+      - APHELIOS
+      - ASHE
+      - AURELION_SOL
+      - AURORA
+      - AZIR
+      - BARD
+      - BELVETH
+      - BLITZCRANK
+      - BRAND
+      - BRAUM
+      - BRIAR
+      - CAITLYN
+      - CAMILLE
+      - CASSIOPEIA
+      - CHOGATH
+      - CORKI
+      - DARIUS
+      - DIANA
+      - DR_MUNDO
+      - DRAVEN
+      - EKKO
+      - ELISE
+      - EVELYNN
+      - EZREAL
+      - FIDDLESTICKS
+      - FIORA
+      - FIZZ
+      - GALIO
+      - GANGPLANK
+      - GAREN
+      - GNAR
+      - GRAGAS
+      - GRAVES
+      - GWEN
+      - HECARIM
+      - HEIMERDINGER
+      - HWEI
+      - ILLAOI
+      - IRELIA
+      - IVERN
+      - JANNA
+      - JARVAN_IV
+      - JAX
+      - JAYCE
+      - JHIN
+      - JINX
+      - KSANTE
+      - KAISA
+      - KALISTA
+      - KARMA
+      - KARTHUS
+      - KASSADIN
+      - KATARINA
+      - KAYLE
+      - KAYN
+      - KENNEN
+      - KHAZIX
+      - KINDRED
+      - KLED
+      - KOGMAW
+      - LEBLANC
+      - LEE_SIN
+      - LEONA
+      - LILLIA
+      - LISSANDRA
+      - LUCIAN
+      - LULU
+      - LUX
+      - MALPHITE
+      - MALZAHAR
+      - MAOKAI
+      - MASTER_YI
+      - MEL
+      - MILIO
+      - MISS_FORTUNE
+      - MORDEKAISER
+      - MORGANA
+      - NAAFIRI
+      - NAMI
+      - NASUS
+      - NAUTILUS
+      - NEEKO
+      - NIDALEE
+      - NILAH
+      - NOCTURNE
+      - NUNU_WILLUMP
+      - OLAF
+      - ORIANNA
+      - ORNN
+      - PANTHEON
+      - POPPY
+      - PYKE
+      - QIYANA
+      - QUINN
+      - RAKAN
+      - RAMMUS
+      - REKSAI
+      - RELL
+      - RENATA_GLASC
+      - RENEKTON
+      - RENGAR
+      - RIVEN
+      - RUMBLE
+      - RYZE
+      - SAMIRA
+      - SEJUANI
+      - SENNA
+      - SERAPHINE
+      - SETT
+      - SHACO
+      - SHEN
+      - SHYVANA
+      - SINGED
+      - SION
+      - SIVIR
+      - SKARNER
+      - SMOLDER
+      - SONA
+      - SORAKA
+      - SWAIN
+      - SYLAS
+      - SYNDRA
+      - TAHM_KENCH
+      - TALIYAH
+      - TALON
+      - TARIC
+      - TEEMO
+      - THRESH
+      - TRISTANA
+      - TRUNDLE
+      - TRYNDAMERE
+      - TWISTED_FATE
+      - TWITCH
+      - UDYR
+      - URGOT
+      - VARUS
+      - VAYNE
+      - VEIGAR
+      - VELKOZ
+      - VEX
+      - VI
+      - VIEGO
+      - VIKTOR
+      - VLADIMIR
+      - VOLIBEAR
+      - WARWICK
+      - WUKONG
+      - XAYAH
+      - XERATH
+      - XIN_ZHAO
+      - YASUO
+      - YONE
+      - YORICK
+      - YUNARA
+      - YUUMI
+      - ZAAHEN
+      - ZAC
+      - ZED
+      - ZERI
+      - ZIGGS
+      - ZILEAN
+      - ZOE
+      - ZYRA
+    match_history_DoubleInterval:
+      type: object
+      properties:
+        min:
+          type: number
+          format: double
+        max:
+          type: number
+          format: double
+    match_history_ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+    match_history_IntegerInterval:
+      type: object
+      properties:
+        min:
+          type: integer
+          format: int32
+        max:
+          type: integer
+          format: int32
+    match_history_LongInterval:
+      type: object
+      properties:
+        min:
+          type: integer
+          format: int64
+        max:
+          type: integer
+          format: int64
+    match_history_MatchDTO:
+      type: object
+      properties:
+        riotMatchId:
+          type: string
+        queueId:
+          $ref: '#/components/schemas/match_history_UUID'
+        patch:
+          type: string
+        gameCreation:
+          type: integer
+          format: int64
+          description: Reflected as the number of seconds since January 1st, 1970
+            at UTC (Unix timestamp)
+        gameDuration:
+          type: integer
+          format: int64
+        players:
+          type: array
+          items:
+            $ref: '#/components/schemas/match_history_PlayerStatsDTO'
+        teams:
+          type: array
+          items:
+            $ref: '#/components/schemas/match_history_TeamStatsDTO'
+    match_history_MatchFilters:
+      type: object
+      properties:
+        queueId:
+          $ref: '#/components/schemas/match_history_UUID'
+        champions:
+          type: array
+          items:
+            $ref: '#/components/schemas/match_history_Champion'
+        patch:
+          $ref: '#/components/schemas/match_history_PatchInterval'
+        time:
+          $ref: '#/components/schemas/match_history_LongInterval'
+        players:
+          type: array
+          items:
+            $ref: '#/components/schemas/match_history_PlayerFilters'
+        teams:
+          type: array
+          items:
+            $ref: '#/components/schemas/match_history_TeamFilters'
+        sortParams:
+          type: array
+          items:
+            $ref: '#/components/schemas/match_history_SortParams'
+    match_history_PaginatedResponseDTO:
+      type: object
+      properties:
+        data:
+          type: array
+          items: {}
+        currentPage:
+          type: integer
+          format: int32
+        totalPages:
+          type: integer
+          format: int32
+        totalElements:
+          type: integer
+          format: int64
+    match_history_PatchInterval:
+      type: object
+      properties:
+        min:
+          type: string
+          default: '16.5'
+          pattern: \d+(\.\d+)*
+        max:
+          type: string
+          default: '16.5'
+          pattern: \d+(\.\d+)*
+    match_history_PlayerFilters:
+      type: object
+      properties:
+        puuid:
+          type: string
+        playerName:
+          type: string
+        playerTag:
+          type: string
+        summonerIcon:
+          type: integer
+          format: int32
+        summonerLevel:
+          $ref: '#/components/schemas/match_history_IntegerInterval'
+        kills:
+          $ref: '#/components/schemas/match_history_IntegerInterval'
+        deaths:
+          $ref: '#/components/schemas/match_history_IntegerInterval'
+        assists:
+          $ref: '#/components/schemas/match_history_IntegerInterval'
+        healing:
+          $ref: '#/components/schemas/match_history_IntegerInterval'
+        damageToPlayers:
+          $ref: '#/components/schemas/match_history_IntegerInterval'
+        wards:
+          $ref: '#/components/schemas/match_history_IntegerInterval'
+        gold:
+          $ref: '#/components/schemas/match_history_IntegerInterval'
+        role:
+          $ref: '#/components/schemas/match_history_Role'
+        champions:
+          type: array
+          items:
+            $ref: '#/components/schemas/match_history_Champion'
+        csPerMinute:
+          $ref: '#/components/schemas/match_history_DoubleInterval'
+        killedMinions:
+          $ref: '#/components/schemas/match_history_IntegerInterval'
+        tripleKills:
+          $ref: '#/components/schemas/match_history_IntegerInterval'
+        quadKills:
+          $ref: '#/components/schemas/match_history_IntegerInterval'
+        pentaKills:
+          $ref: '#/components/schemas/match_history_IntegerInterval'
+        teamSide:
+          $ref: '#/components/schemas/match_history_TeamSide'
+        won:
+          type: boolean
+        mmrDelta:
+          $ref: '#/components/schemas/match_history_IntegerInterval'
+    match_history_PlayerStatsDTO:
+      type: object
+      properties:
+        riotId:
+          $ref: '#/components/schemas/match_history_RiotId'
+        kills:
+          type: integer
+          format: int32
+        deaths:
+          type: integer
+          format: int32
+        assists:
+          type: integer
+          format: int32
+        healing:
+          type: integer
+          format: int32
+        damageToPlayers:
+          type: integer
+          format: int32
+        wards:
+          type: integer
+          format: int32
+        gold:
+          type: integer
+          format: int32
+        role:
+          $ref: '#/components/schemas/match_history_Role'
+        champion:
+          $ref: '#/components/schemas/match_history_Champion'
+        csPerMinute:
+          type: number
+          format: double
+        killedMinions:
+          type: integer
+          format: int32
+        tripleKills:
+          type: integer
+          format: int32
+        quadKills:
+          type: integer
+          format: int32
+        pentaKills:
+          type: integer
+          format: int32
+        side:
+          $ref: '#/components/schemas/match_history_TeamSide'
+        won:
+          type: boolean
+        mmrDelta:
+          type: integer
+          format: int32
+    match_history_RiotId:
+      type: object
+      properties:
+        puuid:
+          type: string
+        playerName:
+          type: string
+        playerTag:
+          type: string
+        summonerIcon:
+          type: integer
+          format: int32
+        summonerLevel:
+          type: integer
+          format: int32
+    match_history_Role:
+      type: string
+      enum:
+      - NONE
+      - TOP
+      - JUNGLE
+      - MID
+      - BOTTOM
+      - SUPPORT
+    match_history_SortColumn:
+      type: string
+      enum:
+      - QUEUE_ID
+      - PATCH
+      - TIME
+      - BLUE_KILLS
+      - BLUE_DEATHS
+      - BLUE_ASSISTS
+      - BLUE_HEALING
+      - RED_KILLS
+      - RED_DEATHS
+      - RED_ASSISTS
+      - RED_HEALING
+    match_history_SortDirection:
+      type: string
+      enum:
+      - ASC
+      - DESC
+    match_history_SortParams:
+      type: object
+      properties:
+        column:
+          $ref: '#/components/schemas/match_history_SortColumn'
+        direction:
+          $ref: '#/components/schemas/match_history_SortDirection'
+    match_history_TeamFilters:
+      type: object
+      properties:
+        teamSide:
+          $ref: '#/components/schemas/match_history_TeamSide'
+        teamKills:
+          $ref: '#/components/schemas/match_history_IntegerInterval'
+        teamDeaths:
+          $ref: '#/components/schemas/match_history_IntegerInterval'
+        teamAssists:
+          $ref: '#/components/schemas/match_history_IntegerInterval'
+        teamHealing:
+          $ref: '#/components/schemas/match_history_IntegerInterval'
+    match_history_TeamSide:
+      type: string
+      enum:
+      - BLUE
+      - RED
+    match_history_TeamStatsDTO:
+      type: object
+      properties:
+        side:
+          $ref: '#/components/schemas/match_history_TeamSide'
+        teamKills:
+          type: integer
+          format: int32
+        teamDeaths:
+          type: integer
+          format: int32
+        teamAssists:
+          type: integer
+          format: int32
+        teamHealing:
+          type: integer
+          format: int32
+    match_history_UUID:
+      type: string
+      format: uuid
+      pattern: '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}'
