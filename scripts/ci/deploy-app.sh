@@ -47,6 +47,22 @@ wait
 
 helm dependency update "$ROOT_DIR/k8s/charts/scrimfinder"
 
+echo "bootstrapping Secrets Store CSI driver..."
+helm upgrade --install secrets-store-csi-driver \
+  "$ROOT_DIR/k8s/charts/scrimfinder/charts/secrets-store-csi-driver-1.6.0.tgz" \
+  --namespace kube-system \
+  --create-namespace \
+  --set syncSecret.enabled=true \
+  --set enableSecretRotation=true \
+  --set rotationPollInterval=2m \
+  --wait \
+  --timeout 5m
+kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/secrets-store-csi-driver-provider-gcp/main/deploy/provider-gcp-plugin.yaml
+kubectl wait --for=condition=Established crd/secretproviderclasses.secrets-store.csi.x-k8s.io --timeout=120s
+kubectl wait --for=condition=Established crd/secretproviderclasspodstatuses.secrets-store.csi.x-k8s.io --timeout=120s
+kubectl -n kube-system rollout status daemonset/secrets-store-csi-driver --timeout=300s
+kubectl -n kube-system rollout status daemonset/csi-secrets-store-provider-gcp --timeout=300s
+
 #if ! helm upgrade --install scrimfinder "$ROOT_DIR/k8s/charts/scrimfinder" \
 #  --namespace "$SCRIM_NAMESPACE" \
 #  --create-namespace \
