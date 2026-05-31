@@ -237,7 +237,11 @@ def delete_all_jobs(
     summary="Cancel a job",
     responses={404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
 )
-def cancel_job(job_id: str = Path(...)):
+def cancel_job(
+    job_id: str = Path(
+        ..., description="Training job id", examples=["job_123456abcdef"]
+    ),
+):
     row = db.get_job(job_id)
     if row is None:
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found.")
@@ -263,7 +267,11 @@ def cancel_job(job_id: str = Path(...)):
     summary="Deploy model from job",
     responses={404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
 )
-def deploy_job(job_id: str = Path(...)):
+def deploy_job(
+    job_id: str = Path(
+        ..., description="Training job id", examples=["job_123456abcdef"]
+    ),
+):
     row = db.get_job(job_id)
     if row is None:
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found.")

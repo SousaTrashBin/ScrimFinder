@@ -12,6 +12,7 @@ import org.eclipse.microprofile.faulttolerance.Timeout;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
@@ -28,7 +29,13 @@ public class MatchFillingController {
 
     @GET
     @Path("/{matchId}")
-    @Operation(summary = "Get simplified match information by Riot ID")
+    @Operation(
+            operationId = "getFilledMatch",
+            summary = "Get simplified match information by Riot ID",
+            description =
+                    "You can extract Riot match IDs from LeagueOfGraphs match URLs. "
+                            + "Example: https://www.leagueofgraphs.com/match/vn/1417849076#participant8 "
+                            + "maps to VN_1417849076 (region prefix + '_' + match id).")
     @APIResponses(
             value = {
                 @APIResponse(
@@ -82,14 +89,21 @@ public class MatchFillingController {
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     @Timeout(10000)
-    public Response getFilledMatch(@PathParam("matchId") @NotBlank String matchId) {
+    public Response getFilledMatch(
+            @Parameter(description = "Riot match id in REGION_MATCHID format", example = "VN_1417849076")
+                    @PathParam("matchId")
+                    @NotBlank
+                    String matchId) {
         MatchStatsDTO match = matchFillingService.getFilledMatch(matchId);
         return Response.ok(match).build();
     }
 
     @GET
     @Path("/{matchId}/raw")
-    @Operation(summary = "Get complete match information by Riot ID")
+    @Operation(
+            operationId = "getRawMatchData",
+            summary = "Get complete match information by Riot ID",
+            description = "Accepts the same Riot match ID format, e.g. VN_1417849076.")
     @APIResponses(
             value = {
                 @APIResponse(
@@ -139,7 +153,11 @@ public class MatchFillingController {
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     @Timeout(10000)
-    public Response getRawMatchData(@PathParam("matchId") @NotBlank String matchId) {
+    public Response getRawMatchData(
+            @Parameter(description = "Riot match id in REGION_MATCHID format", example = "VN_1417849076")
+                    @PathParam("matchId")
+                    @NotBlank
+                    String matchId) {
         String match = matchFillingService.getRawMatchData(matchId);
         return Response.ok(match).build();
     }

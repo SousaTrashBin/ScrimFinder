@@ -1,0 +1,581 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "title" : "Detail Filling Service",
+    "version" : "0.0.1"
+  },
+  "tags" : [ {
+    "name" : "Match Filling",
+    "description" : "Operations for retrieving match details from Riot's API"
+  }, {
+    "name" : "Player Filling",
+    "description" : "Operations for retrieving player details from Riot's API"
+  } ],
+  "components" : {
+    "schemas" : {
+      "AccountDTO" : {
+        "type" : "object",
+        "properties" : {
+          "puuid" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "tag" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          }
+        }
+      },
+      "MatchStatsDTO" : {
+        "type" : "object",
+        "properties" : {
+          "riotMatchId" : {
+            "type" : "string"
+          },
+          "patch" : {
+            "type" : "string"
+          },
+          "gameCreation" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Reflected as the number of seconds since January 1st, 1970 at UTC (Unix timestamp)"
+          },
+          "gameDuration" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "players" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PlayerStatsDTO"
+            }
+          },
+          "teams" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TeamStatsDTO"
+            }
+          }
+        }
+      },
+      "PlayerDTO" : {
+        "type" : "object",
+        "properties" : {
+          "account" : {
+            "$ref" : "#/components/schemas/AccountDTO"
+          },
+          "region" : {
+            "$ref" : "#/components/schemas/RegionDTO"
+          },
+          "summoner" : {
+            "$ref" : "#/components/schemas/SummonerDTO"
+          },
+          "queues" : {
+            "type" : "array",
+            "uniqueItems" : true,
+            "items" : {
+              "$ref" : "#/components/schemas/PlayerQueueStatsDTO"
+            }
+          }
+        }
+      },
+      "PlayerQueueStatsDTO" : {
+        "type" : "object",
+        "properties" : {
+          "queueType" : {
+            "type" : "string"
+          },
+          "rank" : {
+            "$ref" : "#/components/schemas/Rank"
+          },
+          "wins" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "losses" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "hotStreak" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "PlayerStatsDTO" : {
+        "type" : "object",
+        "properties" : {
+          "riotId" : {
+            "$ref" : "#/components/schemas/RiotId"
+          },
+          "kills" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "deaths" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "assists" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "healing" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "damageToPlayers" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "wards" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "gold" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "role" : {
+            "$ref" : "#/components/schemas/Role"
+          },
+          "champion" : {
+            "type" : "string"
+          },
+          "killedMinions" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "tripleKills" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "quadKills" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pentaKills" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "side" : {
+            "$ref" : "#/components/schemas/TeamSide"
+          },
+          "won" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "Rank" : {
+        "type" : "object",
+        "properties" : {
+          "tier" : {
+            "$ref" : "#/components/schemas/Tier"
+          },
+          "division" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "lps" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "RegionDTO" : {
+        "type" : "object",
+        "properties" : {
+          "region" : {
+            "type" : "string"
+          },
+          "subregion" : {
+            "type" : "string"
+          }
+        }
+      },
+      "RiotId" : {
+        "type" : "object",
+        "properties" : {
+          "puuid" : {
+            "type" : "string"
+          },
+          "playerName" : {
+            "type" : "string"
+          },
+          "playerTag" : {
+            "type" : "string"
+          },
+          "summonerIcon" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "summonerLevel" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "Role" : {
+        "type" : "string",
+        "enum" : [ "TOP", "JUNGLE", "MID", "BOTTOM", "SUPPORT" ]
+      },
+      "SummonerDTO" : {
+        "type" : "object",
+        "properties" : {
+          "icon" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "level" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "TeamSide" : {
+        "type" : "string",
+        "enum" : [ "BLUE", "RED" ]
+      },
+      "TeamStatsDTO" : {
+        "type" : "object",
+        "properties" : {
+          "side" : {
+            "$ref" : "#/components/schemas/TeamSide"
+          },
+          "teamKills" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "teamDeaths" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "teamAssists" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "teamHealing" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "Tier" : {
+        "type" : "string",
+        "enum" : [ "UNRANKED", "IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM", "EMERALD", "DIAMOND", "MASTER", "GRANDMASTER", "CHALLENGER" ]
+      }
+    }
+  },
+  "paths" : {
+    "/api/v1/riot/matches/{matchId}" : {
+      "get" : {
+        "summary" : "Get simplified match information by Riot ID",
+        "description" : "You can extract Riot match IDs from LeagueOfGraphs match URLs. Example: https://www.leagueofgraphs.com/match/vn/1417849076#participant8 maps to VN_1417849076 (region prefix + '_' + match id).",
+        "operationId" : "getFilledMatch",
+        "tags" : [ "Match Filling" ],
+        "parameters" : [ {
+          "description" : "Riot match id in REGION_MATCHID format",
+          "example" : "VN_1417849076",
+          "name" : "matchId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "pattern" : "\\S"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Successfully retrieved the match details",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MatchStatsDTO"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid match ID provided",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Match not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "408" : {
+            "description" : "Request timeout",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal error communication with Riot - unexpected response format",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503" : {
+            "description" : "Riot service unavailable",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "511" : {
+            "description" : "The server has an invalid/expired API key with Riot",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/riot/matches/{matchId}/raw" : {
+      "get" : {
+        "summary" : "Get complete match information by Riot ID",
+        "description" : "Accepts the same Riot match ID format, e.g. VN_1417849076.",
+        "operationId" : "getRawMatchData",
+        "tags" : [ "Match Filling" ],
+        "parameters" : [ {
+          "description" : "Riot match id in REGION_MATCHID format",
+          "example" : "VN_1417849076",
+          "name" : "matchId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "pattern" : "\\S"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Successfully retrieved the match details",
+            "content" : {
+              "application/json" : {
+                "schema" : { }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid match ID provided",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Match not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "408" : {
+            "description" : "Request timeout",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal error communication with Riot - unexpected response format",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503" : {
+            "description" : "Riot service unavailable",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "511" : {
+            "description" : "The server has an invalid/expired API key with Riot",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/riot/players/{server}/{name}/{tag}" : {
+      "get" : {
+        "summary" : "Get complete player information by server, player name and tag",
+        "description" : "Tip: you can discover valid summoner names/tags and server codes in https://www.leagueofgraphs.com/rankings/summoners . Use this endpoint path as /players/{server}/{name}/{tag} (example: /players/VN/Faker/KR1).",
+        "operationId" : "getFilledPlayer",
+        "tags" : [ "Player Filling" ],
+        "parameters" : [ {
+          "description" : "Summoner name",
+          "example" : "Faker",
+          "name" : "name",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "minLength" : 3,
+            "maxLength" : 16
+          }
+        }, {
+          "description" : "Server shard (e.g. VN, EUW, NA)",
+          "example" : "VN",
+          "name" : "server",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "Tag line (without '#')",
+          "example" : "KR1",
+          "name" : "tag",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "minLength" : 3,
+            "maxLength" : 5
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Successfully retrieved the player details",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PlayerDTO"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid server or player ID provided",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Player not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "408" : {
+            "description" : "Request timeout",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal error communication with Riot - unexpected response format",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503" : {
+            "description" : "Riot service unavailable",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "511" : {
+            "description" : "The server has an invalid/expired API key with Riot",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers" : [ {
+    "url" : "http://localhost:8080",
+    "description" : "Auto generated value"
+  }, {
+    "url" : "http://0.0.0.0:8080",
+    "description" : "Auto generated value"
+  } ]
+}

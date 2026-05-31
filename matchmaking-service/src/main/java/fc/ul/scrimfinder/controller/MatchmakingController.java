@@ -17,6 +17,7 @@ import java.util.UUID;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
@@ -33,6 +34,7 @@ public class MatchmakingController {
 
     @POST
     @Operation(
+            operationId = "joinQueue",
             summary = "Join a matchmaking queue",
             description = "Requires a linked League of Legends Account via Ranking Service.")
     @APIResponses(
@@ -66,7 +68,7 @@ public class MatchmakingController {
 
     @DELETE
     @Path("/{ticketId}")
-    @Operation(summary = "Leave a matchmaking queue")
+    @Operation(operationId = "leaveQueue", summary = "Leave a matchmaking queue")
     @APIResponses(
             value = {
                 @APIResponse(responseCode = "204", description = "Successfully left the queue"),
@@ -78,14 +80,21 @@ public class MatchmakingController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    public Response leaveQueue(@PathParam("ticketId") UUID ticketId) {
+    public Response leaveQueue(
+            @Parameter(
+                            description = "Match ticket UUID",
+                            example = "550e8400-e29b-41d4-a716-446655440000")
+                    @PathParam("ticketId")
+                    UUID ticketId) {
         matchmakingService.leaveQueue(ticketId);
         return Response.noContent().build();
     }
 
     @GET
     @Path("/{ticketId}/lobby")
-    @Operation(summary = "Get the lobby for a specific ticket if matched")
+    @Operation(
+            operationId = "getLobbyByTicket",
+            summary = "Get the lobby for a specific ticket if matched")
     @APIResponses(
             value = {
                 @APIResponse(
@@ -103,7 +112,12 @@ public class MatchmakingController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    public Response getLobby(@PathParam("ticketId") UUID ticketId) {
+    public Response getLobby(
+            @Parameter(
+                            description = "Match ticket UUID",
+                            example = "550e8400-e29b-41d4-a716-446655440000")
+                    @PathParam("ticketId")
+                    UUID ticketId) {
         LobbyDTO lobby = matchmakingService.getLobbyByTicket(ticketId);
         if (lobby == null) {
             return Response.status(Response.Status.NOT_FOUND).build();
@@ -113,7 +127,7 @@ public class MatchmakingController {
 
     @POST
     @Path("/matches/{matchId}/players/{playerId}/accept")
-    @Operation(summary = "Accept a match proposal")
+    @Operation(operationId = "acceptMatch", summary = "Accept a match proposal")
     @APIResponses(
             value = {
                 @APIResponse(
@@ -132,7 +146,12 @@ public class MatchmakingController {
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     public Response acceptMatch(
-            @PathParam("matchId") UUID matchId, @PathParam("playerId") UUID playerId) {
+            @Parameter(description = "Match UUID", example = "550e8400-e29b-41d4-a716-446655440001")
+                    @PathParam("matchId")
+                    UUID matchId,
+            @Parameter(description = "Player UUID", example = "550e8400-e29b-41d4-a716-446655440002")
+                    @PathParam("playerId")
+                    UUID playerId) {
         MatchDTO match = matchmakingService.acceptMatch(matchId, playerId);
         return Response.ok(match).build();
     }
@@ -140,6 +159,7 @@ public class MatchmakingController {
     @POST
     @Path("/matches/{matchId}/players/{playerId}/decline")
     @Operation(
+            operationId = "declineMatch",
             summary = "Decline a match proposal",
             description = "If declined, the match is cancelled and the decliner's ticket is removed.")
     @APIResponses(
@@ -154,14 +174,25 @@ public class MatchmakingController {
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     public Response declineMatch(
-            @PathParam("matchId") UUID matchId, @PathParam("playerId") UUID playerId) {
+            @Parameter(description = "Match UUID", example = "550e8400-e29b-41d4-a716-446655440001")
+                    @PathParam("matchId")
+                    UUID matchId,
+            @Parameter(description = "Player UUID", example = "550e8400-e29b-41d4-a716-446655440002")
+                    @PathParam("playerId")
+                    UUID playerId) {
         matchmakingService.declineMatch(matchId, playerId);
         return Response.noContent().build();
     }
 
     @PUT
     @Path("/matches/{matchId}/link")
-    @Operation(summary = "Link an external League of Legends Game ID to the match")
+    @Operation(
+            operationId = "linkMatch",
+            summary = "Link an external League of Legends Game ID to the match",
+            description =
+                    "The externalGameId should follow Riot format REGION_MATCHID (example: VN_1417849076). "
+                            + "You can obtain it from a LeagueOfGraphs match URL such as "
+                            + "https://www.leagueofgraphs.com/match/vn/1417849076#participant8.")
     @APIResponses(
             value = {
                 @APIResponse(responseCode = "200", description = "Match linked successfully"),
@@ -174,14 +205,19 @@ public class MatchmakingController {
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
     public Response linkMatch(
-            @PathParam("matchId") UUID matchId, @Valid @NotNull LinkMatchRequest request) {
+            @Parameter(description = "Match UUID", example = "550e8400-e29b-41d4-a716-446655440001")
+                    @PathParam("matchId")
+                    UUID matchId,
+            @Valid @NotNull LinkMatchRequest request) {
         matchmakingService.linkMatch(matchId, request.externalGameId());
         return Response.ok().build();
     }
 
     @POST
     @Path("/matches/{matchId}/complete")
-    @Operation(summary = "Calculate deltas and report match results to Ranking Service")
+    @Operation(
+            operationId = "completeMatch",
+            summary = "Calculate deltas and report match results to Ranking Service")
     @APIResponses(
             value = {
                 @APIResponse(responseCode = "200", description = "Match completed and results reported"),
@@ -200,7 +236,10 @@ public class MatchmakingController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    public Response completeMatch(@PathParam("matchId") UUID matchId) {
+    public Response completeMatch(
+            @Parameter(description = "Match UUID", example = "550e8400-e29b-41d4-a716-446655440001")
+                    @PathParam("matchId")
+                    UUID matchId) {
         matchmakingService.completeMatch(matchId);
         return Response.ok().build();
     }

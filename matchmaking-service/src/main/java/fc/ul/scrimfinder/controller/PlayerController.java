@@ -19,6 +19,7 @@ import java.util.UUID;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
@@ -37,7 +38,9 @@ public class PlayerController {
 
     @POST
     @Transactional
-    @Operation(summary = "Register a new player in the matchmaking platform")
+    @Operation(
+            operationId = "createPlayer",
+            summary = "Register a new player in the matchmaking platform")
     @APIResponses(
             value = {
                 @APIResponse(
@@ -69,7 +72,7 @@ public class PlayerController {
 
     @GET
     @Path("/{id}")
-    @Operation(summary = "Get player details")
+    @Operation(operationId = "getPlayer", summary = "Get player details")
     @APIResponses(
             value = {
                 @APIResponse(
@@ -87,14 +90,17 @@ public class PlayerController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    public Response getPlayer(@PathParam("id") UUID id) {
+    public Response getPlayer(
+            @Parameter(description = "Player UUID", example = "550e8400-e29b-41d4-a716-446655440002")
+                    @PathParam("id")
+                    UUID id) {
         PlayerDTO player = playerService.getPlayer(id);
         return Response.ok(player).build();
     }
 
     @GET
     @Path("/{id}/tickets")
-    @Operation(summary = "Get all tickets for a player")
+    @Operation(operationId = "getPlayerTickets", summary = "Get all tickets for a player")
     @APIResponses(
             value = {
                 @APIResponse(
@@ -112,14 +118,19 @@ public class PlayerController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    public Response getPlayerTickets(@PathParam("id") UUID id) {
+    public Response getPlayerTickets(
+            @Parameter(description = "Player UUID", example = "550e8400-e29b-41d4-a716-446655440002")
+                    @PathParam("id")
+                    UUID id) {
         List<MatchTicketDTO> tickets = matchmakingService.getTicketsByPlayer(id);
         return Response.ok(tickets).build();
     }
 
     @GET
     @Path("/{id}/lobbies")
-    @Operation(summary = "Get all lobbies associated with a player's tickets")
+    @Operation(
+            operationId = "getPlayerLobbies",
+            summary = "Get all lobbies associated with a player's tickets")
     @APIResponses(
             value = {
                 @APIResponse(
@@ -137,7 +148,10 @@ public class PlayerController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = ErrorResponse.class)))
             })
-    public Response getPlayerLobbies(@PathParam("id") UUID id) {
+    public Response getPlayerLobbies(
+            @Parameter(description = "Player UUID", example = "550e8400-e29b-41d4-a716-446655440002")
+                    @PathParam("id")
+                    UUID id) {
         List<LobbyDTO> lobbies = matchmakingService.getLobbiesByPlayer(id);
         return Response.ok(lobbies).build();
     }
