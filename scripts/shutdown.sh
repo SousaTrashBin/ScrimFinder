@@ -29,6 +29,10 @@ SCRIM_GITHUB_PR="${SCRIM_GITHUB_PR:-${PR_NUMBER:-}}"
 SCRIM_TF_STATE_KEY="${SCRIM_TF_STATE_KEY:-${SCRIM_TF_WORKSPACE}/terraform.tfstate}"
 SCRIM_MANAGE_SECRET_MANAGER="${SCRIM_MANAGE_SECRET_MANAGER:-true}"
 SCRIM_MANAGE_ARTIFACT_REGISTRY_REPOSITORY="${SCRIM_MANAGE_ARTIFACT_REGISTRY_REPOSITORY:-true}"
+SCRIM_MANAGE_CLOUD_FUNCTIONS_IAM="${SCRIM_MANAGE_CLOUD_FUNCTIONS_IAM:-true}"
+SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER="${SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER:-}"
+SCRIM_FORCE_SECRET_MANAGER_CLEANUP="${SCRIM_FORCE_SECRET_MANAGER_CLEANUP:-false}"
+SCRIM_SECRET_NAME_PREFIX="${SCRIM_SECRET_NAME_PREFIX:-}"
 
 DELETE_ARTIFACT_REPO="${SCRIM_DELETE_ARTIFACT_REPO:-false}"
 DELETE_UNUSED_K8S_IPS="${SCRIM_DELETE_UNUSED_K8S_IPS:-true}"
@@ -39,8 +43,10 @@ gcloud config set project "$PROJECT_ID" --quiet
 
 cleanup_resources() {
     echo "deleting Argo CD resources..."
-    kubectl patch app scrimfinder  -p '{"metadata": {"finalizers": ["resources-finalizer.argocd.argoproj.io"]}}' --type merge || true
-    kubectl delete app scrimfinder --wait=true --timeout=3m || true
+    if kubectl get crd applications.argoproj.io >/dev/null 2>&1; then
+        kubectl -n argocd patch application.argoproj.io scrimfinder -p '{"metadata": {"finalizers": ["resources-finalizer.argocd.argoproj.io"]}}' --type merge || true
+        kubectl -n argocd delete application.argoproj.io scrimfinder --wait=true --timeout=3m || true
+    fi
     kubectl delete -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml --wait=true --timeout=1m || true
     kubectl delete namespace argocd --ignore-not-found=true --wait=true --timeout=1m || true
 }
@@ -97,9 +103,12 @@ EOF
         -var="rabbitmq_erlang_cookie=${SCRIM_RABBITMQ_ERLANG_COOKIE}" \
         -var="manage_artifact_registry_repository=${SCRIM_MANAGE_ARTIFACT_REGISTRY_REPOSITORY}" \
         -var="manage_secret_manager=${SCRIM_MANAGE_SECRET_MANAGER}" \
+        -var="secret_name_prefix=${SCRIM_SECRET_NAME_PREFIX}" \
+        -var="manage_cloud_functions_iam=${SCRIM_MANAGE_CLOUD_FUNCTIONS_IAM}" \
         -var="environment_name=${SCRIM_ENVIRONMENT_NAME}" \
         -var="github_run_id=${SCRIM_GITHUB_RUN_ID}" \
-        -var="github_pr=${SCRIM_GITHUB_PR}"
+        -var="github_pr=${SCRIM_GITHUB_PR}" \
+        -var="cloud_functions_deployer_member=${SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER}"
 fi
 
 if [ "$DELETE_UNUSED_K8S_IPS" = "true" ]; then
@@ -168,6 +177,28 @@ fi
 
 if [ "$DELETE_ARTIFACT_REPO" = "true" ]; then
     echo "SCRIM_DELETE_ARTIFACT_REPO=true is set, but Artifact Registry is managed by Terraform and will be destroyed with the stack."
+fi
+
+if [ "${SCRIM_FORCE_SECRET_MANAGER_CLEANUP}" = "true" ]; then
+    echo "force-cleaning secret manager resources..."
+    if [ -z "${SCRIM_SECRET_NAME_PREFIX}" ]; then
+        gcloud secrets delete "RIOT_API_KEY" --project "$PROJECT_ID" --quiet >/dev/null 2>&1 || true
+    fi
+
+    for secret_name in \
+        "${SCRIM_SECRET_NAME_PREFIX}riot-api-key" \
+        "${SCRIM_SECRET_NAME_PREFIX}db-user" \
+        "${SCRIM_SECRET_NAME_PREFIX}db-password" \
+        "${SCRIM_SECRET_NAME_PREFIX}redis-password" \
+        "${SCRIM_SECRET_NAME_PREFIX}rabbitmq-user" \
+        "${SCRIM_SECRET_NAME_PREFIX}rabbitmq-password" \
+        "${SCRIM_SECRET_NAME_PREFIX}rabbitmq-erlang-cookie"; do
+        gcloud secrets delete "$secret_name" --project "$PROJECT_ID" --quiet >/dev/null 2>&1 || true
+    done
+    gcloud iam service-accounts delete \
+        "secrets-service-account@${PROJECT_ID}.iam.gserviceaccount.com" \
+        --project "$PROJECT_ID" \
+        --quiet >/dev/null 2>&1 || true
 fi
 
 echo "shutdown complete!"

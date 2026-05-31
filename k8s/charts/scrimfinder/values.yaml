@@ -9,6 +9,8 @@ global:
   microservicesRegistry: "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}"
   rabbitmqHost: "scrimfinder-rabbitmq-broker"
   rabbitmqPort: "5672"
+  secretsServiceAccountName: "scrimfinder-secrets-reader"
+  secretNamePrefix: ""
   podSecurityContext: {}
   securityContext: {}
   security:
@@ -160,7 +162,6 @@ services:
         cpu: "500m"
         memory: "512Mi"
       limits:
-        cpu: "500m"
         memory: "512Mi"
     autoscaling:
       enabled: true
@@ -190,7 +191,6 @@ services:
         cpu: "400m"
         memory: "512Mi"
       limits:
-        cpu: "400m"
         memory: "512Mi"
     autoscaling:
       enabled: true
@@ -220,7 +220,6 @@ services:
         cpu: "400m"
         memory: "512Mi"
       limits:
-        cpu: "400m"
         memory: "512Mi"
     autoscaling:
       enabled: true
@@ -250,7 +249,6 @@ services:
         cpu: "400m"
         memory: "512Mi"
       limits:
-        cpu: "400m"
         memory: "512Mi"
     autoscaling:
       enabled: true
@@ -276,7 +274,6 @@ services:
         cpu: "600m"
         memory: "2Gi"
       limits:
-        cpu: "600m"
         memory: "2Gi"
     autoscaling:
       enabled: true
@@ -302,7 +299,6 @@ services:
         cpu: "500m"
         memory: "1Gi"
       limits:
-        cpu: "500m"
         memory: "1Gi"
     autoscaling:
       enabled: true
