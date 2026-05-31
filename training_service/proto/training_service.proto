@@ -9,7 +9,6 @@ option java_outer_classname = "AnalysisProto";
 // ── Training Service ──────────────────────────────────────────
 // Exposed by training_service, called by:
 //   - match_history_service (ForwardMatch)
-//   - analysis_service (GetActiveModel)
 
 service TrainingService {
 
@@ -17,10 +16,6 @@ service TrainingService {
   // Training Service fetches raw JSON from detail_filling_service
   // and stores + extracts features automatically.
   rpc ForwardMatch (ForwardMatchRequest) returns (ForwardMatchResponse) {}
-
-  // Called by analysis_service to get the active model for a concern.
-  // Replaces direct metadata storage access from analysis_service.
-  rpc GetActiveModel (GetActiveModelRequest) returns (GetActiveModelResponse) {}
 
   // Called by analysis_service to check Training Service health.
   rpc HealthCheck (HealthCheckRequest) returns (HealthCheckResponse) {}
@@ -40,23 +35,6 @@ message ForwardMatchResponse {
   bool   draft_ok    = 4;      // draft features extracted successfully
   bool   build_ok    = 5;      // build features extracted successfully
   bool   perf_ok     = 6;      // performance features extracted successfully
-}
-
-// ── GetActiveModel ────────────────────────────────────────────
-
-message GetActiveModelRequest {
-  string concern = 1;          // "draft" | "build" | "performance"
-}
-
-message GetActiveModelResponse {
-  bool   found       = 1;
-  string model_id    = 2;
-  string concern     = 3;
-  string algorithm   = 4;
-  string version     = 5;
-  string file_path   = 6;      // absolute path to .pkl on shared volume
-  string metrics_json = 7;     // JSON string of metrics dict
-  string activated_at = 8;
 }
 
 // ── HealthCheck ───────────────────────────────────────────────
