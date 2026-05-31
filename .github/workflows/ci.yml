@@ -128,7 +128,7 @@ jobs:
 
       - name: start BigQuery emulator
         run: |
-          docker-compose -f docker-compose.test.yml up -d bq-emulator
+          docker compose -f docker-compose.test.yml up -d bq-emulator
           # Wait for emulator to be ready
           for i in {1..30}; do
             if curl -s http://localhost:9050/bigquery/v2/projects/test-project/datasets > /dev/null; then
@@ -174,7 +174,7 @@ jobs:
 
       - name: stop BigQuery emulator
         if: always()
-        run: docker-compose -f docker-compose.test.yml down
+        run: docker compose -f docker-compose.test.yml down
 
   java_heavy_and_gke_system_tests:
     name: integration-heavy and ephemeral GKE system tests
