@@ -58,6 +58,11 @@ traefik:
         default: true
       exposedPort: 80
 
+# Installed through the child Argo CD Application when global.useArgoApplications is true.
+# Keeping the parent dependency disabled prevents duplicate ownership of cluster-scoped CSI resources.
+secrets-store-csi-driver:
+  enabled: false
+
 matchmaking-db:
   architecture: replication
   auth:

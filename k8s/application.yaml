@@ -44,7 +44,7 @@ spec:
           value: "http://scrimfinder-traefik/api/v1/riot"
   destination:
     server: https://kubernetes.default.svc
-    namespace: scrimfinder
+    namespace: "${SCRIM_NAMESPACE}"
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
