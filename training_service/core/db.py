@@ -20,7 +20,17 @@ _client: Optional[bigquery.Client] = None
 def get_bq_client() -> bigquery.Client:
     global _client
     if _client is None:
-        _client = bigquery.Client(project=cfg.BQ_PROJECT)
+        if "BQ_EMULATOR_HOST" in os.environ:
+            from google.api_core.client_options import ClientOptions
+            from google.auth.credentials import AnonymousCredentials
+
+            _client = bigquery.Client(
+                project=cfg.BQ_PROJECT,
+                client_options=ClientOptions(api_endpoint=os.environ["BQ_EMULATOR_HOST"]),
+                credentials=AnonymousCredentials(),
+            )
+        else:
+            _client = bigquery.Client(project=cfg.BQ_PROJECT)
     return _client
 
 
@@ -28,6 +38,7 @@ def init_db():
     """Initialize BigQuery platform schema."""
     if not cfg.BQ_PROJECT:
         raise RuntimeError("BQ_PROJECT not set")
+    # Force client creation to use emulator settings if applicable
     client = get_bq_client()
     init_bq_platform(client, cfg.BQ_PROJECT, cfg.BQ_PLATFORM_DATASET)
 

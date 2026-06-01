@@ -4,6 +4,7 @@ analysis_service/core/db.py
 BigQuery implementation for analysis service.
 """
 
+import os
 import contextlib
 import json
 from typing import Any
@@ -19,7 +20,17 @@ _client: bigquery.Client | None = None
 def get_bq_client() -> bigquery.Client:
     global _client
     if _client is None:
-        _client = bigquery.Client(project=cfg.BQ_PROJECT)
+        if "BQ_EMULATOR_HOST" in os.environ:
+            from google.api_core.client_options import ClientOptions
+            from google.auth.credentials import AnonymousCredentials
+
+            _client = bigquery.Client(
+                project=cfg.BQ_PROJECT,
+                client_options=ClientOptions(api_endpoint=os.environ["BQ_EMULATOR_HOST"]),
+                credentials=AnonymousCredentials(),
+            )
+        else:
+            _client = bigquery.Client(project=cfg.BQ_PROJECT)
     return _client
 
 

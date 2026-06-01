@@ -4,6 +4,7 @@ jwt_manager/core/db.py
 BigQuery implementation for JWT Manager.
 """
 
+import os
 import json
 import uuid
 from datetime import datetime, timezone, date, timedelta
@@ -20,7 +21,17 @@ _client: Optional[bigquery.Client] = None
 def get_bq_client() -> bigquery.Client:
     global _client
     if _client is None:
-        _client = bigquery.Client(project=cfg.BQ_PROJECT)
+        if "BQ_EMULATOR_HOST" in os.environ:
+            from google.api_core.client_options import ClientOptions
+            from google.auth.credentials import AnonymousCredentials
+
+            _client = bigquery.Client(
+                project=cfg.BQ_PROJECT,
+                client_options=ClientOptions(api_endpoint=os.environ["BQ_EMULATOR_HOST"]),
+                credentials=AnonymousCredentials(),
+            )
+        else:
+            _client = bigquery.Client(project=cfg.BQ_PROJECT)
     return _client
 
 
