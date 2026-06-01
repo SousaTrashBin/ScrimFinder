@@ -33,17 +33,5 @@ for service in $services; do
         --grpc_python_out="$ROOT_DIR/$service" \
         "$proto_file"
 
-    "$PYTHON_BIN" - "$ROOT_DIR/$service/training_service_pb2_grpc.py" "$service" <<'PY'
-from pathlib import Path
-import sys
-
-path = Path(sys.argv[1])
-service = sys.argv[2]
-text = path.read_text()
-text = text.replace(
-    "import training_service_pb2 as training__service__pb2",
-    f"from {service} import training_service_pb2 as training__service__pb2",
-)
-path.write_text(text)
-PY
+    "$PYTHON_BIN" -c "import sys; from pathlib import Path; path = Path(sys.argv[1]); service = sys.argv[2]; text = path.read_text(); path.write_text(text.replace('import training_service_pb2 as training__service__pb2', f'from {service} import training_service_pb2 as training__service__pb2'))" "$ROOT_DIR/$service/training_service_pb2_grpc.py" "$service"
 done
