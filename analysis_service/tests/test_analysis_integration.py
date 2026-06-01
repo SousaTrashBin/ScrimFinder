@@ -13,7 +13,7 @@ import os
 import pytest
 from fastapi.testclient import TestClient
 
-pytestmark = [pytest.mark.integration, pytest.mark.slow]
+pytestmark = pytest.mark.integration
 
 EMULATOR_HOST = os.environ.get("BQ_EMULATOR_HOST")
 USING_EMULATOR = bool(EMULATOR_HOST)

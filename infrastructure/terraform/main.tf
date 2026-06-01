@@ -157,6 +157,7 @@ resource "google_service_account_iam_member" "ci_gke_node_user" {
 }
 
 resource "google_service_account" "secrets_sa" {
+  count        = var.manage_secret_manager ? 1 : 0
   project      = var.project_id
   account_id   = "scrim-secrets-sa"
   display_name = "ScrimFinder Secrets & BigQuery SA"
@@ -164,7 +165,8 @@ resource "google_service_account" "secrets_sa" {
 }
 
 resource "google_service_account_iam_member" "workload_identity_user" {
-  service_account_id = google_service_account.secrets_sa.name
+  count              = var.manage_secret_manager ? 1 : 0
+  service_account_id = google_service_account.secrets_sa[*].name[0]
   role               = "roles/iam.workloadIdentityUser"
   member             = "serviceAccount:${var.project_id}.svc.id.goog[${var.namespace}/scrimfinder-secrets-reader]"
 }
@@ -193,7 +195,7 @@ resource "google_secret_manager_secret_iam_member" "secrets_access" {
   project   = var.project_id
   secret_id = each.value.secret_id
   role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${google_service_account.secrets_sa.email}"
+  member    = "serviceAccount:${google_service_account.secrets_sa[*].email[0]}"
 }
 
 # ── BigQuery Datasets ────────────────────────────────────────────────────────
@@ -250,7 +252,7 @@ resource "google_project_iam_member" "bigquery_job_user" {
   count   = var.manage_secret_manager ? 1 : 0
   project = var.project_id
   role    = "roles/bigquery.jobUser"
-  member  = "serviceAccount:${google_service_account.secrets_sa.email}"
+  member  = "serviceAccount:${google_service_account.secrets_sa[*].email[0]}"
 }
 
 resource "google_bigquery_dataset_iam_member" "scrimfinder_viewer" {
@@ -258,7 +260,7 @@ resource "google_bigquery_dataset_iam_member" "scrimfinder_viewer" {
   project    = var.project_id
   dataset_id = google_bigquery_dataset.scrimfinder.dataset_id
   role       = "roles/bigquery.dataViewer"
-  member     = "serviceAccount:${google_service_account.secrets_sa.email}"
+  member     = "serviceAccount:${google_service_account.secrets_sa[*].email[0]}"
 }
 
 resource "google_bigquery_dataset_iam_member" "platform_editor" {
@@ -266,12 +268,12 @@ resource "google_bigquery_dataset_iam_member" "platform_editor" {
   project    = var.project_id
   dataset_id = google_bigquery_dataset.scrimfinder_platform.dataset_id
   role       = "roles/bigquery.dataEditor"
-  member     = "serviceAccount:${google_service_account.secrets_sa.email}"
+  member     = "serviceAccount:${google_service_account.secrets_sa[*].email[0]}"
 }
 
 resource "google_storage_bucket_iam_member" "models_bucket_admin" {
   count  = var.manage_secret_manager ? 1 : 0
   bucket = google_storage_bucket.models_bucket.name
   role   = "roles/storage.objectAdmin"
-  member = "serviceAccount:${google_service_account.secrets_sa.email}"
+  member = "serviceAccount:${google_service_account.secrets_sa[*].email[0]}"
 }

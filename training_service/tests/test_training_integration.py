@@ -23,7 +23,7 @@ import os
 import pytest
 from fastapi.testclient import TestClient
 
-pytestmark = [pytest.mark.integration, pytest.mark.slow]
+pytestmark = pytest.mark.integration
 
 # ── Detect emulator mode ──────────────────────────────────────────────────────
 
