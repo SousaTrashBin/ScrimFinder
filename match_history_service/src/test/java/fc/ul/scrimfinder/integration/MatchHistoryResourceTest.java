@@ -3,6 +3,7 @@ package fc.ul.scrimfinder.integration;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,12 +21,15 @@ import fc.ul.scrimfinder.exception.MatchAlreadyExistsException;
 import fc.ul.scrimfinder.exception.MatchNotFoundException;
 import fc.ul.scrimfinder.exception.NotEnoughMMRDeltasException;
 import fc.ul.scrimfinder.exception.PlayerNotFoundException;
+import fc.ul.scrimfinder.service.DetailFillingAdapterService;
 import fc.ul.scrimfinder.service.MatchHistoryService;
+import fc.ul.scrimfinder.service.TrainingAdapterService;
 import fc.ul.scrimfinder.util.*;
 import fc.ul.scrimfinder.util.interval.DoubleInterval;
 import fc.ul.scrimfinder.util.interval.IntegerInterval;
 import fc.ul.scrimfinder.util.interval.LongInterval;
 import fc.ul.scrimfinder.util.interval.PatchInterval;
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import jakarta.inject.Inject;
@@ -36,11 +40,15 @@ import java.util.UUID;
 import org.junit.jupiter.api.*;
 
 @QuarkusTest
-@Tag("system")
+@Tag("integration-heavy")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class MatchHistoryResourceTest {
 
     @Inject MatchHistoryService matchHistoryService;
+
+    @InjectMock DetailFillingAdapterService detailFillingAdapterService;
+
+    @InjectMock TrainingAdapterService trainingAdapterService;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -620,6 +628,15 @@ public class MatchHistoryResourceTest {
                         "EIOzLS5LzdIUswGZu39ERMRucu0NOz4OzM3g4P1tkfxPA8jUHeO31DbkwOLddLzQABdwZ0Lx7qC9LQ", -3,
                         "wg70K5vl52HTn_wvM15Ww62K_-xY9iHaV4L4Ua-_yRx-ApUosLJQdYrzIjHNCaz5O4UbIe-6griPwQ", -4,
                         "k_-JlBGNZWdw8j9DFKrEJgdqF8DTrpAZxqyLnbObjq__klQIyvCNvdxl8wvJ2I5uvYnkfKSXnnOlEQ", -5);
+    }
+
+    @BeforeEach
+    public void mockExternalServices() {
+        when(detailFillingAdapterService.getMatch(MATCH_ID)).thenReturn(matchDTO);
+        when(detailFillingAdapterService.getMatch(MATCH_ID2)).thenReturn(matchDTO2);
+        when(detailFillingAdapterService.getMatch(NON_EXISTENT_MATCH_ID))
+                .thenThrow(new MatchNotFoundException("Match does not exist"));
+        when(trainingAdapterService.sendMatchForAnalysis(anyString())).thenReturn(true);
     }
 
     @Test
