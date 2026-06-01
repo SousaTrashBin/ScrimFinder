@@ -4,9 +4,9 @@ analysis_service/core/db.py
 BigQuery implementation for analysis service.
 """
 
-import os
 import contextlib
 import json
+import os
 from typing import Any
 
 from google.cloud import bigquery

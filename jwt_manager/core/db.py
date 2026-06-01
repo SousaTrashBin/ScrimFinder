@@ -27,7 +27,9 @@ def get_bq_client() -> bigquery.Client:
 
             _client = bigquery.Client(
                 project=cfg.BQ_PROJECT,
-                client_options=ClientOptions(api_endpoint=os.environ["BQ_EMULATOR_HOST"]),
+                client_options=ClientOptions(
+                    api_endpoint=os.environ["BQ_EMULATOR_HOST"]
+                ),
                 credentials=AnonymousCredentials(),
             )
         else:
