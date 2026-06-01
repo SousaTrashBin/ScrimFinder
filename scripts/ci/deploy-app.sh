@@ -190,6 +190,38 @@ install_argocd_cli() {
     fi
 }
 
+collect_argocd_diagnostics() {
+    echo "collecting Argo CD diagnostics..."
+    kubectl -n argocd get svc,endpoints,pods -l app.kubernetes.io/name=argocd-repo-server || true
+    kubectl -n argocd logs deploy/argocd-repo-server --tail=200 || true
+    kubectl -n argocd logs statefulset/argocd-application-controller --tail=200 || true
+}
+
+run_argocd_with_retries() {
+    local description="$1"
+    shift
+
+    local max_attempts=5
+    local retry_delay_seconds=20
+    local attempt
+
+    for attempt in $(seq 1 "$max_attempts"); do
+        echo "${description} (attempt ${attempt}/${max_attempts})..."
+        if "$@"; then
+            return 0
+        fi
+
+        if [ "$attempt" -lt "$max_attempts" ]; then
+            echo "${description} failed; retrying in ${retry_delay_seconds}s..."
+            sleep "$retry_delay_seconds"
+        fi
+    done
+
+    echo "${description} failed after ${max_attempts} attempts."
+    collect_argocd_diagnostics
+    return 1
+}
+
 echo "waiting for Argo CD control plane..."
 kubectl -n argocd rollout status statefulset/argocd-application-controller --timeout=300s
 kubectl -n argocd rollout status deployment/argocd-repo-server --timeout=300s
@@ -199,8 +231,12 @@ kubectl -n argocd wait --for=condition=Ready pod -l app.kubernetes.io/name=argoc
 install_argocd_cli
 kubectl config set-context --current --namespace=argocd
 echo "syncing Argo CD application 'scrimfinder' from targetRevision=${TARGET_REVISION}..."
-argocd --core app sync scrimfinder --app-namespace argocd --prune --timeout 1800
-argocd --core app wait scrimfinder --app-namespace argocd --sync --health --timeout 1800
+run_argocd_with_retries \
+    "syncing Argo CD application 'scrimfinder'" \
+    argocd --core app sync scrimfinder --app-namespace argocd --prune --timeout 2400
+run_argocd_with_retries \
+    "waiting for Argo CD application 'scrimfinder'" \
+    argocd --core app wait scrimfinder --app-namespace argocd --sync --health --timeout 2400
 
 echo "waiting for Argo CD LoadBalancer External IP/Hostname..."
 
