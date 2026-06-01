@@ -9,6 +9,8 @@ global:
   microservicesRegistry: "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}"
   rabbitmqHost: "scrimfinder-rabbitmq-broker"
   rabbitmqPort: "5672"
+  secretsServiceAccountName: "scrimfinder-secrets-reader"
+  secretNamePrefix: ""
   podSecurityContext: {}
   securityContext: {}
   security:
@@ -55,6 +57,11 @@ traefik:
       expose:
         default: true
       exposedPort: 80
+
+# Installed through the child Argo CD Application when global.useArgoApplications is true.
+# Keeping the parent dependency disabled prevents duplicate ownership of cluster-scoped CSI resources.
+secrets-store-csi-driver:
+  enabled: false
 
 matchmaking-db:
   architecture: replication
@@ -160,7 +167,6 @@ services:
         cpu: "500m"
         memory: "512Mi"
       limits:
-        cpu: "500m"
         memory: "512Mi"
     autoscaling:
       enabled: true
@@ -190,7 +196,6 @@ services:
         cpu: "400m"
         memory: "512Mi"
       limits:
-        cpu: "400m"
         memory: "512Mi"
     autoscaling:
       enabled: true
@@ -220,7 +225,6 @@ services:
         cpu: "400m"
         memory: "512Mi"
       limits:
-        cpu: "400m"
         memory: "512Mi"
     autoscaling:
       enabled: true
@@ -250,7 +254,6 @@ services:
         cpu: "400m"
         memory: "512Mi"
       limits:
-        cpu: "400m"
         memory: "512Mi"
     autoscaling:
       enabled: true
@@ -276,7 +279,6 @@ services:
         cpu: "600m"
         memory: "2Gi"
       limits:
-        cpu: "600m"
         memory: "2Gi"
     autoscaling:
       enabled: true
@@ -302,7 +304,6 @@ services:
         cpu: "500m"
         memory: "1Gi"
       limits:
-        cpu: "500m"
         memory: "1Gi"
     autoscaling:
       enabled: true
