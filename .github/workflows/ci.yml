@@ -152,7 +152,7 @@ jobs:
         run: |
           cd training_service
           pip install -r requirements.txt
-          pytest tests/test_training_integration.py -v -m integration -k "not slow"
+          pytest tests/test_training_integration.py -v -m "integration and not slow"
 
       - name: run analysis service integration tests with emulator
         env:
@@ -163,7 +163,7 @@ jobs:
         run: |
           cd analysis_service
           pip install -r requirements.txt
-          pytest tests/test_analysis_integration.py -v -m integration -k "not slow"
+          pytest tests/test_analysis_integration.py -v -m "integration and not slow"
 
       - name: run jwt manager integration tests with emulator
         env:
@@ -174,7 +174,7 @@ jobs:
         run: |
           cd jwt_manager
           pip install -r requirements.txt
-          pytest tests/test_jwt_integration.py -v -m integration
+          pytest tests/test_jwt_integration.py -v -m "integration and not slow"
 
       - name: stop BigQuery emulator
         if: always()

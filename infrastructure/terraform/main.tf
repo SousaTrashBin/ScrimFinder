@@ -232,6 +232,20 @@ resource "google_storage_bucket" "models_bucket" {
 
 # ── IAM for BigQuery and Storage ─────────────────────────────────────────────
 
+resource "google_project_iam_member" "ci_bq_editor" {
+  count   = var.ci_service_account != "" ? 1 : 0
+  project = var.project_id
+  role    = "roles/bigquery.dataEditor"
+  member  = "serviceAccount:${var.ci_service_account}"
+}
+
+resource "google_project_iam_member" "ci_storage_admin" {
+  count   = var.ci_service_account != "" ? 1 : 0
+  project = var.project_id
+  role    = "roles/storage.admin"
+  member  = "serviceAccount:${var.ci_service_account}"
+}
+
 resource "google_project_iam_member" "bigquery_job_user" {
   count   = var.manage_secret_manager ? 1 : 0
   project = var.project_id

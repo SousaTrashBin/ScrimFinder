@@ -84,3 +84,9 @@ variable "cloud_functions_deployer_member" {
   default     = ""
   description = "Optional IAM member, for example serviceAccount:name@project.iam.gserviceaccount.com, allowed to deploy Cloud Functions in CI."
 }
+
+variable "ci_service_account" {
+  type        = string
+  default     = ""
+  description = "The email of the service account used by the CI/CD runner to manage infrastructure."
+}
