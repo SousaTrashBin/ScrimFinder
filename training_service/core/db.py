@@ -2,6 +2,7 @@
 training_service/core/db.py
 
 """
+
 import os
 import json
 import uuid
