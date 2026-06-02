@@ -64,6 +64,17 @@ variable "manage_secret_manager" {
   default = true
 }
 
+variable "secret_name_prefix" {
+  type        = string
+  default     = ""
+  description = "Optional prefix for Secret Manager secret IDs. CI uses this to avoid cross-run collisions."
+}
+
+variable "manage_cloud_functions_iam" {
+  type    = bool
+  default = true
+}
+
 variable "environment_name" {
   type    = string
   default = "manual"

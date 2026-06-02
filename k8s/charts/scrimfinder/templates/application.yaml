@@ -14,7 +14,7 @@ spec:
   source:
     repoURL: "https://kubernetes-sigs.github.io/secrets-store-csi-driver/charts"
     chart: secrets-store-csi-driver
-    targetRevision: 1.4.0
+    targetRevision: 1.6.0
     helm:
       values: |
         syncSecret:
@@ -69,6 +69,10 @@ kind: Application
 metadata:
   name: vpa
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-15"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 spec:
   project: default
   source:
