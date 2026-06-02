@@ -143,57 +143,27 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
-      - name: start BigQuery emulator
-        run: |
-          docker compose -f docker-compose.test.yml up -d bq-emulator
-          # Wait for emulator to be ready
-          for i in {1..30}; do
-            if curl -s http://localhost:9050/bigquery/v2/projects/test-project/datasets > /dev/null; then
-              echo "Emulator is ready"
-              break
-            fi
-            echo "Waiting for emulator... ($i/30)"
-            sleep 2
-          done
-
-      - name: generate gRPC stubs
-        run: |
-          ./scripts/python/generate-grpc.sh training_service
-          ./scripts/python/generate-grpc.sh analysis_service
-          ./scripts/python/generate-grpc.sh jwt_manager
+      # ── Run integration tests inside Docker Compose ───────────────────────
+      # The docker-compose.test.yml defines test containers that connect to the
+      # bq-emulator over the Docker network (bq-emulator:9050).  We run the
+      # tests inside those containers instead of on the runner host, which
+      # eliminates the localhost:9050 networking mismatch that caused the
+      # emulator to appear unreachable in CI.
 
       - name: run training service integration tests with emulator
-        env:
-          BQ_EMULATOR_HOST: http://localhost:9050
-          BQ_PROJECT: test-project
-          BQ_DATASET: test_league
-          BQ_PLATFORM_DATASET: test_platform
-          PYTHONPATH: ${{ github.workspace }}
+        working-directory: ${{ github.workspace }}
         run: |
-          cd training_service
-          pytest tests/test_training_integration.py -v -m "integration and not slow"
+          docker compose -f docker-compose.test.yml run --rm training-test
 
       - name: run analysis service integration tests with emulator
-        env:
-          BQ_EMULATOR_HOST: http://localhost:9050
-          BQ_PROJECT: test-project
-          BQ_DATASET: test_league
-          BQ_PLATFORM_DATASET: test_platform
-          PYTHONPATH: ${{ github.workspace }}
+        working-directory: ${{ github.workspace }}
         run: |
-          cd analysis_service
-          pytest tests/test_analysis_integration.py -v -m "integration and not slow"
+          docker compose -f docker-compose.test.yml run --rm analysis-test
 
       - name: run jwt manager integration tests with emulator
-        env:
-          BQ_EMULATOR_HOST: http://localhost:9050
-          BQ_PROJECT: test-project
-          BQ_DATASET: test_league
-          BQ_PLATFORM_DATASET: test_platform
-          PYTHONPATH: ${{ github.workspace }}
+        working-directory: ${{ github.workspace }}
         run: |
-          cd jwt_manager
-          pytest tests/test_jwt_integration.py -v -m "integration and not slow"
+          docker compose -f docker-compose.test.yml run --rm jwt-test
 
       - name: stop BigQuery emulator
         if: always()
