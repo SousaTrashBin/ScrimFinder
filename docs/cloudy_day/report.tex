@@ -87,18 +87,43 @@ The endpoint proved to be highly stable under the tested load.
 \hrule
 \vspace{1cm}
 
+
 \section*{Rodrigo Neto}
 
 \subsection*{Documentation Feedback}
-% TODO
-\textit{[Insert your feedback regarding the clarity, completeness, and structure of the OpenAPI specification provided by the target group.]}
+\begin{itemize}
+    \item \textbf{Style Discrepancy:} The query parameter for pagination size is documented as \texttt{pageSize} (camelCase) while the response object uses \texttt{page\_size} (snake\_case). The API Gateway correctly accepts the parameter but this inconsistency should be unified.
+    \item \textbf{Error Response Documentation:} Standard HTTP error codes (400, 401, 404, 500, 502) are mapped consistently, but they could be more descriptive. The schema returns \texttt{text/plain} without explaining what triggers each code.
+    \item \textbf{Missing Content-Type Header:} Successful JSON responses do not include the \texttt{Content-Type: application/json} header, which can break strict HTTP clients.
+    \item \textbf{Poor Overload Behaviour:} Under high load, the backend does not gracefully degrade (e.g., return \texttt{429} or \texttt{503}). Instead, the gateway returns \texttt{502 Bad Gateway} after extremely long timeouts (up to 47 seconds).
+\end{itemize}
 
 \subsection*{Testing Results}
-% TODO
-\subsubsection*{Smoke Testing (Endpoint: /example)}
-\textit{[Insert the details of your smoke tests. Describe the tools used, the scenarios evaluated, and whether any broken links or malfunctioning behaviors were found.]}
 
-\subsubsection*{Stress Testing (Endpoint: /example)}
-\textit{[Insert the details of your stress tests. Describe the tools used (e.g., Locust), the concurrency settings, and the observed Requests Per Second (RPS) limit.]}
+\subsubsection*{Smoke Testing (Endpoint: /api/market/price-comparison)}
+The smoke test was executed using Postman's Collection Runner, with a Pre-request Script injecting \texttt{Host: kloud-motors.com} and \texttt{Accept: application/json} headers (required because the service is accessed via raw IP and uses virtual-host routing).
+\begin{itemize}
+    \item \textbf{Happy Path (10/10 passed):} All scenarios returned HTTP 200 with valid JSON. Pagination, grouping, and sorting behaved correctly. HP-01's \texttt{Content-Type} assertion failed because the server omits the header.
+    \item \textbf{Validation (3/6 passed):} Missing required parameters correctly returned 400. Invalid enum values for \texttt{group\_by}, \texttt{sort\_by}, and \texttt{order} returned \texttt{502 Bad Gateway} instead of 400, suggesting the gateway forwards invalid requests to a crashing backend.
+    \item \textbf{Method Enforcement (3/3 passed):} POST, DELETE, and PUT correctly returned \texttt{405 Method Not Allowed}.
+\end{itemize}
+
+\subsubsection*{Stress Testing (Endpoint: /api/listings/stats/by-location)}
+The stress test was executed using Locust v2.44.1 with a step-load shape ramping users from 10 to 200 in fixed stages (1 req/s per user). The \texttt{Host: kloud-motors.com} header was injected on every request.
+\begin{itemize}
+    \item \textbf{Concurrency Settings:} 10 users (30s warm-up), 50 users (60s), 100 users (60s), 150 users (60s), 200 users (60s), 10 users (30s cool-down).
+    \item \textbf{Performance observed:}
+    \begin{itemize}
+        \item \textbf{Total Requests:} 3,524
+        \item \textbf{Failures:} 123 (3.49\%) — all \texttt{502 Bad Gateway}
+        \item \textbf{RPS:} Peaked at $\approx$50 req/s during Stage 1; collapsed to single digits in later stages as the server queued requests.
+        \item \textbf{Latency:} Average = 7,280 ms, Median = 460 ms, 95th percentile = 34,000 ms, 99th percentile = 38,000 ms.
+    \end{itemize}
+\end{itemize}
+The endpoint proved unable to sustain loads above $\approx$50 RPS. The first breach occurred at Stage 2 (100 RPS target), where p50 exceeded 300 ms and p95 spiked past 800 ms. During cool-down, the upstream backend was left in an unhealthy state (122/273 requests returned 502), requiring recovery time after overload.
+
+\vspace{1cm}
+\hrule
+\vspace{1cm}
 
 \end{document}
