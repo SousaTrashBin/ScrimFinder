@@ -290,6 +290,10 @@ services:
       DETAIL_FILLING_URL: "http://scrimfinder-traefik/api/v1/riot"
     healthType: "http"
     healthPath: "/api/v1/training/q/health"
+    progressDeadlineSeconds: 1200
+    startupProbe:
+      enabled: true
+      failureThreshold: 60
     persistence:
       enabled: true
       mountPath: /app/data
