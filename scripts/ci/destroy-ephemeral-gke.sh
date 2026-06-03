@@ -22,6 +22,14 @@ if [ -z "${SCRIM_SECRET_NAME_PREFIX:-}" ] && [ -n "${SCRIM_ENVIRONMENT_NAME:-}" 
 else
   export SCRIM_SECRET_NAME_PREFIX="${SCRIM_SECRET_NAME_PREFIX:-}"
 fi
+if [ -z "${SCRIM_SECRETS_SERVICE_ACCOUNT_ID:-}" ] && [ -n "${SCRIM_ENVIRONMENT_NAME:-}" ]; then
+  derived_secrets_service_account_id="$(printf '%s-secrets' "$SCRIM_ENVIRONMENT_NAME" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9-]+/-/g; s/^-+//; s/-+$//')"
+  derived_secrets_service_account_id="${derived_secrets_service_account_id:0:30}"
+  derived_secrets_service_account_id="$(printf '%s' "$derived_secrets_service_account_id" | sed -E 's/-+$//')"
+  export SCRIM_SECRETS_SERVICE_ACCOUNT_ID="$derived_secrets_service_account_id"
+else
+  export SCRIM_SECRETS_SERVICE_ACCOUNT_ID="${SCRIM_SECRETS_SERVICE_ACCOUNT_ID:-secrets-service-account}"
+fi
 export SCRIM_NAMESPACE="${SCRIM_NAMESPACE:-scrimfinder}"
 
 "$ROOT_DIR/scripts/shutdown.sh"

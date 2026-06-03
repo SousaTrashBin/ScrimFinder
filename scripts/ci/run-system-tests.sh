@@ -13,6 +13,6 @@ services="${SERVICES:-matchmaking-service}"
 for service in $services; do
   echo "running system tests for $service against $BASE_URL"
   cd "$service"
-  ./mvnw -B -q -Psystem-tests -DsystemTests=true test
+  ./mvnw -B -q -Psystem-tests -DsystemTests=true -DskipITs=false verify
   cd ..
 done

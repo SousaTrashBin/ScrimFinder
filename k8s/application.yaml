@@ -35,6 +35,8 @@ spec:
           value: "${SCRIM_RABBITMQ_PORT}"
         - name: global.secretNamePrefix
           value: "${SCRIM_SECRET_NAME_PREFIX}"
+        - name: global.secretsServiceAccountId
+          value: "${SCRIM_SECRETS_SERVICE_ACCOUNT_ID}"
         - name: detailFillingExternal.externalName
           value: "${DETAIL_FILLING_DOMAIN}"
         - name: services.ranking-service.env.DETAIL_FILLING_SERVICE_URL

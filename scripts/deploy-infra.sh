@@ -28,6 +28,7 @@ SCRIM_MANAGE_ARTIFACT_REGISTRY_REPOSITORY="${SCRIM_MANAGE_ARTIFACT_REGISTRY_REPO
 SCRIM_MANAGE_CLOUD_FUNCTIONS_IAM="${SCRIM_MANAGE_CLOUD_FUNCTIONS_IAM:-true}"
 SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER="${SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER:-}"
 SCRIM_SECRET_NAME_PREFIX="${SCRIM_SECRET_NAME_PREFIX:-}"
+SCRIM_SECRETS_SERVICE_ACCOUNT_ID="${SCRIM_SECRETS_SERVICE_ACCOUNT_ID:-secrets-service-account}"
 
 echo "applying Terraform infrastructure..."
 gcloud config set project "${SCRIM_PROJECT_ID}" --quiet
@@ -62,6 +63,7 @@ TF_VAR_ARGS=(
     -var="manage_artifact_registry_repository=${SCRIM_MANAGE_ARTIFACT_REGISTRY_REPOSITORY}"
     -var="manage_secret_manager=${SCRIM_MANAGE_SECRET_MANAGER}"
     -var="secret_name_prefix=${SCRIM_SECRET_NAME_PREFIX}"
+    -var="secrets_service_account_id=${SCRIM_SECRETS_SERVICE_ACCOUNT_ID}"
     -var="manage_cloud_functions_iam=${SCRIM_MANAGE_CLOUD_FUNCTIONS_IAM}"
     -var="environment_name=${SCRIM_ENVIRONMENT_NAME}"
     -var="github_run_id=${SCRIM_GITHUB_RUN_ID}"
@@ -120,13 +122,13 @@ ensure_secret_manager_runtime_access() {
         return 0
     fi
 
-    local sa_email="secrets-service-account@${SCRIM_PROJECT_ID}.iam.gserviceaccount.com"
+    local sa_email="${SCRIM_SECRETS_SERVICE_ACCOUNT_ID}@${SCRIM_PROJECT_ID}.iam.gserviceaccount.com"
     local workload_identity_member="serviceAccount:${SCRIM_PROJECT_ID}.svc.id.goog[${SCRIM_NAMESPACE}/scrimfinder-secrets-reader]"
 
     if ! gcloud iam service-accounts describe "$sa_email" --project="${SCRIM_PROJECT_ID}" >/dev/null 2>&1; then
-        gcloud iam service-accounts create secrets-service-account \
+        gcloud iam service-accounts create "$SCRIM_SECRETS_SERVICE_ACCOUNT_ID" \
             --project="${SCRIM_PROJECT_ID}" \
-            --display-name=secrets-service-account \
+            --display-name="$SCRIM_SECRETS_SERVICE_ACCOUNT_ID" \
             --description="Service account with access to ScrimFinder secrets" >/dev/null
     fi
 
@@ -157,12 +159,14 @@ ensure_secret_manager_runtime_access() {
 if [ "${SCRIM_MANAGE_SECRET_MANAGER}" = "true" ] && \
    [ "${SCRIM_MANAGE_CLOUD_FUNCTIONS_IAM}" = "true" ] && \
    [ -n "${SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER}" ]; then
-    echo "bootstrapping GCP services and IAM before managing Secret Manager resources..."
+    echo "bootstrapping GCP services and IAM before managing resources..."
     terraform apply -input=false -auto-approve \
         -target=google_project_service.required \
-        -target='google_project_iam_member.cloud_functions_deployer["roles/secretmanager.admin"]' \
+        -target=google_project_iam_member.cloud_functions_deployer \
         "${TF_VAR_ARGS[@]}"
     wait_for_secret_manager_create_permission
+    echo "waiting for IAM propagation..."
+    sleep 45
 fi
 
 echo "importing pre-existing infrastructure resources when present..."
@@ -181,7 +185,7 @@ if ! terraform state show "google_artifact_registry_repository.docker_repo[0]" >
 fi
 
 if [ "${SCRIM_MANAGE_SECRET_MANAGER}" = "true" ]; then
-    SA_EMAIL="secrets-service-account@${SCRIM_PROJECT_ID}.iam.gserviceaccount.com"
+    SA_EMAIL="${SCRIM_SECRETS_SERVICE_ACCOUNT_ID}@${SCRIM_PROJECT_ID}.iam.gserviceaccount.com"
     import_if_missing \
         "google_service_account.secrets_sa[0]" \
         "projects/${SCRIM_PROJECT_ID}/serviceAccounts/${SA_EMAIL}"
