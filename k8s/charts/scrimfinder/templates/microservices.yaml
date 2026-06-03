@@ -12,6 +12,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "10"
 spec:
+  progressDeadlineSeconds: {{ $config.progressDeadlineSeconds | default 600 }}
   {{- if not ($config.autoscaling).enabled }}
   replicas: {{ $config.replicas | default 1 }}
   {{- end }}
@@ -81,33 +82,47 @@ spec:
         resources:
           {{- toYaml $config.resources | nindent 10 }}
         {{- if eq ($config.healthType | default "http") "http" }}
+        {{- if and $config.startupProbe $config.startupProbe.enabled }}
+        startupProbe:
+          httpGet:
+            path: {{ $config.startupProbe.path | default (printf "%s/live" $config.healthPath) }}
+            port: {{ $config.healthPort | default (index $config.ports 0).containerPort }}
+          initialDelaySeconds: {{ $config.startupProbe.initialDelaySeconds | default 0 }}
+          periodSeconds: {{ $config.startupProbe.periodSeconds | default 5 }}
+          timeoutSeconds: {{ $config.startupProbe.timeoutSeconds | default 5 }}
+          failureThreshold: {{ $config.startupProbe.failureThreshold | default 24 }}
+        {{- end }}
         livenessProbe:
           httpGet:
-            path: {{ $config.healthPath }}/live
+            path: {{ $config.livenessPath | default (printf "%s/live" $config.healthPath) }}
             port: {{ $config.healthPort | default (index $config.ports 0).containerPort }}
-          initialDelaySeconds: 90
-          periodSeconds: 10
-          timeoutSeconds: 5
+          initialDelaySeconds: {{ $config.livenessInitialDelaySeconds | default 90 }}
+          periodSeconds: {{ $config.livenessPeriodSeconds | default 10 }}
+          timeoutSeconds: {{ $config.livenessTimeoutSeconds | default 5 }}
+          failureThreshold: {{ $config.livenessFailureThreshold | default 3 }}
         readinessProbe:
           httpGet:
-            path: {{ $config.healthPath }}/live
+            path: {{ $config.readinessPath | default (printf "%s/live" $config.healthPath) }}
             port: {{ $config.healthPort | default (index $config.ports 0).containerPort }}
-          initialDelaySeconds: 20
-          periodSeconds: 5
-          timeoutSeconds: 5
+          initialDelaySeconds: {{ $config.readinessInitialDelaySeconds | default 20 }}
+          periodSeconds: {{ $config.readinessPeriodSeconds | default 5 }}
+          timeoutSeconds: {{ $config.readinessTimeoutSeconds | default 5 }}
+          failureThreshold: {{ $config.readinessFailureThreshold | default 3 }}
         {{- else if eq $config.healthType "tcp" }}
         livenessProbe:
           tcpSocket:
             port: {{ $config.healthPort | default (index $config.ports 0).containerPort }}
-          initialDelaySeconds: 90
-          periodSeconds: 10
-          timeoutSeconds: 5
+          initialDelaySeconds: {{ $config.livenessInitialDelaySeconds | default 90 }}
+          periodSeconds: {{ $config.livenessPeriodSeconds | default 10 }}
+          timeoutSeconds: {{ $config.livenessTimeoutSeconds | default 5 }}
+          failureThreshold: {{ $config.livenessFailureThreshold | default 3 }}
         readinessProbe:
           tcpSocket:
             port: {{ $config.healthPort | default (index $config.ports 0).containerPort }}
-          initialDelaySeconds: 20
-          periodSeconds: 5
-          timeoutSeconds: 5
+          initialDelaySeconds: {{ $config.readinessInitialDelaySeconds | default 20 }}
+          periodSeconds: {{ $config.readinessPeriodSeconds | default 5 }}
+          timeoutSeconds: {{ $config.readinessTimeoutSeconds | default 5 }}
+          failureThreshold: {{ $config.readinessFailureThreshold | default 3 }}
         {{- end }}
         {{- if or $config.persistence $.Values.global.useSecretManager }}
         volumeMounts:

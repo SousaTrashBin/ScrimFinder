@@ -79,20 +79,48 @@ deploy_detail_filling_functions() {
                 service_account_args=(--service-account="$runtime_service_account")
             fi
 
-            gcloud functions deploy "$function" \
-                --region="$region" \
-                --entry-point=io.quarkus.gcp.functions.http.QuarkusHttpFunction \
-                --runtime=java21 \
-                --trigger-http \
-                --allow-unauthenticated \
-                --source="${root_dir}/${service}/target/deployment" \
-                --min-instances=0 \
-                --max-instances=30 \
-                --memory=512Mi \
-                --cpu=800m \
-                --build-service-account="$build_service_account" \
-                "${service_account_args[@]}" \
-                --set-secrets 'RIOT_API_KEY=RIOT_API_KEY:latest'
+            local attempt max_attempts backoff
+            attempt=1
+            max_attempts=6
+            backoff=5
+            while [ "$attempt" -le "$max_attempts" ]; do
+                local deploy_output
+                deploy_output="$(
+                    gcloud functions deploy "$function" \
+                        --region="$region" \
+                        --entry-point=io.quarkus.gcp.functions.http.QuarkusHttpFunction \
+                        --runtime=java21 \
+                        --trigger-http \
+                        --allow-unauthenticated \
+                        --source="${root_dir}/${service}/target/deployment" \
+                        --min-instances=0 \
+                        --max-instances=30 \
+                        --memory=512Mi \
+                        --cpu=800m \
+                        --build-service-account="$build_service_account" \
+                        "${service_account_args[@]}" \
+                        --set-secrets 'RIOT_API_KEY=RIOT_API_KEY:latest' 2>&1
+                )" && break
+
+                echo "$deploy_output" >&2
+                if [[ "$deploy_output" == *"status=[409]"* ]] && [[ "$deploy_output" == *"unable to queue the operation"* ]]; then
+                    if [ "$attempt" -eq "$max_attempts" ]; then
+                        echo "deploy retries exhausted for ${function}" >&2
+                        exit 1
+                    fi
+
+                    local jitter
+                    jitter=$((RANDOM % 4))
+                    echo "transient deploy queue contention for ${function}; retrying in $((backoff + jitter))s (attempt ${attempt}/${max_attempts})" >&2
+                    sleep $((backoff + jitter))
+                    backoff=$((backoff * 2))
+                    attempt=$((attempt + 1))
+                    continue
+                fi
+
+                echo "non-retryable deploy failure for ${function}" >&2
+                exit 1
+            done
         ) &
 
         deploy_pids+=("$!")

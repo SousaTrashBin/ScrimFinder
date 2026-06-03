@@ -7,10 +7,11 @@ spec:
   project: default
   source:
     repoURL: "https://github.com/SousaTrashBin/ScrimFinder.git"
-    targetRevision: main
+    targetRevision: "${TARGET_REVISION}"
     path: k8s/charts/scrimfinder
     helm:
       releaseName: scrimfinder
+      skipCrds: true
       valueFiles:
         - values.yaml
       parameters:
@@ -32,7 +33,11 @@ spec:
           value: "${SCRIM_RABBITMQ_HOST}"
         - name: global.rabbitmqPort
           value: "${SCRIM_RABBITMQ_PORT}"
-        - name: detailFillingExternalName
+        - name: global.secretNamePrefix
+          value: "${SCRIM_SECRET_NAME_PREFIX}"
+        - name: global.secretsServiceAccountId
+          value: "${SCRIM_SECRETS_SERVICE_ACCOUNT_ID}"
+        - name: detailFillingExternal.externalName
           value: "${DETAIL_FILLING_DOMAIN}"
         - name: services.ranking-service.env.DETAIL_FILLING_SERVICE_URL
           value: "http://scrimfinder-traefik/api/v1/riot"
@@ -40,6 +45,13 @@ spec:
           value: "http://scrimfinder-traefik/api/v1/riot"
         - name: services.training-service.env.DETAIL_FILLING_URL
           value: "http://scrimfinder-traefik/api/v1/riot"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: "${SCRIM_NAMESPACE}"
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true
   # Allow VPA to change resources and limits without being considered Off-Sync by Argo CD
   ignoreDifferences:
     - group: ""
@@ -47,12 +59,3 @@ spec:
       jqPathExpressions:
         - .spec.containers[].resources
         - .spec.containers[].limits
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: scrimfinder
-  syncPolicy:
-    syncOptions:
-      - CreateNamespace=true
-    automated:
-      prune: true
-      selfHeal: true

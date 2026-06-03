@@ -1,5 +1,9 @@
 name: ScrimFinder CI
 
+concurrency:
+  group: scrimfinder-ci
+  cancel-in-progress: false
+
 on:
   push:
     branches:
@@ -18,6 +22,17 @@ jobs:
   java_fast_tests:
     name: java fast tests - ${{ matrix.service }}
     runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:8.6
+        ports:
+          - 6379:6379
+          - 6380:6380
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
       RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
       SCRIM_DB_USER: ${{ secrets.SCRIM_DB_USER }}
@@ -38,10 +53,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: run redis init script
-        if: matrix.service == 'detail_filling_service'
-        run: ./detail_filling_service/redisInit.sh
-
       - name: set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -58,10 +69,6 @@ jobs:
       - name: run unit and integration-light tests
         run: |
           SERVICES="${{ matrix.service }}" ./scripts/ci/run-java-service-tests.sh fast-tests
-
-      - name: run redis shutdown script
-        if: matrix.service == 'detail_filling_service' && always()
-        run: ./detail_filling_service/redisShutdown.sh
 
   python_fast_tests:
     name: python fast tests - ${{ matrix.service }}
@@ -106,6 +113,9 @@ jobs:
   java_heavy_and_gke_system_tests:
     name: integration-heavy and ephemeral GKE system tests
     runs-on: ubuntu-latest
+    concurrency:
+      group: gke-ephemeral-stack
+      cancel-in-progress: false
     needs:
       - java_fast_tests
       - python_fast_tests
@@ -185,3 +195,52 @@ jobs:
       - name: teardown ephemeral GKE stack
         if: always()
         run: ./scripts/ci/destroy-ephemeral-gke.sh
+
+#  deploy_staging_cd:
+#    name: deploy staging (CD)
+#    runs-on: ubuntu-latest
+#    needs:
+#      - java_fast_tests
+#      - python_fast_tests
+#      - java_heavy_and_gke_system_tests
+#    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+#    env:
+#      SCRIM_PROJECT_ID: ${{ secrets.SCRIM_PROJECT_ID }}
+#      SCRIM_REGION: ${{ secrets.SCRIM_REGION }}
+#      SCRIM_REPO_NAME: ${{ secrets.SCRIM_REPO_NAME }}
+#      SCRIM_CLUSTER_NAME: ${{ secrets.CD_SCRIM_CLUSTER_NAME }}
+#      SCRIM_NAMESPACE: ${{ secrets.CD_SCRIM_NAMESPACE }}
+#      SCRIM_IMAGE_TAG: ${{ github.sha }}
+#      RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
+#      SCRIM_DB_USER: ${{ secrets.SCRIM_DB_USER }}
+#      SCRIM_DB_PASSWORD: ${{ secrets.SCRIM_DB_PASSWORD }}
+#      SCRIM_REDIS_PASSWORD: ${{ secrets.SCRIM_REDIS_PASSWORD }}
+#      SCRIM_RABBITMQ_USER: ${{ secrets.SCRIM_RABBITMQ_USER }}
+#      SCRIM_RABBITMQ_PASSWORD: ${{ secrets.SCRIM_RABBITMQ_PASSWORD }}
+#      SCRIM_RABBITMQ_ERLANG_COOKIE: ${{ secrets.SCRIM_RABBITMQ_ERLANG_COOKIE }}
+#
+#    steps:
+#      - uses: actions/checkout@v6
+#
+#      - name: authenticate to Google Cloud
+#        uses: google-github-actions/auth@v2
+#        with:
+#          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+#          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+#
+#      - name: set up Google Cloud SDK
+#        uses: google-github-actions/setup-gcloud@v2
+#        with:
+#          install_components: gke-gcloud-auth-plugin
+#
+#      - name: set up Docker Buildx
+#        uses: docker/setup-buildx-action@v3
+#
+#      - name: set up Helm
+#        uses: azure/setup-helm@v4
+#
+#      - name: build and push images
+#        run: ./scripts/ci/build-and-push-images.sh
+#
+#      - name: deploy app to staging
+#        run: ./scripts/ci/deploy-app.sh

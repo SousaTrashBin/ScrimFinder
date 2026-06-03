@@ -8,5 +8,11 @@ fi
 
 export BASE_URL="${BASE_URL:-$SCRIM_SYSTEM_BASE_URL}"
 
-echo "running system tests for matchmaking-service against $BASE_URL"
-(cd matchmaking-service && ./mvnw -B -q -Psystem-tests -DsystemTests=true test)
+services="${SERVICES:-matchmaking-service}"
+
+for service in $services; do
+  echo "running system tests for $service against $BASE_URL"
+  cd "$service"
+  ./mvnw -B -q -Psystem-tests -DsystemTests=true -DskipITs=false verify
+  cd ..
+done

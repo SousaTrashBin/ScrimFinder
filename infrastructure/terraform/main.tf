@@ -23,21 +23,21 @@ locals {
   ])
 
   secret_values = {
-    RIOT_API_KEY           = var.riot_api_key
-    db-user                = var.db_user
-    db-password            = var.db_password
-    redis-password         = var.redis_password
-    rabbitmq-user          = var.rabbitmq_user
-    rabbitmq-password      = var.rabbitmq_password
-    rabbitmq-erlang-cookie = var.rabbitmq_erlang_cookie
+    "${var.secret_name_prefix}riot-api-key"           = var.riot_api_key
+    "${var.secret_name_prefix}db-user"                = var.db_user
+    "${var.secret_name_prefix}db-password"            = var.db_password
+    "${var.secret_name_prefix}redis-password"         = var.redis_password
+    "${var.secret_name_prefix}rabbitmq-user"          = var.rabbitmq_user
+    "${var.secret_name_prefix}rabbitmq-password"      = var.rabbitmq_password
+    "${var.secret_name_prefix}rabbitmq-erlang-cookie" = var.rabbitmq_erlang_cookie
   }
 
-  cloud_functions_deployer_roles = var.cloud_functions_deployer_member == "" ? toset([]) : toset([
+  cloud_functions_deployer_roles = (!var.manage_cloud_functions_iam || var.cloud_functions_deployer_member == "") ? toset([]) : toset([
     "roles/cloudbuild.builds.editor",
     "roles/cloudfunctions.admin",
     "roles/iam.serviceAccountUser",
     "roles/run.admin",
-    "roles/secretmanager.admin",
+    "roles/secretmanager.admin"
   ])
 }
 
@@ -73,7 +73,10 @@ resource "google_container_cluster" "scrim_cluster" {
     workload_pool = "${var.project_id}.svc.id.goog"
   }
 
-  depends_on = [google_project_service.required]
+  depends_on = [
+    google_project_service.required,
+    google_project_iam_member.cloud_functions_deployer
+  ]
 }
 
 resource "google_container_node_pool" "default_pool" {
@@ -106,12 +109,14 @@ data "google_project" "current" {
 }
 
 resource "google_project_iam_member" "functions_build_builder" {
+  count   = var.manage_cloud_functions_iam ? 1 : 0
   project = var.project_id
   role    = "roles/cloudbuild.builds.builder"
   member  = "serviceAccount:${data.google_project.current.number}-compute@developer.gserviceaccount.com"
 }
 
 resource "google_project_iam_member" "functions_runtime_secret_accessor" {
+  count   = var.manage_cloud_functions_iam ? 1 : 0
   project = var.project_id
   role    = "roles/secretmanager.secretAccessor"
   member  = "serviceAccount:${data.google_project.current.number}-compute@developer.gserviceaccount.com"
@@ -127,8 +132,8 @@ resource "google_project_iam_member" "cloud_functions_deployer" {
 resource "google_service_account" "secrets_sa" {
   count        = var.manage_secret_manager ? 1 : 0
   project      = var.project_id
-  account_id   = "secrets-service-account"
-  display_name = "secrets-service-account"
+  account_id   = var.secrets_service_account_id
+  display_name = var.secrets_service_account_id
   description  = "Service account with access to ScrimFinder secrets"
 }
 
@@ -137,6 +142,20 @@ resource "google_service_account_iam_member" "workload_identity_user" {
   service_account_id = google_service_account.secrets_sa[0].name
   role               = "roles/iam.workloadIdentityUser"
   member             = "serviceAccount:${var.project_id}.svc.id.goog[${var.namespace}/scrimfinder-secrets-reader]"
+}
+
+resource "google_service_account_iam_member" "workload_identity_token_creator" {
+  count              = var.manage_secret_manager ? 1 : 0
+  service_account_id = google_service_account.secrets_sa[0].name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "serviceAccount:${var.project_id}.svc.id.goog[${var.namespace}/scrimfinder-secrets-reader]"
+}
+
+resource "google_project_iam_member" "secrets_sa_secret_accessor" {
+  count   = var.manage_secret_manager ? 1 : 0
+  project = var.project_id
+  role    = "roles/secretmanager.secretAccessor"
+  member  = "serviceAccount:${google_service_account.secrets_sa[0].email}"
 }
 
 resource "google_secret_manager_secret" "scrim_secrets" {
@@ -161,7 +180,7 @@ resource "google_secret_manager_secret_version" "scrim_secret_versions" {
 resource "google_secret_manager_secret_iam_member" "secrets_access" {
   for_each  = var.manage_secret_manager ? google_secret_manager_secret.scrim_secrets : {}
   project   = var.project_id
-  secret_id = each.value.secret_id
+  secret_id = each.key
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.secrets_sa[0].email}"
 }
