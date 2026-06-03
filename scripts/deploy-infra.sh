@@ -159,12 +159,14 @@ ensure_secret_manager_runtime_access() {
 if [ "${SCRIM_MANAGE_SECRET_MANAGER}" = "true" ] && \
    [ "${SCRIM_MANAGE_CLOUD_FUNCTIONS_IAM}" = "true" ] && \
    [ -n "${SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER}" ]; then
-    echo "bootstrapping GCP services and IAM before managing Secret Manager resources..."
+    echo "bootstrapping GCP services and IAM before managing resources..."
     terraform apply -input=false -auto-approve \
         -target=google_project_service.required \
-        -target='google_project_iam_member.cloud_functions_deployer["roles/secretmanager.admin"]' \
+        -target=google_project_iam_member.cloud_functions_deployer \
         "${TF_VAR_ARGS[@]}"
     wait_for_secret_manager_create_permission
+    echo "waiting for IAM propagation..."
+    sleep 45
 fi
 
 echo "importing pre-existing infrastructure resources when present..."

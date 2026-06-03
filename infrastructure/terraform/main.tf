@@ -73,7 +73,10 @@ resource "google_container_cluster" "scrim_cluster" {
     workload_pool = "${var.project_id}.svc.id.goog"
   }
 
-  depends_on = [google_project_service.required]
+  depends_on = [
+    google_project_service.required,
+    google_project_iam_member.cloud_functions_deployer
+  ]
 }
 
 resource "google_container_node_pool" "default_pool" {
