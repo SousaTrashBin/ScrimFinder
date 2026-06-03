@@ -236,6 +236,11 @@ echo "syncing Argo CD application 'scrimfinder' from targetRevision=${TARGET_REV
 run_argocd_with_retries \
     "syncing Argo CD application 'scrimfinder'" \
     argocd --core app sync scrimfinder --app-namespace argocd --prune --timeout 2400
+
+if grep -q "::1" /etc/hosts; then
+    sudo sed -i '/::1/d' /etc/hosts || true
+fi
+
 run_argocd_with_retries \
     "waiting for Argo CD application 'scrimfinder'" \
     argocd --core app wait scrimfinder --app-namespace argocd --sync --health --timeout 2400
