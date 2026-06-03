@@ -33,6 +33,7 @@ SCRIM_MANAGE_CLOUD_FUNCTIONS_IAM="${SCRIM_MANAGE_CLOUD_FUNCTIONS_IAM:-true}"
 SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER="${SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER:-}"
 SCRIM_FORCE_SECRET_MANAGER_CLEANUP="${SCRIM_FORCE_SECRET_MANAGER_CLEANUP:-false}"
 SCRIM_SECRET_NAME_PREFIX="${SCRIM_SECRET_NAME_PREFIX:-}"
+SCRIM_SECRETS_SERVICE_ACCOUNT_ID="${SCRIM_SECRETS_SERVICE_ACCOUNT_ID:-secrets-service-account}"
 
 DELETE_ARTIFACT_REPO="${SCRIM_DELETE_ARTIFACT_REPO:-false}"
 DELETE_UNUSED_K8S_IPS="${SCRIM_DELETE_UNUSED_K8S_IPS:-true}"
@@ -104,6 +105,7 @@ EOF
         -var="manage_artifact_registry_repository=${SCRIM_MANAGE_ARTIFACT_REGISTRY_REPOSITORY}" \
         -var="manage_secret_manager=${SCRIM_MANAGE_SECRET_MANAGER}" \
         -var="secret_name_prefix=${SCRIM_SECRET_NAME_PREFIX}" \
+        -var="secrets_service_account_id=${SCRIM_SECRETS_SERVICE_ACCOUNT_ID}" \
         -var="manage_cloud_functions_iam=${SCRIM_MANAGE_CLOUD_FUNCTIONS_IAM}" \
         -var="environment_name=${SCRIM_ENVIRONMENT_NAME}" \
         -var="github_run_id=${SCRIM_GITHUB_RUN_ID}" \
@@ -196,7 +198,7 @@ if [ "${SCRIM_FORCE_SECRET_MANAGER_CLEANUP}" = "true" ]; then
         gcloud secrets delete "$secret_name" --project "$PROJECT_ID" --quiet >/dev/null 2>&1 || true
     done
     gcloud iam service-accounts delete \
-        "secrets-service-account@${PROJECT_ID}.iam.gserviceaccount.com" \
+        "${SCRIM_SECRETS_SERVICE_ACCOUNT_ID}@${PROJECT_ID}.iam.gserviceaccount.com" \
         --project "$PROJECT_ID" \
         --quiet >/dev/null 2>&1 || true
 fi

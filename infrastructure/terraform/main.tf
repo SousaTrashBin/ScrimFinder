@@ -129,8 +129,8 @@ resource "google_project_iam_member" "cloud_functions_deployer" {
 resource "google_service_account" "secrets_sa" {
   count        = var.manage_secret_manager ? 1 : 0
   project      = var.project_id
-  account_id   = "secrets-service-account"
-  display_name = "secrets-service-account"
+  account_id   = var.secrets_service_account_id
+  display_name = var.secrets_service_account_id
   description  = "Service account with access to ScrimFinder secrets"
 }
 

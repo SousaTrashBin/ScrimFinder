@@ -10,6 +10,7 @@ global:
   rabbitmqHost: "scrimfinder-rabbitmq-broker"
   rabbitmqPort: "5672"
   secretsServiceAccountName: "scrimfinder-secrets-reader"
+  secretsServiceAccountId: "secrets-service-account"
   secretNamePrefix: ""
   podSecurityContext: {}
   securityContext: {}
