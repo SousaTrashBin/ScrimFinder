@@ -43,7 +43,7 @@
 
 \subsection*{Testing Results}
 
-\subsubsection*{Smoke Testing (Endpoint: /api/listings/search)}
+\subsubsection*{Smoke Testing (Endpoint: GET /api/listings/search)}
 The smoke test was executed using a Python script checking the endpoint. The test validated the HTTP 200 response, JSON validity, and the presence of all required top-level fields (\texttt{total}, \texttt{page}, \texttt{page\_size}, \texttt{listings}) and listing level attributes.
 \begin{itemize}
     \item \textbf{Basic Paginated Search:} Passed. Returned 5 listings with a reported total of 50,000 records. Latency: $\approx$ 141ms.
@@ -51,7 +51,7 @@ The smoke test was executed using a Python script checking the endpoint. The tes
 \end{itemize}
 No broken links or malfunctioning behaviors were detected.
 
-\subsubsection*{Stress Testing (Endpoint: /api/listings)}
+\subsubsection*{Stress Testing (Endpoint: GET /api/listings)}
 The stress test was executed using Locust against endpoint.
 \begin{itemize}
     \item \textbf{Concurrency Settings:} 100 concurrent users, spawning at a rate of 20 users per second, run duration of 30 seconds.
@@ -72,16 +72,55 @@ The endpoint proved to be highly stable under the tested load.
 \section*{Bruno Faustino}
 
 \subsection*{Documentation Feedback}
-% TODO
-\textit{[Insert your feedback regarding the clarity, completeness, and structure of the OpenAPI specification provided by the target group.]}
+\begin{itemize}
+    \item \textbf{Some positives:}
+    \begin{itemize}
+        \item The API documentation was in general easy to understand due to the modularity on the groups of endpoints and the descriptive information tagged with each endpoint;
+        \item The introductory paragraph gives a quick overview of all the use cases of the application and in which modules they can be found;
+        \item In general, the exceptions portray in which cases the app may fail (although they could be explained in more detail according to the endpoint in some cases).
+    \end{itemize}
+    \item \textbf{A few suggestions:}
+    \begin{itemize}
+        \item For the chat endpoints, a 404 code should be thrown if the chat id does not exist in the database;
+        \item It would be helpful to have default values already filled-in in the body of the POST methods that serve as an example to further improve the understandability of the API (for some fields it is not trivial what the expected format is, like fuel\_type, drive\_type and end\_time);
+        \item Although it is well explained that the user needs to add the Host header before calling the post/put/delete endpoints, it is never explained that the user needs to be logged in and that the resulting token needs to be added to the header: a quick mention in either the introductory paragraph or the 401 Unauthorized exception in the documentation would generate less confusion and save a few 401s.
+    \end{itemize}
+\end{itemize}
 
 \subsection*{Testing Results}
-% TODO
-\subsubsection*{Smoke Testing (Endpoint: /example)}
-\textit{[Insert the details of your smoke tests. Describe the tools used, the scenarios evaluated, and whether any broken links or malfunctioning behaviors were found.]}
 
-\subsubsection*{Stress Testing (Endpoint: /example)}
-\textit{[Insert the details of your stress tests. Describe the tools used (e.g., Locust), the concurrency settings, and the observed Requests Per Second (RPS) limit.]}
+\subsubsection*{Smoke Testing (Endpoint: GET /api/auctions/{auction\_id}/bids)}
+The smoke test was executed using pytest and requests modules of Python.
+
+Here is the sequence of API calls as a setup before testing the actual endpoint:
+\begin{enumerate}
+    \item \textbf{POST /api/user/login} for the auth token
+    \item \textbf{POST /api/listings} for listing\_id
+    \item \textbf{POST /api/auctions} for auction\_id
+    \item 3x \textbf{POST /api/auctions/{auction\_id}/bid}
+\end{enumerate}
+
+After calling the endpoint: \textbf{GET /api/auctions/{auction\_id}/bids}, it is expected that the command returns successfully ($200$) and with $3$ auction bids in the created auction for the created listing.
+
+\textbf{The smoke test passed!}
+
+\subsubsection*{Stress Testing (Endpoint: GET /api/market/average\_price)}
+The stress test was executed using Locust against the endpoint.
+\begin{itemize}
+    \item \textbf{Concurrency Settings:} 10000 concurrent users, spawning at a rate of 5 users per second, running until failing.
+    \item \textbf{Performance observed:}
+    \begin{itemize}
+        \item \textbf{Total Requests:} 250
+        \item \textbf{Failures:} 4 (1.60\%)
+        \item \textbf{Requests Per Second (RPS):} Very inconsistent, around 19.61 req/s.
+        \item \textbf{Latency Statistics:} Average = 1009ms, Median = 190ms, 95th percentile = 4000ms, 99th percentile = 6700ms.
+    \end{itemize}
+\end{itemize}
+The system fails a few times at 19.61 req/s due to the unavailability of an upstream service (502).
+
+During other rounds of testing, the system could fail at less or more than that value, sometimes managing to survive without failures until around 50 req/s, so it is inconsistent, and the number of failures oscillates a lot between load tests, up to the point of reaching 99\% failures.
+
+The endpoint proved unable to sustain loads above 50 req/s, and shows signs of failing around 19.61 req/s.
 
 \vspace{1cm}
 \hrule
@@ -98,7 +137,7 @@ The endpoint proved to be highly stable under the tested load.
 
 \subsection*{Testing Results}
 
-\subsubsection*{Smoke Testing (Endpoint: /api/market/price-comparison)}
+\subsubsection*{Smoke Testing (Endpoint: GET /api/market/price-comparison)}
 The smoke test was executed using Postman checking the endpoint. The test validated HTTP 200 responses, JSON validity, pagination, grouping, and sorting behaviors.
 \begin{itemize}
     \item \textbf{Happy Path:} Passed with warnings. Valid JSON, correct pagination and sorting. \texttt{Content-Type} assertion failed (header omitted).
@@ -106,7 +145,7 @@ The smoke test was executed using Postman checking the endpoint. The test valida
 \end{itemize}
 Some malfunctioning behaviors were detected during validation tests.
 
-\subsubsection*{Stress Testing (Endpoint: /api/listings/stats/by-location)}
+\subsubsection*{Stress Testing (Endpoint: GET /api/listings/stats/by-location)}
 The stress test was executed using Locust against the endpoint.
 \begin{itemize}
     \item \textbf{Concurrency Settings:} Step-load ramping from 10 to 200 concurrent users.
