@@ -65,6 +65,16 @@ fi
 if [ "${SKIP_CLUSTER_SHUTDOWN:-false}" = "true" ]; then
     echo "skipping Terraform destroy (SKIP_CLUSTER_SHUTDOWN=true)."
 else
+    echo "deleting Cloud Functions..."
+    source "$ROOT_DIR/scripts/lib/cloud-functions.sh"
+    
+    for service_function in "${DETAIL_FILLING_FUNCTIONS[@]}"; do
+        temp="${service_function#*|}"
+        function_name="${temp%%|*}"
+        echo "deleting function: $function_name"
+        gcloud functions delete "$function_name" --region "$REGION" --project "$PROJECT_ID" --quiet >/dev/null 2>&1 || true
+    done
+
     echo "destroying infrastructure with Terraform..."
     if [ -n "${TF_STATE_BUCKET:-}" ]; then
         cat > "${TF_DIR}/backend-ci.tf" <<EOF
