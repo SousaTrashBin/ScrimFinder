@@ -32,7 +32,13 @@ public class MatchHistoryController {
 
     @GET
     @Path("/{riotMatchId}")
-    @Operation(operationId = "getMatchById", summary = "Get simplified match information by ID")
+    @Operation(
+            operationId = "getMatchById",
+            summary = "Get simplified match information by ID",
+            description =
+                    "Matches must be added through the matchmaking service first "
+                            + "before they show up in the history: "
+                            + "api/v1/matchmaking/tickets/matches/{matchId}/complete.")
     @APIResponses(
             value = {
                 @APIResponse(
@@ -84,7 +90,12 @@ public class MatchHistoryController {
     @GET
     @Operation(
             operationId = "getMatches",
-            summary = "Get paginated match history with filters and sorting")
+            summary = "Get paginated match history with filters and sorting",
+            description =
+                    "Filters must be added in the body of the request due to size limits. "
+                            + "Matches must be added through the matchmaking service first "
+                            + "before they show up in the history: "
+                            + "api/v1/matchmaking/tickets/matches/{matchId}/complete.")
     @APIResponses(
             value = {
                 @APIResponse(

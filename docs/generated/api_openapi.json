@@ -3475,6 +3475,7 @@
     "/api/v1/history/matches": {
       "get": {
         "summary": "Get paginated match history with filters and sorting",
+        "description": "Filters must be added in the body of the request due to size limits. Matches must be added through the matchmaking service first before they show up in the history: api/v1/matchmaking/tickets/matches/{matchId}/complete.",
         "operationId": "getMatches",
         "tags": [
           "Match History"
@@ -3552,6 +3553,7 @@
     "/api/v1/history/matches/{riotMatchId}": {
       "get": {
         "summary": "Get simplified match information by ID",
+        "description": "Matches must be added through the matchmaking service first before they show up in the history: api/v1/matchmaking/tickets/matches/{matchId}/complete.",
         "operationId": "getMatchById",
         "tags": [
           "Match History"
