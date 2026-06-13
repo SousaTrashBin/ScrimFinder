@@ -70,7 +70,7 @@
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Motivation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     \section{Motivation}
 
-    TODO
+    ScrimFinder was born from the need for a more structured and data-driven approach to competitive "scrims" (practice matches) in League of Legends. While the official game offers matchmaking, it lacks the depth required for teams and individual players to organize balanced practice sessions, track progress through custom-built ranking systems (MMR), and gain actionable insights through post-game ML-driven analysis. By leveraging a massive 78GB dataset of EUW matches, ScrimFinder provides a platform that not only matches players based on skill but also analyzes their performance to offer personalized coaching tips. Our goal was to build a truly cloud-native application that demonstrates high availability, scalability, and advanced data processing capabilities.
 
     \vspace{1cm}
     \hrule
@@ -158,22 +158,22 @@
 
     \subsection{Player Management - Diogo Sousa}
 
-    Brief Description
+    Operations for registering players and linking their Discord accounts with external League of Legends identities.
 
     \begin{table}[H]
     \begin{tabular}{|p{2cm}|p{5cm}|p{7cm}|}
     \hline
     \bff{Verb} & \bff{Endpoint}                                          & \bff{Description} \\ \hline
-    \postapi   & \url{\matchmaking{/players}}                            & TODO \\ \hline
-    \getapi    & \url{\matchmaking{/players/{id}}}                       & TODO \\ \hline
-    \getapi    & \url{\matchmaking{/players/{id}/lobbies}}               & TODO \\ \hline
-    \getapi    & \url{\matchmaking{/players/{id}/tickets}}               & TODO \\ \hline
-    \deleteapi & \url{\ranking{/players/links/{gameName}/{tagLine}}}     & TODO \\ \hline
-    \getapi    & \url{\ranking{/players/{playerId}}}                     & TODO \\ \hline
-    \putapi    & \url{\ranking{/players/{playerId}/link-lol-account}}    & TODO \\ \hline
-    \getapi    & \url{\ranking{/players/{playerId}/primary-account}}     & TODO \\ \hline
-    \putapi    & \url{\ranking{/players/{playerId}/set-primary-account}} & TODO \\ \hline
-    \postapi   & \url{\ranking{/players/{playerId}/sync-mmr}}            & TODO \\ \hline
+    \postapi   & \url{\matchmaking{/players}}                            & Register a new player in the platform. \\ \hline
+    \getapi    & \url{\matchmaking{/players/{id}}}                       & Get internal player details. \\ \hline
+    \getapi    & \url{\matchmaking{/players/{id}/lobbies}}               & Get all lobbies associated with a player. \\ \hline
+    \getapi    & \url{\matchmaking{/players/{id}/tickets}}               & Get all active tickets for a player. \\ \hline
+    \deleteapi & \url{\ranking{/players/links/{gameName}/{tagLine}}}     & Unlink a League of Legends account. \\ \hline
+    \getapi    & \url{\ranking{/players/{playerId}}}                     & Get player profile and MMR. \\ \hline
+    \putapi    & \url{\ranking{/players/{playerId}/link-lol-account}}    & Link a Riot account to a player. \\ \hline
+    \getapi    & \url{\ranking{/players/{playerId}/primary-account}}     & Get the primary linked Riot account. \\ \hline
+    \putapi    & \url{\ranking{/players/{playerId}/set-primary-account}} & Set the primary Riot account. \\ \hline
+    \postapi   & \url{\ranking{/players/{playerId}/sync-mmr}}            & Sync MMR from external services. \\ \hline
     \end{tabular}
     \caption{Player Management REST API}
     \label{tab:api-player-management}
@@ -181,17 +181,17 @@
 
     \subsection{Queue Management - Diogo Sousa}
 
-    Brief Description
+    Operations for managing matchmaking queues, defining rules, and setting MMR requirements.
 
     \begin{table}[H]
     \begin{tabular}{|p{2cm}|p{5cm}|p{7cm}|}
     \hline
     \bff{Verb} & \bff{Endpoint}                   & \bff{Description} \\ \hline
-    \postapi   & \url{\matchmaking{/queues}}      & TODO \\ \hline
-    \getapi    & \url{\matchmaking{/queues/{id}}} & TODO \\ \hline
-    \putapi    & \url{\ranking{/queue/{queueId}}} & TODO \\ \hline
-    \getapi    & \url{\ranking{/queue/{queueId}}} & TODO \\ \hline
-    \deleteapi & \url{\ranking{/queue/{queueId}}} & TODO \\ \hline
+    \postapi   & \url{\matchmaking{/queues}}      & Create a new global or local queue. \\ \hline
+    \getapi    & \url{\matchmaking{/queues/{id}}} & Get queue configuration and status. \\ \hline
+    \putapi    & \url{\ranking{/queue/{queueId}}} & Update queue MMR rules. \\ \hline
+    \getapi    & \url{\ranking{/queue/{queueId}}} & Get queue details from Ranking. \\ \hline
+    \deleteapi & \url{\ranking{/queue/{queueId}}} & Delete a queue. \\ \hline
     \end{tabular}
     \caption{Queue Management REST API}
     \label{tab:api-queue-management}
@@ -199,19 +199,19 @@
 
     \subsection{Matchmaking - Diogo Sousa}
 
-    Brief Description
+    Core logic for joining queues, accepting match proposals, and completing matches.
 
     \begin{table}[H]
     \begin{tabular}{|p{2cm}|p{5cm}|p{7cm}|}
     \hline
     \bff{Verb} & \bff{Endpoint}                                                            & \bff{Description} \\ \hline
-    \postapi   & \url{\matchmaking{/tickets}}                                              & TODO \\ \hline
-    \postapi   & \url{\matchmaking{/tickets/matches/{matchId}/complete}}                   & TODO \\ \hline
-    \putapi    & \url{\matchmaking{/tickets/matches/{matchId}/link}}                       & TODO \\ \hline
-    \postapi   & \url{\matchmaking{/tickets/matches/{matchId}/players/{playerId}/accept}}  & TODO \\ \hline
-    \postapi   & \url{\matchmaking{/tickets/matches/{matchId}/players/{playerId}/decline}} & TODO \\ \hline
-    \deleteapi & \url{\matchmaking{/tickets/{ticketId}}}                                   & TODO \\ \hline
-    \getapi    & \url{\matchmaking{/tickets/{ticketId}/lobby}}                             & TODO \\ \hline
+    \postapi   & \url{\matchmaking{/tickets}}                                              & Join a matchmaking queue. \\ \hline
+    \postapi   & \url{\matchmaking{/tickets/matches/{matchId}/complete}}                   & Finalize match and report results. \\ \hline
+    \putapi    & \url{\matchmaking{/tickets/matches/{matchId}/link}}                       & Link external Game ID to match. \\ \hline
+    \postapi   & \url{\matchmaking{/tickets/matches/{matchId}/players/{playerId}/accept}}  & Accept a match proposal. \\ \hline
+    \postapi   & \url{\matchmaking{/tickets/matches/{matchId}/players/{playerId}/decline}} & Decline a match proposal. \\ \hline
+    \deleteapi & \url{\matchmaking{/tickets/{ticketId}}}                                   & Leave a matchmaking queue. \\ \hline
+    \getapi    & \url{\matchmaking{/tickets/{ticketId}/lobby}}                             & Get current lobby for a ticket. \\ \hline
     \end{tabular}
     \caption{Matchmaking REST API}
     \label{tab:api-matchmaking}
@@ -219,14 +219,14 @@
 
     \subsection{Leaderboard - Diogo Sousa}
 
-    Brief Description
+    Retrieval of global and queue-specific rankings.
 
     \begin{table}[H]
     \begin{tabular}{|p{2cm}|p{5cm}|p{7cm}|}
     \hline
     \bff{Verb} & \bff{Endpoint}                                 & \bff{Description} \\ \hline
-    \getapi    & \url{\ranking{/leaderboards}}                  & TODO \\ \hline
-    \getapi    & \url{\ranking{/leaderboards/queues/{queueId}}} & TODO \\ \hline
+    \getapi    & \url{\ranking{/leaderboards}}                  & Get global leaderboard (paginated). \\ \hline
+    \getapi    & \url{\ranking{/leaderboards/queues/{queueId}}} & Get queue-specific leaderboard. \\ \hline
     \end{tabular}
     \caption{Leaderboard REST API}
     \label{tab:api-leaderboard}
@@ -234,14 +234,14 @@
 
     \subsection{Player Ranking - Diogo Sousa}
 
-    Brief Description
+    Operations to track individual player MMR and ranking history across different queues.
 
     \begin{table}[H]
     \begin{tabular}{|p{2cm}|p{5cm}|p{7cm}|}
     \hline
     \bff{Verb} & \bff{Endpoint}                                              & \bff{Description} \\ \hline
-    \getapi    & \url{\ranking{/players/{playerId}/queue-rankings}}          & TODO \\ \hline
-    \getapi    & \url{\ranking{/players/{playerId}/queue-rankings{queueId}}} & TODO \\ \hline
+    \getapi    & \url{\ranking{/players/{playerId}/queue-rankings}}          & Get all queue rankings for a player. \\ \hline
+    \getapi    & \url{\ranking{/players/{playerId}/queue-rankings{queueId}}} & Get ranking for a specific queue. \\ \hline
     \end{tabular}
     \caption{Player Ranking REST API}
     \label{tab:api-player-ranking}
@@ -249,14 +249,14 @@
 
     \subsection{Match History - Bruno Faustino}
 
-    Brief Description
+    Historical repository of match statistics with advanced filtering and paging.
 
     \begin{table}[H]
     \begin{tabular}{|p{2cm}|p{5cm}|p{7cm}|}
     \hline
     \bff{Verb} & \bff{Endpoint}                         & \bff{Description} \\ \hline
-    \getapi    & \url{\history{/matches}}               & TODO \\ \hline
-    \getapi    & \url{\history{/matches/{riotMatchId}}} & TODO \\ \hline
+    \getapi    & \url{\history{/matches}}               & Get paginated match history with filters. \\ \hline
+    \getapi    & \url{\history{/matches/{riotMatchId}}} & Get detailed stats for a single match. \\ \hline
     \end{tabular}
     \caption{Match History REST API}
     \label{tab:api-match-history}
@@ -264,14 +264,14 @@
 
     \subsection{Match Filling - Bruno Faustino}
 
-    Brief Description
+    Interaction with Riot API to enrich match data.
 
     \begin{table}[H]
     \begin{tabular}{|p{2cm}|p{5cm}|p{7cm}|}
     \hline
     \bff{Verb} & \bff{Endpoint}                      & \bff{Description} \\ \hline
-    \getapi    & \url{\riot{/matches/{matchId}}}     & TODO \\ \hline
-    \getapi    & \url{\riot{/matches/{matchId}/raw}} & TODO \\ \hline
+    \getapi    & \url{\riot{/matches/{matchId}}}     & Get simplified stats from Riot API. \\ \hline
+    \getapi    & \url{\riot{/matches/{matchId}/raw}} & Get raw match data for analysis. \\ \hline
     \end{tabular}
     \caption{Match Filling REST API}
     \label{tab:api-match-filling}
@@ -279,13 +279,13 @@
 
     \subsection{Player Filling - Bruno Faustino}
 
-    Brief Description
+    Retrieval of external player accounts and stats from Riot.
 
     \begin{table}[H]
     \begin{tabular}{|p{2cm}|p{5cm}|p{7cm}|}
     \hline
     \bff{Verb} & \bff{Endpoint}                              & \bff{Description} \\ \hline
-    \getapi    & \url{\riot{/players/{server}/{name}/{tag}}} & TODO \\ \hline
+    \getapi    & \url{\riot{/players/{server}/{name}/{tag}}} & Get Riot account details by summoner name. \\ \hline
     \end{tabular}
     \caption{Player Filling REST API}
     \label{tab:api-player-filling}
@@ -293,20 +293,20 @@
 
     \subsection{System - Rodrigo Neto}
 
-    Brief Description
+    Health checks and monitoring endpoints for analysis and training services.
 
     \begin{table}[H]
     \begin{tabular}{|p{2cm}|p{5cm}|p{7cm}|}
     \hline
     \bff{Verb} & \bff{Endpoint}                 & \bff{Description} \\ \hline
-    \getapi    & \url{\analysis/}               & TODO \\ \hline
-    \getapi    & \url{\analysis/health}         & TODO \\ \hline
-    \getapi    & \url{\analysis/q/health/ready} & TODO \\ \hline
-    \getapi    & \url{\analysis/q/health/live}  & TODO \\ \hline
-    \getapi    & \url{\training/}               & TODO \\ \hline
-    \getapi    & \url{\training/health}         & TODO \\ \hline
-    \getapi    & \url{\training/q/health/ready} & TODO \\ \hline
-    \getapi    & \url{\training/q/health/live}  & TODO \\ \hline
+    \getapi    & \url{\analysis/}               & Service root. \\ \hline
+    \getapi    & \url{\analysis/health}         & General health status. \\ \hline
+    \getapi    & \url{\analysis/q/health/ready} & Readiness probe. \\ \hline
+    \getapi    & \url{\analysis/q/health/live}  & Liveness probe. \\ \hline
+    \getapi    & \url{\training/}               & Service root. \\ \hline
+    \getapi    & \url{\training/health}         & General health status. \\ \hline
+    \getapi    & \url{\training/q/health/ready} & Readiness probe. \\ \hline
+    \getapi    & \url{\training/q/health/live}  & Liveness probe. \\ \hline
     \end{tabular}
     \caption{System REST API}
     \label{tab:api-system}
@@ -314,17 +314,17 @@
 
     \subsection{Training - Rodrigo Neto}
 
-    Brief Description
+    Management of ML training jobs for performance and draft models.
 
     \begin{table}[H]
     \begin{tabular}{|p{2cm}|p{5cm}|p{7cm}|}
     \hline
     \bff{Verb} & \bff{Endpoint}                         & \bff{Description} \\ \hline
-    \postapi   & \url{\training/jobs}                   & TODO \\ \hline
-    \getapi    & \url{\training/jobs}                   & TODO \\ \hline
-    \getapi    & \url{\training/jobs/{job\_id}}         & TODO \\ \hline
-    \postapi   & \url{\training/jobs/{job\_id}/cancel}  & TODO \\ \hline
-    \postapi   & \url{\training/jobs/{job\_id}/deploy}  & TODO \\ \hline
+    \postapi   & \url{\training/jobs}                   & Start a new ML training job. \\ \hline
+    \getapi    & \url{\training/jobs}                   & List all training jobs. \\ \hline
+    \getapi    & \url{\training/jobs/{job\_id}}         & Get job status and metrics. \\ \hline
+    \postapi   & \url{\training/jobs/{job\_id}/cancel}  & Stop a running job. \\ \hline
+    \postapi   & \url{\training/jobs/{job\_id}/deploy}  & Deploy the trained model. \\ \hline
     \end{tabular}
     \caption{Training REST API}
     \label{tab:api-training}
@@ -332,18 +332,18 @@
 
     \subsection{Datasets - Rodrigo Neto}
 
-    Brief Description
+    Creation and curation of training datasets from ingested games.
 
     \begin{table}[H]
     \begin{tabular}{|p{2cm}|p{5cm}|p{7cm}|}
     \hline
     \bff{Verb} & \bff{Endpoint}                               & \bff{Description} \\ \hline
-    \postapi   & \url{\training/datasets}                     & TODO \\ \hline
-    \getapi    & \url{\training/datasets}                     & TODO \\ \hline
-    \postapi   & \url{\training/datasets/build}               & TODO \\ \hline
-    \getapi    & \url{\training/datasets/{dataset\_id}}       & TODO \\ \hline
-    \deleteapi & \url{\training/datasets/{dataset\_id}}       & TODO \\ \hline
-    \postapi   & \url{\training/datasets/{dataset\_id}/build} & TODO \\ \hline
+    \postapi   & \url{\training/datasets}                     & Register a new dataset definition. \\ \hline
+    \getapi    & \url{\training/datasets}                     & List curated datasets. \\ \hline
+    \postapi   & \url{\training/datasets/build}               & Create and build a dataset from games. \\ \hline
+    \getapi    & \url{\training/datasets/{dataset\_id}}       & Get dataset metadata. \\ \hline
+    \deleteapi & \url{\training/datasets/{dataset\_id}}       & Delete a dataset. \\ \hline
+    \postapi   & \url{\training/datasets/{dataset\_id}/build} & Rebuild an existing dataset. \\ \hline
     \end{tabular}
     \caption{Datasets REST API}
     \label{tab:api-datasets}
@@ -351,17 +351,17 @@
 
     \subsection{Games - Rodrigo Neto}
 
-    Brief Description
+    Ingestion and retrieval of match data for training purposes.
 
     \begin{table}[H]
     \begin{tabular}{|p{2cm}|p{5cm}|p{7cm}|}
     \hline
     \bff{Verb} & \bff{Endpoint}                   & \bff{Description} \\ \hline
-    \postapi   & \url{\training/games}            & TODO \\ \hline
-    \getapi    & \url{\training/games}            & TODO \\ \hline
-    \postapi   & \url{\training/games/batch}      & TODO \\ \hline
-    \getapi    & \url{\training/games/{game\_id}} & TODO \\ \hline
-    \deleteapi & \url{\training/games/{game\_id}} & TODO \\ \hline
+    \postapi   & \url{\training/games}            & Ingest a single match. \\ \hline
+    \getapi    & \url{\training/games}            & List all ingested games. \\ \hline
+    \postapi   & \url{\training/games/batch}      & Ingest matches in batches (up to 1000). \\ \hline
+    \getapi    & \url{\training/games/{game\_id}} & Fetch stored match details. \\ \hline
+    \deleteapi & \url{\training/games/{game\_id}} & Delete an ingested game. \\ \hline
     \end{tabular}
     \caption{Games REST API}
     \label{tab:api-games}
@@ -369,18 +369,18 @@
 
     \subsection{Models - Rodrigo Neto}
 
-    Brief Description
+    Registry for versioned ML models and their active status.
 
     \begin{table}[H]
     \begin{tabular}{|p{2cm}|p{5cm}|p{7cm}|}
     \hline
     \bff{Verb} & \bff{Endpoint}                                & \bff{Description} \\ \hline
-    \getapi    & \url{\training/models}                        & TODO \\ \hline
-    \getapi    & \url{\training/models/active}                 & TODO \\ \hline
-    \getapi    & \url{\training/models/{model\_id}}            & TODO \\ \hline
-    \deleteapi & \url{\training/models/{model\_id}}            & TODO \\ \hline
-    \postapi   & \url{\training/models/{model\_id}/activate}   & TODO \\ \hline
-    \postapi   & \url{\training/models/{model\_id}/deactivate} & TODO \\ \hline
+    \getapi    & \url{\training/models}                        & List all registered models. \\ \hline
+    \getapi    & \url{\training/models/active}                 & List currently active models. \\ \hline
+    \getapi    & \url{\training/models/{model\_id}}            & Get model performance metrics. \\ \hline
+    \deleteapi & \url{\training/models/{model\_id}}            & Remove a model from registry. \\ \hline
+    \postapi   & \url{\training/models/{model\_id}/activate}   & Set model as active for analysis. \\ \hline
+    \postapi   & \url{\training/models/{model\_id}/deactivate} & Deactivate a model. \\ \hline
     \end{tabular}
     \caption{Models REST API}
     \label{tab:api-models}
@@ -388,15 +388,15 @@
 
     \subsection{Features - Rodrigo Neto}
 
-    Brief Description
+    Extraction of structured feature vectors from raw match data.
 
     \begin{table}[H]
     \begin{tabular}{|p{2cm}|p{5cm}|p{7cm}|}
     \hline
     \bff{Verb} & \bff{Endpoint}                      & \bff{Description} \\ \hline
-    \postapi   & \url{\training/features/extract}    & TODO \\ \hline
-    \getapi    & \url{\training/features/{game\_id}} & TODO \\ \hline
-    \deleteapi & \url{\training/features/{game\_id}} & TODO \\ \hline
+    \postapi   & \url{\training/features/extract}    & Extract features from match data. \\ \hline
+    \getapi    & \url{\training/features/{game\_id}} & Get cached feature vectors. \\ \hline
+    \deleteapi & \url{\training/features/{game\_id}} & Delete cached features. \\ \hline
     \end{tabular}
     \caption{Features REST API}
     \label{tab:api-features}
@@ -404,17 +404,17 @@
 
     \subsection{Analysis - Rodrigo Neto}
 
-    Brief Description
+    Predictive analysis for drafts, builds, and player performance.
 
     \begin{table}[H]
     \begin{tabular}{|p{2cm}|p{5cm}|p{7cm}|}
     \hline
     \bff{Verb} & \bff{Endpoint}           & \bff{Description} \\ \hline
-    \postapi   & \url{\analysis/draft}    & TODO \\ \hline
-    \postapi   & \url{\analysis/build}    & TODO \\ \hline
-    \postapi   & \url{\analysis/player}   & TODO \\ \hline
-    \postapi   & \url{\analysis/game}     & TODO \\ \hline
-    \postapi   & \url{\analysis/champion} & TODO \\ \hline
+    \postapi   & \url{\analysis/draft}    & Predict team win probability. \\ \hline
+    \postapi   & \url{\analysis/build}    & Score item build effectiveness. \\ \hline
+    \postapi   & \url{\analysis/player}   & Aggregated performance benchmarking. \\ \hline
+    \postapi   & \url{\analysis/game}     & Detailed post-game breakdown. \\ \hline
+    \postapi   & \url{\analysis/champion} & Global champion stats from EUW dataset. \\ \hline
     \end{tabular}
     \caption{Analysis REST API}
     \label{tab:api-analysis}
@@ -492,6 +492,44 @@
     \hrule
     \vspace{1cm}
 
+    %%%%%%%%%%%%%%%%%%%%%% Non-Functional Requirements %%%%%%%%%%%%%%%%%%%%%%%%
+    \section{Non-Functional Requirements}
+    
+    In accordance with the project guidelines, we implemented several non-functional improvements to ensure the system is robust, scalable, and secure.
+
+    \subsection{Microservices Architecture - Diogo Sousa}
+
+    The core architecture focuses on high availability and loose coupling through message-driven patterns.
+    
+    \begin{itemize}
+        \item \bff{Database per Service}: Each microservice (Matchmaking, Ranking, History) maintains its own isolated PostgreSQL database, ensuring data encapsulation and independent scaling.
+        \item \bff{Message-Driven (Pub/Sub)}: Utilization of \bff{RabbitMQ} for asynchronous, decoupled communication (e.g., Matchmaking publishing game results that are consumed by History and Training services).
+    \end{itemize}
+    
+    \subsection{Serverless \& FaaS Integration - Bruno Faustino}
+
+    To optimize resource usage, specific background tasks (such as Detail Filling via Riot's API) were designed to transition to a Serverless model.
+    \begin{itemize}
+        \item \bff{Implementation}: Evaluated \bff{Quarkus Funqy} for a portable, provider-agnostic function-as-a-service (FaaS) experience to handle bursty API polling.
+    \end{itemize}
+    
+    \subsection{Data Science \& Machine Learning - Rodrigo Neto}
+    
+    \begin{itemize}
+        \item \bff{Batch ML Pipelines}: Engineered a dedicated Training service using \bff{scikit-learn} and \bff{LightGBM} to process the 78GB dataset in batches, extracting features and training predictive models without impacting real-time API performance.
+    \end{itemize}
+    
+    \subsection{DevOps \& Automation - Bruno Faustino \& Rodrigo Neto}
+    
+    \begin{itemize}
+        \item \bff{GitOps}: \bff{Argo CD} is used to automatically synchronize the Kubernetes cluster state with the Git repository.
+        \item \bff{Infrastructure as Code (IaC)}: Provisioning Google Kubernetes Engine (GKE) and secrets management using \bff{Terraform}. 
+    \end{itemize}
+
+    \vspace{1cm}
+    \hrule
+    \vspace{1cm}
+
     %%%%%%%%%%%%%%%%%%%%%%% Application Architecture %%%%%%%%%%%%%%%%%%%%%%%%%%
     \section{Application Architecture}
 
@@ -509,158 +547,48 @@
         \item \bff{Usage}:
         \begin{itemize}
             \item \bff{Redis}: Manages the active matchmaking tickets and distributed locks for thread-safe lobby formation.
-            \item \bff{PostgreSQL}: Stores Lobby, Match, and MatchTicket entities to track the lifecycle of a match from 'Searching' to 'Started' or 'Cancelled'.
+            \item \bff{PostgreSQL}: Stores Lobby, Match, and MatchTicket entities to track the lifecycle of a match.
         \end{itemize}
-        \item \bff{Why}: \bff{Redis} provides the \bff{low latency} needed for high-frequency queue operations, while \bff{PostgreSQL} ensures that lobby states and match history are \bff{recoverable} even if a service pod restarts.
     \end{itemize}
 
     \subsection{Ranking Service - Diogo Sousa}
 
     \begin{itemize}
         \item \bff{Database}: \bff{PostgreSQL (Ranking DB)}
-        \item \bff{Usage}: Persists long-term player profiles, Discord/Riot account linkages, and MMR history. It stores the source of truth for a player's skill level and detailed win/loss/stat records across various queues.
-        \item \bff{Why}: Requires \bff{ACID compliance} to ensure that MMR updates and account linking are handled atomically and reliably.
+        \item \bff{Usage}: Persists long-term player profiles, Discord/Riot account linkages, and MMR history.
     \end{itemize}
 
     \subsection{Match History Service - Bruno Faustino}
 
     \begin{itemize}
         \item \bff{Database}: \bff{PostgreSQL (History DB)}
-        \item \bff{Usage}: Indexes detailed match statistics for players and teams, supporting complex filtering (e.g., 'all matches where player X had the most kills').
-        \item \bff{Why}: \bff{Relational PostgreSQL} is ideal for complex queries, sorting, and paginated views of historical match data.
+        \item \bff{Usage}: Indexes detailed match statistics for players and teams, supporting complex filtering.
     \end{itemize}
     
     \subsection{Detail Filling Service - Bruno Faustino}
 
     \begin{itemize}
         \item \bff{Database}: \bff{Redis (API Cache)}
-        \item \bff{Usage}: Caches Riot API responses for accounts and match details.
-        \item \bff{Why}: Essential for \bff{performance} and \bff{cost-efficiency}; it minimizes calls to the external Riot API, preventing rate-limiting/API key issues and speeding up data retrieval for other services.
+        \item \bff{Usage}: Caches Riot API responses for accounts and match details to minimize external calls.
     \end{itemize}
 
     \subsection{Training Service - Rodrigo Neto}
     
     \begin{itemize}
-        \item \bff{Database}: \bff{BigQuery (Model DB)}
+        \item \bff{Database}: \bff{BigQuery (Model DB) / Persistent Volume}
         \item \bff{Usage}: Responsible for training and storing machine learning models using historical match data.
-        \item \bff{Why}: Separating training from analysis ensures that \bff{resource-intensive model training} does not compete with real-time insight requests.
     \end{itemize}
     
-    \subsection{Analysis - Rodrigo Neto}
+    \subsection{Analysis Service - Rodrigo Neto}
     
     \begin{itemize}
-        \item \bff{Database}: \bff{BigQuery (Data DB)}
-        \item \bff{Usage}: Consumes match data to provide real-time and post-game insights, such as draft analysis and player performance metrics.
-        \item \bff{Why}: BigQuery allows for \bff{efficient querying of massive datasets} without impacting the performance of the operational transactional databases.
-    \end{itemize}
-    
-    \subsection{Inter-Service Communication - Everyone}
-
-    \begin{itemize}
-        \item The services communicate reliably through \bff{gRPC} for high-performance internal calls (e.g., Matchmaking asking Ranking for a player's MMR) and \bff{REST} for external integration and management.
+        \item \bff{Usage}: Consumes models to provide real-time and post-game insights (draft analysis, performance metrics).
     \end{itemize}
 
     \vspace{1cm}
     \hrule
     \vspace{1cm}
-
-    %%%%%%%%%%%%%%%%%%%%%% Non-Functional Requirements %%%%%%%%%%%%%%%%%%%%%%%%
-    \section{Non-Functional Requirements}
-
-    \subsection{Microservices Architecture - Diogo Sousa}
-
-    The core architecture focuses on high availability and loose coupling through message-driven patterns.
     
-    \subsubsection*{Data \& Communication}
-
-    \begin{itemize}
-        \item \bff{Database Replication}: Implementation of replication strategies to ensure data persistence and availability across microservices. 
-        \item \bff{Message-Driven}: Utilization of \bff{RabbitMQ} for asynchronous, decoupled communication.
-        \begin{itemize}
-            \item \bff{Orchestration}: Deployed within \bff{Kubernetes} for scalable message processing. 
-            \item \bff{Integration}: Support for \bff{Quarkus} (Java) and \bff{Python} clients to facilitate real-time data processing. 
-        \end{itemize}
-    \end{itemize}
-    
-    \subsection{Serverless \& FaaS Integration - Bruno Faustino}
-
-    To optimize resource usage, specific background tasks (such as detail filling) will transition to a Serverless model using \bff{Google Cloud Functions}.
-
-    \begin{itemize}
-        \item \bff{Implementation}: \bff{Quarkus Funqy} for a portable, provider-agnostic function-as-a-service (FaaS) experience. 
-        \item \bff{Communication}: Utilizing \bff{gRPC} for high-performance communication between the serverless functions and existing microservices. 
-    \end{itemize}
-    
-    \subsection{DevOps \& Observability}
-
-    A multi-layered approach to infrastructure management and system monitoring.
-    
-    \subsubsection{Observability Stacks - Bruno Faustino}
-
-    We are thinking about two primary observability stacks for monitoring metrics, logs, and traces.
-    
-    \paragraph*{Option A: The LGTM Stack (Grafana Cloud)}
-    
-    \begin{itemize}
-        \item \bff{Loki}:  Log aggregation system using label-based indexing for cost-efficiency. 
-        \item \bff{Grafana}: Central visualization hub for dashboards and alerting. 
-        \item \bff{Tempo}: High-scale distributed tracing backend.
-        \item \bff{Mimir/Prometheus}: Long-term storage and collection of time-series metrics. 
-        \item \bff{Alloy}: OpenTelemetry-native collector for forwarding metrics, logs and traces data. 
-    \end{itemize}
-    
-    \paragraph*{Option B: VictoriaMetrics Stack}
-
-    \begin{itemize}
-        \item \bff{VictoriaMetrics}: Handles metrics and alerts via MetricsQL. 
-        \item \bff{VictoriaLogs}: Dedicated log database using LogsQL. 
-        \item \bff{VictoriaTraces}: Dedicated tracing backend. 
-        \item \bff{Ingestion}: Native \bff{OpenTelemetry} support for all telemetry types. 
-    \end{itemize}
-    
-    \subsubsection{Infrastructure as Code (IaC) \& Automation}
-    
-    \paragraph{GKE Automation - Rodrigo Neto}
-
-    \begin{itemize}
-        \item \bff{GKE Automation}: Provisioning Google Kubernetes Engine (GKE) using \bff{Terraform} or \bff{Pulumi} (Python). 
-    \end{itemize}
-    
-    \paragraph{Configuration Management \& Continuous Delivery - Bruno Faustino}
-
-    \begin{itemize}
-        \item \bff{Configuration Management}: Using \bff{Ansible} to manage Kubernetes ConfigMaps and software state. 
-        \item \bff{Continuous Delivery}: \bff{Argo CD} will be used for GitOps, ensuring the cluster state automatically reflects the Git repository via pull requests.
-    \end{itemize}
-    
-    \subsection{Security \& Identity Management - Rodrigo Neto}
-
-    Security is enforced at both the application level (JWT) and the network level (Service Mesh).
-    
-    \subsubsection{Authentication Flow}
-
-    The Authentication Microservice (AMS) manages the user lifecycle: 
-
-    \begin{enumerate}
-        \item \bff{Account Creation}: AMS validates credentials and stores the user hash in a database. 
-        \item \bff{Authentication}: User logs in, AMS validates credentials, generates a \bff{JWT}, and stores it in a \bff{Redis} cache for session management. 
-        \item \bff{Request Validation}: The user provides the JWT in request headers. Microservices validate the token with AMS (or via Service Mesh policy) to grant access.
-    \end{enumerate}
-    
-    \subsubsection{Network \& Bot Security}
-
-    \begin{itemize}
-        \item \bff{Istio Service Mesh}: Enforces \bff{mTLS} (mutual TLS) for secure service-to-service communication and decentralized authorization. 
-        \item \bff{Discord Bot Validation}: Action validation between the Discord bot and backend services is secured via a shared secret.
-        \begin{itemize}
-            \item Requests are encrypted with the shared secret, including an account ID and timestamp to prevent replay attacks.
-        \end{itemize} 
-    \end{itemize}
-
-    \vspace{1cm}
-    \hrule
-    \vspace{1cm}
-
     %%%%%%%%%%%%%%%%%%%%%%% Technical Architecture %%%%%%%%%%%%%%%%%%%%%%%%%%%%
     \section{Technical Architecture}
 
@@ -670,6 +598,20 @@
         \caption{Technical Architecture}
         \label{fig:tech-arch}
     \end{figure}
+    
+    \vspace{1cm}
+    \hrule
+    \vspace{1cm}
+
+    %%%%%%%%%%%%%%%%%%%%%%% Implementation (High Level) %%%%%%%%%%%%%%%%%%%%%%%
+    \section{Implementation (High Level Description)}
+    
+    The system is implemented as a suite of polyglot microservices:
+    \begin{itemize}
+        \item \bff{Core Backend (Java/Quarkus)}: The Matchmaking, Ranking, History, and Detail Filling services are built using Java 21 and the Quarkus framework. This choice provides excellent performance, low memory footprint (ideal for Kubernetes), and native support for gRPC, REST (RESTEasy), and Hibernate ORM for PostgreSQL interaction.
+        \item \bff{Data Science Backend (Python/FastAPI)}: The Training and Analysis services are built in Python using FastAPI. This allows us to leverage the extensive Python ML ecosystem (Pandas, scikit-learn, LightGBM) while maintaining high-performance asynchronous API endpoints.
+        \item \bff{Communication}: Synchronous inter-service communication is handled via strict \bff{gRPC} contracts (compiled for both Java and Python), while asynchronous events (like match completions) are broadcasted via \bff{RabbitMQ} exchanges.
+    \end{itemize}
 
     \vspace{1cm}
     \hrule
@@ -724,7 +666,32 @@
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%% Tuning %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     \section{Tuning}
 
-    TODO - cpu/memory requests and limits, hpa, vpa, liveness and readiness checks with initialDelay/period/timeout
+    System performance is optimized through precise resource allocation and automatic scaling policies.
+
+    \subsection{Resource Requests and Limits}
+    
+    Each service is configured with baseline requests and hard limits to ensure fair scheduling and prevent OOM (Out of Memory) events:
+    \begin{itemize}
+        \item \bff{Java Services}: Typically 400m-500m CPU and 512Mi Memory.
+        \item \bff{Training Service}: High resource allocation (600m CPU, 2Gi Memory) to handle ML workloads.
+        \item \bff{Analysis Service}: 500m CPU and 1Gi Memory for real-time inference.
+    \end{itemize}
+
+    \subsection{Scaling Policies}
+
+    \begin{itemize}
+        \item \bff{Horizontal Pod Autoscaler (HPA)}: Enabled for all services, scaling from 1 to 3 replicas based on a 70-80\% CPU utilization threshold.
+        \item \bff{Vertical Pod Autoscaler (VPA)}: Globally enabled in recommendation mode to provide insights for future resource adjustments without disrupting Argo CD sync.
+    \end{itemize}
+
+    \subsection{Health Probes}
+    
+    Comprehensive health monitoring is implemented using SmallRye Health:
+    \begin{itemize}
+        \item \bff{Readiness Probes}: Ensure traffic is only routed once the service has established database connections and linked with gRPC peers.
+        \item \bff{Liveness Probes}: Automatically restart containers that enter a deadlocked state.
+        \item \bff{Startup Probes}: Configured with extended failure thresholds (up to 60 for Training service) to accommodate longer initialization times during cold starts.
+    \end{itemize}
 
     \vspace{1cm}
     \hrule
@@ -733,7 +700,19 @@
     %%%%%%%%%%%%%%%%%%%%%%%%%% CI/CD Pipeline %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     \section{CI/CD Pipeline}
 
-    TODO - on push to main and work/*, on pull-request to main, test types of each and brief description of the tests, ...
+    The ScrimFinder automation pipeline is implemented via GitHub Actions, providing an exhaustive validation flow for every contribution.
+
+    \subsection{Continuous Integration (CI)}
+    \begin{itemize}
+        \item \bff{Fast Tests}: On every push to \texttt{main} or \texttt{work/**}, a matrix job runs unit and light integration tests for all Java (Quarkus) and Python (FastAPI) services. This includes linting with \texttt{spotless} and \texttt{ruff}.
+        \item \bff{Heavy Tests}: Pull requests trigger a complete integration suite.
+        \item \bff{Ephemeral Stacks}: For critical validation, the CI provisions a temporary GKE cluster using Terraform, deploys the entire application stack via Helm, and runs system-wide tests against the live environment before tearing it down.
+    \end{itemize}
+
+    \subsection{Continuous Deployment (CD)}
+    \begin{itemize}
+        \item \bff{GitOps with Argo CD}: The production state is managed in the \texttt{k8s/application.yaml} manifest. Argo CD monitors the repository and automatically synchronizes the cluster state whenever a change is merged to the main branch.
+    \end{itemize}
 
     \vspace{1cm}
     \hrule
@@ -860,7 +839,16 @@
     %%%%%%%%%%%% Corrections Implemented after Feedback from Testing %%%%%%%%%%
     \section{Corrections Implemented after Feedback from Testing}
 
-    TODO
+    Following the "Cloudy Day" testing phase and internal smoke tests, several critical improvements were implemented to enhance system reliability and client experience.
+
+    \subsection{Improved Error Handling in Player Registration}
+    Initial feedback indicated that the \texttt{POST /api/v1/matchmaking/players} endpoint returned a \texttt{500 Internal Server Error} when a duplicate UUID was provided, whereas a duplicate Discord username correctly returned a \texttt{409 Conflict}. We updated the \texttt{PlayerServiceImpl} to perform an explicit check for existing IDs before persistence. This ensures that all conflict scenarios (ID or Username) return a clear \texttt{409} status with a specific error message, improving the API's predictability.
+
+    \subsection{Standardized Exception Mapping}
+    We refined the \texttt{GlobalExceptionHandler} to move away from generic \texttt{REMOTE\_SERVICE\_ERROR} codes for client-side issues. HTTP status codes are now accurately reflected in the error response payload, using \texttt{BAD\_REQUEST} or \texttt{NOT\_FOUND} where appropriate. This directly addresses feedback regarding the ambiguity of error messages under high load and validation failures.
+
+    \subsection{Documentation Consistency}
+    OpenAPI annotations were updated to explicitly state uniqueness constraints and provide example payloads for complex enums, reducing the "trial and error" approach previously required by external testers.
 
     \vspace{1cm}
     \hrule
@@ -869,7 +857,39 @@
     %%%%%%%%%%%%%%%%%%%%%%%%%% Cost Analysis %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     \section{Cost Analysis}
 
-    TODO
+    The following table outlines the estimated monthly operational costs for ScrimFinder on Google Cloud Platform (Region: \texttt{europe-west1}), calculated using the \href{https://cloud.google.com/products/calculator}{Official GCP Pricing Calculator}. In this architecture, all databases (PostgreSQL, Redis) and message brokers (RabbitMQ) are self-hosted directly on the GKE cluster using persistent storage, rather than managed cloud services. Costs are estimated in Euros (€).
+
+    \begin{table}[H]
+    \centering
+    \begin{tabular}{|l|p{6cm}|r|}
+    \hline
+    \bff{Component} & \bff{Details} & \bff{Est. Cost (EUR)} \\ \hline
+    GKE Cluster\footnotemark & 3-5 nodes (\texttt{e2-standard-4} Spot) + Management fee & €170.00 \\ \hline
+    Persistent Storage\footnotemark & SSD Storage for PostgreSQL, Redis, and AI data & €145.00 \\ \hline
+    BigQuery\footnotemark   & 78GB active storage + Analysis slots & €28.00 \\ \hline
+    Other\footnotemark      & Artifact Registry, Cloud Functions, Traffic & €14.00 \\ \hline
+    \bff{Total}             & & \bff{€357.00} \\ \hline
+    \end{tabular}
+    \caption{Estimated Monthly Infrastructure Cost}
+    \label{tab:cost-analysis}
+    \end{table}
+
+    \addtocounter{footnote}{-3}
+    \footnotetext{\href{https://cloud.google.com/kubernetes-engine/pricing}{GKE Pricing}: Scaled to handle both application logic and stateful database workloads.}
+    \stepcounter{footnote}
+    \footnotetext{\href{https://cloud.google.com/compute/disks-pricing}{Persistent Disk Pricing}: Based on regional SSD (pd-ssd) for high-IOPS database performance.}
+    \stepcounter{footnote}
+    \footnotetext{\href{https://cloud.google.com/bigquery/pricing}{BigQuery Pricing}: Scaled for the training service's feature extraction workloads.}
+    \stepcounter{footnote}
+    \footnotetext{Includes external load balancer and public IP addresses.}
+
+    \subsection{FinOps and Optimization Measures}
+    To keep the platform cost-effective, we implemented the following strategies:
+    \begin{itemize}
+        \item \bff{BigQuery for ML}: Offloading massive match history storage to BigQuery instead of relational SQL databases significantly reduces storage costs.
+        \item \bff{Redis Caching}: Aggressively caching Riot API responses reduces the need for expensive high-concurrency calls and helps stay within lower API tier limits.
+        \item \bff{Autoscaling}: HPA ensures we only run multiple replicas during peak hours, while VPA helps identify over-provisioned services that can be downsized.
+    \end{itemize}
 
     \vspace{1cm}
     \hrule
