@@ -59,7 +59,7 @@ public class PlayerController {
                                         schema = @Schema(implementation = ErrorResponse.class))),
                 @APIResponse(
                         responseCode = "409",
-                        description = "Player or Discord Username already exists",
+                        description = "Conflict: Player ID or Discord Username already exists",
                         content =
                                 @Content(
                                         mediaType = "application/json",

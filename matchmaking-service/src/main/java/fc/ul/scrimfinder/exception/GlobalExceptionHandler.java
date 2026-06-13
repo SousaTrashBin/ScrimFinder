@@ -60,11 +60,15 @@ public class GlobalExceptionHandler {
 
     @ServerExceptionMapper
     public RestResponse<ErrorResponse> mapException(WebApplicationException x) {
-        log.error(
-                "WebApplicationException: {} - Status: {}", x.getMessage(), x.getResponse().getStatus());
+        int status = x.getResponse().getStatus();
+        log.error("WebApplicationException: {} - Status: {}", x.getMessage(), status);
+
+        String code = status >= 500 ? "REMOTE_SERVICE_ERROR" : "BAD_REQUEST";
+        if (status == 404) code = "NOT_FOUND";
+
         return RestResponse.status(
-                Response.Status.fromStatusCode(x.getResponse().getStatus()),
-                ErrorResponse.builder().code("REMOTE_SERVICE_ERROR").message(x.getMessage()).build());
+                Response.Status.fromStatusCode(status),
+                ErrorResponse.builder().code(code).message(x.getMessage()).build());
     }
 
     @ServerExceptionMapper
