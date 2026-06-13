@@ -502,7 +502,7 @@
     The core architecture focuses on high availability and loose coupling through message-driven patterns.
     
     \begin{itemize}
-        \item \bff{Database per Service}: Each microservice (Matchmaking, Ranking, History) maintains its own isolated PostgreSQL database, ensuring data encapsulation and independent scaling.
+        \item \bff{Database per Service}: Each microservice (Matchmaking, Ranking, History) maintains its own isolated PostgreSQL database, ensuring data encapsulation and independent scaling. Critical databases utilize a \bff{Master-Slave replication model} to ensure high availability and read-scalability.
         \item \bff{Message-Driven (Pub/Sub)}: Utilization of \bff{RabbitMQ} for asynchronous, decoupled communication (e.g., Matchmaking publishing game results that are consumed by History and Training services).
     \end{itemize}
     
@@ -547,7 +547,7 @@
         \item \bff{Usage}:
         \begin{itemize}
             \item \bff{Redis}: Manages the active matchmaking tickets and distributed locks for thread-safe lobby formation.
-            \item \bff{PostgreSQL}: Stores Lobby, Match, and MatchTicket entities to track the lifecycle of a match.
+            \item \bff{PostgreSQL}: Stores Lobby, Match, and MatchTicket entities to track the lifecycle of a match. Utilizes \bff{Master-Slave replication} for durability.
         \end{itemize}
     \end{itemize}
 
@@ -555,14 +555,14 @@
 
     \begin{itemize}
         \item \bff{Database}: \bff{PostgreSQL (Ranking DB)}
-        \item \bff{Usage}: Persists long-term player profiles, Discord/Riot account linkages, and MMR history.
+        \item \bff{Usage}: Persists long-term player profiles, Discord/Riot account linkages, and MMR history. Configured with \bff{Master-Slave replication} for high availability.
     \end{itemize}
 
     \subsection{Match History Service - Bruno Faustino}
 
     \begin{itemize}
         \item \bff{Database}: \bff{PostgreSQL (History DB)}
-        \item \bff{Usage}: Indexes detailed match statistics for players and teams, supporting complex filtering.
+        \item \bff{Usage}: Indexes detailed match statistics for players and teams, supporting complex filtering. Uses \bff{Read-Replicas (Slave nodes)} to offload heavy filtering queries.
     \end{itemize}
     
     \subsection{Detail Filling Service - Bruno Faustino}
