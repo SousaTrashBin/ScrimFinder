@@ -505,7 +505,7 @@
     
     \begin{itemize}
         \item \bff{API Gateway}: Utilization of \bff{Traefik} for client request routing, rate limiting and API version management due to its native integration with Docker and Kubernetes, and ease of configuration.
-        \item \bff{Database per Service} - Diogo Sousa \& Bruno Faustino: Each microservice (Matchmaking, Ranking, History) maintains its own isolated PostgreSQL database, ensuring data encapsulation and independent scaling.
+        \item \bff{Database per Service}: Each microservice (Matchmaking, Ranking, History) maintains its own isolated PostgreSQL database, ensuring data encapsulation and independent scaling. Critical databases utilize a \bff{Master-Slave replication model} to ensure high availability and read-scalability.
         \item \bff{Retries} - Everyone: Failed API requests are resent a configured amount of times before being officially reported as a failure to prevent occasional communication errors from degradating the system.
         \item \bff{Timeouts} - Everyone: API requests taking too long to provide an answer are stopped early to contribute to the \bff{fail-fast} pattern.
         \item \bff{Circuit Breaker} - Everyone: After a configured number of API request failures to a service, posterior request attempts to that service will immediately fail for some time instead of taking long to warn the answer of what will likely be another failure, contributing to the \bff{fail-fast} pattern.
@@ -531,18 +531,18 @@
     \footnote{\label{foot1}This requirement was not complete at the time of writing so its monthly cost will not be considered in the FinOps section.}
     Utilization of \bff{Grafana Cloud} and its integrated tools (\bff{LGTM}) for monitoring metrics, logs and traces:
     \begin{itemize}
-        \item \bff{Loki}:  Log aggregation system using label-based indexing for cost-efficiency. 
-        \item \bff{Grafana}: Central visualization hub for dashboards and alerting. 
+        \item \bff{Loki}:  Log aggregation system using label-based indexing for cost-efficiency.
+        \item \bff{Grafana}: Central visualization hub for dashboards and alerting.
         \item \bff{Tempo}: High-scale distributed tracing backend.
-        \item \bff{Mimir/Prometheus}: Long-term storage and collection of time-series metrics. 
+        \item \bff{Mimir/Prometheus}: Long-term storage and collection of time-series metrics.
         \item \bff{Alloy}: OpenTelemetry-native collector for forwarding metrics, logs and traces data.
-    \end{itemize} 
-    
+    \end{itemize}
+
     \subsection{DevOps \& Automation - Bruno Faustino \& Rodrigo Neto}
     
     \begin{itemize}
         \item \bff{Infrastructure as Code (IaC)} - Rodrigo Neto: Provisioning Google Kubernetes Engine (GKE) and secrets management using \bff{Terraform}.
-        \item \bff{Configuration Management}\footref{foot1} - Bruno Faustino: \bff{Ansible} to manage Kubernetes ConfigMaps and software state. 
+        \item \bff{Configuration Management}\footref{foot1} - Bruno Faustino: \bff{Ansible} to manage Kubernetes ConfigMaps and software state.
         \item \bff{GitOps} - Bruno Faustino: \bff{Argo CD} is used to automatically synchronize the Kubernetes cluster state with the Git repository.
     \end{itemize}
 
@@ -551,13 +551,13 @@
     \footref{foot1}Security is enforced at both the application level (\bff{JWT}) and the network level (\bff{Service Mesh}).
 
     \begin{itemize}
-        \item \bff{Authentication Microservice (AMS)}: Manages the user lifecycle: 
+        \item \bff{Authentication Microservice (AMS)}: Manages the user lifecycle:
         \begin{enumerate}
-            \item \bff{Account Creation}: AMS validates credentials and stores the user hash in a database. 
-            \item \bff{Authentication}: User logs in, AMS validates credentials, generates a **JWT**, and stores it in a **Redis** cache for session management. 
-            \item \bff{Request Validation}: The user provides the JWT in request headers.  Microservices validate the token with AMS (or via Service Mesh policy) to grant access.
+            \item \bff{Account Creation}: AMS validates credentials and stores the user hash in a database.
+            \item \bff{Authentication}: User logs in, AMS validates credentials, generates a \bff{JWT}, and stores it in a \bff{Redis} cache for session management.
+            \item \bff{Request Validation}: The user provides the JWT in request headers. Microservices validate the token with AMS (or via Service Mesh policy) to grant access.
         \end{enumerate}
-        \item \bff{Istio Service Mesh}: Enforces \bff{mTLS} (mutual TLS) for secure service-to-service communication and decentralized authorization. 
+        \item \bff{Istio Service Mesh}: Enforces \bff{mTLS} (mutual TLS) for secure service-to-service communication and decentralized authorization.
         \item \bff{Discord Bot Validation}: Action validation between the Discord bot and backend services is secured via a shared secret.
         \begin{itemize}
             \item Requests are encrypted with the shared secret, including an account ID and timestamp to prevent replay attacks.
@@ -585,7 +585,7 @@
         \item \bff{Usage}:
         \begin{itemize}
             \item \bff{Redis}: Manages the active matchmaking tickets and distributed locks for thread-safe lobby formation.
-            \item \bff{PostgreSQL}: Stores Lobby, Match, and MatchTicket entities to track the lifecycle of a match.
+            \item \bff{PostgreSQL}: Stores Lobby, Match, and MatchTicket entities to track the lifecycle of a match. Utilizes \bff{Master-Slave replication} for durability.
         \end{itemize}
     \end{itemize}
 
@@ -593,14 +593,14 @@
 
     \begin{itemize}
         \item \bff{Database}: \bff{PostgreSQL (Ranking DB)}
-        \item \bff{Usage}: Persists long-term player profiles, Discord/Riot account linkages, and MMR history.
+        \item \bff{Usage}: Persists long-term player profiles, Discord/Riot account linkages, and MMR history. Configured with \bff{Master-Slave replication} for high availability.
     \end{itemize}
 
     \subsection{Match History Service - Bruno Faustino}
 
     \begin{itemize}
         \item \bff{Database}: \bff{PostgreSQL (History DB)}
-        \item \bff{Usage}: Indexes simplified match statistics for players and teams, supporting complex filtering, sorting and paging.
+        \item \bff{Usage}: Indexes simplified match statistics for players and teams, supporting complex filtering, sorting and paging. Uses \bff{Read-Replicas (Slave nodes)} to offload heavy filtering queries.
     \end{itemize}
     
     \subsection{Detail Filling Service - Bruno Faustino}
