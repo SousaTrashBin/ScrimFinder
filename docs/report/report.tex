@@ -139,13 +139,13 @@
  \begin{table}[H]
  \begin{tabular}{|p{10cm}|p{5cm}|}
  \hline
- \bff{Use Case}           & \bff{Student Name} \\ \hline            
+ \bff{Use Case}           & \bff{Student Name} \\ \hline          
  Match History            & Bruno Faustino \\ \hline
  Advanced History Filtering / Sorting / Paging    & Bruno Faustino \\ \hline
  Automatic Detail Filling (by interacting with RIOT's API) & Bruno Faustino \\ \hline
  Draft Analysis           & Rodrigo Neto \\ \hline
  Build Analysis           & Rodrigo Neto \\ \hline
- Player Performance Analysis          & Rodrigo Neto \\ \hline
+ Player Performance Analysis        & Rodrigo Neto \\ \hline
  \end{tabular}
  \caption{Data Visualization \& Analysis Use Cases per Student}
  \label{tab:use-cases-data-visualization-analysis}
@@ -167,16 +167,16 @@
  \begin{tabular}{|p{2cm}|p{5cm}|p{7cm}|}
  \hline
  \bff{Verb} & \bff{Endpoint}            & \bff{Description} \\ \hline
- \postapi   & \url{\matchmaking{/players}}       & Register a new player in the platform. \\ \hline
- \getapi & \url{\matchmaking{/players/{id}}}        & Get internal player details. \\ \hline
- \getapi & \url{\matchmaking{/players/{id}/lobbies}}      & Get all lobbies associated with a player. \\ \hline
- \getapi & \url{\matchmaking{/players/{id}/tickets}}      & Get all active tickets for a player. \\ \hline
+ \postapi & \url{\matchmaking{/players}}       & Register a new player in the platform. \\ \hline
+ \getapi & \url{\matchmaking{/players/{id}}}      & Get internal player details. \\ \hline
+ \getapi & \url{\matchmaking{/players/{id}/lobbies}}    & Get all lobbies associated with a player. \\ \hline
+ \getapi & \url{\matchmaking{/players/{id}/tickets}}    & Get all active tickets for a player. \\ \hline
  \deleteapi & \url{\ranking{/players/links/{gameName}/{tagLine}}}  & Unlink a League of Legends account. \\ \hline
  \getapi & \url{\ranking{/players/{playerId}}}      & Get player profile and MMR. \\ \hline
  \putapi & \url{\ranking{/players/{playerId}/link-lol-account}} & Link a Riot account to a player. \\ \hline
  \getapi & \url{\ranking{/players/{playerId}/primary-account}}  & Get the primary linked Riot account. \\ \hline
  \putapi & \url{\ranking{/players/{playerId}/set-primary-account}} & Set the primary Riot account. \\ \hline
- \postapi   & \url{\ranking{/players/{playerId}/sync-mmr}}   & Sync MMR from external services. \\ \hline
+ \postapi & \url{\ranking{/players/{playerId}/sync-mmr}}   & Sync MMR from external services. \\ \hline
  \end{tabular}
  \caption{Player Management REST API}
  \label{tab:api-player-management}
@@ -189,8 +189,8 @@
  \begin{table}[H]
  \begin{tabular}{|p{2cm}|p{5cm}|p{7cm}|}
  \hline
- \bff{Verb} & \bff{Endpoint}       & \bff{Description} \\ \hline
- \postapi   & \url{\matchmaking{/queues}}   & Create a new global or local queue. \\ \hline
+ \bff{Verb} & \bff{Endpoint}     & \bff{Description} \\ \hline
+ \postapi & \url{\matchmaking{/queues}}   & Create a new global or local queue. \\ \hline
  \getapi & \url{\matchmaking{/queues/{id}}} & Get queue configuration and status. \\ \hline
  \putapi & \url{\ranking{/queue/{queueId}}} & Update queue MMR rules. \\ \hline
  \getapi & \url{\ranking{/queue/{queueId}}} & Get queue details from Ranking. \\ \hline
@@ -208,12 +208,12 @@
  \begin{tabular}{|p{2cm}|p{5cm}|p{7cm}|}
  \hline
  \bff{Verb} & \bff{Endpoint}               & \bff{Description} \\ \hline
- \postapi   & \url{\matchmaking{/tickets}}             & Join a matchmaking queue. \\ \hline
- \postapi   & \url{\matchmaking{/tickets/matches/{matchId}/complete}}       & Finalize match and report results. \\ \hline
- \putapi & \url{\matchmaking{/tickets/matches/{matchId}/link}}        & Link external Game ID to match. \\ \hline
- \postapi   & \url{\matchmaking{/tickets/matches/{matchId}/players/{playerId}/accept}}  & Accept a match proposal. \\ \hline
- \postapi   & \url{\matchmaking{/tickets/matches/{matchId}/players/{playerId}/decline}} & Decline a match proposal. \\ \hline
- \deleteapi & \url{\matchmaking{/tickets/{ticketId}}}           & Leave a matchmaking queue. \\ \hline
+ \postapi & \url{\matchmaking{/tickets}}             & Join a matchmaking queue. \\ \hline
+ \postapi & \url{\matchmaking{/tickets/matches/{matchId}/complete}}     & Finalize match and report results. \\ \hline
+ \putapi & \url{\matchmaking{/tickets/matches/{matchId}/link}}      & Link external Game ID to match. \\ \hline
+ \postapi & \url{\matchmaking{/tickets/matches/{matchId}/players/{playerId}/accept}}  & Accept a match proposal. \\ \hline
+ \postapi & \url{\matchmaking{/tickets/matches/{matchId}/players/{playerId}/decline}} & Decline a match proposal. \\ \hline
+ \deleteapi & \url{\matchmaking{/tickets/{ticketId}}}         & Leave a matchmaking queue. \\ \hline
  \getapi & \url{\matchmaking{/tickets/{ticketId}/lobby}}        & Get current lobby for a ticket. \\ \hline
  \end{tabular}
  \caption{Matchmaking REST API}
@@ -258,7 +258,7 @@
  \begin{tabular}{|p{2cm}|p{5cm}|p{7cm}|}
  \hline
  \bff{Verb} & \bff{Endpoint}       & \bff{Description} \\ \hline
- \getapi & \url{\history{/matches}}      & Get paginated match history with filters and sorting. \\ \hline
+ \getapi & \url{\history{/matches}}    & Get paginated match history with filters and sorting. \\ \hline
  \getapi & \url{\history{/matches/{riotMatchId}}} & Get simplified match information, useful for players. \\ \hline
  \end{tabular}
  \caption{Match History REST API}
@@ -303,11 +303,11 @@
  \begin{tabular}{|p{2cm}|p{5cm}|p{7cm}|}
  \hline
  \bff{Verb} & \bff{Endpoint}     & \bff{Description} \\ \hline
- \getapi & \url{\analysis/}      & Service root. \\ \hline
+ \getapi & \url{\analysis/}    & Service root. \\ \hline
  \getapi & \url{\analysis/health}   & General health status. \\ \hline
  \getapi & \url{\analysis/q/health/ready} & Readiness probe. \\ \hline
  \getapi & \url{\analysis/q/health/live}  & Liveness probe. \\ \hline
- \getapi & \url{\training/}      & Service root. \\ \hline
+ \getapi & \url{\training/}    & Service root. \\ \hline
  \getapi & \url{\training/health}   & General health status. \\ \hline
  \getapi & \url{\training/q/health/ready} & Readiness probe. \\ \hline
  \getapi & \url{\training/q/health/live}  & Liveness probe. \\ \hline
@@ -327,11 +327,11 @@
  \begin{tabular}{|p{2cm}|p{5cm}|p{7cm}|}
  \hline
  \bff{Verb} & \bff{Endpoint}       & \bff{Description} \\ \hline
- \postapi   & \url{\training/jobs}       & Start a new ML training job. \\ \hline
- \getapi & \url{\training/jobs}       & List all training jobs. \\ \hline
+ \postapi & \url{\training/jobs}     & Start a new ML training job. \\ \hline
+ \getapi & \url{\training/jobs}     & List all training jobs. \\ \hline
  \getapi & \url{\training/jobs/{job\_id}}   & Get job status and metrics. \\ \hline
- \postapi   & \url{\training/jobs/{job\_id}/cancel}  & Stop a running job. \\ \hline
- \postapi   & \url{\training/jobs/{job\_id}/deploy}  & Deploy the trained model. \\ \hline
+ \postapi & \url{\training/jobs/{job\_id}/cancel}  & Stop a running job. \\ \hline
+ \postapi & \url{\training/jobs/{job\_id}/deploy}  & Deploy the trained model. \\ \hline
  \end{tabular}
  \caption{Training REST API}
  \label{tab:api-training}
@@ -345,13 +345,13 @@
  \begin{table}[H]
  \begin{tabular}{|p{2cm}|p{5cm}|p{7cm}|}
  \hline
- \bff{Verb} & \bff{Endpoint}          & \bff{Description} \\ \hline
- \postapi   & \url{\training/datasets}      & Register a new dataset definition. \\ \hline
+ \bff{Verb} & \bff{Endpoint}        & \bff{Description} \\ \hline
+ \postapi & \url{\training/datasets}      & Register a new dataset definition. \\ \hline
  \getapi & \url{\training/datasets}      & List curated datasets. \\ \hline
- \postapi   & \url{\training/datasets/build}      & Create and build a dataset from games. \\ \hline
- \getapi & \url{\training/datasets/{dataset\_id}}    & Get dataset metadata. \\ \hline
- \deleteapi & \url{\training/datasets/{dataset\_id}}    & Delete a dataset. \\ \hline
- \postapi   & \url{\training/datasets/{dataset\_id}/build} & Rebuild an existing dataset. \\ \hline
+ \postapi & \url{\training/datasets/build}    & Create and build a dataset from games. \\ \hline
+ \getapi & \url{\training/datasets/{dataset\_id}}  & Get dataset metadata. \\ \hline
+ \deleteapi & \url{\training/datasets/{dataset\_id}}  & Delete a dataset. \\ \hline
+ \postapi & \url{\training/datasets/{dataset\_id}/build} & Rebuild an existing dataset. \\ \hline
  \end{tabular}
  \caption{Datasets REST API}
  \label{tab:api-datasets}
@@ -364,10 +364,10 @@
  \begin{table}[H]
  \begin{tabular}{|p{2cm}|p{5cm}|p{7cm}|}
  \hline
- \bff{Verb} & \bff{Endpoint}       & \bff{Description} \\ \hline
- \postapi   & \url{\training/games}   & Ingest a single match. \\ \hline
+ \bff{Verb} & \bff{Endpoint}     & \bff{Description} \\ \hline
+ \postapi & \url{\training/games}   & Ingest a single match. \\ \hline
  \getapi & \url{\training/games}   & List all ingested games. \\ \hline
- \postapi   & \url{\training/games/batch}   & Ingest matches in batches (up to 1000). \\ \hline
+ \postapi & \url{\training/games/batch}   & Ingest matches in batches (up to 1000). \\ \hline
  \getapi & \url{\training/games/{game\_id}} & Fetch stored match details. \\ \hline
  \deleteapi & \url{\training/games/{game\_id}} & Delete an ingested game. \\ \hline
  \end{tabular}
@@ -389,8 +389,8 @@
  \getapi & \url{\training/models/active}     & List currently active models. \\ \hline
  \getapi & \url{\training/models/{model\_id}}   & Get model performance metrics. \\ \hline
  \deleteapi & \url{\training/models/{model\_id}}   & Remove a model from registry. \\ \hline
- \postapi   & \url{\training/models/{model\_id}/activate}   & Set model as active for analysis. \\ \hline
- \postapi   & \url{\training/models/{model\_id}/deactivate} & Deactivate a model. \\ \hline
+ \postapi & \url{\training/models/{model\_id}/activate} & Set model as active for analysis. \\ \hline
+ \postapi & \url{\training/models/{model\_id}/deactivate} & Deactivate a model. \\ \hline
  \end{tabular}
  \caption{Models REST API}
  \label{tab:api-models}
@@ -404,7 +404,7 @@
  \begin{tabular}{|p{2cm}|p{5cm}|p{7cm}|}
  \hline
  \bff{Verb} & \bff{Endpoint}       & \bff{Description} \\ \hline
- \postapi   & \url{\training/features/extract} & Extract features from match data. \\ \hline
+ \postapi & \url{\training/features/extract} & Extract features from match data. \\ \hline
  \getapi & \url{\training/features/{game\_id}} & Get cached feature vectors. \\ \hline
  \deleteapi & \url{\training/features/{game\_id}} & Delete cached features. \\ \hline
  \end{tabular}
@@ -419,12 +419,12 @@
  \begin{table}[H]
  \begin{tabular}{|p{2cm}|p{5cm}|p{7cm}|}
  \hline
- \bff{Verb} & \bff{Endpoint}     & \bff{Description} \\ \hline
- \postapi   & \url{\analysis/draft} & Predict team win probability. \\ \hline
- \postapi   & \url{\analysis/build} & Score item build effectiveness. \\ \hline
- \postapi   & \url{\analysis/player}   & Aggregated performance benchmarking. \\ \hline
- \postapi   & \url{\analysis/game}  & Detailed post-game breakdown. \\ \hline
- \postapi   & \url{\analysis/champion} & Global champion stats from EUW dataset. \\ \hline
+ \bff{Verb} & \bff{Endpoint}   & \bff{Description} \\ \hline
+ \postapi & \url{\analysis/draft} & Predict team win probability. \\ \hline
+ \postapi & \url{\analysis/build} & Score item build effectiveness. \\ \hline
+ \postapi & \url{\analysis/player} & Aggregated performance benchmarking. \\ \hline
+ \postapi & \url{\analysis/game}  & Detailed post-game breakdown. \\ \hline
+ \postapi & \url{\analysis/champion} & Global champion stats from EUW dataset. \\ \hline
  \end{tabular}
  \caption{Analysis REST API}
  \label{tab:api-analysis}
@@ -529,27 +529,6 @@
   \item Automated benchmarking of player performance metrics against global/rank-tier averages;
   \item Global champion performance tracking including win, pick, and ban rate analytics.
  \end{itemize}
-
- \subsection{Authentication --- Rodrigo Neto}
-
-\begin{itemize}
- \item Secure user registration with username normalization, email uniqueness,
- and password strength validation (minimum 8 characters, mixed case, digit,
- and special character);
- \item RS256 JWT token issuance with unique JWT ID (\ttt{jti}) claims for
- traceability and revocation;
- \item Token validation via HTTPBearer scheme with session cache lookup in
- BigQuery \ttt{access\_sessions} table;
- \item Refresh token rotation: each refresh invalidates the previous refresh
- token and issues a new pair, preventing replay attacks;
- \item Single-session enforcement: concurrent logins from the same user
- invalidate prior access tokens;
- \item Global logout (\ttt{logout-all}) revokes all refresh tokens and
- deletes all access sessions for a user;
- \item JWKS (JSON Web Key Set) endpoint for external service validation
- (Istio service mesh integration).
-\end{itemize}
-
 
  \vspace{1cm}
  \hrule
@@ -723,14 +702,14 @@
  \subsection{Local Checks}
  
  \begin{lstlisting}[language=bash]
-   ./scripts/format.sh
-   ./scripts/test.sh
+ ./scripts/format.sh
+ ./scripts/test.sh
  \end{lstlisting}
  
  Python gRPC files are generated, not committed:
 
  \begin{lstlisting}[language=bash]
-   ./scripts/python/generate-grpc.sh
+ ./scripts/python/generate-grpc.sh
  \end{lstlisting}
  
  \subsection{Deployment}
@@ -980,8 +959,8 @@
  \hline
  \bff{Component}     & \bff{Details}           & \bff{Est. Cost (\euro)} \\ \hline
  GKE Cluster\footnotemark  & 3-5 nodes (\texttt{e2-standard-4} Spot) + Management fee & \euro 170.00 \\ \hline
- Persistent Storage\footnotemark & SSD Storage for PostgreSQL, Redis, and AI data     & \euro 145.00 \\ \hline
- BigQuery\footnotemark     & 78GB active storage + Analysis slots      & \euro 28.00 \\ \hline
+ Persistent Storage\footnotemark & SSD Storage for PostgreSQL, Redis, and AI data   & \euro 145.00 \\ \hline
+ BigQuery\footnotemark   & 78GB active storage + Analysis slots      & \euro 28.00 \\ \hline
  Other\footnotemark     & Artifact Registry, Cloud Functions, Traffic     & \euro 14.00 \\ \hline
  \bff{Total}      &                & \bff{\euro 357.00} \\ \hline
  \end{tabular}
