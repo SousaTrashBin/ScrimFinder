@@ -97,27 +97,20 @@
  \section{Business Capabilities}
 
  \subsection{Competitive Ranking}
-
+ 
  Facilitates real-time visualization of global and local leaderboards. Includes simplified performance metrics such as Damage dealt and KDA ratios.
-
+ 
  \subsection{Custom Match Management}
-
+ 
  Enables the creation of balanced custom matches. Matchmaking is handled via a global/local queue system integrated with the project's ranking logic.
-
+ 
  \subsection{Custom Match History}
-
+ 
  Provides a centralized repository for past custom match statistics. Includes robust functionality for custom filtering and sorting based on specific user requirements.
-
+ 
  \subsection{Team Draft and Build Analyzer}
-
+ 
  Offers personalized post-game analysis. Players utilizing the API receive automated insights regarding gameplay performance and actionable tips for improvement.
-
- \subsection{Authentication and Identity Management}
-
- Secure account lifecycle management with RS256 JWT tokens, session invalidation,
- and JWKS endpoint for Istio service-mesh integration.
-
-
 
  \vspace{1cm}
  \hrule
@@ -146,7 +139,7 @@
  \begin{table}[H]
  \begin{tabular}{|p{10cm}|p{5cm}|}
  \hline
- \bff{Use Case}           & \bff{Student Name} \\ \hline           
+ \bff{Use Case}           & \bff{Student Name} \\ \hline            
  Match History            & Bruno Faustino \\ \hline
  Advanced History Filtering / Sorting / Paging    & Bruno Faustino \\ \hline
  Automatic Detail Filling (by interacting with RIOT's API) & Bruno Faustino \\ \hline
@@ -156,29 +149,6 @@
  \end{tabular}
  \caption{Data Visualization \& Analysis Use Cases per Student}
  \label{tab:use-cases-data-visualization-analysis}
- \end{table}
-
- \subsection{Authentication and Authorization --- Rodrigo Neto}
-
- \begin{table}[H]
- \centering
- \begin{tabular}{|p{10cm}|p{5cm}|}
- \hline
- \bff{Use Case} & \bff{Student Name} \\
- \hline
- User Registration & Rodrigo Neto \\
- \hline
- JWT Token Issuance (RS256) & Rodrigo Neto \\
- \hline
- Token Validation and Refresh & Rodrigo Neto \\
- \hline
- Session Management (Single and Global Logout) & Rodrigo Neto \\
- \hline
- JWKS Endpoint for Istio mTLS & Rodrigo Neto \\
- \hline
- \end{tabular}
- \caption{Authentication Use Cases per Student}
- \label{tab:use-cases-auth}
  \end{table}
 
  \vspace{1cm}
@@ -342,7 +312,7 @@
  \getapi & \url{\training/q/health/ready} & Readiness probe. \\ \hline
  \getapi & \url{\training/q/health/live}  & Liveness probe. \\ \hline
  \getapi & \url{\auth/health} &
- Service health status
+ Service health status 
  \\ \hline
  \end{tabular}
  \caption{System REST API}
@@ -460,7 +430,7 @@
  \label{tab:api-analysis}
  \end{table}
 
-
+ 
  \subsection{Authentication --- Rodrigo Neto}
 
  Secure identity management with RS256-signed JWTs, refresh token rotation,
@@ -538,7 +508,7 @@
   \item Retrieval of the full raw data to be used for data training and analysis;
   \item Retrieval of player information (account details, region, rank, wins, losses, points, ...).
  \end{itemize}
-
+ 
  \subsection{Training - Rodrigo Neto}
 
  \begin{itemize}
@@ -549,7 +519,7 @@
   \item Real-time monitoring of training progress and lifecycle management of active jobs;
   \item Maintenance of a versioned model registry with performance metrics.
  \end{itemize}
-
+ 
  \subsection{Data Analysis - Rodrigo Neto}
 
  \begin{itemize}
@@ -587,13 +557,13 @@
 
  %%%%%%%%%%%%%%%%%%%%%% Non-Functional Requirements %%%%%%%%%%%%%%%%%%%%%%%%
  \section{Non-Functional Requirements}
-
+ 
  In accordance with the project guidelines, we implemented several non-functional improvements to ensure the system is robust, scalable, and secure.
 
  \subsection{Microservices Architecture - Diogo Sousa}
 
  The core architecture focuses on high availability and loose coupling through message-driven patterns.
-
+ 
  \begin{itemize}
   \item \bff{API Gateway}: Utilization of \bff{Traefik} for client request routing, rate limiting and API version management due to its native integration with Docker and Kubernetes, and ease of configuration.
   \item \bff{Database per Service}: Each microservice (Matchmaking, Ranking, History) maintains its own isolated PostgreSQL database, ensuring data encapsulation and independent scaling. Critical databases utilize a \bff{Master-Slave replication model} to ensure high availability and read-scalability.
@@ -603,16 +573,16 @@
   \item \bff{Cache Aside} (Performance, Availability) - Bruno Faustino: Utilization of a \bff{Redis} cache to store Riot's API reponses to reduce the number of external API calls.
   \item \bff{Message-Driven (Pub/Sub)}: Utilization of \bff{RabbitMQ} for asynchronous, decoupled communication (e.g., Matchmaking publishing game results that are consumed by History and Training services).
  \end{itemize}
-
+ 
  \subsection{Serverless \& FaaS Integration - Bruno Faustino}
 
  To optimize resource usage and maintenance, specific background tasks (such as the 3 Detail Filling endpoints via Riot's API) were designed to transition to a Serverless model.
  \begin{itemize}
   \item \bff{Implementation}: Quarkus' \bff{Google Cloud Functions} extension for a function-as-a-service (FaaS) experience to handle bursty API polling, integrated with the cloud provider of this project.
  \end{itemize}
-
+ 
  \subsection{Data Science \& Machine Learning - Rodrigo Neto}
-
+ 
  \begin{itemize}
   \item \bff{Batch ML Pipelines}: Engineered a dedicated Training service using \bff{scikit-learn} and \bff{LightGBM} to process the 78GB dataset in batches, extracting features and training predictive models without impacting real-time API performance.
  \end{itemize}
@@ -630,7 +600,7 @@
  \end{itemize}
 
  \subsection{DevOps \& Automation - Bruno Faustino \& Rodrigo Neto}
-
+ 
  \begin{itemize}
   \item \bff{Infrastructure as Code (IaC)} - Rodrigo Neto: Provisioning Google Kubernetes Engine (GKE) and secrets management using \bff{Terraform}.
   \item \bff{Configuration Management}\footref{foot1} - Bruno Faustino: \bff{Ansible} to manage Kubernetes ConfigMaps and software state.
@@ -655,6 +625,7 @@
   \end{itemize}
  \end{itemize}
 
+
  \vspace{1cm}
  \hrule
  \vspace{1cm}
@@ -664,7 +635,7 @@
 
  \begin{figure}[H]
   \centering
-  \includegraphics[width=1.0\textwidth]{../architecture/app_architecture.png}
+  \includegraphics[width=1.0\textwidth]{app_architecture.png}
   \caption{Application Architecture}
   \label{fig:app-arch}
  \end{figure}
@@ -693,7 +664,7 @@
   \item \bff{Database}: \bff{PostgreSQL (History DB)}
   \item \bff{Usage}: Indexes simplified match statistics for players and teams, supporting complex filtering, sorting and paging. Uses \bff{Read-Replicas (Slave nodes)} to offload heavy filtering queries.
  \end{itemize}
-
+ 
  \subsection{Detail Filling Service - Bruno Faustino}
 
  \begin{itemize}
@@ -702,14 +673,14 @@
  \end{itemize}
 
  \subsection{Training Service - Rodrigo Neto}
-
+ 
  \begin{itemize}
   \item \bff{Database}: \bff{BigQuery (Model DB) / Persistent Volume}
   \item \bff{Usage}: Responsible for training and storing machine learning models using historical match data.
  \end{itemize}
-
+ 
  \subsection{Analysis Service - Rodrigo Neto}
-
+ 
  \begin{itemize}
   \item \bff{Usage}: Consumes models to provide real-time and post-game insights (draft analysis, performance metrics).
  \end{itemize}
@@ -717,24 +688,24 @@
  \vspace{1cm}
  \hrule
  \vspace{1cm}
-
+ 
  %%%%%%%%%%%%%%%%%%%%%%% Technical Architecture %%%%%%%%%%%%%%%%%%%%%%%%%%%%
  \section{Technical Architecture}
 
  \begin{figure}[H]
   \centering
-  \includegraphics[width=1.0\textwidth]{../architecture/app_technical_architecture.png}
+  \includegraphics[width=1.0\textwidth]{app_technical_architecture.png}
   \caption{Technical Architecture}
   \label{fig:tech-arch}
  \end{figure}
-
+ 
  \vspace{1cm}
  \hrule
  \vspace{1cm}
 
  %%%%%%%%%%%%%%%%%%%%%%% Implementation (High Level) %%%%%%%%%%%%%%%%%%%%%%%
  \section{Implementation (High Level Description)}
-
+ 
  The system is implemented as a suite of polyglot microservices:
  \begin{itemize}
   \item \bff{Core Backend (Java/Quarkus)}: The Matchmaking, Ranking, History, and Detail Filling services are built using Java 21 and the Quarkus framework. This choice provides excellent performance, low memory footprint (ideal for Kubernetes), and native support for gRPC, REST (RESTEasy), and Hibernate ORM for PostgreSQL interaction.
@@ -750,20 +721,20 @@
  \section{Deployment Scripts}
 
  \subsection{Local Checks}
-
+ 
  \begin{lstlisting}[language=bash]
    ./scripts/format.sh
    ./scripts/test.sh
  \end{lstlisting}
-
+ 
  Python gRPC files are generated, not committed:
 
  \begin{lstlisting}[language=bash]
    ./scripts/python/generate-grpc.sh
  \end{lstlisting}
-
+ 
  \subsection{Deployment}
-
+ 
  Required environment:
 
  \begin{lstlisting}[language=bash]
@@ -775,13 +746,13 @@
   export SCRIM_DB_USER="scrim_admin"
   export SCRIM_DB_PASSWORD="secure_password"
  \end{lstlisting}
-
+ 
  Deploy infrastructure, images, Cloud Functions, and the Helm application to a Google Cloud GKE cluster:
 
  \begin{lstlisting}[language=bash]
   ./scripts/deploy.sh
  \end{lstlisting}
-
+ 
  Tear down the stack:
 
  \begin{lstlisting}[language=bash]
@@ -798,7 +769,7 @@
  System performance is optimized through precise resource allocation and automatic scaling policies.
 
  \subsection{Resource Requests and Limits}
-
+ 
  Each service is configured with baseline requests and hard limits to ensure fair scheduling and prevent OOM (Out of Memory) events.
  \begin{itemize}
   \item \bff{Java Services}: Typically 400m-500m CPU and 512Mi Memory.
@@ -823,7 +794,7 @@
  \end{itemize}
 
  \subsection{Health Probes}
-
+ 
  Comprehensive health monitoring is implemented using SmallRye Health:
  \begin{itemize}
   \item \bff{Readiness Probes}: Ensure traffic is only routed if the pod is answering to the health requests. Called more often than the liveness probe to stop sending traffic for some time before officially restarting the pod if it still hasn't answered.
@@ -864,9 +835,9 @@
   \item \bff{Style Discrepancy}: The query parameter for pagination size is documented as \texttt{pageSize} (camelCase) while the response object uses \texttt{page\_size} (snake\_case). The API Gateway correctly accepts the \texttt{pageSize} parameter and returns the corresponding schema, but this inconsistency should ideally be unified.
   \item \bff{Error Response Documentation}: While standard HTTP error codes (400, 401, 404, 500, 502) are consistently mapped across endpoints using reusable components (e.g., \texttt{BadRequestText}), they could be more descriptive. The schema indicates they return a \texttt{text/plain} string without explaining \textit{what} triggers them (e.g., what specific validation failure causes a 400, or under what conditions a 404 is thrown for a specific endpoint).
  \end{itemize}
-
+ 
  \subsection{Testing Results - Diogo Sousa}
-
+ 
  \subsubsection{Smoke Testing (Endpoint: \getapi /api/listings/search)}
  The smoke test was executed using a \bff{Python script} checking the endpoint. The test validated the HTTP 200 response, JSON validity, and the presence of all required top-level fields (\texttt{total}, \texttt{page}, \texttt{page\_size}, \texttt{listings}) and listing level attributes.
  \begin{itemize}
@@ -874,7 +845,7 @@
   \item \bff{Filtered Search (Toyota Corolla)}: Passed. Returned 5 listings with a reported total of 300 records. Latency: $\approx$ 191ms.
  \end{itemize}
  No broken links or malfunctioning behaviors were detected.
-
+ 
  \subsubsection{Stress Testing (Endpoint: \getapi /api/listings)}
  The stress test was executed using \bff{Locust} against endpoint.
  \begin{itemize}
@@ -888,7 +859,7 @@
   \end{itemize}
  \end{itemize}
  The endpoint proved to be highly stable under the tested load.
-
+ 
  \subsection{Documentation Feedback - Bruno Faustino}
  \begin{itemize}
   \item \bff{Some positives}:
@@ -904,12 +875,12 @@
    \item Although it is well explained that the user needs to add the Host header before calling the post/put/delete endpoints, it is never explained that the user needs to be logged in and that the resulting token needs to be added to the header: a quick mention in either the introductory paragraph or the 401 Unauthorized exception in the documentation would generate less confusion and save a few 401s.
   \end{itemize}
  \end{itemize}
-
+ 
  \subsection{Testing Results - Bruno Faustino}
-
+ 
  \subsubsection{Smoke Testing (Endpoint: \getapi /api/auctions/\{auction\_id\}/bids)}
  The smoke test was executed using \bff{pytest and requests modules of Python}.
-
+ 
  Here is the sequence of API calls as a setup before testing the actual endpoint:
  \begin{enumerate}
   \item \bff{\postapi /api/user/login} for the auth token.
@@ -917,11 +888,11 @@
   \item \bff{\postapi /api/auctions} for auction\_id.
   \item 3x \bff{\postapi /api/auctions/\{auction\_id\}/bid}.
  \end{enumerate}
-
+ 
  After calling the endpoint: \bff{\getapi /api/auctions/\{auction\_id\}/bids}, it is expected that the command returns successfully (200) and with 3 auction bids in the created auction for the created listing.
-
+ 
  \bff{The smoke test passed!}
-
+ 
  \subsubsection{Stress Testing (Endpoint: \getapi /api/market/average\_price)}
  The stress test was executed using \bff{Locust} against the endpoint.
  \begin{itemize}
@@ -935,19 +906,19 @@
   \end{itemize}
  \end{itemize}
  The system fails a few times at 19.61 req/s due to the unavailability of an upstream service (502).
-
+ 
  During other rounds of testing, the system could fail at less or more than that value, sometimes managing to survive without failures until around 50 req/s, so it is inconsistent, and the number of failures oscillates a lot between load tests, up to the point of reaching 99\% failures.
-
+ 
  The endpoint proved unable to sustain loads above 50 req/s, and shows signs of failing around 19.61 req/s.
-
+ 
  \subsection{Documentation Feedback - Rodrigo Neto}
  \begin{itemize}
   \item \bff{Missing Content-Type Header}: Successful JSON responses do not include the \texttt{Content-Type: application/json} header, which can break strict HTTP clients.
   \item \bff{Poor Overload Behaviour}: Under high load, the backend does not gracefully degrade (e.g., return \texttt{429} or \texttt{503}). Instead, the gateway returns \texttt{502 Bad Gateway} after extremely long timeouts (up to 47 seconds).
  \end{itemize}
-
+ 
  \subsection{Testing Results - Rodrigo Neto}
-
+ 
  \subsubsection{Smoke Testing (Endpoint: \getapi /api/market/price-comparison)}
  The smoke test was executed using \bff{Postman} checking the endpoint. The test validated HTTP 200 responses, JSON validity, pagination, grouping, and sorting behaviors.
  \begin{itemize}
@@ -955,7 +926,7 @@
   \item \bff{Validation}: Partial pass (3/6). Missing parameters returned 400. Invalid enum values returned \texttt{502 Bad Gateway} instead of 400.
  \end{itemize}
  Some malfunctioning behaviors were detected during validation tests.
-
+ 
  \subsubsection{Stress Testing (Endpoint: \getapi /api/listings/stats/by-location)}
  The stress test was executed using \bff{Locust} against the endpoint.
  \begin{itemize}
@@ -1044,15 +1015,16 @@
 
  ScrimFinder is a cloud-native platform for competitive League of Legends practice matches, built as a multi-language microservices architecture integrating Java/Quarkus services for real-time matchmaking, ranking, and match history with Python/FastAPI services for ML-driven predictive analysis and authentication. The platform processes a 78GB dataset of EUW matches to provide skill-based matchmaking, post-game analytics, and personalized performance insights.
 
- Functionally, the system covers five core domains. The Matchmaking Service manages queue lifecycle, lobby formation, and match state coordination with support for both standard and role-based queues. The Ranking Service handles ELO/MMR calculation, leaderboard management, and Riot account integration. The Match History Service provides a centralized repository with advanced filtering, sorting, and paging capabilities. The Training and Analysis Services form a complete ML pipeline --- from raw match ingestion and feature extraction through dataset curation, model training, and real-time inference for draft win-probability, build scoring, and player benchmarking. The JWT Manager secures the entire platform with RS256 token issuance, session management, and Istio-compatible JWKS endpoint distribution.
+ Functionally, the system covers five core domains. The Matchmaking Service manages queue lifecycle, lobby formation, and match state coordination with support for both standard and role-based queues. The Ranking Service handles ELO/MMR calculation, leaderboard management, and Riot account integration. The Match History Service provides a centralized repository with advanced filtering, sorting, and paging capabilities. The Detail Filling Service interfaces directly with Riot's API to enrich match and player data, caching responses to minimize external calls and support downstream services. The Training and Analysis Services form a complete ML pipeline --- from raw match ingestion and feature extraction through dataset curation, model training, and real-time inference for draft win-probability, build scoring, and player benchmarking. 
+ 
 
- Non-functionally, the architecture implements several cloud-native resilience patterns. Retries, timeouts, and circuit breakers protect inter-service communication from cascading failures. Redis caching minimizes external API calls to Riot's services. RabbitMQ enables asynchronous, decoupled event propagation between Matchmaking, History, and Training services. The Detail Filling Service leverages serverless Google Cloud Functions for cost-effective bursty API polling. Infrastructure is provisioned via Terraform, deployed through Helm, and synchronized via Argo CD GitOps workflows.
+ From a non-functional prespective, the architecture implements several cloud-native resilience patterns. Retries, timeouts, and circuit breakers protect inter-service communication from cascading failures. Redis caching minimizes external API calls to Riot's services. RabbitMQ enables asynchronous, decoupled event propagation between Matchmaking, History, and Training services. The Detail Filling Service leverages serverless Google Cloud Functions for cost-effective bursty API polling. Infrastructure is provisioned via Terraform, deployed through Helm, and synchronized via Argo CD GitOps workflows. The Authentication Service secures the entire platform with RS256 token issuance, session management, refresh token rotation, and Istio-compatible JWKS endpoint distribution.
 
  Resource tuning reflects deliberate trade-offs between performance and stability. Java services run with 400--500m CPU requests and 512Mi memory, while Python ML services receive higher allocations (600m CPU, 2Gi memory for Training; 500m CPU, 1Gi memory for Analysis) to accommodate model loading and inference workloads. CPU limits are intentionally unset to prevent throttling under legitimate load, while memory requests equal limits to guarantee Kubernetes QoS class. HPA scales replicas from 1 to 3 based on 70--80\% CPU utilization, and VPA adjusts memory requirements independently without conflicting. Health probes --- readiness, liveness, and startup --- ensure traffic is only routed to healthy pods, with extended startup thresholds for ML services with longer cold-start times.
 
  The estimated monthly operational cost of \euro357 on GKE Spot instances, self-hosted PostgreSQL/Redis/RabbitMQ, and BigQuery storage represents a pragmatic balance between capability and affordability for a student project.
 
- Beyond the technical deliverable, this project was fundamentally an exercise in learning cloud-native architecture through direct experience. Implementing patterns like circuit breakers and health probes in response to actual CI failures and production timeouts, rather than as theoretical exercises, provided a concrete understanding of why these patterns matter. Working across language boundaries with gRPC contracts, managing infrastructure as code with Terraform, and debugging distributed system behavior in ephemeral GKE clusters were all challenges that no classroom assignment could fully replicate. The fact that we went through building, breaking, and rebuilding a system of this complexity,completely from scratch, making use of many tools we did not dream existed, as a team of three students was a different and very demanding  episode of our academic journey, that despite the hardships allowed us to overcome troubles and ultimately get a lot of experience that we would have never gotten otherwise. We hope,this adventure will prove to be valuable in the future (but we hope it does not repeat itself).
+ Beyond the technical deliverable, this project was fundamentally an exercise in learning cloud-native architecture through direct experience. Implementing patterns like circuit breakers and health probes in response to actual CI failures and production timeouts, rather than as theoretical exercises, provided a concrete understanding of why these patterns matter. Working across language boundaries with gRPC contracts, managing infrastructure as code with Terraform, and debugging distributed system behavior in ephemeral GKE clusters were all challenges that no classroom assignment could fully replicate. The fact that we went through building, breaking, and rebuilding a system of this complexity,completely from scratch, making use of many tools we did not dream existed, as a team of three students was a different and very demanding  episode of our academic journey, that despite the hardships allowed us to overcome troubles and ultimately get a lot of experience that we would have never gotten otherwise. We hope,this adventure will prove to be valuable in the future (but we hope it does not repeat itself). 
 
  \vspace{1cm}
  \hrule
