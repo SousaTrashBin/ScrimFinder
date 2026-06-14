@@ -11,6 +11,8 @@ global:
   rabbitmqPort: "5672"
   secretsServiceAccountName: "scrimfinder-secrets-reader"
   secretNamePrefix: ""
+  secretsServiceAccountId: "secrets-service-account" #neto addition
+
   podSecurityContext: {}
   securityContext: {}
   security:
@@ -29,6 +31,7 @@ secrets:
   rabbitmqUser: "user"
   rabbitmqPassword: "rabbitmqpassword"
   rabbitmqErlangCookie: "erlangcookie"
+  jwtSecret: "REPLACE_ME"
 
 traefik:
   installCRDs: false

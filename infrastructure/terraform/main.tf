@@ -21,7 +21,6 @@ locals {
     "iam.googleapis.com",
     "run.googleapis.com",
     "secretmanager.googleapis.com",
-    "storage.googleapis.com",
   ])
 
   secret_values = {
@@ -32,6 +31,7 @@ locals {
     "${var.secret_name_prefix}rabbitmq-user"          = var.rabbitmq_user
     "${var.secret_name_prefix}rabbitmq-password"      = var.rabbitmq_password
     "${var.secret_name_prefix}rabbitmq-erlang-cookie" = var.rabbitmq_erlang_cookie
+    "${var.secret_name_prefix}jwt-secret"              = var.jwt_secret
   }
 
   cloud_functions_deployer_roles = (!var.manage_cloud_functions_iam || var.cloud_functions_deployer_member == "") ? toset([]) : toset([
@@ -75,7 +75,10 @@ resource "google_container_cluster" "scrim_cluster" {
     workload_pool = "${var.project_id}.svc.id.goog"
   }
 
-  depends_on = [google_project_service.required]
+  depends_on = [
+    google_project_service.required,
+    google_project_iam_member.cloud_functions_deployer
+  ]
 }
 
 resource "google_container_node_pool" "default_pool" {
@@ -91,13 +94,12 @@ resource "google_container_node_pool" "default_pool" {
   }
 
   node_config {
-    machine_type    = "e2-standard-4"
-    disk_size_gb    = 40
-    disk_type       = "pd-standard"
-    spot            = true
-    service_account = google_service_account.gke_nodes_sa.email
-    labels          = local.common_labels
-    oauth_scopes    = ["https://www.googleapis.com/auth/cloud-platform"]
+    machine_type = "e2-standard-4"
+    disk_size_gb = 40
+    disk_type    = "pd-standard"
+    spot         = true
+    labels       = local.common_labels
+    oauth_scopes = ["https://www.googleapis.com/auth/cloud-platform"]
     workload_metadata_config {
       mode = "GKE_METADATA"
     }
@@ -161,7 +163,7 @@ resource "google_service_account_iam_member" "ci_gke_node_user" {
 resource "google_service_account" "secrets_sa" {
   count        = var.manage_secret_manager ? 1 : 0
   project      = var.project_id
-  account_id   = "scrim-secrets-sa"
+  account_id   = var.secrets_service_account_id
   display_name = "ScrimFinder Secrets & BigQuery SA"
   description  = "Service account with access to ScrimFinder secrets and BigQuery datasets"
 }
@@ -249,20 +251,6 @@ resource "google_storage_bucket" "models_bucket" {
 }
 
 # ── IAM for BigQuery and Storage ─────────────────────────────────────────────
-
-resource "google_project_iam_member" "ci_bq_editor" {
-  count   = var.ci_service_account != "" ? 1 : 0
-  project = var.project_id
-  role    = "roles/bigquery.dataEditor"
-  member  = "serviceAccount:${var.ci_service_account}"
-}
-
-resource "google_project_iam_member" "ci_storage_admin" {
-  count   = var.ci_service_account != "" ? 1 : 0
-  project = var.project_id
-  role    = "roles/storage.admin"
-  member  = "serviceAccount:${var.ci_service_account}"
-}
 
 resource "google_project_iam_member" "bigquery_job_user" {
   count   = var.manage_secret_manager ? 1 : 0

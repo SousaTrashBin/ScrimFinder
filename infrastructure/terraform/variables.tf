@@ -54,6 +54,12 @@ variable "rabbitmq_erlang_cookie" {
   sensitive = true
 }
 
+variable "jwt_secret" {
+  type        = string
+  sensitive   = true
+  description = "Signing key for JWT tokens"
+}
+
 variable "manage_artifact_registry_repository" {
   type    = bool
   default = true
@@ -68,6 +74,12 @@ variable "secret_name_prefix" {
   type        = string
   default     = ""
   description = "Optional prefix for Secret Manager secret IDs. CI uses this to avoid cross-run collisions."
+}
+
+variable "secrets_service_account_id" {
+  type        = string
+  default     = "secrets-service-account"
+  description = "Google service account ID used by GKE workloads to access Secret Manager and BigQuery."
 }
 
 variable "manage_cloud_functions_iam" {
