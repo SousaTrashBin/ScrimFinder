@@ -1,9 +1,5 @@
 name: ScrimFinder CI
 
-concurrency:
-  group: scrimfinder-ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
-
 on:
   push:
     branches:
