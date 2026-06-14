@@ -10,16 +10,16 @@ services:
       - BIGQUERY_EMULATOR_HTTP_PORT=9050
       - BIGQUERY_EMULATOR_GRPC_PORT=9060
       - BIGQUERY_EMULATOR_PROJECT_ID=test-project
-      - BIGQUERY_EMULATOR_DATASET_ID=test_league,test_platform
     # volumes:
     #   - ./bq_emulator_data:/data
     networks:
       - scrimfinder_net
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9050/bigquery/v2/projects/test-project/datasets"]
-      interval: 5s
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9050/bigquery/v2/projects/test-project"]
+      interval: 3s
       timeout: 5s
-      retries: 10
+      retries: 15
+      start_period: 10s
 
   # ── Training Service (for integration tests with emulator) ─────────────────
   training-test:
@@ -27,7 +27,16 @@ services:
       context: ./training_service
       dockerfile: Dockerfile
     container_name: scrimfinder_training_test
-    command: pytest tests/test_training_integration.py -v -m integration
+    command: >
+      sh -c "
+        echo 'Waiting for BigQuery emulator...' &&
+        for i in \$(seq 1 30); do
+          wget -q --spider http://bq-emulator:9050/bigquery/v2/projects/test-project && break
+          echo 'Emulator not ready, sleeping 2s...' &&
+          sleep 2
+        done &&
+        pytest tests/test_training_integration.py -v -m integration --timeout=120
+      "
     environment:
       - PYTHONPATH=/app
       - BQ_EMULATOR_HOST=http://bq-emulator:9050
@@ -55,7 +64,16 @@ services:
       context: ./analysis_service
       dockerfile: Dockerfile
     container_name: scrimfinder_analysis_test
-    command: pytest tests/test_analysis_integration.py -v -m integration
+    command: >
+      sh -c "
+        echo 'Waiting for BigQuery emulator...' &&
+        for i in \$(seq 1 30); do
+          wget -q --spider http://bq-emulator:9050/bigquery/v2/projects/test-project && break
+          echo 'Emulator not ready, sleeping 2s...' &&
+          sleep 2
+        done &&
+        pytest tests/test_analysis_integration.py -v -m integration --timeout=120
+      "
     environment:
       - PYTHONPATH=/app
       - BQ_EMULATOR_HOST=http://bq-emulator:9050
@@ -81,7 +99,16 @@ services:
       context: ./jwt_manager
       dockerfile: Dockerfile
     container_name: scrimfinder_jwt_test
-    command: pytest tests/test_jwt_integration.py -v -m integration
+    command: >
+      sh -c "
+        echo 'Waiting for BigQuery emulator...' &&
+        for i in \$(seq 1 30); do
+          wget -q --spider http://bq-emulator:9050/bigquery/v2/projects/test-project && break
+          echo 'Emulator not ready, sleeping 2s...' &&
+          sleep 2
+        done &&
+        pytest tests/test_jwt_integration.py -v -m integration --timeout=120
+      "
     environment:
       - PYTHONPATH=/app
       - BQ_EMULATOR_HOST=http://bq-emulator:9050

@@ -6,6 +6,8 @@ training_service/core/db.py
 import os
 import json
 import uuid
+import time
+import logging
 from datetime import datetime, timezone
 from typing import Optional, Any, List, Dict
 
@@ -16,25 +18,51 @@ from .config import cfg
 from .bq_schema import init_bq_platform
 
 _client: Optional[bigquery.Client] = None
+logger = logging.getLogger(__name__)
 
 
 def get_bq_client() -> bigquery.Client:
     global _client
-    if _client is None:
-        if "BQ_EMULATOR_HOST" in os.environ:
-            from google.api_core.client_options import ClientOptions
-            from google.auth.credentials import AnonymousCredentials
+    if _client is not None:
+        return _client
 
-            _client = bigquery.Client(
-                project=cfg.BQ_PROJECT,
-                client_options=ClientOptions(
-                    api_endpoint=os.environ["BQ_EMULATOR_HOST"]
-                ),
-                credentials=AnonymousCredentials(),
+    max_retries = 3
+    base_delay = 2
+
+    for attempt in range(max_retries):
+        try:
+            if "BQ_EMULATOR_HOST" in os.environ:
+                from google.api_core.client_options import ClientOptions
+                from google.auth.credentials import AnonymousCredentials
+
+                client = bigquery.Client(
+                    project=cfg.BQ_PROJECT,
+                    client_options=ClientOptions(
+                        api_endpoint=os.environ["BQ_EMULATOR_HOST"]
+                    ),
+                    credentials=AnonymousCredentials(),
+                )
+            else:
+                client = bigquery.Client(project=cfg.BQ_PROJECT)
+
+            # Verify connection with a lightweight query
+            # We use a simple SELECT 1 to ensure the emulator/service is responsive
+            list(client.query("SELECT 1").result())
+
+            _client = client
+            return _client
+
+        except Exception as e:
+            delay = base_delay * (2**attempt)
+            logger.warning(
+                f"BQ connection attempt {attempt + 1} failed: {e}. Retrying in {delay}s..."
             )
-        else:
-            _client = bigquery.Client(project=cfg.BQ_PROJECT)
-    return _client
+            if attempt == max_retries - 1:
+                logger.error("Failed to connect to BigQuery after all retries.")
+                raise RuntimeError(f"Could not establish BigQuery connection: {e}")
+            time.sleep(delay)
+
+    raise RuntimeError("Unreachable")
 
 
 def init_db():

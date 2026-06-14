@@ -6,7 +6,9 @@ BigQuery implementation for analysis service.
 
 import contextlib
 import json
+import logging
 import os
+import time
 from typing import Any
 
 from google.cloud import bigquery
@@ -15,23 +17,46 @@ from google.cloud.bigquery import QueryJobConfig, ScalarQueryParameter
 from .config import cfg
 
 _client: bigquery.Client | None = None
+logger = logging.getLogger(__name__)
 
 
 def get_bq_client() -> bigquery.Client:
     global _client
-    if _client is None:
-        if "BQ_EMULATOR_HOST" in os.environ:
-            from google.api_core.client_options import ClientOptions
-            from google.auth.credentials import AnonymousCredentials
+    if _client is not None:
+        return _client
 
-            _client = bigquery.Client(
-                project=cfg.BQ_PROJECT,
-                client_options=ClientOptions(api_endpoint=os.environ["BQ_EMULATOR_HOST"]),
-                credentials=AnonymousCredentials(),
-            )
-        else:
-            _client = bigquery.Client(project=cfg.BQ_PROJECT)
-    return _client
+    max_retries = 3
+    base_delay = 2
+
+    for attempt in range(max_retries):
+        try:
+            if "BQ_EMULATOR_HOST" in os.environ:
+                from google.api_core.client_options import ClientOptions
+                from google.auth.credentials import AnonymousCredentials
+
+                client = bigquery.Client(
+                    project=cfg.BQ_PROJECT,
+                    client_options=ClientOptions(api_endpoint=os.environ["BQ_EMULATOR_HOST"]),
+                    credentials=AnonymousCredentials(),
+                )
+            else:
+                client = bigquery.Client(project=cfg.BQ_PROJECT)
+
+            # Verify connection
+            list(client.query("SELECT 1").result())
+
+            _client = client
+            return _client
+
+        except Exception as e:
+            delay = base_delay * (2**attempt)
+            logger.warning(f"BQ connection attempt {attempt + 1} failed: {e}. Retrying in {delay}s...")
+            if attempt == max_retries - 1:
+                logger.error("Failed to connect to BigQuery after all retries.")
+                raise RuntimeError(f"Could not establish BigQuery connection: {e}")
+            time.sleep(delay)
+
+    raise RuntimeError("Unreachable")
 
 
 def _bq_query(sql: str, params: list[Any] | None = None) -> bigquery.table.RowIterator:
