@@ -28,7 +28,10 @@ public class TrainingAdapterServiceImpl implements TrainingAdapterService {
     public boolean sendMatchForAnalysis(String riotMatchId) {
         try {
             ForwardMatchRequest request =
-                    ForwardMatchRequest.newBuilder().setMatchId(riotMatchId).build();
+                    ForwardMatchRequest.newBuilder()
+                            .setMatchId(riotMatchId)
+                            .setSource("match_history")
+                            .build();
             ForwardMatchResponse response = trainingService.forwardMatch(request).await().indefinitely();
 
             if (!response.getSuccess()) {

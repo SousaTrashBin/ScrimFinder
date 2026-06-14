@@ -22,7 +22,7 @@ from concurrent import futures
 
 import grpc
 
-from training_service.core import db
+from .core import db
 
 _server = None
 
@@ -59,7 +59,7 @@ def _fetch_raw_match(match_id: str) -> dict:
 # We import the base class inside a function or use a try-except to avoid
 # startup failures if the .proto hasn't been compiled yet.
 try:
-    from training_service import training_service_pb2_grpc
+    from . import training_service_pb2_grpc
 
     _BaseServicer = training_service_pb2_grpc.TrainingServiceServicer
 except ImportError:
@@ -76,7 +76,7 @@ class TrainingServiceServicer(_BaseServicer):
         Receive a match_id, fetch raw JSON, store, extract features.
         Called by match_history_service after a match is saved.
         """
-        from training_service.training_service_pb2 import ForwardMatchResponse
+        from .training_service_pb2 import ForwardMatchResponse
 
         match_id = request.match_id
         source = request.source or "matchmaking"
@@ -105,38 +105,9 @@ class TrainingServiceServicer(_BaseServicer):
                 game_id=match_id,
             )
 
-    def GetActiveModel(self, request, context):
-        """
-        Return metadata for the active model of a concern.
-        Called by analysis_service instead of reading platform.db directly.
-        """
-        from training_service.training_service_pb2 import GetActiveModelResponse
-
-        concern = request.concern
-        try:
-            row = db.get_active_model(concern)
-            if row is None:
-                return GetActiveModelResponse(
-                    found=False,
-                    concern=concern,
-                    message=f"No active model for concern='{concern}'.",
-                )
-            return GetActiveModelResponse(
-                found=True,
-                model_id=row["id"],
-                concern=row["concern"],
-                algorithm=row["algorithm"],
-                version=row["version"],
-                file_path=row["file_path"],
-                metrics_json=json.dumps(row.get("metrics", {})),
-                activated_at=row.get("activated_at", ""),
-            )
-        except Exception:
-            return GetActiveModelResponse(found=False, concern=concern)
-
     def HealthCheck(self, request, context):
         """Return training service health status."""
-        from training_service.training_service_pb2 import HealthCheckResponse
+        from .training_service_pb2 import HealthCheckResponse
 
         try:
             games = db.count_games()
@@ -172,7 +143,7 @@ def start_server(block: bool = False) -> grpc.Server:
         return _server
 
     try:
-        from training_service import training_service_pb2_grpc
+        from . import training_service_pb2_grpc
     except ImportError:
         print(
             "[gRPC] ERROR: training_service_pb2_grpc not found. "
@@ -229,10 +200,8 @@ def process_match_for_training(match_id: str, source: str = "matchmaking") -> di
     raw = _fetch_raw_match(match_id)
     print(f"[training] Successfully fetched raw match {match_id}", flush=True)
 
-    from training_service.ingestion.feature_extractor import (
-        extract,
-        validate_riot_match,
-    )
+    from training_service.core.feature_engineering import extract_features
+    from training_service.ingestion.feature_extractor import validate_riot_match
 
     valid, reason = validate_riot_match(raw)
     if not valid:
@@ -246,28 +215,23 @@ def process_match_for_training(match_id: str, source: str = "matchmaking") -> di
         }
 
     db.insert_game(match_id, raw, source=source)
-    features = extract(raw)
 
     draft_ok = build_ok = perf_ok = False
-    if features.get("draft") and features["draft"].get("valid"):
-        db.upsert_features(match_id, "draft", [features["draft"]], ["draft_raw"])
-        draft_ok = True
-    if features.get("build"):
-        db.upsert_features(
-            match_id,
-            "build",
-            features["build"],
-            [f"player_{i}" for i in range(len(features["build"]))],
+    for concern in ("draft", "build", "performance"):
+        vector, names = extract_features(raw, concern)
+        ok = (
+            bool(vector)
+            and bool(names)
+            and not names[0].startswith(("invalid:", "error:", "unknown_"))
         )
-        build_ok = True
-    if features.get("performance"):
-        db.upsert_features(
-            match_id,
-            "performance",
-            features["performance"],
-            [f"player_{i}" for i in range(len(features["performance"]))],
-        )
-        perf_ok = True
+        if ok:
+            db.upsert_features(match_id, concern, vector, names)
+        if concern == "draft":
+            draft_ok = ok
+        elif concern == "build":
+            build_ok = ok
+        elif concern == "performance":
+            perf_ok = ok
 
     print(f"[training] Successfully processed match {match_id}", flush=True)
     return {

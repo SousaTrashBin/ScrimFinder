@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package fc.ul.scrimfinder.grpc;
+package scrimfinder;
 
 option java_multiple_files = true;
 option java_package = "fc.ul.scrimfinder.grpc";
@@ -11,10 +11,15 @@ service TrainingService {
 }
 
 message ForwardMatchRequest {
-  string matchId = 1;
+  string match_id = 1;
+  string source = 2;
 }
 
 message ForwardMatchResponse {
   bool success = 1;
   string message = 2;
+  string game_id = 3;
+  bool draft_ok = 4;
+  bool build_ok = 5;
+  bool perf_ok = 6;
 }

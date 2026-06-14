@@ -1,0 +1,35 @@
+# Two policies:
+#   1. Internal mesh traffic — services talk freely (matched by ServiceAccount).
+#   2. Inbound from Traefik (the ingress) — must carry a valid JWT.
+
+# ── Policy 1: allow internal mesh traffic without JWT ────────────────────────
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-internal
+  namespace: scrimfinder
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            # Any workload inside the namespace can call any other workload.
+            namespaces: ["scrimfinder"]
+---
+# ── Policy 2: require JWT on inbound requests from Traefik ───────────────────
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: require-jwt-from-ingress
+  namespace: scrimfinder
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            # Traefik's service account — tighten this to your actual SA name.
+            principals: ["cluster.local/ns/scrimfinder/sa/scrimfinder-traefik"]
+      when:
+        # requestPrincipal is populated only when JWT validation succeeds.
+        - key: request.auth.principal
+          notValues: [""]

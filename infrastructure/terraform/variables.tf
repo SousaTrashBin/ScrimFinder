@@ -54,6 +54,12 @@ variable "rabbitmq_erlang_cookie" {
   sensitive = true
 }
 
+variable "jwt_secret" {
+  type        = string
+  sensitive   = true
+  description = "Signing key for JWT tokens"
+}
+
 variable "manage_artifact_registry_repository" {
   type    = bool
   default = true
@@ -73,7 +79,7 @@ variable "secret_name_prefix" {
 variable "secrets_service_account_id" {
   type        = string
   default     = "secrets-service-account"
-  description = "Google service account ID used by GKE workloads to access Secret Manager."
+  description = "Google service account ID used by GKE workloads to access Secret Manager and BigQuery."
 }
 
 variable "manage_cloud_functions_iam" {
@@ -100,4 +106,10 @@ variable "cloud_functions_deployer_member" {
   type        = string
   default     = ""
   description = "Optional IAM member, for example serviceAccount:name@project.iam.gserviceaccount.com, allowed to deploy Cloud Functions in CI."
+}
+
+variable "ci_service_account" {
+  type        = string
+  default     = ""
+  description = "The email of the service account used by the CI/CD runner to manage infrastructure."
 }

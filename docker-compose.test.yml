@@ -1,0 +1,52 @@
+services:
+  # ── Training Service integration tests ────────────────────────────────────
+  training-test:
+    build:
+      context: ./training_service
+      dockerfile: Dockerfile
+    container_name: scrimfinder_training_test
+    command: pytest tests/test_training_integration.py -v -m integration --timeout=120
+    environment:
+      - PYTHONPATH=/app
+      - MODELS_DIR=/app/data/models
+      - MODEL_RELOAD_INTERVAL=60
+    volumes:
+      - ./training_service:/app/training_service
+      - ./ml_data:/app/data
+    networks:
+      - scrimfinder_net
+
+  # ── Analysis Service integration tests ─────────────────────────────────────
+  analysis-test:
+    build:
+      context: ./analysis_service
+      dockerfile: Dockerfile
+    container_name: scrimfinder_analysis_test
+    command: pytest tests/test_analysis_integration.py -v -m integration --timeout=120
+    environment:
+      - PYTHONPATH=/app
+      - MODELS_DIR=/app/data/models
+      - MODEL_RELOAD_INTERVAL=60
+    volumes:
+      - ./analysis_service:/app/analysis_service
+      - ./ml_data:/app/data
+    networks:
+      - scrimfinder_net
+
+  # ── JWT Manager integration tests ──────────────────────────────────────────
+  jwt-test:
+    build:
+      context: ./jwt_manager
+      dockerfile: Dockerfile
+    container_name: scrimfinder_jwt_test
+    command: pytest tests/test_jwt_integration.py -v -m integration --timeout=120
+    environment:
+      - PYTHONPATH=/app
+    volumes:
+      - ./jwt_manager:/app/jwt_manager
+    networks:
+      - scrimfinder_net
+
+networks:
+  scrimfinder_net:
+    driver: bridge

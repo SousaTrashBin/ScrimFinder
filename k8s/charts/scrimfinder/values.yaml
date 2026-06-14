@@ -12,6 +12,8 @@ global:
   secretsServiceAccountName: "scrimfinder-secrets-reader"
   secretsServiceAccountId: "secrets-service-account"
   secretNamePrefix: ""
+  secretsServiceAccountId: "secrets-service-account" #neto addition
+
   podSecurityContext: {}
   securityContext: {}
   security:
@@ -30,6 +32,7 @@ secrets:
   rabbitmqUser: "user"
   rabbitmqPassword: "rabbitmqpassword"
   rabbitmqErlangCookie: "erlangcookie"
+  jwtSecret: "REPLACE_ME"
 
 traefik:
   installCRDs: false
@@ -184,7 +187,7 @@ services:
       PLAYER_FILLING_SVC_HOST: "detail-filling-service"
       PLAYER_FILLING_SVC_PORT: "9000"
     healthPath: "/api/v1/matchmaking/q/health"
-  
+
   ranking-service:
     imageName: "ranking-service"
     ports:
@@ -213,7 +216,7 @@ services:
       DETAIL_FILLING_SERVICE_URL: "http://scrimfinder-traefik/api/v1/riot"
       MATCH_HISTORY_SERVICE_URL: "http://match-history-service:8080"
     healthPath: "/api/v1/ranking/q/health"
-  
+
   match-history-service:
     imageName: "match-history-service"
     ports:
@@ -241,7 +244,7 @@ services:
       PLAYER_FILLING_SVC_PORT: "9000"
       PLAYER_FILLING_SVC_URL: "http://scrimfinder-traefik/api/v1/riot"
     healthPath: "/api/v1/history/q/health"
-  
+
   detail-filling-service:
     enabled: false
     imageName: "detail-filling-service"
@@ -298,7 +301,7 @@ services:
       enabled: true
       mountPath: /app/data
       claimName: ai-storage-pvc
-  
+
   analysis-service:
     imageName: "analysis-service"
     ports:
@@ -335,3 +338,23 @@ services:
       enabled: true
       mountPath: /app/data
       claimName: ai-storage-pvc
+
+  jwt-manager:
+    imageName: "jwt-manager"
+    ports:
+      - name: http
+        containerPort: 8000
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "256Mi"
+      limits:
+        cpu: "200m"
+        memory: "256Mi"
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 80
+    healthType: "http"
+    healthPath: "/api/v1/auth/q/health"

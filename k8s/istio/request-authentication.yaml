@@ -1,0 +1,17 @@
+# Tells Istio how to validate JWTs issued by jwt-manager.
+# Any request with an Authorization: Bearer header must carry a valid JWT.
+apiVersion: security.istio.io/v1beta1
+kind: RequestAuthentication
+metadata:
+  name: scrimfinder-jwt
+  namespace: scrimfinder
+spec:
+  # Apply to every workload in the namespace
+  selector:
+    matchLabels: {}
+  jwtRules:
+    - issuer: "scrimfinder/jwt-manager"
+      # jwt-manager exposes its JWKS at this in-cluster URL
+      jwksUri: "http://jwt-manager:8002/api/v1/auth/jwks.json"
+      # Forward the validated JWT payload to upstream services as a header
+      forwardOriginalToken: true

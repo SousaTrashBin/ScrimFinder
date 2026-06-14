@@ -1,10 +1,10 @@
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Path
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Path, Query
 
-from training_service.core import db
-from training_service.core.schemas import (
+from ..core import db
+from ..core.schemas import (
     DatasetBuildRequest,
     DatasetCreateRequest,
     DatasetListResponse,
@@ -34,7 +34,6 @@ def _meta(r):
 def _build_task(ds_id, filters, concern):
     try:
         db.update_dataset_status(ds_id, status="building")
-        # TODO: from training_service.datasets.builder import build
         db.update_dataset_status(
             ds_id, status="ready", game_count=db.count_games(), row_count=0
         )
@@ -71,26 +70,30 @@ def build_dataset(body: DatasetBuildRequest, background_tasks: BackgroundTasks):
     return _meta(db.get_dataset(ds_id))
 
 
-@router.get("", response_model=DatasetListResponse, summary="List datasets")
-def list_datasets(concern: Optional[str] = None):
+@router.get(
+    "", response_model=DatasetListResponse, summary="List datasets or get one by ID"
+)
+def list_or_get_dataset(
+    dataset_id: Optional[str] = Query(None, description="Specific dataset ID to fetch"),
+    concern: Optional[str] = Query(None, description="Filter by concern"),
+):
+    """
+    List datasets with optional filtering, or fetch a single dataset by ID.
+
+    - If `dataset_id` is provided, returns that specific dataset (404 if not found).
+    - Otherwise returns a filtered list based on `concern`.
+    """
+    if dataset_id:
+        row = db.get_dataset(dataset_id)
+        if row is None:
+            raise HTTPException(
+                status_code=404, detail=f"Dataset '{dataset_id}' not found."
+            )
+        return DatasetListResponse(datasets=[_meta(row)])
+
     return DatasetListResponse(
         datasets=[_meta(r) for r in db.list_datasets(concern=concern)]
     )
-
-
-@router.get(
-    "/{dataset_id}",
-    response_model=DatasetMeta,
-    summary="Get dataset",
-    responses={404: {"model": ErrorResponse}},
-)
-def get_dataset(dataset_id: str = Path(...)):
-    row = db.get_dataset(dataset_id)
-    if row is None:
-        raise HTTPException(
-            status_code=404, detail=f"Dataset '{dataset_id}' not found."
-        )
-    return _meta(row)
 
 
 @router.post(
@@ -121,11 +124,7 @@ def delete_dataset(dataset_id: str = Path(...)):
         raise HTTPException(
             status_code=404, detail=f"Dataset '{dataset_id}' not found."
         )
-    with db.get_conn() as conn:
-        active = conn.execute(
-            "SELECT COUNT(*) FROM training_jobs WHERE dataset_id=? AND status IN ('PENDING','RUNNING')",
-            (dataset_id,),
-        ).fetchone()[0]
+    active = db.count_active_jobs_for_dataset(dataset_id)
     if active:
         raise HTTPException(
             status_code=409,

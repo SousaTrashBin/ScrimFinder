@@ -2,10 +2,8 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Path, Query
 
-from training_service.core import db
-from training_service.core.db import now_iso
-from training_service.core.schemas import (
-    Concern,
+from ..core import db
+from ..core.schemas import (
     ErrorResponse,
     FeatureExtractRequest,
     FeatureExtractResponse,
@@ -15,119 +13,124 @@ from training_service.core.schemas import (
 router = APIRouter(prefix="/features", tags=["Features"])
 
 
+def _match_id(raw: dict) -> str:
+    for key in ("matchId", "match_id", "gameId", "id"):
+        if raw.get(key):
+            return str(raw[key])
+    metadata = raw.get("metadata")
+    if isinstance(metadata, dict):
+        for key in ("matchId", "match_id"):
+            if metadata.get(key):
+                return str(metadata[key])
+    return "inline"
+
+
 @router.post(
     "/extract",
     response_model=FeatureExtractResponse,
-    summary="Extract feature vectors",
-    responses={404: {"model": ErrorResponse}},
+    summary="Extract features from a game",
+    responses={404: {"model": ErrorResponse}, 422: {"model": ErrorResponse}},
 )
-def extract_features(body: FeatureExtractRequest):
+def extract(body: FeatureExtractRequest):
+    """
+    Extract features for one or more concerns.
+
+    - If `game_id` is provided, reads the game from DB.
+    - If `raw_data` is provided, uses it directly.
+    - If `store=True`, persists features to DB.
+    """
+    from ..core.feature_engineering import extract_features
+
+    raw = None
     if body.game_id:
-        row = db.get_game(body.game_id)
-        if row is None:
+        game = db.get_game(body.game_id)
+        if game is None:
             raise HTTPException(
                 status_code=404, detail=f"Game '{body.game_id}' not found."
             )
-        game_id, _raw = body.game_id, row["raw_json"]
+        raw = game["raw_json"]
     elif body.raw_data:
-        import hashlib
-        import json
-
-        def _derive(data):
-            for k in ("matchId", "match_id", "gameId", "id"):
-                if data.get(k):
-                    return str(data[k])
-            return (
-                "game_"
-                + hashlib.sha1(json.dumps(data, sort_keys=True).encode()).hexdigest()[
-                    :16
-                ]
-            )
-
-        game_id, _raw = _derive(body.raw_data), body.raw_data
+        raw = body.raw_data
     else:
         raise HTTPException(
             status_code=422, detail="Provide either game_id or raw_data."
         )
 
-    # TODO: from training_service.ingestion.feature_extractor import extract
-    vectors = []
+    results = []
+    response_game_id = body.game_id or _match_id(raw)
     for concern in body.concerns:
-        if body.store and body.game_id:
-            db.upsert_features(game_id, concern.value, [], [])
-        cached = db.get_features(game_id, concern.value)
-        if cached:
-            e = cached[0]
-            vectors.append(
-                FeatureVector(
-                    game_id=game_id,
-                    concern=concern.value,
-                    feature_vector=e["feature_vector"],
-                    feature_names=e["feature_names"],
-                    schema_version=e["schema_version"],
-                    extracted_at=e["extracted_at"],
-                )
+        vector, names = extract_features(raw, concern.value)
+        if body.store:
+            db.upsert_features(response_game_id, concern.value, vector, names)
+        results.append(
+            FeatureVector(
+                game_id=response_game_id,
+                concern=concern.value,
+                feature_vector=vector,
+                feature_names=names,
+                schema_version="1",
+                extracted_at="now",
             )
-        else:
-            vectors.append(
-                FeatureVector(
-                    game_id=game_id,
-                    concern=concern.value,
-                    feature_vector=[],
-                    feature_names=[],
-                    schema_version="1",
-                    extracted_at=now_iso(),
-                )
-            )
+        )
+
     return FeatureExtractResponse(
-        game_id=game_id,
-        features=vectors,
-        stored=body.store and body.game_id is not None,
+        game_id=response_game_id,
+        features=results,
+        stored=body.store,
+    )
+
+
+@router.get(
+    "",
+    response_model=FeatureVector,
+    summary="Get stored features for a game (by query param)",
+    responses={404: {"model": ErrorResponse}},
+)
+def get_features_by_query(
+    game_id: str = Query(..., description="Game ID to fetch features for"),
+    concern: Optional[str] = Query(None, description="Optional concern filter"),
+):
+    """
+    Get stored features for a specific game.
+
+    - `game_id` is required.
+    - `concern` is optional; if omitted, returns the first concern found.
+    """
+    rows = db.get_features(game_id, concern=concern)
+    if not rows:
+        raise HTTPException(
+            status_code=404, detail=f"No features found for game '{game_id}'."
+        )
+    r = rows[0]
+    return FeatureVector(
+        game_id=r["game_id"],
+        concern=r["concern"],
+        feature_vector=r.get("feature_vector") or [],
+        feature_names=r.get("feature_names") or [],
+        schema_version=r.get("schema_version", "1"),
+        extracted_at=str(r["extracted_at"]) if r.get("extracted_at") else None,
     )
 
 
 @router.get(
     "/{game_id}",
-    response_model=list[FeatureVector],
-    summary="Get cached features",
+    response_model=FeatureVector,
+    summary="Get stored features for a game (by path)",
     responses={404: {"model": ErrorResponse}},
 )
-def get_features(game_id: str = Path(...), concern: Optional[Concern] = Query(None)):
-    if db.get_game(game_id) is None:
-        raise HTTPException(status_code=404, detail=f"Game '{game_id}' not found.")
-    rows = db.get_features(game_id, concern.value if concern else None)
+def get_features_by_path(game_id: str = Path(...)):
+    """Legacy path-based endpoint — kept for backward compatibility."""
+    rows = db.get_features(game_id)
     if not rows:
         raise HTTPException(
-            status_code=404,
-            detail=f"No features for '{game_id}'. Run POST /features/extract first.",
+            status_code=404, detail=f"No features found for game '{game_id}'."
         )
-    return [
-        FeatureVector(
-            game_id=r["game_id"],
-            concern=r["concern"],
-            feature_vector=r["feature_vector"],
-            feature_names=r["feature_names"],
-            schema_version=r["schema_version"],
-            extracted_at=r["extracted_at"],
-        )
-        for r in rows
-    ]
-
-
-@router.delete(
-    "/{game_id}",
-    status_code=204,
-    summary="Delete cached features",
-    responses={404: {"model": ErrorResponse}},
-)
-def delete_features(game_id: str = Path(...), concern: Optional[Concern] = Query(None)):
-    if db.get_game(game_id) is None:
-        raise HTTPException(status_code=404, detail=f"Game '{game_id}' not found.")
-    with db.get_conn() as conn:
-        if concern:
-            conn.execute(
-                "DELETE FROM features WHERE game_id=? AND concern=?",
-                (game_id, concern.value),
-            )
-        else:
-            conn.execute("DELETE FROM features WHERE game_id=?", (game_id,))
+    r = rows[0]
+    return FeatureVector(
+        game_id=r["game_id"],
+        concern=r["concern"],
+        feature_vector=r.get("feature_vector") or [],
+        feature_names=r.get("feature_names") or [],
+        schema_version=r.get("schema_version", "1"),
+        extracted_at=str(r["extracted_at"]) if r.get("extracted_at") else None,
+    )

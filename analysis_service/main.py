@@ -8,8 +8,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from analysis_service.core.config import cfg
-from analysis_service.routers import analysis
+from .core.config import cfg
+from .routers import analysis
 
 cfg.ensure_dirs()
 
@@ -20,8 +20,8 @@ app = FastAPI(
     \n**Student:** Rodrigo Neto (fc59850)
     """,
     version="1.0.0",
-    docs_url="/api/v1/analysis/q/docs",
-    openapi_url="/api/v1/analysis/q/openapi.json",
+    docs_url="/api/v1/analysis/docs",
+    openapi_url="/api/v1/analysis/openapi.json",
 )
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 app.include_router(analysis.router, prefix="/api/v1/analysis")
@@ -29,7 +29,11 @@ app.include_router(analysis.router, prefix="/api/v1/analysis")
 
 @app.get("/api/v1/analysis/", tags=["System"])
 def root():
-    return {"service": "ScrimFinder Analysis Service", "version": "1.0.0", "status": "ok"}
+    return {
+        "service": "ScrimFinder Analysis Service",
+        "version": "1.0.0",
+        "status": "ok",
+    }
 
 
 @app.get("/api/v1/analysis/q/health/live", tags=["System"])
