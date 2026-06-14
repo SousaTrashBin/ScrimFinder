@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net">
   <diagram name="Technical_Architecture" id="Hz_Ww_535UVo_IPDzqhk">
-    <mxGraphModel grid="1" page="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">
+    <mxGraphModel dx="1585" dy="945" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -435,7 +435,7 @@
         <mxCell id="AbBgBipmaP7DghsuRpDn-107" parent="1" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.database;whiteSpace=wrap;fontFamily=Berkeley Mono Variable;" value="" vertex="1">
           <mxGeometry height="84" width="86" x="1347" y="893" as="geometry" />
         </mxCell>
-        <mxCell id="AbBgBipmaP7DghsuRpDn-108" parent="1" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.database;whiteSpace=wrap;fontFamily=Berkeley Mono Variable;" value="&lt;br&gt;&lt;div&gt;User Credentials&amp;nbsp;&lt;div&gt;[SQL]&lt;/div&gt;&lt;/div&gt;" vertex="1">
+        <mxCell id="AbBgBipmaP7DghsuRpDn-108" parent="1" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.database;whiteSpace=wrap;fontFamily=Berkeley Mono Variable;" value="&lt;br&gt;&lt;div&gt;User Credentials&amp;nbsp;&lt;div&gt;[BigQuery]&lt;/div&gt;&lt;/div&gt;" vertex="1">
           <mxGeometry height="84" width="86" x="1328" y="903" as="geometry" />
         </mxCell>
       </root>
