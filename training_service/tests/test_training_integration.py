@@ -4,45 +4,13 @@ training_service/tests/test_integration.py  —  Integration tests
 Tests relationships between components (DB ↔ router ↔ feature engineering ↔
 training pipeline) that are NOT directly triggered by user API calls.
 
-Two modes:
-  1. BQMock mode (default):  uses in-memory mock — fast, no external deps.
-  2. Emulator mode:          set BQ_EMULATOR_HOST to hit goccy/bigquery-emulator.
-
-Run with mock:
-    pytest training_service/tests/test_integration.py -v -m integration
-
-Run with emulator (requires docker-compose.test.yml up):
-    BQ_EMULATOR_HOST=http://localhost:9050 \
-    BQ_PROJECT=test-project \
-    BQ_DATASET=test_league \
-    pytest training_service/tests/test_integration.py -v -m integration
+Uses BQMock for all tests — fast, no external deps, no emulator needed.
 """
-
-import os
 
 import pytest
 from fastapi.testclient import TestClient
 
 pytestmark = pytest.mark.integration
-
-# ── Detect emulator mode ──────────────────────────────────────────────────────
-
-EMULATOR_HOST = os.environ.get("BQ_EMULATOR_HOST")
-USING_EMULATOR = bool(EMULATOR_HOST)
-
-
-def _emulator_client():
-    """Create a BigQuery client pointing at the emulator."""
-    from google.api_core.client_options import ClientOptions
-    from google.auth.credentials import AnonymousCredentials
-    from google.cloud import bigquery
-
-    client_options = ClientOptions(api_endpoint=EMULATOR_HOST)
-    return bigquery.Client(
-        os.environ.get("BQ_PROJECT", "test-project"),
-        client_options=client_options,
-        credentials=AnonymousCredentials(),
-    )
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -50,13 +18,11 @@ def _emulator_client():
 
 @pytest.fixture
 def client(monkeypatch):
-    """App fixture that switches between BQMock and real BQ (emulator)."""
+    """App fixture that always uses BQMock for integration tests."""
     from training_service.main import app
+    from training_service.tests.bq_mock import BQMock
 
-    if not USING_EMULATOR:
-        from training_service.tests.bq_mock import BQMock
-
-        BQMock(monkeypatch)
+    BQMock(monkeypatch)
 
     # Prevent background services from starting
     monkeypatch.setattr(

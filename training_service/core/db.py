@@ -45,9 +45,10 @@ def get_bq_client() -> bigquery.Client:
             else:
                 client = bigquery.Client(project=cfg.BQ_PROJECT)
 
-            # Verify connection with a lightweight query
-            # We use a simple SELECT 1 to ensure the emulator/service is responsive
-            list(client.query("SELECT 1").result())
+            # Verify connection with a lightweight query WITH timeout
+            # Use list_datasets() instead of query() for emulator compatibility
+            datasets = list(client.list_datasets(timeout=10))
+            logger.info(f"BQ client connected. Datasets: {[d.dataset_id for d in datasets]}")
 
             _client = client
             return _client
@@ -97,7 +98,8 @@ def _bq_query(
         sql = "".join(f"{part}@p{i}" for i, part in enumerate(parts[:-1])) + parts[-1]
     # Respect dataset location (EU/US) to avoid 404 "not found in location US"
     location = getattr(cfg, "BQ_LOCATION", None)
-    return client.query(sql, job_config=job_config, location=location).result()
+    # Add timeout for emulator safety
+    return client.query(sql, job_config=job_config, location=location, timeout=30).result()
 
 
 def _bq_type(value: Any) -> str:
