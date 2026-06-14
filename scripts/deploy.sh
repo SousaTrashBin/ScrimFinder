@@ -26,6 +26,7 @@ SCRIM_RABBITMQ_HOST="${SCRIM_RABBITMQ_HOST:-scrimfinder-rabbitmq-broker}"
 SCRIM_RABBITMQ_PORT="${SCRIM_RABBITMQ_PORT:-5672}"
 SCRIM_IMAGE_TAG="${SCRIM_IMAGE_TAG:-latest}"
 SCRIM_SECRET_NAME_PREFIX="${SCRIM_SECRET_NAME_PREFIX:-}"
+SCRIM_SECRETS_SERVICE_ACCOUNT_ID="${SCRIM_SECRETS_SERVICE_ACCOUNT_ID:-secrets-service-account}"
 
 echo "checking GCP configuration..."
 gcloud config set project "$PROJECT_ID" --quiet
@@ -34,7 +35,7 @@ echo "provisioning infrastructure with Terraform..."
 "$ROOT_DIR/scripts/deploy-infra.sh"
 
 FUNCTIONS_BUILD_SERVICE_ACCOUNT="$(functions_build_service_account "$PROJECT_ID")"
-SECRETS_SERVICE_ACCOUNT_EMAIL="secrets-service-account@${PROJECT_ID}.iam.gserviceaccount.com"
+SECRETS_SERVICE_ACCOUNT_EMAIL="${SCRIM_SECRETS_SERVICE_ACCOUNT_ID}@${PROJECT_ID}.iam.gserviceaccount.com"
 
 ZONE="${REGION}-a"
 echo "fetching GKE credentials..."
@@ -175,6 +176,7 @@ export SCRIM_IMAGE_TAG="${SCRIM_IMAGE_TAG:-latest}"
 export SCRIM_RABBITMQ_HOST="${SCRIM_RABBITMQ_HOST}"
 export SCRIM_RABBITMQ_PORT="${SCRIM_RABBITMQ_PORT}"
 export SCRIM_SECRET_NAME_PREFIX="${SCRIM_SECRET_NAME_PREFIX}"
+export SCRIM_SECRETS_SERVICE_ACCOUNT_ID="${SCRIM_SECRETS_SERVICE_ACCOUNT_ID}"
 export DETAIL_FILLING_DOMAIN="${DETAIL_FILLING_DOMAIN}"
 export TARGET_REVISION="${TARGET_REVISION:-$(git -C "$ROOT_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo main)}"
 
