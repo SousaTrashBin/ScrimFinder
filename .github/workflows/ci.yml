@@ -132,6 +132,9 @@ jobs:
           python-version: '3.11'
           cache: pip
 
+      - name: install grpcio-tools for stub generation
+        run: python -m pip install grpcio-tools
+
       - name: generate gRPC stubs for all Python services
         run: |
           for service in analysis_service training_service jwt_manager; do
