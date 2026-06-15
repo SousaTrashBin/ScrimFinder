@@ -7,16 +7,15 @@ RUN apt-get update && apt-get install -y wget && rm -rf /var/lib/apt/lists/*
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the entire analysis_service package (which includes tests/ inside it)
 COPY . ./analysis_service/
-
 COPY pytest.ini .
 
 ENV PYTHONPATH=/app
 
-RUN find /app/analysis_service -type d -exec touch {}/__init__.py \;
-
-RUN chown -R 1000:1000 /app
+# Pre-create writable directories before chown
+RUN mkdir -p /app/data/models && \
+    find /app/analysis_service -type d -exec touch {}/__init__.py \; && \
+    chown -R 1000:1000 /app
 
 USER 1000
 
