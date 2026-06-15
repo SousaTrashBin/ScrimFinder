@@ -126,6 +126,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: generate gRPC stubs for all Python services
+        run: |
+          for service in analysis_service training_service jwt_manager; do
+            echo "=== Generating gRPC stubs for $service ==="
+            ./scripts/python/generate-grpc.sh "$service"
+          done
+
       - name: set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
