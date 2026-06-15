@@ -23,6 +23,7 @@ services:
       context: ./analysis_service
       dockerfile: Dockerfile
     container_name: scrimfinder_analysis_test
+    user: "0"                    # ← run as root in CI tests
     working_dir: /app
     command: pytest analysis_service/tests/test_analysis_integration.py -v -m integration --timeout=120
     environment:
