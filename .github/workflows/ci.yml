@@ -1,7 +1,7 @@
 name: ScrimFinder CI
 
 concurrency:
-  group: scrimfinder-ci-${{ github.workflow }}-${{ github.ref }}
+  group: scrimfinder-ci
   cancel-in-progress: false
 
 on:
@@ -109,8 +109,8 @@ jobs:
 
       - name: run pytest
         run: |
-          cd ${{ matrix.service }}
-          pytest tests/
+          cd "${{ matrix.service }}"
+          pytest -v --timeout=120
 
   python_integration_tests:
     name: python integration tests
