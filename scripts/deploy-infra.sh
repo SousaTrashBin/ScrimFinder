@@ -206,7 +206,8 @@ for secret_name in \
     "${SCRIM_SECRET_NAME_PREFIX}redis-password" \
     "${SCRIM_SECRET_NAME_PREFIX}rabbitmq-user" \
     "${SCRIM_SECRET_NAME_PREFIX}rabbitmq-password" \
-    "${SCRIM_SECRET_NAME_PREFIX}rabbitmq-erlang-cookie"; do
+    "${SCRIM_SECRET_NAME_PREFIX}rabbitmq-erlang-cookie" \
+    "${SCRIM_SECRET_NAME_PREFIX}jwt-secret"; do
     import_if_missing \
         "google_secret_manager_secret.scrim_secrets[\"${secret_name}\"]" \
         "projects/${SCRIM_PROJECT_ID}/secrets/${secret_name}"
