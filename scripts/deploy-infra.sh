@@ -29,6 +29,7 @@ SCRIM_MANAGE_CLOUD_FUNCTIONS_IAM="${SCRIM_MANAGE_CLOUD_FUNCTIONS_IAM:-true}"
 SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER="${SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER:-}"
 SCRIM_SECRET_NAME_PREFIX="${SCRIM_SECRET_NAME_PREFIX:-}"
 SCRIM_SECRETS_SERVICE_ACCOUNT_ID="${SCRIM_SECRETS_SERVICE_ACCOUNT_ID:-secrets-service-account}"
+SCRIM_JWT_SECRET="${SCRIM_JWT_SECRET:-REPLACE_ME}"
 
 echo "applying Terraform infrastructure..."
 gcloud config set project "${SCRIM_PROJECT_ID}" --quiet
@@ -69,6 +70,7 @@ TF_VAR_ARGS=(
     -var="github_run_id=${SCRIM_GITHUB_RUN_ID}"
     -var="github_pr=${SCRIM_GITHUB_PR}"
     -var="cloud_functions_deployer_member=${SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER}"
+    -var="jwt_secret=${SCRIM_JWT_SECRET}"
 )
 
 import_if_missing() {
@@ -154,6 +156,7 @@ ensure_secret_manager_runtime_access() {
     ensure_secret "${SCRIM_SECRET_NAME_PREFIX}rabbitmq-user" "$SCRIM_RABBITMQ_USER"
     ensure_secret "${SCRIM_SECRET_NAME_PREFIX}rabbitmq-password" "$SCRIM_RABBITMQ_PASSWORD"
     ensure_secret "${SCRIM_SECRET_NAME_PREFIX}rabbitmq-erlang-cookie" "$SCRIM_RABBITMQ_ERLANG_COOKIE"
+    ensure_secret "${SCRIM_SECRET_NAME_PREFIX}jwt-secret" "$SCRIM_JWT_SECRET"
 }
 
 if [ "${SCRIM_MANAGE_SECRET_MANAGER}" = "true" ] && \
