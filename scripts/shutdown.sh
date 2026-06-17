@@ -34,6 +34,7 @@ SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER="${SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER:-
 SCRIM_FORCE_SECRET_MANAGER_CLEANUP="${SCRIM_FORCE_SECRET_MANAGER_CLEANUP:-false}"
 SCRIM_SECRET_NAME_PREFIX="${SCRIM_SECRET_NAME_PREFIX:-}"
 SCRIM_SECRETS_SERVICE_ACCOUNT_ID="${SCRIM_SECRETS_SERVICE_ACCOUNT_ID:-secrets-service-account}"
+SCRIM_JWT_SECRET="${SCRIM_JWT_SECRET:-teardown-placeholder}"
 
 DELETE_ARTIFACT_REPO="${SCRIM_DELETE_ARTIFACT_REPO:-false}"
 DELETE_UNUSED_K8S_IPS="${SCRIM_DELETE_UNUSED_K8S_IPS:-true}"
@@ -134,8 +135,8 @@ EOF
         -var="environment_name=${SCRIM_ENVIRONMENT_NAME}" \
         -var="github_run_id=${SCRIM_GITHUB_RUN_ID}" \
         -var="github_pr=${SCRIM_GITHUB_PR}" \
-        -var="cloud_functions_deployer_member=${SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER}"
-        -var="jwt_secret=${SCRIM_JWT_SECRET:-teardown-placeholder}"
+        -var="cloud_functions_deployer_member=${SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER}" \
+        -var="jwt_secret=${SCRIM_JWT_SECRET}"
 fi
 
 cleanup_lingering_clusters
