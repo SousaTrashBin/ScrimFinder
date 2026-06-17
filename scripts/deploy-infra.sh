@@ -83,7 +83,7 @@ import_if_missing() {
     fi
 
     echo "  importing $address as $import_id..."
-    if terraform import -input=false "$address" "$import_id"; then
+    if terraform import -input=false "${TF_VAR_ARGS[@]}" "$address" "$import_id"; then
         echo "  ✓ imported $address"
         return 0
     else
