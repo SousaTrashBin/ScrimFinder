@@ -31,8 +31,4 @@ export SCRIM_MANAGE_SECRET_MANAGER="${SCRIM_MANAGE_SECRET_MANAGER:-true}"
 export SCRIM_MANAGE_ARTIFACT_REGISTRY_REPOSITORY="${SCRIM_MANAGE_ARTIFACT_REGISTRY_REPOSITORY:-false}"
 export SCRIM_MANAGE_CLOUD_FUNCTIONS_IAM="${SCRIM_MANAGE_CLOUD_FUNCTIONS_IAM:-true}"
 
-# Import persistent resources that may exist from previous runs
-# before Terraform apply to avoid 409 Already Exists errors
-"$ROOT_DIR/scripts/ci/terraform-import-datasets.sh"
-
 "$ROOT_DIR/scripts/deploy-infra.sh"
