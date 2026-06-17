@@ -44,7 +44,10 @@ class PipelineSystemIT {
                     new RiotAccount("Kitsune", "bruby"));
 
     private static final HttpClient CLIENT =
-            HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
+            HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(10))
+                    .version(HttpClient.Version.HTTP_1_1)
+                    .build();
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Test
@@ -226,6 +229,7 @@ class PipelineSystemIT {
         HttpRequest request =
                 HttpRequest.newBuilder(URI.create(BASE_URL + path))
                         .timeout(Duration.ofSeconds(30))
+                        .version(HttpClient.Version.HTTP_1_1)
                         .GET()
                         .build();
         return CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
@@ -240,6 +244,7 @@ class PipelineSystemIT {
         HttpRequest request =
                 HttpRequest.newBuilder(URI.create(BASE_URL + path))
                         .timeout(Duration.ofSeconds(30))
+                        .version(HttpClient.Version.HTTP_1_1)
                         .header("Content-Type", "application/json")
                         .POST(HttpRequest.BodyPublishers.ofString(json))
                         .build();
@@ -251,6 +256,7 @@ class PipelineSystemIT {
         HttpRequest request =
                 HttpRequest.newBuilder(URI.create(BASE_URL + path))
                         .timeout(Duration.ofSeconds(30))
+                        .version(HttpClient.Version.HTTP_1_1)
                         .header("Content-Type", "application/json")
                         .PUT(HttpRequest.BodyPublishers.ofString(json))
                         .build();
@@ -261,6 +267,7 @@ class PipelineSystemIT {
         HttpRequest request =
                 HttpRequest.newBuilder(URI.create(BASE_URL + path))
                         .timeout(Duration.ofSeconds(30))
+                        .version(HttpClient.Version.HTTP_1_1)
                         .DELETE()
                         .build();
         CLIENT.send(request, HttpResponse.BodyHandlers.ofString());

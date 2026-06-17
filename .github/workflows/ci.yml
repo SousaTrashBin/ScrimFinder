@@ -22,6 +22,17 @@ jobs:
   java_fast_tests:
     name: java fast tests - ${{ matrix.service }}
     runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:8.6
+        ports:
+          - 6379:6379
+          - 6380:6380
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
       RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
       SCRIM_DB_USER: ${{ secrets.SCRIM_DB_USER }}
@@ -42,10 +53,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: run redis init script
-        if: matrix.service == 'detail_filling_service'
-        run: ./detail_filling_service/redisInit.sh
-
       - name: set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -62,10 +69,6 @@ jobs:
       - name: run unit and integration-light tests
         run: |
           SERVICES="${{ matrix.service }}" ./scripts/ci/run-java-service-tests.sh fast-tests
-
-      - name: run redis shutdown script
-        if: matrix.service == 'detail_filling_service' && always()
-        run: ./detail_filling_service/redisShutdown.sh
 
   python_fast_tests:
     name: python fast tests - ${{ matrix.service }}

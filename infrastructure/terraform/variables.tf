@@ -64,6 +64,23 @@ variable "manage_secret_manager" {
   default = true
 }
 
+variable "secret_name_prefix" {
+  type        = string
+  default     = ""
+  description = "Optional prefix for Secret Manager secret IDs. CI uses this to avoid cross-run collisions."
+}
+
+variable "secrets_service_account_id" {
+  type        = string
+  default     = "secrets-service-account"
+  description = "Google service account ID used by GKE workloads to access Secret Manager."
+}
+
+variable "manage_cloud_functions_iam" {
+  type    = bool
+  default = true
+}
+
 variable "environment_name" {
   type    = string
   default = "manual"

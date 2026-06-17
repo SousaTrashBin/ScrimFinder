@@ -10,6 +10,8 @@ global:
   rabbitmqHost: "scrimfinder-rabbitmq-broker"
   rabbitmqPort: "5672"
   secretsServiceAccountName: "scrimfinder-secrets-reader"
+  secretsServiceAccountId: "secrets-service-account"
+  secretNamePrefix: ""
   podSecurityContext: {}
   securityContext: {}
   security:
@@ -56,6 +58,11 @@ traefik:
       expose:
         default: true
       exposedPort: 80
+
+# Installed through the child Argo CD Application when global.useArgoApplications is true.
+# Keeping the parent dependency disabled prevents duplicate ownership of cluster-scoped CSI resources.
+secrets-store-csi-driver:
+  enabled: false
 
 matchmaking-db:
   architecture: replication
@@ -161,7 +168,7 @@ services:
         cpu: "100m"
         memory: "256Mi"
       limits:
-        memory: "256Mi"
+        memory: "512Mi"
     autoscaling:
       enabled: true
       minReplicas: 1
@@ -190,7 +197,7 @@ services:
         cpu: "100m"
         memory: "256Mi"
       limits:
-        memory: "256Mi"
+        memory: "512Mi"
     autoscaling:
       enabled: true
       minReplicas: 1
@@ -219,7 +226,7 @@ services:
         cpu: "100m"
         memory: "256Mi"
       limits:
-        memory: "256Mi"
+        memory: "512Mi"
     autoscaling:
       enabled: true
       minReplicas: 1
@@ -248,7 +255,7 @@ services:
         cpu: "100m"
         memory: "256Mi"
       limits:
-        memory: "256Mi"
+        memory: "512Mi"
     autoscaling:
       enabled: true
       minReplicas: 1
@@ -273,7 +280,7 @@ services:
         cpu: "200m"
         memory: "1Gi"
       limits:
-        memory: "1Gi"
+        memory: "2Gi"
     autoscaling:
       enabled: true
       minReplicas: 1
@@ -283,6 +290,10 @@ services:
       DETAIL_FILLING_URL: "http://scrimfinder-traefik/api/v1/riot"
     healthType: "http"
     healthPath: "/api/v1/training/q/health"
+    progressDeadlineSeconds: 1200
+    startupProbe:
+      enabled: true
+      failureThreshold: 60
     persistence:
       enabled: true
       mountPath: /app/data
