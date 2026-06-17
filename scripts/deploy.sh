@@ -170,6 +170,7 @@ echo "deploying Argo CD..."
 
 export SCRIM_NAMESPACE="${SCRIM_NAMESPACE}"
 export PROJECT_ID="${PROJECT_ID}"
+export CLUSTER_NAME="${CLUSTER_NAME}"
 export REGION="${REGION}"
 export REPO_NAME="${REPO_NAME}"
 export SCRIM_IMAGE_TAG="${SCRIM_IMAGE_TAG:-latest}"

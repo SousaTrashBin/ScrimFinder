@@ -78,6 +78,11 @@ spec:
             secretKeyRef:
               name: scrimfinder-secrets
               key: rabbitmq-password
+        - name: GRAFANA_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: scrimfinder-secrets
+              key: grafana-token
 
         resources:
           {{- toYaml $config.resources | nindent 10 }}

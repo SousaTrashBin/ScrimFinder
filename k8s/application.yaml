@@ -27,6 +27,8 @@ spec:
           value: "${REGION}"
         - name: global.projectId
           value: "${PROJECT_ID}"
+        - name: global.clusterName
+          value: "${CLUSTER_NAME}"
         - name: global.repoName
           value: "${REPO_NAME}"
         - name: global.rabbitmqHost
@@ -45,6 +47,8 @@ spec:
           value: "http://scrimfinder-traefik/api/v1/riot"
         - name: services.training-service.env.DETAIL_FILLING_URL
           value: "http://scrimfinder-traefik/api/v1/riot"
+        - name: secrets.grafanaToken
+          value: "${GRAFANA_TOKEN}"
   destination:
     server: https://kubernetes.default.svc
     namespace: "${SCRIM_NAMESPACE}"
