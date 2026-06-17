@@ -211,7 +211,7 @@ jobs:
       SCRIM_RABBITMQ_USER: ${{ secrets.SCRIM_RABBITMQ_USER }}
       SCRIM_RABBITMQ_PASSWORD: ${{ secrets.SCRIM_RABBITMQ_PASSWORD }}
       SCRIM_RABBITMQ_ERLANG_COOKIE: ${{ secrets.SCRIM_RABBITMQ_ERLANG_COOKIE }}
-      SCRIM_JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      SCRIM_JWT_SECRET: ${{ secrets.SCRIM_JWT_SECRET }}
       TF_STATE_BUCKET: ${{ secrets.TF_STATE_BUCKET }}
       SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER: serviceAccount:${{ secrets.GCP_SERVICE_ACCOUNT }}
       PR_NUMBER: ${{ github.event.pull_request.number || '' }}

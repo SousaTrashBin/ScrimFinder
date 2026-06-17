@@ -228,6 +228,24 @@ if [ "${SCRIM_MANAGE_SECRET_MANAGER}" = "true" ] && [ "${secret_manager_import_i
     TF_VAR_ARGS=("${TF_VAR_ARGS[@]/-var=manage_secret_manager=true/-var=manage_secret_manager=false}")
 fi
 
+# Import persistent resources that may exist from previous ephemeral runs
+echo "importing persistent BigQuery datasets, storage bucket, and shared service accounts..."
+import_if_missing \
+    "google_bigquery_dataset.scrimfinder" \
+    "${SCRIM_PROJECT_ID}:scrimfinder"
+import_if_missing \
+    "google_bigquery_dataset.scrimfinder_platform" \
+    "${SCRIM_PROJECT_ID}:scrimfinder_platform"
+import_if_missing \
+    "google_bigquery_dataset.ml_db" \
+    "${SCRIM_PROJECT_ID}:ml_db"
+import_if_missing \
+    "google_service_account.gke_nodes_sa" \
+    "projects/${SCRIM_PROJECT_ID}/serviceAccounts/scrim-gke-nodes-sa@${SCRIM_PROJECT_ID}.iam.gserviceaccount.com"
+import_if_missing \
+    "google_storage_bucket.models_bucket" \
+    "${SCRIM_PROJECT_ID}/scrimfinder-models-${SCRIM_PROJECT_ID}"
+
 terraform apply -input=false -auto-approve "${TF_VAR_ARGS[@]}"
 
 echo "ensuring Secret Manager runtime access and values..."

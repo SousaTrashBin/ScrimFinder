@@ -135,6 +135,7 @@ EOF
         -var="github_run_id=${SCRIM_GITHUB_RUN_ID}" \
         -var="github_pr=${SCRIM_GITHUB_PR}" \
         -var="cloud_functions_deployer_member=${SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER}"
+        -var="jwt_secret=${SCRIM_JWT_SECRET:-teardown-placeholder}"
 fi
 
 cleanup_lingering_clusters
