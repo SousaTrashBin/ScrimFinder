@@ -12,6 +12,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "10"
 spec:
+  progressDeadlineSeconds: {{ $config.progressDeadlineSeconds | default 600 }}
   {{- if not ($config.autoscaling).enabled }}
   replicas: {{ $config.replicas | default 1 }}
   {{- end }}
