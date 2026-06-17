@@ -60,3 +60,21 @@ resource "google_bigquery_dataset" "ml_db" {
     }
   )
 }
+
+# ── BigQuery Dataset IAM ─────────────────────────────────────────────────────
+
+resource "google_bigquery_dataset_iam_member" "scrimfinder_viewer" {
+  count      = var.manage_secret_manager ? 1 : 0
+  project    = var.project_id
+  dataset_id = google_bigquery_dataset.scrimfinder.dataset_id
+  role       = "roles/bigquery.dataViewer"
+  member     = "serviceAccount:${google_service_account.secrets_sa[0].email}"
+}
+
+resource "google_bigquery_dataset_iam_member" "platform_editor" {
+  count      = var.manage_secret_manager ? 1 : 0
+  project    = var.project_id
+  dataset_id = google_bigquery_dataset.scrimfinder_platform.dataset_id
+  role       = "roles/bigquery.dataEditor"
+  member     = "serviceAccount:${google_service_account.secrets_sa[0].email}"
+}

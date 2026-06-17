@@ -216,28 +216,6 @@ resource "google_secret_manager_secret_iam_member" "secrets_access" {
   member    = "serviceAccount:${google_service_account.secrets_sa[0].email}"
 }
 
-# ── BigQuery Datasets ────────────────────────────────────────────────────────
-
-resource "google_bigquery_dataset" "scrimfinder" {
-  project                    = var.project_id
-  dataset_id                 = "scrimfinder"
-  location                   = "EU"
-  description                = "League data (read-only in ML services)"
-  labels                     = local.common_labels
-  delete_contents_on_destroy = false
-  depends_on                 = [google_project_service.required]
-}
-
-resource "google_bigquery_dataset" "scrimfinder_platform" {
-  project                    = var.project_id
-  dataset_id                 = "scrimfinder_platform"
-  location                   = "EU"
-  description                = "ML platform metadata (read-write)"
-  labels                     = local.common_labels
-  delete_contents_on_destroy = false
-  depends_on                 = [google_project_service.required]
-}
-
 # ── GCS Bucket for ML Models ─────────────────────────────────────────────────
 
 resource "google_storage_bucket" "models_bucket" {
@@ -250,29 +228,13 @@ resource "google_storage_bucket" "models_bucket" {
   depends_on                  = [google_project_service.required]
 }
 
-# ── IAM for BigQuery and Storage ─────────────────────────────────────────────
+# ── IAM for BigQuery Job User (dataset-level IAM moved to bigquery.tf) ───────
 
 resource "google_project_iam_member" "bigquery_job_user" {
   count   = var.manage_secret_manager ? 1 : 0
   project = var.project_id
   role    = "roles/bigquery.jobUser"
   member  = "serviceAccount:${google_service_account.secrets_sa[0].email}"
-}
-
-resource "google_bigquery_dataset_iam_member" "scrimfinder_viewer" {
-  count      = var.manage_secret_manager ? 1 : 0
-  project    = var.project_id
-  dataset_id = google_bigquery_dataset.scrimfinder.dataset_id
-  role       = "roles/bigquery.dataViewer"
-  member     = "serviceAccount:${google_service_account.secrets_sa[0].email}"
-}
-
-resource "google_bigquery_dataset_iam_member" "platform_editor" {
-  count      = var.manage_secret_manager ? 1 : 0
-  project    = var.project_id
-  dataset_id = google_bigquery_dataset.scrimfinder_platform.dataset_id
-  role       = "roles/bigquery.dataEditor"
-  member     = "serviceAccount:${google_service_account.secrets_sa[0].email}"
 }
 
 resource "google_storage_bucket_iam_member" "models_bucket_admin" {
