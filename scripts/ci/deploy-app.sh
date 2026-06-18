@@ -245,10 +245,6 @@ if grep -q "::1" /etc/hosts; then
     sudo sed -i '/::1/d' /etc/hosts || true
 fi
 
-run_argocd_with_retries \
-    "waiting for Argo CD application 'scrimfinder'" \
-    argocd --core app wait scrimfinder --app-namespace argocd --sync --health --timeout 2400
-
 echo "waiting for Argo CD LoadBalancer External IP/Hostname..."
 
 EXTERNAL_ARGOCD_IP=""
@@ -276,6 +272,10 @@ INITIAL_ARGOCD_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secr
 
 echo "Argo CD External IP/Hostname: ${EXTERNAL_ARGOCD_IP}; username: admin; initial password: $INITIAL_ARGOCD_PASSWORD"
 
+run_argocd_with_retries \
+    "waiting for Argo CD application 'scrimfinder'" \
+    argocd --core app wait scrimfinder --app-namespace argocd --sync --health --timeout 2400
+
 base_url=""
 for _ in $(seq 1 90); do
   base_url="$(kubectl get svc scrimfinder-traefik -n "$SCRIM_NAMESPACE" -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)"
@@ -294,6 +294,7 @@ fi
 system_base_url="http://${base_url}"
 echo "SCRIM_SYSTEM_BASE_URL=$system_base_url"
 echo "BASE_URL=$system_base_url"
+echo "Argo CD External IP/Hostname: ${EXTERNAL_ARGOCD_IP}; username: admin; initial password: $INITIAL_ARGOCD_PASSWORD"
 
 if [ -n "${GITHUB_ENV:-}" ]; then
   {
