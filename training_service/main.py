@@ -4,19 +4,20 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from training_service.core.config import cfg
-from training_service.core.db import count_games, init_db, list_models
-from training_service.routers import datasets, features, games, models, training
-
-cfg.ensure_dirs()
-init_db()
+from .routers import datasets, features, games, models, training
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("LIFESPAN STARTED", flush=True)
-    from training_service.grpc_server import start_background_server, stop_server
-    from training_service.rabbitmq_consumer import (
+    # Import here so env vars set before import are picked up correctly in tests
+    from .core.config import cfg
+    from .core.db import init_db
+
+    cfg.ensure_dirs()
+    init_db()
+
+    from .grpc_server import start_background_server, stop_server
+    from .rabbitmq_consumer import (
         start_background_consumer,
         stop_consumer,
     )
@@ -24,7 +25,6 @@ async def lifespan(app: FastAPI):
     start_background_server()
     start_background_consumer()
     yield
-    print("LIFESPAN ENDED - Stopping gRPC", flush=True)
     stop_consumer()
     stop_server(grace=1)
 
@@ -32,13 +32,13 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="ScrimFinder Training Service",
     description=(
-        "Game ingestion, feature extraction, dataset management, ML training and model registry.\n\n"
+        "Game ingestion, feature extraction, ML training and model registry.\n\n"
         "**Student:** Rodrigo Neto (fc59850)"
     ),
     version="1.0.0",
     lifespan=lifespan,
-    docs_url="/api/v1/training/q/docs",
-    openapi_url="/api/v1/training/q/openapi.json",
+    docs_url="/api/v1/training/docs",
+    openapi_url="/api/v1/training/openapi.json",
 )
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
@@ -52,6 +52,8 @@ app.include_router(models.router, prefix="/api/v1/training")
 
 @app.get("/api/v1/training/", tags=["System"])
 def root():
+    from .core.db import count_games, list_models
+
     return {
         "service": "ScrimFinder Training Service",
         "version": "1.0.0",
@@ -77,6 +79,9 @@ async def not_found(req, exc):
 
 @app.exception_handler(500)
 async def server_error(req, exc):
+    import traceback
+
     return JSONResponse(
-        status_code=500, content={"code": 500, "message": "Internal server error."}
+        status_code=500,
+        content={"code": 500, "message": str(exc), "detail": traceback.format_exc()},
     )

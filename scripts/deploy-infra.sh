@@ -29,6 +29,7 @@ SCRIM_MANAGE_CLOUD_FUNCTIONS_IAM="${SCRIM_MANAGE_CLOUD_FUNCTIONS_IAM:-true}"
 SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER="${SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER:-}"
 SCRIM_SECRET_NAME_PREFIX="${SCRIM_SECRET_NAME_PREFIX:-}"
 SCRIM_SECRETS_SERVICE_ACCOUNT_ID="${SCRIM_SECRETS_SERVICE_ACCOUNT_ID:-secrets-service-account}"
+SCRIM_JWT_SECRET="${SCRIM_JWT_SECRET:-REPLACE_ME}"
 
 echo "applying Terraform infrastructure..."
 gcloud config set project "${SCRIM_PROJECT_ID}" --quiet
@@ -69,6 +70,7 @@ TF_VAR_ARGS=(
     -var="github_run_id=${SCRIM_GITHUB_RUN_ID}"
     -var="github_pr=${SCRIM_GITHUB_PR}"
     -var="cloud_functions_deployer_member=${SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER}"
+    -var="jwt_secret=${SCRIM_JWT_SECRET}"
 )
 
 import_if_missing() {
@@ -76,10 +78,18 @@ import_if_missing() {
     local import_id="$2"
 
     if terraform state show "$address" >/dev/null 2>&1; then
+        echo "  $address already in state, skipping import"
         return 0
     fi
 
-    terraform import -input=false "${TF_VAR_ARGS[@]}" "$address" "$import_id" >/dev/null 2>&1 || true
+    echo "  importing $address as $import_id..."
+    if terraform import -input=false "${TF_VAR_ARGS[@]}" "$address" "$import_id"; then
+        echo "  ✓ imported $address"
+        return 0
+    else
+        echo "  ✗ failed to import $address (may not exist yet)"
+        return 1
+    fi
 }
 
 wait_for_secret_manager_create_permission() {
@@ -154,6 +164,7 @@ ensure_secret_manager_runtime_access() {
     ensure_secret "${SCRIM_SECRET_NAME_PREFIX}rabbitmq-user" "$SCRIM_RABBITMQ_USER"
     ensure_secret "${SCRIM_SECRET_NAME_PREFIX}rabbitmq-password" "$SCRIM_RABBITMQ_PASSWORD"
     ensure_secret "${SCRIM_SECRET_NAME_PREFIX}rabbitmq-erlang-cookie" "$SCRIM_RABBITMQ_ERLANG_COOKIE"
+    ensure_secret "${SCRIM_SECRET_NAME_PREFIX}jwt-secret" "$SCRIM_JWT_SECRET"
 }
 
 if [ "${SCRIM_MANAGE_SECRET_MANAGER}" = "true" ] && \
@@ -172,10 +183,10 @@ fi
 echo "importing pre-existing infrastructure resources when present..."
 import_if_missing \
     "google_artifact_registry_repository.docker_repo[0]" \
-    "projects/${SCRIM_PROJECT_ID}/locations/${SCRIM_REGION}/repositories/${SCRIM_REPO_NAME}"
+    "projects/${SCRIM_PROJECT_ID}/locations/${SCRIM_REGION}/repositories/${SCRIM_REPO_NAME}" || true
 import_if_missing \
     "google_artifact_registry_repository.docker_repo[0]" \
-    "${SCRIM_PROJECT_ID}/${SCRIM_REGION}/${SCRIM_REPO_NAME}"
+    "${SCRIM_PROJECT_ID}/${SCRIM_REGION}/${SCRIM_REPO_NAME}" || true
 
 if ! terraform state show "google_artifact_registry_repository.docker_repo[0]" >/dev/null 2>&1; then
     if gcloud artifacts repositories describe "${SCRIM_REPO_NAME}" --location="${SCRIM_REGION}" --project="${SCRIM_PROJECT_ID}" >/dev/null 2>&1; then
@@ -188,7 +199,7 @@ if [ "${SCRIM_MANAGE_SECRET_MANAGER}" = "true" ]; then
     SA_EMAIL="${SCRIM_SECRETS_SERVICE_ACCOUNT_ID}@${SCRIM_PROJECT_ID}.iam.gserviceaccount.com"
     import_if_missing \
         "google_service_account.secrets_sa[0]" \
-        "projects/${SCRIM_PROJECT_ID}/serviceAccounts/${SA_EMAIL}"
+        "projects/${SCRIM_PROJECT_ID}/serviceAccounts/${SA_EMAIL}" || true
 fi
 
 secret_manager_import_incomplete="false"
@@ -206,10 +217,11 @@ for secret_name in \
     "${SCRIM_SECRET_NAME_PREFIX}redis-password" \
     "${SCRIM_SECRET_NAME_PREFIX}rabbitmq-user" \
     "${SCRIM_SECRET_NAME_PREFIX}rabbitmq-password" \
-    "${SCRIM_SECRET_NAME_PREFIX}rabbitmq-erlang-cookie"; do
+    "${SCRIM_SECRET_NAME_PREFIX}rabbitmq-erlang-cookie" \
+    "${SCRIM_SECRET_NAME_PREFIX}jwt-secret"; do
     import_if_missing \
         "google_secret_manager_secret.scrim_secrets[\"${secret_name}\"]" \
-        "projects/${SCRIM_PROJECT_ID}/secrets/${secret_name}"
+        "projects/${SCRIM_PROJECT_ID}/secrets/${secret_name}" || true
 
     if [ "${SCRIM_MANAGE_SECRET_MANAGER}" = "true" ] && \
        gcloud secrets describe "${secret_name}" --project="${SCRIM_PROJECT_ID}" >/dev/null 2>&1 && \
@@ -223,6 +235,24 @@ if [ "${SCRIM_MANAGE_SECRET_MANAGER}" = "true" ] && [ "${secret_manager_import_i
     echo "secret manager resources exist but could not be imported; skipping secret-manager resource creation in this apply."
     TF_VAR_ARGS=("${TF_VAR_ARGS[@]/-var=manage_secret_manager=true/-var=manage_secret_manager=false}")
 fi
+
+# Import persistent resources that may exist from previous ephemeral runs
+echo "importing persistent BigQuery datasets, storage bucket, and shared service accounts..."
+import_if_missing \
+    "google_bigquery_dataset.scrimfinder" \
+    "projects/${SCRIM_PROJECT_ID}/datasets/scrimfinder" || true
+import_if_missing \
+    "google_bigquery_dataset.scrimfinder_platform" \
+    "projects/${SCRIM_PROJECT_ID}/datasets/scrimfinder_platform" || true
+import_if_missing \
+    "google_bigquery_dataset.ml_db" \
+    "projects/${SCRIM_PROJECT_ID}/datasets/ml_db" || true
+import_if_missing \
+    "google_service_account.gke_nodes_sa" \
+    "projects/${SCRIM_PROJECT_ID}/serviceAccounts/scrim-gke-nodes-sa@${SCRIM_PROJECT_ID}.iam.gserviceaccount.com" || true
+import_if_missing \
+    "google_storage_bucket.models_bucket" \
+    "scrimfinder-models-${SCRIM_PROJECT_ID}" || true
 
 terraform apply -input=false -auto-approve "${TF_VAR_ARGS[@]}"
 

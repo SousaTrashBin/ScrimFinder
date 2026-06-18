@@ -11,6 +11,7 @@ locals {
 
   required_services = toset([
     "artifactregistry.googleapis.com",
+    "bigquery.googleapis.com",
     "cloudbuild.googleapis.com",
     "cloudfunctions.googleapis.com",
     "cloudresourcemanager.googleapis.com",
@@ -30,6 +31,7 @@ locals {
     "${var.secret_name_prefix}rabbitmq-user"          = var.rabbitmq_user
     "${var.secret_name_prefix}rabbitmq-password"      = var.rabbitmq_password
     "${var.secret_name_prefix}rabbitmq-erlang-cookie" = var.rabbitmq_erlang_cookie
+    "${var.secret_name_prefix}jwt-secret"              = var.jwt_secret
   }
 
   cloud_functions_deployer_roles = (!var.manage_cloud_functions_iam || var.cloud_functions_deployer_member == "") ? toset([]) : toset([
@@ -129,12 +131,46 @@ resource "google_project_iam_member" "cloud_functions_deployer" {
   member   = var.cloud_functions_deployer_member
 }
 
+# ── GKE Service Accounts & IAM ───────────────────────────────────────────────
+
+resource "google_service_account" "gke_nodes_sa" {
+  project      = var.project_id
+  account_id   = "scrim-gke-nodes-sa"
+  display_name = "ScrimFinder GKE Nodes Service Account"
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes  = [display_name, description]
+  }
+}
+
+resource "google_project_iam_member" "gke_nodes_standard" {
+  for_each = toset([
+    "roles/logging.logWriter",
+    "roles/monitoring.metricWriter",
+    "roles/monitoring.viewer",
+    "roles/stackdriver.resourceMetadata.writer",
+    "roles/artifactregistry.reader",
+  ])
+  project = var.project_id
+  role    = each.key
+  member  = "serviceAccount:${google_service_account.gke_nodes_sa.email}"
+}
+
+# Permission for the CI runner to use the GKE node service account
+resource "google_service_account_iam_member" "ci_gke_node_user" {
+  count              = var.cloud_functions_deployer_member != "" ? 1 : 0
+  service_account_id = google_service_account.gke_nodes_sa.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = var.cloud_functions_deployer_member
+}
+
 resource "google_service_account" "secrets_sa" {
   count        = var.manage_secret_manager ? 1 : 0
   project      = var.project_id
   account_id   = var.secrets_service_account_id
-  display_name = var.secrets_service_account_id
-  description  = "Service account with access to ScrimFinder secrets"
+  display_name = "ScrimFinder Secrets & BigQuery SA"
+  description  = "Service account with access to ScrimFinder secrets and BigQuery datasets"
 }
 
 resource "google_service_account_iam_member" "workload_identity_user" {
@@ -177,10 +213,47 @@ resource "google_secret_manager_secret_version" "scrim_secret_versions" {
   secret_data = each.value
 }
 
+# FIXED: Use local.secret_values instead of google_secret_manager_secret.scrim_secrets
+# for the for_each keys so they are statically known at plan time.
 resource "google_secret_manager_secret_iam_member" "secrets_access" {
-  for_each  = var.manage_secret_manager ? google_secret_manager_secret.scrim_secrets : {}
+  for_each  = var.manage_secret_manager ? local.secret_values : {}
   project   = var.project_id
   secret_id = each.key
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.secrets_sa[0].email}"
+
+  depends_on = [google_secret_manager_secret.scrim_secrets]
+}
+
+# ── GCS Bucket for ML Models ─────────────────────────────────────────────────
+
+resource "google_storage_bucket" "models_bucket" {
+  project                     = var.project_id
+  name                        = "scrimfinder-models-${var.project_id}"
+  location                    = "EU"
+  force_destroy               = true
+  uniform_bucket_level_access = true
+  labels                      = local.common_labels
+
+  lifecycle {
+    prevent_destroy = true
+  }
+
+  depends_on = [google_project_service.required]
+}
+
+# ── IAM for BigQuery Job User (dataset-level IAM moved to bigquery.tf) ───────
+
+resource "google_project_iam_member" "bigquery_job_user" {
+  count   = var.manage_secret_manager ? 1 : 0
+  project = var.project_id
+  role    = "roles/bigquery.jobUser"
+  member  = "serviceAccount:${google_service_account.secrets_sa[0].email}"
+}
+
+resource "google_storage_bucket_iam_member" "models_bucket_admin" {
+  count  = var.manage_secret_manager ? 1 : 0
+  bucket = google_storage_bucket.models_bucket.name
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${google_service_account.secrets_sa[0].email}"
 }

@@ -1,0 +1,123 @@
+# docker-compose.cloud-test.yml
+# Simulacao de ambiente Cloud (Ingress + Network Isolation)
+# Otimizado para máquinas com 4GB RAM
+
+services:
+  # O Ingress/Load Balancer (Simula Azure Ingress / AWS ALB)
+  ingress:
+    image: traefik:v3.0
+    command:
+      - "--providers.file.filename=/etc/traefik/traefik_rules.yml"
+      - "--entrypoints.web.address=:80"
+      - "--log.level=DEBUG"
+    ports:
+      - "80:80"
+    volumes:
+      - "./traefik_rules.yml:/etc/traefik/traefik_rules.yml:ro"
+    networks:
+      - cloud-net
+
+  # Cache Distribuido
+  redis:
+    image: redis:7-alpine
+    networks:
+      - cloud-net
+
+  # Base de Dados ML (Postgres com imagem Alpine para poupar RAM)
+  ml-db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=ml
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ml"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cloud-net
+
+  # Servico de Autenticacao
+  jwt-manager:
+    build:
+      context: ./jwt_manager
+    environment:
+      - PYTHONPATH=/app
+      - JWT_DB_HOST=ml-db
+      - JWT_DB_PORT=5432
+      - JWT_DB_NAME=ml
+      - JWT_DB_USER=postgres
+      - JWT_DB_PASSWORD=postgres
+      - REDIS_URL=redis://redis:6379/2
+      - JWT_SECRET=cloud_simulation_secret
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jwt.rule=PathPrefix(`/api/v1/auth`)"
+      - "traefik.http.services.jwt.loadbalancer.server.port=8002"
+    networks:
+      - cloud-net
+    depends_on:
+      ml-db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  # Servico de Treino
+  training-service:
+    build:
+      context: ./training_service
+    environment:
+      - PYTHONPATH=/app
+      - PLATFORM_DB_HOST=ml-db
+      - PLATFORM_DB_NAME=ml
+      - PLATFORM_DB_USER=postgres
+      - PLATFORM_DB_PASSWORD=postgres
+      - LEAGUE_DB_DSN=postgresql://postgres:postgres@ml-db:5432/ml
+      - MODELS_DIR=/app/ml_data/models
+      - GAMES_DIR=/app/ml_data/games
+      - DATASETS_DIR=/app/ml_data/datasets
+      - GRPC_PORT=50051
+      - BQ_PROJECT=${BQ_PROJECT:-}
+      - GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS:-}
+    volumes:
+      - ./ml_data:/app/ml_data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.training.rule=PathPrefix(`/api/v1/training`)"
+      - "traefik.http.services.training.loadbalancer.server.port=8000"
+    networks:
+      - cloud-net
+    depends_on:
+      ml-db:
+        condition: service_healthy
+
+  # Servico de Analise
+  analysis-service:
+    build:
+      context: ./analysis_service
+    environment:
+      - PYTHONPATH=/app
+      - LEAGUE_DB_HOST=ml-db
+      - LEAGUE_DB_NAME=ml
+      - LEAGUE_DB_USER=postgres
+      - LEAGUE_DB_PASSWORD=postgres
+      - MODELS_DIR=/app/ml_data/models
+      - TRAINING_GRPC_URL=training-service:50051
+      - BQ_PROJECT=${BQ_PROJECT:-}
+      - GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS:-}
+    volumes:
+      - ./ml_data:/app/ml_data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.analysis.rule=PathPrefix(`/api/v1/analysis`)"
+      - "traefik.http.services.analysis.loadbalancer.server.port=8001"
+    networks:
+      - cloud-net
+    depends_on:
+      training-service:
+        condition: service_started
+
+networks:
+  cloud-net:
+    driver: bridge

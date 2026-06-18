@@ -1,0 +1,56 @@
+services:
+  # ── Training Service integration tests ────────────────────────────────────
+  training-test:
+    build:
+      context: ./training_service
+      dockerfile: Dockerfile
+    container_name: scrimfinder_training_test
+    working_dir: /app
+    command: pytest training_service/tests/test_training_integration.py -v -m integration --timeout=120
+    environment:
+      - PYTHONPATH=/app
+      - MODELS_DIR=/app/data/models
+      - MODEL_RELOAD_INTERVAL=60
+    volumes:
+      - .:/app
+      - ./ml_data:/app/data
+    networks:
+      - scrimfinder_net
+
+  # ── Analysis Service integration tests ─────────────────────────────────────
+  analysis-test:
+    build:
+      context: ./analysis_service
+      dockerfile: Dockerfile
+    container_name: scrimfinder_analysis_test
+    user: "0"                    # ← run as root in CI tests
+    working_dir: /app
+    command: pytest analysis_service/tests/test_analysis_integration.py -v -m integration --timeout=120
+    environment:
+      - PYTHONPATH=/app
+      - MODELS_DIR=/app/data/models
+      - MODEL_RELOAD_INTERVAL=60
+    volumes:
+      - .:/app
+      - ./ml_data:/app/data
+    networks:
+      - scrimfinder_net
+
+  # ── JWT Manager integration tests ──────────────────────────────────────────
+  jwt-test:
+    build:
+      context: ./jwt_manager
+      dockerfile: Dockerfile
+    container_name: scrimfinder_jwt_test
+    working_dir: /app
+    command: pytest jwt_manager/tests/test_jwt_integration.py -v -m integration --timeout=120
+    environment:
+      - PYTHONPATH=/app
+    volumes:
+      - .:/app
+    networks:
+      - scrimfinder_net
+
+networks:
+  scrimfinder_net:
+    driver: bridge

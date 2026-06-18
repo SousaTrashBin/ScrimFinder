@@ -28,6 +28,7 @@ spec:
   entryPoints:
     - web
   routes:
+    {{- if ne (index .Values.services "matchmaking-service").enabled false }}
     - match: PathPrefix(`/api/v1/matchmaking`)
       kind: Rule
       priority: 100
@@ -36,6 +37,8 @@ spec:
           port: 8080
       middlewares:
         - name: api-ratelimit
+    {{- end }}
+    {{- if ne (index .Values.services "ranking-service").enabled false }}
     - match: PathPrefix(`/api/v1/ranking`)
       kind: Rule
       priority: 100
@@ -44,6 +47,8 @@ spec:
           port: 8080
       middlewares:
         - name: api-ratelimit
+    {{- end }}
+    {{- if ne (index .Values.services "match-history-service").enabled false }}
     - match: PathPrefix(`/api/v1/history`)
       kind: Rule
       priority: 100
@@ -52,6 +57,8 @@ spec:
           port: 8080
       middlewares:
         - name: api-ratelimit
+    {{- end }}
+    {{- if ne (index .Values.services "detail-filling-service").enabled false }}
     - match: PathPrefix(`/api/v1/riot`)
       kind: Rule
       priority: 100
@@ -69,6 +76,8 @@ spec:
         - name: detail-filling-prefix
         {{- end }}
         - name: api-ratelimit
+    {{- end }}
+    {{- if ne (index .Values.services "training-service").enabled false }}
     - match: PathPrefix(`/api/v1/training`)
       kind: Rule
       priority: 100
@@ -77,6 +86,8 @@ spec:
           port: 8000
       middlewares:
         - name: api-ratelimit
+    {{- end }}
+    {{- if ne (index .Values.services "analysis-service").enabled false }}
     - match: PathPrefix(`/api/v1/analysis`)
       kind: Rule
       priority: 100
@@ -85,3 +96,14 @@ spec:
           port: 8001
       middlewares:
         - name: api-ratelimit
+    {{- end }}
+    {{- if ne (index .Values.services "jwt-manager").enabled false }}
+    - match: PathPrefix(`/api/v1/auth`)
+      kind: Rule
+      priority: 100
+      services:
+        - name: jwt-manager
+          port: 8000
+      middlewares:
+        - name: api-ratelimit
+    {{- end }}

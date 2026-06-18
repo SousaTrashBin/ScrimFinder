@@ -18,8 +18,8 @@ from pathlib import Path
 import numpy as np
 from fastapi import APIRouter, HTTPException
 
-import analysis_service.grpc_client as grpc_client
-from analysis_service.core.schemas import (
+from ..core.db import get_active_model
+from ..core.schemas import (
     AlternativeItem,
     BuildAnalysisRequest,
     BuildAnalysisResponse,
@@ -68,13 +68,13 @@ def _derive_id(data: dict) -> str:
 
 
 def _model_version(concern: str) -> str | None:
-    row = grpc_client.get_active_model(concern)
+    row = get_active_model(concern)
     return row["version"] if row else None
 
 
 def _load_artifact(concern: str) -> tuple:
     """Load active model artifact. Raises 503 if unavailable."""
-    row = grpc_client.get_active_model(concern)
+    row = get_active_model(concern)
     if row is None:
         raise HTTPException(
             status_code=503,
@@ -139,7 +139,7 @@ def _score_player(pipe, pos_le, champ_le, position_db: str, champion_id: int, st
 def _generate_tips(stats: dict, percentiles: dict, role: str) -> list[ImprovementTip]:
     """Generate improvement tips based on which metrics are below median."""
     tips = []
-    role_p = percentiles.get(role, percentiles.get("MID", {}))
+    role_p = percentiles.get(role) or percentiles.get(_DB_TO_ROLE.get(role, role)) or percentiles.get("MID", {})
 
     checks = [
         (
@@ -224,29 +224,25 @@ def _generate_tips(stats: dict, percentiles: dict, role: str) -> list[Improvemen
     responses=_ERR,
 )
 def analyze_draft(body: DraftAnalysisRequest) -> DraftAnalysisResponse:
-    from analysis_service.champion.queries import get_champion_id
+    from ..champion.queries import get_champion_id
 
-    mv = _model_version("draft")
     prob_blue = 0.5
     prob_red = 0.5
 
-    try:
-        artifact, mv = _load_artifact("draft")
-        mlb = artifact["mlb"]
-        clf = artifact["model"]
+    artifact, mv = _load_artifact("draft")
+    mlb = artifact["mlb"]
+    clf = artifact["model"]
 
-        def resolve(team) -> list[int]:
-            return [cid for c in team.champions if (cid := get_champion_id(c.name)) is not None]
+    def resolve(team) -> list[int]:
+        return [cid for c in team.champions if (cid := get_champion_id(c.name)) is not None]
 
-        blue_ids = resolve(body.team_blue)
-        red_ids = resolve(body.team_red)
+    blue_ids = resolve(body.team_blue)
+    red_ids = resolve(body.team_red)
 
-        if len(blue_ids) == 5 and len(red_ids) == 5:
-            X = np.hstack([mlb.transform([blue_ids]), mlb.transform([red_ids])]).astype(np.float32)
-            prob_red = round(float(clf.predict_proba(X)[0][1]), 4)
-            prob_blue = round(1.0 - prob_red, 4)
-    except HTTPException:
-        pass
+    if len(blue_ids) == 5 and len(red_ids) == 5:
+        X = np.hstack([mlb.transform([blue_ids]), mlb.transform([red_ids])]).astype(np.float32)
+        prob_red = round(float(clf.predict_proba(X)[0][1]), 4)
+        prob_blue = round(1.0 - prob_red, 4)
 
     return DraftAnalysisResponse(
         blue_win_probability=prob_blue,
@@ -279,45 +275,38 @@ def analyze_draft(body: DraftAnalysisRequest) -> DraftAnalysisResponse:
     responses=_ERR,
 )
 def analyze_build(body: BuildAnalysisRequest) -> BuildAnalysisResponse:
-    from analysis_service.champion.queries import get_champion_id, get_item_ids
+    from ..champion.queries import get_champion_id, get_item_ids
 
-    mv = _model_version("build")
     score = 50
     win_rate = None
 
-    try:
-        artifact, mv = _load_artifact("build")
-        clf = artifact["model"]
-        encoders = artifact["encoders"]
-        item_mlb = encoders["item_mlb"]
-        rune_mlb = encoders["rune_mlb"]
-        pos_le = encoders["pos_le"]
-        champ_le = encoders["champ_le"]
+    artifact, mv = _load_artifact("build")
+    clf = artifact["model"]
+    encoders = artifact["encoders"]
+    item_mlb = encoders["item_mlb"]
+    rune_mlb = encoders["rune_mlb"]
+    pos_le = encoders["pos_le"]
+    champ_le = encoders["champ_le"]
 
-        cid = get_champion_id(body.champion)
-        role_str = body.role.value if body.role else "BOT"
-        pos_db = _ROLE_TO_DB.get(role_str, "BOTTOM")
+    cid = get_champion_id(body.champion)
+    role_str = body.role.value if body.role else "BOT"
+    pos_db = _ROLE_TO_DB.get(role_str, "BOTTOM")
 
-        if cid is not None:
-            # Resolve item names → IDs (as strings to match training)
-            item_ids = [str(i) for i in get_item_ids(body.items)]
-            item_enc = item_mlb.transform([item_ids])
-            rune_enc = rune_mlb.transform([[]])  # no runes provided via API yet
+    if cid is not None:
+        item_ids = [str(i) for i in get_item_ids(body.items)]
+        item_enc = item_mlb.transform([item_ids])
+        rune_enc = rune_mlb.transform([[]])
 
-            try:
-                pos_enc = pos_le.transform([pos_db]).reshape(-1, 1)
-                champ_enc = champ_le.transform([cid]).reshape(-1, 1)
-                numeric = np.array([[0, 0, 0]], dtype=np.float32)
-                X = np.hstack([item_enc, rune_enc, pos_enc, champ_enc, numeric]).astype(np.float32)
-                win_prob = float(clf.predict_proba(X)[0][1])
-                win_rate = round(win_prob, 4)
-                score = int(win_prob * 100)
-            except Exception:
-                # Unknown champion or position — keep defaults
-                pass
-
-    except HTTPException:
-        pass
+        try:
+            pos_enc = pos_le.transform([pos_db]).reshape(-1, 1)
+            champ_enc = champ_le.transform([cid]).reshape(-1, 1)
+            numeric = np.array([[0, 0, 0]], dtype=np.float32)
+            X = np.hstack([item_enc, rune_enc, pos_enc, champ_enc, numeric]).astype(np.float32)
+            win_prob = float(clf.predict_proba(X)[0][1])
+            win_rate = round(win_prob, 4)
+            score = int(win_prob * 100)
+        except Exception:
+            pass
 
     strengths, weaknesses = _eval_build(body.items, body.enemy_composition)
     return BuildAnalysisResponse(
@@ -347,19 +336,13 @@ def analyze_build(body: BuildAnalysisRequest) -> BuildAnalysisResponse:
     responses=_ERR,
 )
 def analyze_player(body: PlayerAnalysisRequest) -> PlayerAnalysisResponse:
-    from analysis_service.champion.queries import (
+    from ..champion.queries import (
         query_player_stats,
     )
 
-    mv = _model_version("performance")
-
     # ── Load performance model for percentile lookup ──────────
-    percentiles = {}
-    try:
-        artifact, mv = _load_artifact("performance")
-        percentiles = artifact["percentiles"]
-    except HTTPException:
-        pass
+    artifact, mv = _load_artifact("performance")
+    percentiles = artifact["percentiles"]
 
     # ── Query player stats from LEAGUE_DB ────────────────────
     try:
@@ -408,7 +391,7 @@ def analyze_player(body: PlayerAnalysisRequest) -> PlayerAnalysisResponse:
     avg_gpm = round((avgs["gold"] / max(avg_duration / 60, 1)), 1)
 
     # ── Percentile benchmarking ───────────────────────────────
-    role_p = percentiles.get(role_db, percentiles.get("MIDDLE", {}))
+    role_p = percentiles.get(role_db) or percentiles.get(role) or percentiles.get("MIDDLE", {})
 
     def make_metric(value: float, metric: str, tier_key: str) -> PerformanceMetric:
         pct = _percentile_score(value, role_p, tier_key)
@@ -450,7 +433,7 @@ def analyze_player(body: PlayerAnalysisRequest) -> PlayerAnalysisResponse:
     responses=_ERR,
 )
 def analyze_game(body: GameAnalysisRequest) -> GameAnalysisResponse:
-    from analysis_service.champion.queries import get_champion_name_by_id
+    from ..champion.queries import get_champion_name_by_id
 
     # ── Resolve raw match data ────────────────────────────────
     if body.game_id:
@@ -464,23 +447,17 @@ def analyze_game(body: GameAnalysisRequest) -> GameAnalysisResponse:
     else:
         raise HTTPException(status_code=422, detail="Provide game_id or raw_data.")
 
-    mv = _model_version("performance")
-
     # ── Load performance model ────────────────────────────────
-    pipe = None
-    pos_le = None
-    champ_le = None
-    try:
-        artifact, mv = _load_artifact("performance")
-        pipe = artifact["pipeline"]
-        pos_le = artifact["encoders"]["pos_le"]
-        champ_le = artifact["encoders"]["champ_le"]
-    except HTTPException:
-        pass
+    artifact, mv = _load_artifact("performance")
+    pipe = artifact["pipeline"]
+    pos_le = artifact["encoders"]["pos_le"]
+    champ_le = artifact["encoders"]["champ_le"]
 
     # ── Parse participants ────────────────────────────────────
     participants = raw.get("participants", [])
     players: list[PlayerOutcome] = []
+    blue_players: list[PlayerOutcome] = []
+    red_players: list[PlayerOutcome] = []
 
     for p in participants:
         puuid = p.get("puuid", "unknown")
@@ -523,26 +500,33 @@ def analyze_game(body: GameAnalysisRequest) -> GameAnalysisResponse:
 
         highlights, lowlights = _highlight_player(kills, deaths, cs, vision, kda)
 
-        players.append(
-            PlayerOutcome(
-                puuid=puuid,
-                champion=champ_name,
-                role=_DB_TO_ROLE.get(position, position),
-                win=win,
-                kda=kda,
-                damage=dmg,
-                gold=gold,
-                cs=cs,
-                vision=vision,
-                performance_score=perf_score,
-                highlights=highlights,
-                lowlights=lowlights,
-            )
+        outcome = PlayerOutcome(
+            puuid=puuid,
+            champion=champ_name,
+            role=_DB_TO_ROLE.get(position, position),
+            win=win,
+            kda=kda,
+            damage=dmg,
+            gold=gold,
+            cs=cs,
+            vision=vision,
+            performance_score=perf_score,
+            highlights=highlights,
+            lowlights=lowlights,
         )
+        players.append(outcome)
+        if p.get("teamId") == 100 or p.get("team_id") == "100":
+            blue_players.append(outcome)
+        elif p.get("teamId") == 200 or p.get("team_id") == "200":
+            red_players.append(outcome)
 
     # ── Determine winner ──────────────────────────────────────
-    blue_wins = any(p.win for p in players if p.role in ("TOP", "JUNGLE", "MID", "BOT", "SUPPORT"))
-    winner = "blue" if blue_wins else "red"
+    if blue_players or red_players:
+        blue_wins = any(p.win for p in blue_players)
+        red_wins = any(p.win for p in red_players)
+        winner = "blue" if blue_wins and not red_wins else "red" if red_wins and not blue_wins else None
+    else:
+        winner = None
 
     return GameAnalysisResponse(
         game_id=game_id,
@@ -551,10 +535,8 @@ def analyze_game(body: GameAnalysisRequest) -> GameAnalysisResponse:
         winner=winner,
         players=players,
         team_synergies={
-            "blue": _synergies(
-                [p for p in players if raw.get("participants", [{}])[players.index(p)].get("teamId") == 100]
-            ),
-            "red": [],
+            "blue": _synergies(blue_players),
+            "red": _synergies(red_players),
         },
         key_moments=_key_moments(players),
         model_version=mv,
@@ -575,7 +557,7 @@ def analyze_game(body: GameAnalysisRequest) -> GameAnalysisResponse:
     responses=_ERR,
 )
 def analyze_champion(body: ChampionAnalysisRequest) -> ChampionAnalysisResponse:
-    from analysis_service.champion.queries import (
+    from ..champion.queries import (
         get_champion_id,
         query_counters,
         query_stats,
@@ -600,8 +582,9 @@ def analyze_champion(body: ChampionAnalysisRequest) -> ChampionAnalysisResponse:
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"LEAGUE_DB unavailable: {e}") from e
 
-    total = wr.get("total", 0)
-    win_rate = round(wr.get("wins", 0) / max(total, 1) * 100, 2)
+    total = wr.get("total") or 0
+    wins = wr.get("wins") or 0
+    win_rate = round(wins / max(total, 1) * 100, 2)
     tier = (
         "S" if win_rate >= 53 else "A" if win_rate >= 51 else "B" if win_rate >= 49 else "C" if win_rate >= 47 else "D"
     )

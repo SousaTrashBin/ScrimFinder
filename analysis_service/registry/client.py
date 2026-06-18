@@ -2,8 +2,8 @@ import pickle
 import threading
 from pathlib import Path
 
-from analysis_service.core import db
-from analysis_service.core.config import cfg
+from ..core.config import cfg
+from ..core.db import get_active_model
 
 
 class RegistryClient:
@@ -34,7 +34,7 @@ class RegistryClient:
             return self._artifact is not None
 
     def _load(self):
-        row = db.get_active_model(self._concern)
+        row = get_active_model(self._concern)
         if not row:
             return
         path_str = row.get("file_path")
@@ -55,7 +55,7 @@ class RegistryClient:
     def _start_watcher(self):
         def loop():
             while not self._stop.wait(timeout=cfg.MODEL_RELOAD_INTERVAL):
-                row = db.get_active_model(self._concern)
+                row = get_active_model(self._concern)
                 if row and row.get("version") != self._version:
                     self._load()
 

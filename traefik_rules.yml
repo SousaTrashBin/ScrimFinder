@@ -1,0 +1,27 @@
+# traefik_rules.yml
+# Configuracao estatica de rotas para evitar problemas com docker.sock no Windows
+http:
+  routers:
+    jwt-router:
+      rule: "PathPrefix(`/api/v1/auth`)"
+      service: jwt-service
+    training-router:
+      rule: "PathPrefix(`/api/v1/training`)"
+      service: training-service
+    analysis-router:
+      rule: "PathPrefix(`/api/v1/analysis`)"
+      service: analysis-service
+
+  services:
+    jwt-service:
+      loadBalancer:
+        servers:
+          - url: "http://jwt-manager:8002"
+    training-service:
+      loadBalancer:
+        servers:
+          - url: "http://training-service:8000"
+    analysis-service:
+      loadBalancer:
+        servers:
+          - url: "http://analysis-service:8001"

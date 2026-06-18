@@ -1,30 +1,62 @@
+"""
+training_service/routers/models.py
+All model metadata endpoints.
+"""
+
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path, Query
 
-from training_service.core import db
-from training_service.core.schemas import ErrorResponse, ModelListResponse, ModelMeta
+from ..core import db
+from ..core.schemas import ErrorResponse, ModelListResponse, ModelMeta
 
 router = APIRouter(prefix="/models", tags=["Models"])
 
 
 def _meta(r):
+    # BigQuery returns datetime objects — convert to ISO strings for Pydantic
+    created = r.get("created_at")
+    activated = r.get("activated_at")
+    if hasattr(created, "isoformat"):
+        created = created.isoformat()
+    if hasattr(activated, "isoformat"):
+        activated = activated.isoformat()
+
     return ModelMeta(
         id=r["id"],
         concern=r["concern"],
         algorithm=r["algorithm"],
-        dataset_id=r.get("dataset_id"),
         version=r["version"],
         metrics=r.get("metrics") or {},
         hyperparams=r.get("hyperparams") or {},
         is_active=bool(r["is_active"]),
-        created_at=r["created_at"],
-        activated_at=r.get("activated_at"),
+        created_at=created,
+        activated_at=activated,
     )
 
 
-@router.get("", response_model=ModelListResponse, summary="List all models")
-def list_models(concern: Optional[str] = None, active_only: bool = False):
+@router.get(
+    "", response_model=ModelListResponse, summary="List models or get one by ID"
+)
+def list_or_get_models(
+    model_id: Optional[str] = Query(None, description="Specific model ID to fetch"),
+    concern: Optional[str] = Query(None, description="Filter by concern"),
+    active_only: bool = Query(False, description="Only active models"),
+):
+    """
+    List all models with optional filtering, or fetch a single model by ID.
+
+    - If `model_id` is provided, returns that specific model (404 if not found).
+    - Otherwise returns a filtered list based on `concern` and `active_only`.
+    """
+    if model_id:
+        row = db.get_model_by_id(model_id)
+        if row is None:
+            raise HTTPException(
+                status_code=404, detail=f"Model id={model_id} not found."
+            )
+        return ModelListResponse(models=[_meta(row)])
+
     return ModelListResponse(
         models=[
             _meta(r) for r in db.list_models(concern=concern, active_only=active_only)
@@ -42,10 +74,10 @@ def list_active():
 @router.get(
     "/{model_id}",
     response_model=ModelMeta,
-    summary="Get model metadata",
+    summary="Get model metadata by path",
     responses={404: {"model": ErrorResponse}},
 )
-def get_model(model_id: int = Path(...)):
+def get_model(model_id: str = Path(...)):
     row = db.get_model_by_id(model_id)
     if row is None:
         raise HTTPException(status_code=404, detail=f"Model id={model_id} not found.")
@@ -58,7 +90,7 @@ def get_model(model_id: int = Path(...)):
     summary="Activate a model",
     responses={404: {"model": ErrorResponse}},
 )
-def activate(model_id: int = Path(...)):
+def activate(model_id: str = Path(...)):
     if db.get_model_by_id(model_id) is None:
         raise HTTPException(status_code=404, detail=f"Model id={model_id} not found.")
     try:
@@ -74,7 +106,7 @@ def activate(model_id: int = Path(...)):
     summary="Deactivate a model",
     responses={404: {"model": ErrorResponse}},
 )
-def deactivate(model_id: int = Path(...)):
+def deactivate(model_id: str = Path(...)):
     if db.get_model_by_id(model_id) is None:
         raise HTTPException(status_code=404, detail=f"Model id={model_id} not found.")
     db.deactivate_model(model_id)
@@ -87,7 +119,7 @@ def deactivate(model_id: int = Path(...)):
     summary="Delete a model",
     responses={404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
 )
-def delete_model(model_id: int = Path(...)):
+def delete_model(model_id: str = Path(...)):
     row = db.get_model_by_id(model_id)
     if row is None:
         raise HTTPException(status_code=404, detail=f"Model id={model_id} not found.")
@@ -96,5 +128,4 @@ def delete_model(model_id: int = Path(...)):
             status_code=409,
             detail="Cannot delete an active model. Deactivate it first.",
         )
-    with db.get_conn() as conn:
-        conn.execute("DELETE FROM models WHERE id=?", (model_id,))
+    db.delete_model(model_id)

@@ -9,7 +9,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 : "${SCRIM_IMAGE_TAG:?}"
 
 registry="${SCRIM_REGION}-docker.pkg.dev/${SCRIM_PROJECT_ID}/${SCRIM_REPO_NAME}"
-services="${SERVICES:-matchmaking-service ranking_service match_history_service detail_filling_service training_service analysis_service}"
+services="${SERVICES:-matchmaking-service ranking_service match_history_service detail_filling_service training_service analysis_service jwt_manager}"
 
 gcloud auth configure-docker "${SCRIM_REGION}-docker.pkg.dev" --quiet
 

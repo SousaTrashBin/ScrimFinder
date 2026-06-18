@@ -3,11 +3,11 @@ WORKDIR /code
 
 COPY pom.xml /code/
 
-RUN --mount=type=cache,target=/root/.m2,id=m2-matchmaking mvn dependency:go-offline -B
+RUN mvn dependency:go-offline -B
 
 COPY src /code/src
 
-RUN --mount=type=cache,target=/root/.m2,id=m2-matchmaking mvn package -DskipTests -Dspotless.skip=true -B
+RUN mvn package -DskipTests -Dspotless.skip=true -B
 
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /deployments

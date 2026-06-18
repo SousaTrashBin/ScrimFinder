@@ -23,7 +23,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-  
+
   ranking-db:
     image: postgres:15
     environment:
@@ -138,6 +138,43 @@ services:
       redis:
         condition: service_healthy
 
+  jwt-db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: jwt_manager
+
+  jwt-manager:
+    build:
+      context: ./jwt_manager
+      dockerfile: Dockerfile
+    command: uvicorn jwt_manager.main:app --host 0.0.0.0 --port 8002
+    environment:
+      - PYTHONPATH=/app
+      - JWT_DB_HOST=jwt-db
+      - JWT_DB_PORT=5432
+      - JWT_DB_NAME=jwt_manager
+      - JWT_DB_USER=postgres
+      - JWT_DB_PASSWORD=postgres
+      - REDIS_URL=redis://redis:6379/2
+      - JWT_SECRET=${JWT_SECRET:-changeme_in_production}
+      - JWT_ISSUER=scrimfinder/jwt-manager
+      - JWT_KEY_ID=scrimfinder-key-v1
+      - JWT_PRIVATE_KEY=
+      - JWT_PUBLIC_KEY=
+      - ACCESS_TOKEN_TTL_SECONDS=3600
+      - REFRESH_TOKEN_TTL_SECONDS=604800
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jwt.rule=PathPrefix(`/api/v1/auth`)"
+      - "traefik.http.services.jwt.loadbalancer.server.port=8002"
+    depends_on:
+      jwt-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   training-service:
     build:
       context: ./training_service
@@ -145,17 +182,16 @@ services:
     command: uvicorn training_service.main:app --host 0.0.0.0 --port 8000
     environment:
       - PYTHONPATH=/app
-      - LEAGUE_DB=/app/dataset/league_data.db
-      - PLATFORM_DB=/app/ml_data/platform.db
-      - MODELS_DIR=/app/ml_data/models
-      - GAMES_DIR=/app/ml_data/games
+      - BQ_PROJECT=${BQ_PROJECT:-}
+      - BQ_DATASET=${BQ_DATASET:-scrimfinder}
+      - BQ_PLATFORM_DATASET=${BQ_PLATFORM_DATASET:-scrimfinder_platform}
       - DATASETS_DIR=/app/ml_data/datasets
-      - MODEL_RELOAD_INTERVAL=60
-      - GRPC_PORT=50051
       - DETAIL_FILLING_URL=http://detail-filling-service:8080/api/v1/riot
-    volumes:
-      - ./ml_data:/app/ml_data
-      - ./dataset:/app/dataset:ro
+      - GAMES_DIR=/app/ml_data/games
+      - GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS:-}
+      - GRPC_PORT=50051
+      - MODEL_RELOAD_INTERVAL=60
+      - MODELS_DIR=/app/ml_data/models
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.training.rule=PathPrefix(`/api/v1/training`)"
@@ -165,6 +201,11 @@ services:
         condition: service_healthy
       detail-filling-service:
         condition: service_started
+    volumes:
+      - type: bind
+        source: ./ml_data
+        target: /app/ml_data
+        bind: {}
 
   analysis-service:
     build:
@@ -173,17 +214,24 @@ services:
     command: uvicorn analysis_service.main:app --host 0.0.0.0 --port 8001
     environment:
       - PYTHONPATH=/app
-      - LEAGUE_DB=/app/dataset/league_data.db
-      - PLATFORM_DB=/app/ml_data/platform.db
       - MODELS_DIR=/app/ml_data/models
       - MODEL_RELOAD_INTERVAL=60
       - TRAINING_GRPC_URL=training-service:50051
+      - BQ_PROJECT=${BQ_PROJECT:-}
+      - BQ_DATASET=${BQ_DATASET:-scrimfinder}
+      - BQ_PLATFORM_DATASET=${BQ_PLATFORM_DATASET:-scrimfinder_platform}
+      - GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS:-}
     volumes:
       - ./ml_data:/app/ml_data
-      - ./dataset:/app/dataset:ro
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.analysis.rule=PathPrefix(`/api/v1/analysis`)"
       - "traefik.http.services.analysis.loadbalancer.server.port=8001"
     depends_on:
-      - training-service
+      training-service:
+        condition: service_started
+
+
+networks:
+  default:
+    name: scrimfinder_default

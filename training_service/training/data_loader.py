@@ -2,24 +2,17 @@
 training/data_loader.py
 Chunked data loading with live progress and cancellation support.
 
-KEY FIX: sampling is applied at the MATCH level (after grouping), not
-on raw player_stats rows. Sampling rows before grouping breaks the
-5v5 team structure and produces empty feature matrices.
+Pure BigQuery implementation. PostgreSQL/SQLite fallbacks removed.
 """
 
-import os
-import sqlite3
-from pathlib import Path
 from typing import Callable, Optional
 
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder, MultiLabelBinarizer
 
-DB_PATH = os.environ.get(
-    "LEAGUE_DB",
-    os.path.join(os.path.dirname(__file__), "..", "..", "dataset", "league_data.db"),
-)
+from training_service.core.db import _bq_query
+from training_service.core.config import cfg
 
 VALID_POSITIONS = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"]
 
@@ -45,71 +38,74 @@ Report = Callable[[int, str], None]
 Filters = dict  # keys: sample (float), limit (int), matchType (str)
 
 
-def _connect() -> sqlite3.Connection:
-    if not Path(DB_PATH).exists():
-        raise FileNotFoundError(
-            f"Database not found at {DB_PATH}. Set the LEAGUE_DB environment variable to the correct path."
+def _sql(query: str) -> str:
+    tables = [
+        "dim_champions",
+        "dim_items",
+        "dim_runes",
+        "dim_players",
+        "matches",
+        "player_stats",
+        "team_stats",
+        "bans",
+        "player_items",
+        "player_runes",
+    ]
+    import re
+
+    for table in tables:
+        # Replace table references with fully-qualified BigQuery names
+        query = re.sub(
+            rf"\b{table}\b", f"`{cfg.BQ_PROJECT}.{cfg.BQ_DATASET}.{table}`", query
         )
-    return sqlite3.connect(DB_PATH)
+    # BigQuery uses RAND() instead of RANDOM()
+    query = query.replace("RANDOM()", "RAND()")
+    return query
 
 
-def _read_chunked(
-    query: str,
-    label: str,
-    report: Report,
-    progress_start: int,
-    progress_end: int,
-    approx_total: int = 0,
+def _read_bq(
+    query: str, params: Optional[list] = None, label: str = ""
 ) -> pd.DataFrame:
     """
-    Read query in CHUNK_SIZE chunks, reporting progress after every chunk.
-    report() raises CancelledError if cancellation was requested.
+    Execute query via _bq_query and return a DataFrame.
+    Uses %s placeholders (converted to @pN by _bq_query).
     """
-    conn = _connect()
-    chunks = []
-    loaded = 0
-    span = progress_end - progress_start
-
-    for chunk in pd.read_sql(query, conn, chunksize=CHUNK_SIZE):
-        chunks.append(chunk)
-        loaded += len(chunk)
-        frac = min(loaded / approx_total, 0.98) if approx_total > 0 else 0.5
-        report(progress_start + int(frac * span), f"{label}: {loaded:,} rows…")
-
-    conn.close()
-    report(progress_end, f"{label}: {loaded:,} rows ✓")
-    return pd.concat(chunks, ignore_index=True) if chunks else pd.DataFrame()
+    sql_query = _sql(query)
+    # _bq_query handles %s -> @pN conversion and parameter binding
+    rows = list(_bq_query(sql_query, params or []))
+    if not rows:
+        return pd.DataFrame()
+    # Convert BigQuery Row objects to dicts
+    data = [dict(row.items()) for row in rows]
+    return pd.DataFrame(data)
 
 
 def _match_id_clause(filters: Filters) -> tuple[str, list]:
     """
     Build a WHERE clause fragment that restricts to a random sample of match_ids.
     Returns (clause_sql, params).
-
-    Sampling at the match level guarantees all 10 players per match are included,
-    which is required to build valid 5v5 team compositions.
     """
-    match_type = filters.get("matchType")
+    match_type = filters.get("match_type") or filters.get("matchType")
     sample = filters.get("sample", 1.0)
     limit = filters.get("limit")
 
-    # Build a subquery that returns the desired match_ids
     if match_type:
-        where = "WHERE match_type = ?"
+        where = "WHERE match_type = %s"
         params = [match_type]
     else:
         where = ""
         params = []
 
-    # SQLite doesn't have TABLESAMPLE, so we use RANDOM() for sampling
+    # BigQuery uses RAND()
+    random_func = "RAND()"
+
     if sample and sample < 1.0:
-        order = "ORDER BY RANDOM()"
+        order = f"ORDER BY {random_func}"
         n = int(APPROX_ROWS["matches"] * sample)
         lim = f"LIMIT {n}"
     elif limit:
-        # limit is in player rows — convert to approximate match count
         n = max(1, limit // 10)
-        order = "ORDER BY RANDOM()"
+        order = f"ORDER BY {random_func}"
         lim = f"LIMIT {n}"
     else:
         order = ""
@@ -135,7 +131,6 @@ def load_draft_data(report: Report, filters: Optional[Filters] = None):
 
     match_clause, params = _match_id_clause(filters)
 
-    # player_stats already has a win column — no JOIN needed
     query = f"""
         SELECT ps.match_id, ps.champion_id, ps.team_id, ps.win
         FROM player_stats ps
@@ -150,10 +145,14 @@ def load_draft_data(report: Report, filters: Optional[Filters] = None):
     if limit:
         approx = min(approx, limit)
 
-    df = _read_chunked(query, "Loading draft data", report, 2, 38, approx)
+    report(2, "Loading draft data…")
+    df = _read_bq(query, params, "Loading draft data")
+    report(38, f"Loaded {len(df):,} rows")
 
     if df.empty:
-        raise ValueError("No data returned — check LEAGUE_DB path and filters.")
+        raise ValueError("No data returned from BigQuery — check filters.")
+
+    df["team_id"] = df["team_id"].astype(str)
 
     report(38, f"Pivoting {len(df):,} rows into team compositions…")
 
@@ -173,7 +172,6 @@ def load_draft_data(report: Report, filters: Optional[Filters] = None):
         .rename(columns={"champion_id": "red_champs"})
     )
 
-    # win is per-player but consistent within a team; take first value per match for blue team
     wins = (
         df[df["team_id"] == "100"][["match_id", "win"]]
         .groupby("match_id")["win"]
@@ -193,7 +191,6 @@ def load_draft_data(report: Report, filters: Optional[Filters] = None):
         raise ValueError(
             f"All matches were filtered out after requiring 5v5 completeness. "
             f"Raw rows loaded: {len(df):,}. "
-            "This usually means the sample/limit is too small — try a larger value or remove filters."
         )
 
     report(60, f"Encoding {len(merged):,} complete matches…")
@@ -227,25 +224,23 @@ def load_build_data(report: Report, filters: Optional[Filters] = None):
     if limit:
         approx_ps = min(approx_ps, limit)
 
-    stats = _read_chunked(
+    report(2, "Loading player stats…")
+    stats = _read_bq(
         f"""
             SELECT match_id, puuid, champion_id, position, win, gold, cs, dmg_champs
             FROM player_stats
             WHERE position != 'Invalid'
             {match_clause.replace("ps.match_id", "match_id") if match_clause else ""}
         """,
+        params,
         "Loading player stats",
-        report,
-        2,
-        20,
-        approx_ps,
     )
     if stats.empty:
-        raise ValueError("No player stats returned — check filters.")
+        raise ValueError("No player stats returned from BigQuery.")
     puuids = stats[["match_id", "puuid"]].drop_duplicates()
     report(20, f"Loading items for {len(puuids):,} players…")
 
-    items = _read_chunked(
+    items = _read_bq(
         f"""
             SELECT match_id, puuid, item_id FROM player_items
             {
@@ -257,15 +252,12 @@ def load_build_data(report: Report, filters: Optional[Filters] = None):
             else ""
         }
         """,
+        params,
         "Loading items",
-        report,
-        20,
-        45,
-        int(APPROX_ROWS["player_items"] * (sample or 1.0)),
     )
     report(45, "Loading runes…")
 
-    runes = _read_chunked(
+    runes = _read_bq(
         f"""
             SELECT match_id, puuid, rune_id FROM player_runes
             {
@@ -277,27 +269,30 @@ def load_build_data(report: Report, filters: Optional[Filters] = None):
             else ""
         }
         """,
+        params,
         "Loading runes",
-        report,
-        45,
-        62,
-        int(APPROX_ROWS["player_runes"] * (sample or 1.0)),
     )
     report(62, "Grouping items per player…")
-    items_g = (
-        items.groupby(["match_id", "puuid"])["item_id"]
-        .apply(list)
-        .reset_index()
-        .rename(columns={"item_id": "item_ids"})
-    )
+    if items.empty:
+        items_g = pd.DataFrame(columns=["match_id", "puuid", "item_ids"])
+    else:
+        items_g = (
+            items.groupby(["match_id", "puuid"])["item_id"]
+            .apply(list)
+            .reset_index()
+            .rename(columns={"item_id": "item_ids"})
+        )
 
     report(66, "Grouping runes per player…")
-    runes_g = (
-        runes.groupby(["match_id", "puuid"])["rune_id"]
-        .apply(list)
-        .reset_index()
-        .rename(columns={"rune_id": "rune_ids"})
-    )
+    if runes.empty:
+        runes_g = pd.DataFrame(columns=["match_id", "puuid", "rune_ids"])
+    else:
+        runes_g = (
+            runes.groupby(["match_id", "puuid"])["rune_id"]
+            .apply(list)
+            .reset_index()
+            .rename(columns={"rune_id": "rune_ids"})
+        )
 
     report(69, "Joining features…")
     df = stats.merge(items_g, on=["match_id", "puuid"], how="left").merge(
@@ -345,9 +340,10 @@ def load_performance_data(report: Report, filters: Optional[Filters] = None):
     mc = match_clause.replace("ps.match_id", "match_id") if match_clause else ""
 
     sample = filters.get("sample", 1.0)
-    approx = int(APPROX_ROWS["player_stats"] * (sample or 1.0))
+    int(APPROX_ROWS["player_stats"] * (sample or 1.0))
 
-    df = _read_chunked(
+    report(2, "Loading performance data…")
+    df = _read_bq(
         f"""
         SELECT match_id, puuid, champion_id, position, win,
                kills, deaths, assists, gold, cs,
@@ -356,15 +352,12 @@ def load_performance_data(report: Report, filters: Optional[Filters] = None):
         WHERE position != 'Invalid'
         {mc}
     """,
+        params,
         "Loading performance data",
-        report,
-        2,
-        50,
-        approx,
     )
 
     if df.empty:
-        raise ValueError("No data returned — check filters.")
+        raise ValueError("No data returned from BigQuery.")
 
     percentile_table = {}
     PERF_METRICS = [

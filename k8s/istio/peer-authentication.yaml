@@ -1,0 +1,10 @@
+# Enforces mTLS for ALL service-to-service traffic in the scrimfinder namespace.
+# Apply: kubectl apply -f k8s/istio/peer-authentication.yaml
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: scrimfinder-mtls
+  namespace: scrimfinder
+spec:
+  mtls:
+    mode: STRICT

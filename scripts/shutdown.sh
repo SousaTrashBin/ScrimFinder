@@ -34,6 +34,7 @@ SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER="${SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER:-
 SCRIM_FORCE_SECRET_MANAGER_CLEANUP="${SCRIM_FORCE_SECRET_MANAGER_CLEANUP:-false}"
 SCRIM_SECRET_NAME_PREFIX="${SCRIM_SECRET_NAME_PREFIX:-}"
 SCRIM_SECRETS_SERVICE_ACCOUNT_ID="${SCRIM_SECRETS_SERVICE_ACCOUNT_ID:-secrets-service-account}"
+SCRIM_JWT_SECRET="${SCRIM_JWT_SECRET:-teardown-placeholder}"
 
 DELETE_ARTIFACT_REPO="${SCRIM_DELETE_ARTIFACT_REPO:-false}"
 DELETE_UNUSED_K8S_IPS="${SCRIM_DELETE_UNUSED_K8S_IPS:-true}"
@@ -50,6 +51,30 @@ cleanup_resources() {
     fi
     kubectl delete -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml --wait=true --timeout=1m || true
     kubectl delete namespace argocd --ignore-not-found=true --wait=true --timeout=1m || true
+}
+
+cleanup_lingering_clusters() {
+    echo "checking for lingering GKE clusters from this environment..."
+    LINGERING_CLUSTERS="$(gcloud container clusters list \
+        --project "$PROJECT_ID" \
+        --format="csv[no-heading](name,location,resourceLabels.environment)" | awk -F',' \
+            -v cluster="$CLUSTER_NAME" \
+            -v environment="$SCRIM_ENVIRONMENT_NAME" '
+                $1 == cluster || (environment != "" && environment != "manual" && $3 == environment) {
+                    print $1, $2
+                }
+            ' || true)"
+
+    if [ -n "$LINGERING_CLUSTERS" ]; then
+        while read -r cluster_name cluster_location; do
+            [ -z "$cluster_name" ] && continue
+            echo "deleting lingering GKE cluster: $cluster_name ($cluster_location)"
+            gcloud container clusters delete "$cluster_name" \
+                --location "$cluster_location" \
+                --project "$PROJECT_ID" \
+                --quiet || true
+        done <<< "$LINGERING_CLUSTERS"
+    fi
 }
 
 if gcloud container clusters describe "$CLUSTER_NAME" --zone "$ZONE" --project "$PROJECT_ID" >/dev/null 2>&1; then
@@ -120,25 +145,25 @@ EOF
         -var="environment_name=${SCRIM_ENVIRONMENT_NAME}" \
         -var="github_run_id=${SCRIM_GITHUB_RUN_ID}" \
         -var="github_pr=${SCRIM_GITHUB_PR}" \
-        -var="cloud_functions_deployer_member=${SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER}"
+        -var="cloud_functions_deployer_member=${SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER}" \
+        -var="jwt_secret=${SCRIM_JWT_SECRET}"
 fi
+
+cleanup_lingering_clusters
 
 if [ "$DELETE_UNUSED_K8S_IPS" = "true" ]; then
     echo "cleaning unused regional static IPs likely created by Kubernetes load balancers..."
-    CANDIDATE_IPS="$(gcloud compute addresses list \
+    ADDRESS_ROWS="$(gcloud compute addresses list \
         --project "$PROJECT_ID" \
-        --filter="region:($REGION) AND status=RESERVED" \
-        --format="csv[no-heading](name,users)" | awk -F',' '
-            $2 == "" && $1 ~ /^(k8s-|scrimfinder|traefik)/ { print $1 }
-        ' || true)"
-
-    if [ -n "${SCRIM_ENVIRONMENT_NAME:-}" ] && [ "$SCRIM_ENVIRONMENT_NAME" != "manual" ]; then
-        ENVIRONMENT_IPS="$(gcloud compute addresses list \
-            --project "$PROJECT_ID" \
-            --filter="region:($REGION) AND status=RESERVED AND labels.environment=${SCRIM_ENVIRONMENT_NAME}" \
-            --format="value(name)" || true)"
-        CANDIDATE_IPS="$(printf '%s\n%s\n' "$CANDIDATE_IPS" "$ENVIRONMENT_IPS" | awk 'NF && !seen[$0]++')"
-    fi
+        --format="csv[no-heading](name,region.basename(),status,users,labels.environment)" || true)"
+    CANDIDATE_IPS="$(printf '%s\n' "$ADDRESS_ROWS" | awk -F',' \
+        -v region="$REGION" \
+        -v environment="$SCRIM_ENVIRONMENT_NAME" '
+            $2 == region && $3 == "RESERVED" && $4 == "" &&
+                ($1 ~ /^(k8s-|scrimfinder|traefik)/ || (environment != "" && environment != "manual" && $5 == environment)) {
+                    print $1
+                }
+        ' | awk 'NF && !seen[$0]++')"
 
     if [ -n "$CANDIDATE_IPS" ]; then
         while IFS= read -r ip_name; do
@@ -155,13 +180,14 @@ fi
 
 if [ "$DELETE_ORPHAN_PVC_DISKS" = "true" ]; then
     echo "cleaning orphan PersistentVolume disks..."
+    DISK_ROWS="$(gcloud compute disks list \
+        --project "$PROJECT_ID" \
+        --format="csv[no-heading](name,zone.basename(),users,labels.environment)" || true)"
 
     if [ -n "${SCRIM_ENVIRONMENT_NAME:-}" ] && [ "$SCRIM_ENVIRONMENT_NAME" != "manual" ]; then
-        ENVIRONMENT_DISKS="$(gcloud compute disks list \
-            --project "$PROJECT_ID" \
-            --filter="labels.environment=${SCRIM_ENVIRONMENT_NAME}" \
-            --format="value(name,zone)" || true)"
-        
+        ENVIRONMENT_DISKS="$(printf '%s\n' "$DISK_ROWS" | awk -F',' \
+            -v environment="$SCRIM_ENVIRONMENT_NAME" '$4 == environment { print $1, $2 }')"
+
         if [ -n "$ENVIRONMENT_DISKS" ]; then
             echo "Found disks labeled with environment ${SCRIM_ENVIRONMENT_NAME}. Deleting..."
             while read -r disk_name disk_zone; do
@@ -172,10 +198,7 @@ if [ "$DELETE_ORPHAN_PVC_DISKS" = "true" ]; then
         fi
     fi
 
-    ORPHAN_PVC_DISKS="$(gcloud compute disks list \
-        --project "$PROJECT_ID" \
-        --filter="name~'^pvc-' AND users:*" \
-        --format="csv[no-heading](name,zone,users)" | awk -F',' '$3 == "" { print $1,$2 }' || true)"
+    ORPHAN_PVC_DISKS="$(printf '%s\n' "$DISK_ROWS" | awk -F',' '$1 ~ /^pvc-/ && $3 == "" { print $1, $2 }')"
 
     if [ -n "$ORPHAN_PVC_DISKS" ]; then
         echo "Found orphan PVC disks with no users. Deleting..."
