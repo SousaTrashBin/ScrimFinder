@@ -18,6 +18,7 @@ SCRIM_REDIS_PASSWORD="${SCRIM_REDIS_PASSWORD:-redispassword}"
 SCRIM_RABBITMQ_USER="${SCRIM_RABBITMQ_USER:-user}"
 SCRIM_RABBITMQ_PASSWORD="${SCRIM_RABBITMQ_PASSWORD:-rabbitmqpassword}"
 SCRIM_RABBITMQ_ERLANG_COOKIE="${SCRIM_RABBITMQ_ERLANG_COOKIE:-erlangcookie}"
+SCRIM_GRAFANA_TOKEN="${SCRIM_GRAFANA_TOKEN:-token}"
 SCRIM_TF_WORKSPACE="${SCRIM_TF_WORKSPACE:-default}"
 SCRIM_ENVIRONMENT_NAME="${SCRIM_ENVIRONMENT_NAME:-manual}"
 SCRIM_GITHUB_RUN_ID="${SCRIM_GITHUB_RUN_ID:-${GITHUB_RUN_ID:-}}"
@@ -60,6 +61,7 @@ TF_VAR_ARGS=(
     -var="rabbitmq_user=${SCRIM_RABBITMQ_USER}"
     -var="rabbitmq_password=${SCRIM_RABBITMQ_PASSWORD}"
     -var="rabbitmq_erlang_cookie=${SCRIM_RABBITMQ_ERLANG_COOKIE}"
+    -var="grafana_token=${SCRIM_GRAFANA_TOKEN}"
     -var="manage_artifact_registry_repository=${SCRIM_MANAGE_ARTIFACT_REGISTRY_REPOSITORY}"
     -var="manage_secret_manager=${SCRIM_MANAGE_SECRET_MANAGER}"
     -var="secret_name_prefix=${SCRIM_SECRET_NAME_PREFIX}"
@@ -154,6 +156,7 @@ ensure_secret_manager_runtime_access() {
     ensure_secret "${SCRIM_SECRET_NAME_PREFIX}rabbitmq-user" "$SCRIM_RABBITMQ_USER"
     ensure_secret "${SCRIM_SECRET_NAME_PREFIX}rabbitmq-password" "$SCRIM_RABBITMQ_PASSWORD"
     ensure_secret "${SCRIM_SECRET_NAME_PREFIX}rabbitmq-erlang-cookie" "$SCRIM_RABBITMQ_ERLANG_COOKIE"
+    ensure_secret "${SCRIM_SECRET_NAME_PREFIX}grafana-token" "$SCRIM_GRAFANA_TOKEN"
 }
 
 if [ "${SCRIM_MANAGE_SECRET_MANAGER}" = "true" ] && \
@@ -206,7 +209,8 @@ for secret_name in \
     "${SCRIM_SECRET_NAME_PREFIX}redis-password" \
     "${SCRIM_SECRET_NAME_PREFIX}rabbitmq-user" \
     "${SCRIM_SECRET_NAME_PREFIX}rabbitmq-password" \
-    "${SCRIM_SECRET_NAME_PREFIX}rabbitmq-erlang-cookie"; do
+    "${SCRIM_SECRET_NAME_PREFIX}rabbitmq-erlang-cookie" \
+    "${SCRIM_SECRET_NAME_PREFIX}grafana-token"; do
     import_if_missing \
         "google_secret_manager_secret.scrim_secrets[\"${secret_name}\"]" \
         "projects/${SCRIM_PROJECT_ID}/secrets/${secret_name}"

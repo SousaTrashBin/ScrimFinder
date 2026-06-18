@@ -22,6 +22,8 @@ SCRIM_RABBITMQ_PASSWORD="${SCRIM_RABBITMQ_PASSWORD:-rabbitmqpassword}"
 SCRIM_RABBITMQ_ERLANG_COOKIE="${SCRIM_RABBITMQ_ERLANG_COOKIE:-erlangcookie}"
 SCRIM_RABBITMQ_HOST="${SCRIM_RABBITMQ_HOST:-scrimfinder-rabbitmq-broker}"
 SCRIM_RABBITMQ_PORT="${SCRIM_RABBITMQ_PORT:-5672}"
+SCRIM_GRAFANA_TOKEN="${SCRIM_GRAFANA_TOKEN:-token}"
+SCRIM_CLUSTER_NAME="${SCRIM_CLUSTER_NAME:-scrimfinder}"
 SCRIM_SECRET_NAME_PREFIX="${SCRIM_SECRET_NAME_PREFIX:-}"
 SCRIM_SECRETS_SERVICE_ACCOUNT_ID="${SCRIM_SECRETS_SERVICE_ACCOUNT_ID:-secrets-service-account}"
 
@@ -146,11 +148,13 @@ echo "deploying Argo CD..."
 
 export SCRIM_NAMESPACE="${SCRIM_NAMESPACE}"
 export PROJECT_ID="${SCRIM_PROJECT_ID}"
+export CLUSTER_NAME="${SCRIM_CLUSTER_NAME:-scrimfinder}"
 export REGION="${SCRIM_REGION}"
 export REPO_NAME="${SCRIM_REPO_NAME}"
 export SCRIM_IMAGE_TAG="${SCRIM_IMAGE_TAG:-latest}"
 export SCRIM_RABBITMQ_HOST="${SCRIM_RABBITMQ_HOST}"
 export SCRIM_RABBITMQ_PORT="${SCRIM_RABBITMQ_PORT}"
+export SCRIM_GRAFANA_TOKEN="${SCRIM_GRAFANA_TOKEN}"
 export SCRIM_SECRET_NAME_PREFIX="${SCRIM_SECRET_NAME_PREFIX}"
 export SCRIM_SECRETS_SERVICE_ACCOUNT_ID="${SCRIM_SECRETS_SERVICE_ACCOUNT_ID}"
 export DETAIL_FILLING_DOMAIN="${DETAIL_FILLING_DOMAIN}"
@@ -241,10 +245,6 @@ if grep -q "::1" /etc/hosts; then
     sudo sed -i '/::1/d' /etc/hosts || true
 fi
 
-run_argocd_with_retries \
-    "waiting for Argo CD application 'scrimfinder'" \
-    argocd --core app wait scrimfinder --app-namespace argocd --sync --health --timeout 2400
-
 echo "waiting for Argo CD LoadBalancer External IP/Hostname..."
 
 EXTERNAL_ARGOCD_IP=""
@@ -272,6 +272,10 @@ INITIAL_ARGOCD_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secr
 
 echo "Argo CD External IP/Hostname: ${EXTERNAL_ARGOCD_IP}; username: admin; initial password: $INITIAL_ARGOCD_PASSWORD"
 
+run_argocd_with_retries \
+    "waiting for Argo CD application 'scrimfinder'" \
+    argocd --core app wait scrimfinder --app-namespace argocd --sync --health --timeout 2400
+
 base_url=""
 for _ in $(seq 1 90); do
   base_url="$(kubectl get svc scrimfinder-traefik -n "$SCRIM_NAMESPACE" -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)"
@@ -290,6 +294,7 @@ fi
 system_base_url="http://${base_url}"
 echo "SCRIM_SYSTEM_BASE_URL=$system_base_url"
 echo "BASE_URL=$system_base_url"
+echo "Argo CD External IP/Hostname: ${EXTERNAL_ARGOCD_IP}; username: admin; initial password: $INITIAL_ARGOCD_PASSWORD"
 
 if [ -n "${GITHUB_ENV:-}" ]; then
   {

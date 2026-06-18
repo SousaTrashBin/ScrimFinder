@@ -19,6 +19,7 @@ case "$1" in
             --set global.microservicesRegistry="${SCRIM_REGION}-docker.pkg.dev/${SCRIM_PROJECT_ID}/${SCRIM_REPO_NAME}" \
             --set global.region="${SCRIM_REGION}" \
             --set global.projectId="${SCRIM_PROJECT_ID}" \
+            --set global.clusterName="${SCRIM_CLUSTER_NAME:-scrimfinder}" \
             --set global.repoName="${SCRIM_REPO_NAME}" \
             --set secrets.riotApiKey="$RIOT_API_KEY" \
             --set secrets.dbUser="$SCRIM_DB_USER" \
@@ -27,6 +28,7 @@ case "$1" in
             --set secrets.rabbitmqUser="${SCRIM_RABBITMQ_USER:-user}" \
             --set secrets.rabbitmqPassword="${SCRIM_RABBITMQ_PASSWORD:-rabbitmqpassword}" \
             --set secrets.rabbitmqErlangCookie="${SCRIM_RABBITMQ_ERLANG_COOKIE:-erlangcookie}" \
+            --set secrets.grafanaToken="${SCRIM_GRAFANA_TOKEN:-token}" \
             --set global.rabbitmqHost="${SCRIM_RABBITMQ_HOST:-scrimfinder-rabbitmq-broker}" \
             --set global.rabbitmqPort="${SCRIM_RABBITMQ_PORT:-5672}" \
             --allow-unreleased

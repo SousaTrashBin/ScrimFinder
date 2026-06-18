@@ -30,6 +30,7 @@ locals {
     "${var.secret_name_prefix}rabbitmq-user"          = var.rabbitmq_user
     "${var.secret_name_prefix}rabbitmq-password"      = var.rabbitmq_password
     "${var.secret_name_prefix}rabbitmq-erlang-cookie" = var.rabbitmq_erlang_cookie
+    "${var.secret_name_prefix}grafana-token"          = var.grafana_token
   }
 
   cloud_functions_deployer_roles = (!var.manage_cloud_functions_iam || var.cloud_functions_deployer_member == "") ? toset([]) : toset([

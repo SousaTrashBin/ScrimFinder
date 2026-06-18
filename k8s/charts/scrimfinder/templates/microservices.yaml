@@ -11,6 +11,7 @@ metadata:
   namespace: {{ $.Values.global.namespace }}
   annotations:
     argocd.argoproj.io/sync-wave: "10"
+    k8s.grafana.com/scrape: "true"
 spec:
   progressDeadlineSeconds: {{ $config.progressDeadlineSeconds | default 600 }}
   {{- if not ($config.autoscaling).enabled }}
@@ -78,6 +79,11 @@ spec:
             secretKeyRef:
               name: scrimfinder-secrets
               key: rabbitmq-password
+        - name: GRAFANA_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: scrimfinder-secrets
+              key: grafana-token
 
         resources:
           {{- toYaml $config.resources | nindent 10 }}
@@ -160,6 +166,7 @@ metadata:
   namespace: {{ $.Values.global.namespace }}
   annotations:
     argocd.argoproj.io/sync-wave: "10"
+    k8s.grafana.com/scrape: "true"
 spec:
   selector:
     app: {{ $name }}

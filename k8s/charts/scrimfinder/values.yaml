@@ -6,6 +6,7 @@ global:
   useVerticalPodAutoscaler: true
   # Registry for microservices only
   projectID: "${PROJECT_ID}"
+  clusterName: "${CLUSTER_NAME}"
   microservicesRegistry: "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}"
   rabbitmqHost: "scrimfinder-rabbitmq-broker"
   rabbitmqPort: "5672"
@@ -30,6 +31,7 @@ secrets:
   rabbitmqUser: "user"
   rabbitmqPassword: "rabbitmqpassword"
   rabbitmqErlangCookie: "erlangcookie"
+  grafanaToken: "REPLACE_ME"
 
 traefik:
   installCRDs: false

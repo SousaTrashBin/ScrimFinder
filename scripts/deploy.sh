@@ -170,6 +170,7 @@ echo "deploying Argo CD..."
 
 export SCRIM_NAMESPACE="${SCRIM_NAMESPACE}"
 export PROJECT_ID="${PROJECT_ID}"
+export CLUSTER_NAME="${CLUSTER_NAME}"
 export REGION="${REGION}"
 export REPO_NAME="${REPO_NAME}"
 export SCRIM_IMAGE_TAG="${SCRIM_IMAGE_TAG:-latest}"
@@ -216,18 +217,6 @@ install_argocd_cli() {
     fi
 }
 
-echo "waiting for Argo CD control plane..."
-kubectl -n argocd rollout status statefulset/argocd-application-controller --timeout=300s
-kubectl -n argocd rollout status deployment/argocd-repo-server --timeout=300s
-kubectl -n argocd rollout status deployment/argocd-redis --timeout=300s
-kubectl -n argocd wait --for=condition=Ready pod -l app.kubernetes.io/name=argocd-application-controller --timeout=300s
-kubectl -n argocd wait --for=condition=Ready pod -l app.kubernetes.io/name=argocd-repo-server --timeout=300s
-install_argocd_cli
-kubectl config set-context --current --namespace=argocd
-echo "syncing Argo CD application 'scrimfinder' from targetRevision=${TARGET_REVISION}..."
-argocd --core app sync scrimfinder --app-namespace argocd --prune --timeout 1800
-argocd --core app wait scrimfinder --app-namespace argocd --sync --health --timeout 1800
-
 echo "waiting for Argo CD LoadBalancer External IP/Hostname..."
 
 EXTERNAL_ARGOCD_IP=""
@@ -255,6 +244,18 @@ INITIAL_ARGOCD_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secr
 
 echo "Argo CD External IP/Hostname: ${EXTERNAL_ARGOCD_IP}; username: admin; initial password: $INITIAL_ARGOCD_PASSWORD"
 
+echo "waiting for Argo CD control plane..."
+kubectl -n argocd rollout status statefulset/argocd-application-controller --timeout=300s
+kubectl -n argocd rollout status deployment/argocd-repo-server --timeout=300s
+kubectl -n argocd rollout status deployment/argocd-redis --timeout=300s
+kubectl -n argocd wait --for=condition=Ready pod -l app.kubernetes.io/name=argocd-application-controller --timeout=300s
+kubectl -n argocd wait --for=condition=Ready pod -l app.kubernetes.io/name=argocd-repo-server --timeout=300s
+install_argocd_cli
+kubectl config set-context --current --namespace=argocd
+echo "syncing Argo CD application 'scrimfinder' from targetRevision=${TARGET_REVISION}..."
+argocd --core app sync scrimfinder --app-namespace argocd --prune --timeout 1800
+argocd --core app wait scrimfinder --app-namespace argocd --sync --health --timeout 1800
+
 echo "waiting for Traefik LoadBalancer External IP/Hostname..."
 echo "this might take a few minutes..."
 
@@ -279,4 +280,5 @@ while [ -z "$EXTERNAL_IP" ]; do
 done
 
 echo "Traefik External IP/Hostname: $EXTERNAL_IP"
+echo "Argo CD External IP/Hostname: ${EXTERNAL_ARGOCD_IP}; username: admin; initial password: $INITIAL_ARGOCD_PASSWORD"
 echo "deployment complete!"

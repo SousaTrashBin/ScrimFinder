@@ -54,6 +54,11 @@ variable "rabbitmq_erlang_cookie" {
   sensitive = true
 }
 
+variable "grafana_token" {
+  type      = string
+  sensitive = true
+}
+
 variable "manage_artifact_registry_repository" {
   type    = bool
   default = true
