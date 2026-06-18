@@ -6,7 +6,7 @@ paths:
   /api/v1/analysis/draft:
     post:
       tags:
-      - Analysis
+        - Analysis
       summary: Win probability for a 5v5 draft
       description: Returns ML-predicted win probabilities for both teams, plus synergy
         analysis, counter matchups, and win conditions. Requires an active draft model.
@@ -45,7 +45,7 @@ paths:
   /api/v1/analysis/build:
     post:
       tags:
-      - Analysis
+        - Analysis
       summary: "Build effectiveness score (0\u2013100)"
       description: Scores an item build for a champion using the trained build model.
         Score is derived from predicted win probability. Optionally considers enemy
@@ -85,7 +85,7 @@ paths:
   /api/v1/analysis/player:
     post:
       tags:
-      - Analysis
+        - Analysis
       summary: Player performance analysis and improvement tips
       description: Aggregates a player's recent match stats and benchmarks each metric
         against the EUW population for their role using stored percentile data. Returns
@@ -125,7 +125,7 @@ paths:
   /api/v1/analysis/game:
     post:
       tags:
-      - Analysis
+        - Analysis
       summary: Post-game breakdown for all 10 players
       description: 'Scores each player''s performance using the performance model.
         Supply a `game_id` (stored game) or inline `raw_data`. Participants must have:
@@ -166,7 +166,7 @@ paths:
   /api/v1/analysis/champion:
     post:
       tags:
-      - Analysis
+        - Analysis
       summary: Champion stats from EUW dataset
       description: "Returns win rate, pick rate, average stats, and counter data for\
         \ a champion. Queries the EUW dataset directly \u2014 no model required."
@@ -205,7 +205,7 @@ paths:
   /api/v1/analysis/:
     get:
       tags:
-      - System
+        - System
       summary: Root
       operationId: root_api_v1_analysis__get
       responses:
@@ -217,7 +217,7 @@ paths:
   /api/v1/analysis/health:
     get:
       tags:
-      - System
+        - System
       summary: Health
       operationId: health_api_v1_analysis_health_get
       responses:
@@ -229,7 +229,7 @@ paths:
   /api/v1/analysis/q/health/ready:
     get:
       tags:
-      - System
+        - System
       summary: Health
       operationId: health_api_v1_analysis_q_health_ready_get
       responses:
@@ -241,7 +241,7 @@ paths:
   /api/v1/analysis/q/health/live:
     get:
       tags:
-      - System
+        - System
       summary: Health
       operationId: health_api_v1_analysis_q_health_live_get
       responses:
@@ -253,7 +253,7 @@ paths:
   /api/v1/training/games:
     post:
       tags:
-      - Games
+        - Games
       summary: Ingest a single match
       operationId: ingest_game_api_v1_training_games_post
       requestBody:
@@ -277,71 +277,71 @@ paths:
                 $ref: '#/components/schemas/training_HTTPValidationError'
     get:
       tags:
-      - Games
+        - Games
       summary: List games
       operationId: list_games_api_v1_training_games_get
       parameters:
-      - name: source
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
+        - name: source
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: string
+              - type: 'null'
+            description: Data source filter
+            examples:
+              - manual
+            title: Source
           description: Data source filter
-          examples:
-          - manual
-          title: Source
-        description: Data source filter
-      - name: patch
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
+        - name: patch
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: string
+              - type: 'null'
+            description: Game patch filter
+            examples:
+              - '14.10'
+            title: Patch
           description: Game patch filter
-          examples:
-          - '14.10'
-          title: Patch
-        description: Game patch filter
-      - name: match_type
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
+        - name: match_type
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: string
+              - type: 'null'
+            description: Queue/mode filter
+            examples:
+              - RANKED_SOLO_5x5
+            title: Match Type
           description: Queue/mode filter
-          examples:
-          - RANKED_SOLO_5x5
-          title: Match Type
-        description: Queue/mode filter
-      - name: limit
-        in: query
-        required: false
-        schema:
-          type: integer
-          maximum: 500
-          minimum: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            maximum: 500
+            minimum: 1
+            description: Page size
+            examples:
+              - 50
+            default: 50
+            title: Limit
           description: Page size
-          examples:
-          - 50
-          default: 50
-          title: Limit
-        description: Page size
-      - name: offset
-        in: query
-        required: false
-        schema:
-          type: integer
-          minimum: 0
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            description: Pagination offset
+            examples:
+              - 0
+            default: 0
+            title: Offset
           description: Pagination offset
-          examples:
-          - 0
-          default: 0
-          title: Offset
-        description: Pagination offset
       responses:
         '200':
           description: Successful Response
@@ -358,7 +358,7 @@ paths:
   /api/v1/training/games/batch:
     post:
       tags:
-      - Games
+        - Games
       summary: Ingest up to 1000 matches
       operationId: ingest_batch_api_v1_training_games_batch_post
       requestBody:
@@ -383,20 +383,20 @@ paths:
   /api/v1/training/games/{game_id}:
     get:
       tags:
-      - Games
+        - Games
       summary: Fetch stored match
       operationId: get_game_api_v1_training_games__game_id__get
       parameters:
-      - name: game_id
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: game_id
+          in: path
+          required: true
+          schema:
+            type: string
+            description: Stored game id. Riot ids like REGION_MATCHID are supported.
+            examples:
+              - VN_1417849076
+            title: Game Id
           description: Stored game id. Riot ids like REGION_MATCHID are supported.
-          examples:
-          - VN_1417849076
-          title: Game Id
-        description: Stored game id. Riot ids like REGION_MATCHID are supported.
       responses:
         '200':
           description: Successful Response
@@ -418,20 +418,20 @@ paths:
                 $ref: '#/components/schemas/training_HTTPValidationError'
     delete:
       tags:
-      - Games
+        - Games
       summary: Delete a game
       operationId: delete_game_api_v1_training_games__game_id__delete
       parameters:
-      - name: game_id
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: game_id
+          in: path
+          required: true
+          schema:
+            type: string
+            description: Stored game id to delete.
+            examples:
+              - VN_1417849076
+            title: Game Id
           description: Stored game id to delete.
-          examples:
-          - VN_1417849076
-          title: Game Id
-        description: Stored game id to delete.
       responses:
         '204':
           description: Successful Response
@@ -450,7 +450,7 @@ paths:
   /api/v1/training/features/extract:
     post:
       tags:
-      - Features
+        - Features
       summary: Extract feature vectors
       operationId: extract_features_api_v1_training_features_extract_post
       requestBody:
@@ -481,24 +481,24 @@ paths:
   /api/v1/training/features/{game_id}:
     get:
       tags:
-      - Features
+        - Features
       summary: Get cached features
       operationId: get_features_api_v1_training_features__game_id__get
       parameters:
-      - name: game_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Game Id
-      - name: concern
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - $ref: '#/components/schemas/training_Concern'
-          - type: 'null'
-          title: Concern
+        - name: game_id
+          in: path
+          required: true
+          schema:
+            type: string
+            title: Game Id
+        - name: concern
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - $ref: '#/components/schemas/training_Concern'
+              - type: 'null'
+            title: Concern
       responses:
         '200':
           description: Successful Response
@@ -523,24 +523,24 @@ paths:
                 $ref: '#/components/schemas/training_HTTPValidationError'
     delete:
       tags:
-      - Features
+        - Features
       summary: Delete cached features
       operationId: delete_features_api_v1_training_features__game_id__delete
       parameters:
-      - name: game_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Game Id
-      - name: concern
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - $ref: '#/components/schemas/training_Concern'
-          - type: 'null'
-          title: Concern
+        - name: game_id
+          in: path
+          required: true
+          schema:
+            type: string
+            title: Game Id
+        - name: concern
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - $ref: '#/components/schemas/training_Concern'
+              - type: 'null'
+            title: Concern
       responses:
         '204':
           description: Successful Response
@@ -559,7 +559,7 @@ paths:
   /api/v1/training/datasets:
     post:
       tags:
-      - Datasets
+        - Datasets
       summary: Register dataset
       operationId: create_dataset_api_v1_training_datasets_post
       requestBody:
@@ -583,18 +583,18 @@ paths:
                 $ref: '#/components/schemas/training_HTTPValidationError'
     get:
       tags:
-      - Datasets
+        - Datasets
       summary: List datasets
       operationId: list_datasets_api_v1_training_datasets_get
       parameters:
-      - name: concern
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Concern
+        - name: concern
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: string
+              - type: 'null'
+            title: Concern
       responses:
         '200':
           description: Successful Response
@@ -611,7 +611,7 @@ paths:
   /api/v1/training/datasets/build:
     post:
       tags:
-      - Datasets
+        - Datasets
       summary: Create and build dataset
       operationId: build_dataset_api_v1_training_datasets_build_post
       requestBody:
@@ -636,16 +636,16 @@ paths:
   /api/v1/training/datasets/{dataset_id}:
     get:
       tags:
-      - Datasets
+        - Datasets
       summary: Get dataset
       operationId: get_dataset_api_v1_training_datasets__dataset_id__get
       parameters:
-      - name: dataset_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Dataset Id
+        - name: dataset_id
+          in: path
+          required: true
+          schema:
+            type: string
+            title: Dataset Id
       responses:
         '200':
           description: Successful Response
@@ -667,16 +667,16 @@ paths:
                 $ref: '#/components/schemas/training_HTTPValidationError'
     delete:
       tags:
-      - Datasets
+        - Datasets
       summary: Delete dataset
       operationId: delete_dataset_api_v1_training_datasets__dataset_id__delete
       parameters:
-      - name: dataset_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Dataset Id
+        - name: dataset_id
+          in: path
+          required: true
+          schema:
+            type: string
+            title: Dataset Id
       responses:
         '204':
           description: Successful Response
@@ -701,16 +701,16 @@ paths:
   /api/v1/training/datasets/{dataset_id}/build:
     post:
       tags:
-      - Datasets
+        - Datasets
       summary: Rebuild dataset
       operationId: rebuild_dataset_api_v1_training_datasets__dataset_id__build_post
       parameters:
-      - name: dataset_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Dataset Id
+        - name: dataset_id
+          in: path
+          required: true
+          schema:
+            type: string
+            title: Dataset Id
       responses:
         '202':
           description: Successful Response
@@ -733,7 +733,7 @@ paths:
   /api/v1/training/jobs:
     post:
       tags:
-      - Training
+        - Training
       summary: Start a training job
       operationId: create_job_api_v1_training_jobs_post
       requestBody:
@@ -769,45 +769,45 @@ paths:
                 $ref: '#/components/schemas/training_HTTPValidationError'
     get:
       tags:
-      - Training
+        - Training
       summary: List jobs
       operationId: list_jobs_api_v1_training_jobs_get
       parameters:
-      - name: concern
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
+        - name: concern
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: string
+              - type: 'null'
+            description: Concern filter
+            examples:
+              - draft
+            title: Concern
           description: Concern filter
-          examples:
-          - draft
-          title: Concern
-        description: Concern filter
-      - name: status
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - $ref: '#/components/schemas/training_JobStatus'
-          - type: 'null'
+        - name: status
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - $ref: '#/components/schemas/training_JobStatus'
+              - type: 'null'
+            description: Job status filter
+            title: Status
           description: Job status filter
-          title: Status
-        description: Job status filter
-      - name: limit
-        in: query
-        required: false
-        schema:
-          type: integer
-          maximum: 500
-          minimum: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            maximum: 500
+            minimum: 1
+            description: Maximum jobs to return
+            examples:
+              - 100
+            default: 100
+            title: Limit
           description: Maximum jobs to return
-          examples:
-          - 100
-          default: 100
-          title: Limit
-        description: Maximum jobs to return
       responses:
         '200':
           description: Successful Response
@@ -824,20 +824,20 @@ paths:
   /api/v1/training/jobs/{job_id}:
     get:
       tags:
-      - Training
+        - Training
       summary: Get job status
       operationId: get_job_api_v1_training_jobs__job_id__get
       parameters:
-      - name: job_id
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+            description: Training job id
+            examples:
+              - job_123456abcdef
+            title: Job Id
           description: Training job id
-          examples:
-          - job_123456abcdef
-          title: Job Id
-        description: Training job id
       responses:
         '200':
           description: Successful Response
@@ -860,20 +860,20 @@ paths:
   /api/v1/training/jobs/{job_id}/cancel:
     post:
       tags:
-      - Training
+        - Training
       summary: Cancel a job
       operationId: cancel_job_api_v1_training_jobs__job_id__cancel_post
       parameters:
-      - name: job_id
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+            description: Training job id
+            examples:
+              - job_123456abcdef
+            title: Job Id
           description: Training job id
-          examples:
-          - job_123456abcdef
-          title: Job Id
-        description: Training job id
       responses:
         '200':
           description: Successful Response
@@ -902,20 +902,20 @@ paths:
   /api/v1/training/jobs/{job_id}/deploy:
     post:
       tags:
-      - Training
+        - Training
       summary: Deploy model from job
       operationId: deploy_job_api_v1_training_jobs__job_id__deploy_post
       parameters:
-      - name: job_id
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+            description: Training job id
+            examples:
+              - job_123456abcdef
+            title: Job Id
           description: Training job id
-          examples:
-          - job_123456abcdef
-          title: Job Id
-        description: Training job id
       responses:
         '200':
           description: Successful Response
@@ -944,25 +944,25 @@ paths:
   /api/v1/training/models:
     get:
       tags:
-      - Models
+        - Models
       summary: List all models
       operationId: list_models_api_v1_training_models_get
       parameters:
-      - name: concern
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Concern
-      - name: active_only
-        in: query
-        required: false
-        schema:
-          type: boolean
-          default: false
-          title: Active Only
+        - name: concern
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: string
+              - type: 'null'
+            title: Concern
+        - name: active_only
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+            title: Active Only
       responses:
         '200':
           description: Successful Response
@@ -979,7 +979,7 @@ paths:
   /api/v1/training/models/active:
     get:
       tags:
-      - Models
+        - Models
       summary: List active models
       operationId: list_active_api_v1_training_models_active_get
       responses:
@@ -992,16 +992,16 @@ paths:
   /api/v1/training/models/{model_id}:
     get:
       tags:
-      - Models
+        - Models
       summary: Get model metadata
       operationId: get_model_api_v1_training_models__model_id__get
       parameters:
-      - name: model_id
-        in: path
-        required: true
-        schema:
-          type: integer
-          title: Model Id
+        - name: model_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Model Id
       responses:
         '200':
           description: Successful Response
@@ -1023,16 +1023,16 @@ paths:
                 $ref: '#/components/schemas/training_HTTPValidationError'
     delete:
       tags:
-      - Models
+        - Models
       summary: Delete a model
       operationId: delete_model_api_v1_training_models__model_id__delete
       parameters:
-      - name: model_id
-        in: path
-        required: true
-        schema:
-          type: integer
-          title: Model Id
+        - name: model_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Model Id
       responses:
         '204':
           description: Successful Response
@@ -1057,16 +1057,16 @@ paths:
   /api/v1/training/models/{model_id}/activate:
     post:
       tags:
-      - Models
+        - Models
       summary: Activate a model
       operationId: activate_api_v1_training_models__model_id__activate_post
       parameters:
-      - name: model_id
-        in: path
-        required: true
-        schema:
-          type: integer
-          title: Model Id
+        - name: model_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Model Id
       responses:
         '200':
           description: Successful Response
@@ -1089,16 +1089,16 @@ paths:
   /api/v1/training/models/{model_id}/deactivate:
     post:
       tags:
-      - Models
+        - Models
       summary: Deactivate a model
       operationId: deactivate_api_v1_training_models__model_id__deactivate_post
       parameters:
-      - name: model_id
-        in: path
-        required: true
-        schema:
-          type: integer
-          title: Model Id
+        - name: model_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Model Id
       responses:
         '200':
           description: Successful Response
@@ -1121,7 +1121,7 @@ paths:
   /api/v1/training/:
     get:
       tags:
-      - System
+        - System
       summary: Root
       operationId: root_api_v1_training__get
       responses:
@@ -1133,7 +1133,7 @@ paths:
   /api/v1/training/health:
     get:
       tags:
-      - System
+        - System
       summary: Health
       operationId: health_api_v1_training_health_get
       responses:
@@ -1145,7 +1145,7 @@ paths:
   /api/v1/training/q/health/ready:
     get:
       tags:
-      - System
+        - System
       summary: Health
       operationId: health_api_v1_training_q_health_ready_get
       responses:
@@ -1157,7 +1157,7 @@ paths:
   /api/v1/training/q/health/live:
     get:
       tags:
-      - System
+        - System
       summary: Health
       operationId: health_api_v1_training_q_health_live_get
       responses:
@@ -1174,16 +1174,16 @@ paths:
         to VN_1417849076 (region prefix + ''_'' + match id).'
       operationId: getFilledMatch
       tags:
-      - Match Filling
+        - Match Filling
       parameters:
-      - description: Riot match id in REGION_MATCHID format
-        example: VN_1417849076
-        name: matchId
-        in: path
-        required: true
-        schema:
-          type: string
-          pattern: \S
+        - description: Riot match id in REGION_MATCHID format
+          example: VN_1417849076
+          name: matchId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: \S
       responses:
         '200':
           description: Successfully retrieved the match details
@@ -1234,16 +1234,16 @@ paths:
       description: Accepts the same Riot match ID format, e.g. VN_1417849076.
       operationId: getRawMatchData
       tags:
-      - Match Filling
+        - Match Filling
       parameters:
-      - description: Riot match id in REGION_MATCHID format
-        example: VN_1417849076
-        name: matchId
-        in: path
-        required: true
-        schema:
-          type: string
-          pattern: \S
+        - description: Riot match id in REGION_MATCHID format
+          example: VN_1417849076
+          name: matchId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: \S
       responses:
         '200':
           description: Successfully retrieved the match details
@@ -1295,33 +1295,33 @@ paths:
         as /players/{server}/{name}/{tag} (example: /players/VN/Faker/KR1).'
       operationId: getFilledPlayer
       tags:
-      - Player Filling
+        - Player Filling
       parameters:
-      - description: Summoner name
-        example: Faker
-        name: name
-        in: path
-        required: true
-        schema:
-          type: string
-          minLength: 3
-          maxLength: 16
-      - description: Server shard (e.g. VN, EUW, NA)
-        example: VN
-        name: server
-        in: path
-        required: true
-        schema:
-          type: string
-      - description: Tag line (without '#')
-        example: KR1
-        name: tag
-        in: path
-        required: true
-        schema:
-          type: string
-          minLength: 3
-          maxLength: 5
+        - description: Summoner name
+          example: Faker
+          name: name
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 16
+        - description: Server shard (e.g. VN, EUW, NA)
+          example: VN
+          name: server
+          in: path
+          required: true
+          schema:
+            type: string
+        - description: Tag line (without '#')
+          example: KR1
+          name: tag
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 5
       responses:
         '200':
           description: Successfully retrieved the player details
@@ -1371,7 +1371,7 @@ paths:
       summary: Register a new player in the matchmaking platform
       operationId: createPlayer
       tags:
-      - Player Management
+        - Player Management
       requestBody:
         content:
           application/json:
@@ -1402,15 +1402,15 @@ paths:
       summary: Get player details
       operationId: getPlayer
       tags:
-      - Player Management
+        - Player Management
       parameters:
-      - description: Player UUID
-        example: 550e8400-e29b-41d4-a716-446655440002
-        name: id
-        in: path
-        required: true
-        schema:
-          $ref: '#/components/schemas/matchmaking_UUID'
+        - description: Player UUID
+          example: 550e8400-e29b-41d4-a716-446655440002
+          name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/matchmaking_UUID'
       responses:
         '200':
           description: Player found
@@ -1429,15 +1429,15 @@ paths:
       summary: Get all lobbies associated with a player's tickets
       operationId: getPlayerLobbies
       tags:
-      - Player Management
+        - Player Management
       parameters:
-      - description: Player UUID
-        example: 550e8400-e29b-41d4-a716-446655440002
-        name: id
-        in: path
-        required: true
-        schema:
-          $ref: '#/components/schemas/matchmaking_UUID'
+        - description: Player UUID
+          example: 550e8400-e29b-41d4-a716-446655440002
+          name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/matchmaking_UUID'
       responses:
         '200':
           description: Player lobbies retrieved
@@ -1456,15 +1456,15 @@ paths:
       summary: Get all tickets for a player
       operationId: getPlayerTickets
       tags:
-      - Player Management
+        - Player Management
       parameters:
-      - description: Player UUID
-        example: 550e8400-e29b-41d4-a716-446655440002
-        name: id
-        in: path
-        required: true
-        schema:
-          $ref: '#/components/schemas/matchmaking_UUID'
+        - description: Player UUID
+          example: 550e8400-e29b-41d4-a716-446655440002
+          name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/matchmaking_UUID'
       responses:
         '200':
           description: Player tickets retrieved
@@ -1483,7 +1483,7 @@ paths:
       summary: Create a new queue (can be global or namespaced/local)
       operationId: createQueue
       tags:
-      - Queue Management
+        - Queue Management
       requestBody:
         content:
           application/json:
@@ -1510,15 +1510,15 @@ paths:
       summary: Get queue details
       operationId: getQueue
       tags:
-      - Queue Management
+        - Queue Management
       parameters:
-      - description: Queue UUID
-        example: 550e8400-e29b-41d4-a716-446655440010
-        name: id
-        in: path
-        required: true
-        schema:
-          $ref: '#/components/schemas/matchmaking_UUID'
+        - description: Queue UUID
+          example: 550e8400-e29b-41d4-a716-446655440010
+          name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/matchmaking_UUID'
       responses:
         '200':
           description: Queue found
@@ -1538,7 +1538,7 @@ paths:
       description: Requires a linked League of Legends Account via Ranking Service.
       operationId: joinQueue
       tags:
-      - Matchmaking
+        - Matchmaking
       requestBody:
         content:
           application/json:
@@ -1569,15 +1569,15 @@ paths:
       summary: Calculate deltas and report match results to Ranking Service
       operationId: completeMatch
       tags:
-      - Matchmaking
+        - Matchmaking
       parameters:
-      - description: Match UUID
-        example: 550e8400-e29b-41d4-a716-446655440001
-        name: matchId
-        in: path
-        required: true
-        schema:
-          $ref: '#/components/schemas/matchmaking_UUID'
+        - description: Match UUID
+          example: 550e8400-e29b-41d4-a716-446655440001
+          name: matchId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/matchmaking_UUID'
       responses:
         '200':
           description: Match completed and results reported
@@ -1604,15 +1604,15 @@ paths:
         https://www.leagueofgraphs.com/match/vn/1417849076#participant8.'
       operationId: linkMatch
       tags:
-      - Matchmaking
+        - Matchmaking
       parameters:
-      - description: Match UUID
-        example: 550e8400-e29b-41d4-a716-446655440001
-        name: matchId
-        in: path
-        required: true
-        schema:
-          $ref: '#/components/schemas/matchmaking_UUID'
+        - description: Match UUID
+          example: 550e8400-e29b-41d4-a716-446655440001
+          name: matchId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/matchmaking_UUID'
       requestBody:
         content:
           application/json:
@@ -1638,22 +1638,22 @@ paths:
       summary: Accept a match proposal
       operationId: acceptMatch
       tags:
-      - Matchmaking
+        - Matchmaking
       parameters:
-      - description: Match UUID
-        example: 550e8400-e29b-41d4-a716-446655440001
-        name: matchId
-        in: path
-        required: true
-        schema:
-          $ref: '#/components/schemas/matchmaking_UUID'
-      - description: Player UUID
-        example: 550e8400-e29b-41d4-a716-446655440002
-        name: playerId
-        in: path
-        required: true
-        schema:
-          $ref: '#/components/schemas/matchmaking_UUID'
+        - description: Match UUID
+          example: 550e8400-e29b-41d4-a716-446655440001
+          name: matchId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/matchmaking_UUID'
+        - description: Player UUID
+          example: 550e8400-e29b-41d4-a716-446655440002
+          name: playerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/matchmaking_UUID'
       responses:
         '200':
           description: Match accepted
@@ -1674,22 +1674,22 @@ paths:
         removed.
       operationId: declineMatch
       tags:
-      - Matchmaking
+        - Matchmaking
       parameters:
-      - description: Match UUID
-        example: 550e8400-e29b-41d4-a716-446655440001
-        name: matchId
-        in: path
-        required: true
-        schema:
-          $ref: '#/components/schemas/matchmaking_UUID'
-      - description: Player UUID
-        example: 550e8400-e29b-41d4-a716-446655440002
-        name: playerId
-        in: path
-        required: true
-        schema:
-          $ref: '#/components/schemas/matchmaking_UUID'
+        - description: Match UUID
+          example: 550e8400-e29b-41d4-a716-446655440001
+          name: matchId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/matchmaking_UUID'
+        - description: Player UUID
+          example: 550e8400-e29b-41d4-a716-446655440002
+          name: playerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/matchmaking_UUID'
       responses:
         '204':
           description: Match declined and cancelled
@@ -1704,15 +1704,15 @@ paths:
       summary: Leave a matchmaking queue
       operationId: leaveQueue
       tags:
-      - Matchmaking
+        - Matchmaking
       parameters:
-      - description: Match ticket UUID
-        example: 550e8400-e29b-41d4-a716-446655440000
-        name: ticketId
-        in: path
-        required: true
-        schema:
-          $ref: '#/components/schemas/matchmaking_UUID'
+        - description: Match ticket UUID
+          example: 550e8400-e29b-41d4-a716-446655440000
+          name: ticketId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/matchmaking_UUID'
       responses:
         '204':
           description: Successfully left the queue
@@ -1727,15 +1727,15 @@ paths:
       summary: Get the lobby for a specific ticket if matched
       operationId: getLobbyByTicket
       tags:
-      - Matchmaking
+        - Matchmaking
       parameters:
-      - description: Match ticket UUID
-        example: 550e8400-e29b-41d4-a716-446655440000
-        name: ticketId
-        in: path
-        required: true
-        schema:
-          $ref: '#/components/schemas/matchmaking_UUID'
+        - description: Match ticket UUID
+          example: 550e8400-e29b-41d4-a716-446655440000
+          name: ticketId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/matchmaking_UUID'
       responses:
         '200':
           description: Successfully retrieved lobby info
@@ -1754,32 +1754,32 @@ paths:
       summary: Get global leaderboard with pagination
       operationId: getGlobalLeaderboard
       tags:
-      - Leaderboard
+        - Leaderboard
       parameters:
-      - description: 0-based page index
-        example: 0
-        name: page
-        in: query
-        schema:
-          type: integer
-          format: int32
-          default: 0
-      - description: Optional region filter
-        name: region
-        in: query
-        schema:
-          $ref: '#/components/schemas/ranking_Region'
-        required: false
-      - description: Page size (1..100)
-        example: 20
-        name: size
-        in: query
-        schema:
-          type: integer
-          format: int32
-          maximum: 100
-          minimum: 0
-          default: 20
+        - description: 0-based page index
+          example: 0
+          name: page
+          in: query
+          schema:
+            type: integer
+            format: int32
+            default: 0
+        - description: Optional region filter
+          name: region
+          in: query
+          schema:
+            $ref: '#/components/schemas/ranking_Region'
+          required: false
+        - description: Page size (1..100)
+          example: 20
+          name: size
+          in: query
+          schema:
+            type: integer
+            format: int32
+            maximum: 100
+            minimum: 0
+            default: 20
       responses:
         '200':
           description: Successfully retrieved the leaderboard
@@ -1804,39 +1804,39 @@ paths:
       summary: Get queue leaderboard with pagination
       operationId: getQueueLeaderboard
       tags:
-      - Leaderboard
+        - Leaderboard
       parameters:
-      - description: Queue UUID
-        example: 550e8400-e29b-41d4-a716-446655440010
-        name: queueId
-        in: path
-        required: true
-        schema:
-          $ref: '#/components/schemas/ranking_UUID'
-      - description: 0-based page index
-        example: 0
-        name: page
-        in: query
-        schema:
-          type: integer
-          format: int32
-          default: 0
-      - description: Optional region filter
-        name: region
-        in: query
-        schema:
-          $ref: '#/components/schemas/ranking_Region'
-        required: false
-      - description: Page size (1..100)
-        example: 20
-        name: size
-        in: query
-        schema:
-          type: integer
-          format: int32
-          maximum: 100
-          minimum: 0
-          default: 20
+        - description: Queue UUID
+          example: 550e8400-e29b-41d4-a716-446655440010
+          name: queueId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ranking_UUID'
+        - description: 0-based page index
+          example: 0
+          name: page
+          in: query
+          schema:
+            type: integer
+            format: int32
+            default: 0
+        - description: Optional region filter
+          name: region
+          in: query
+          schema:
+            $ref: '#/components/schemas/ranking_Region'
+          required: false
+        - description: Page size (1..100)
+          example: 20
+          name: size
+          in: query
+          schema:
+            type: integer
+            format: int32
+            maximum: 100
+            minimum: 0
+            default: 20
       responses:
         '200':
           description: Successfully retrieved the leaderboard
@@ -1861,20 +1861,20 @@ paths:
       summary: Unlink a League of Legends account
       operationId: unlinkLolAccount
       tags:
-      - Player Management
+        - Player Management
       parameters:
-      - name: gameName
-        in: path
-        required: true
-        schema:
-          type: string
-          pattern: \S
-      - name: tagLine
-        in: path
-        required: true
-        schema:
-          type: string
-          pattern: \S
+        - name: gameName
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: \S
+        - name: tagLine
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: \S
       responses:
         '204':
           description: Account successfully unlinked or not found
@@ -1883,15 +1883,15 @@ paths:
       summary: Get player details
       operationId: getPlayer
       tags:
-      - Player Management
+        - Player Management
       parameters:
-      - description: Player UUID
-        example: 550e8400-e29b-41d4-a716-446655440002
-        name: playerId
-        in: path
-        required: true
-        schema:
-          $ref: '#/components/schemas/ranking_UUID'
+        - description: Player UUID
+          example: 550e8400-e29b-41d4-a716-446655440002
+          name: playerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ranking_UUID'
       responses:
         '200':
           description: Player found
@@ -1912,13 +1912,13 @@ paths:
         . Region should be the Riot routing region enum (AMERICAS, EUROPE, ASIA, SEA).
       operationId: linkLolAccount
       tags:
-      - Player Management
+        - Player Management
       parameters:
-      - name: playerId
-        in: path
-        required: true
-        schema:
-          $ref: '#/components/schemas/ranking_UUID'
+        - name: playerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ranking_UUID'
       requestBody:
         content:
           application/json:
@@ -1949,15 +1949,15 @@ paths:
       summary: Get the primary linked Riot account for a player
       operationId: getPrimaryAccount
       tags:
-      - Player Management
+        - Player Management
       parameters:
-      - description: Player UUID
-        example: 550e8400-e29b-41d4-a716-446655440002
-        name: playerId
-        in: path
-        required: true
-        schema:
-          $ref: '#/components/schemas/ranking_UUID'
+        - description: Player UUID
+          example: 550e8400-e29b-41d4-a716-446655440002
+          name: playerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ranking_UUID'
       responses:
         '200':
           description: Primary account found
@@ -1982,15 +1982,15 @@ paths:
       summary: Get all queue rankings for a player
       operationId: getPlayerRankings
       tags:
-      - Player Ranking
+        - Player Ranking
       parameters:
-      - description: Player UUID
-        example: 550e8400-e29b-41d4-a716-446655440002
-        name: playerId
-        in: path
-        required: true
-        schema:
-          $ref: '#/components/schemas/ranking_UUID'
+        - description: Player UUID
+          example: 550e8400-e29b-41d4-a716-446655440002
+          name: playerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ranking_UUID'
       responses:
         '200':
           description: Successfully retrieved player ranking(s)
@@ -2009,18 +2009,18 @@ paths:
       summary: Get a player's ranking for a specific queue
       operationId: getPlayerRankingByQueue
       tags:
-      - Player Ranking
+        - Player Ranking
       parameters:
-      - name: playerId
-        in: path
-        required: true
-        schema:
-          $ref: '#/components/schemas/ranking_UUID'
-      - name: queueId
-        in: path
-        required: true
-        schema:
-          $ref: '#/components/schemas/ranking_UUID'
+        - name: playerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ranking_UUID'
+        - name: queueId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ranking_UUID'
       responses:
         '200':
           description: Successfully retrieved player queue ranking
@@ -2039,13 +2039,13 @@ paths:
       summary: Set one of the linked Riot accounts as the primary account
       operationId: setPrimaryAccount
       tags:
-      - Player Management
+        - Player Management
       parameters:
-      - name: playerId
-        in: path
-        required: true
-        schema:
-          $ref: '#/components/schemas/ranking_UUID'
+        - name: playerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ranking_UUID'
       requestBody:
         content:
           application/json:
@@ -2072,13 +2072,13 @@ paths:
       summary: Manually fetch and sync the player's MMR from the external LoL service
       operationId: syncExternalMMR
       tags:
-      - Player Management
+        - Player Management
       parameters:
-      - name: playerId
-        in: path
-        required: true
-        schema:
-          $ref: '#/components/schemas/ranking_UUID'
+        - name: playerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ranking_UUID'
       responses:
         '200':
           description: MMR successfully synced
@@ -2103,13 +2103,13 @@ paths:
       summary: Update an existing queue's configuration
       operationId: updateQueue
       tags:
-      - Queue Management
+        - Queue Management
       parameters:
-      - name: queueId
-        in: path
-        required: true
-        schema:
-          $ref: '#/components/schemas/ranking_UUID'
+        - name: queueId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ranking_UUID'
       requestBody:
         content:
           application/json:
@@ -2139,15 +2139,15 @@ paths:
       summary: Get queue details
       operationId: getQueue
       tags:
-      - Queue Management
+        - Queue Management
       parameters:
-      - description: Queue UUID
-        example: 550e8400-e29b-41d4-a716-446655440010
-        name: queueId
-        in: path
-        required: true
-        schema:
-          $ref: '#/components/schemas/ranking_UUID'
+        - description: Queue UUID
+          example: 550e8400-e29b-41d4-a716-446655440010
+          name: queueId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ranking_UUID'
       responses:
         '200':
           description: Queue found
@@ -2165,13 +2165,13 @@ paths:
       summary: Delete a specific queue
       operationId: deleteQueue
       tags:
-      - Queue Management
+        - Queue Management
       parameters:
-      - name: queueId
-        in: path
-        required: true
-        schema:
-          $ref: '#/components/schemas/ranking_UUID'
+        - name: queueId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ranking_UUID'
       responses:
         '204':
           description: Queue successfully deleted
@@ -2184,29 +2184,28 @@ paths:
   /api/v1/history/matches:
     get:
       summary: Get paginated match history with filters and sorting
-      description: "Filters must be added in the body of the request due to size limits. Matches must be added through the matchmaking service first before they show up in the history: api/v1/matchmaking/tickets/matches/{matchId}/complete."
       operationId: getMatches
       tags:
-      - Match History
+        - Match History
       parameters:
-      - description: 0-based page index
-        example: 0
-        name: page
-        in: query
-        schema:
-          type: integer
-          format: int32
-          default: 0
-      - description: Page size (1..100)
-        example: 20
-        name: size
-        in: query
-        schema:
-          type: integer
-          format: int32
-          maximum: 100
-          minimum: 1
-          default: 20
+        - description: 0-based page index
+          example: 0
+          name: page
+          in: query
+          schema:
+            type: integer
+            format: int32
+            default: 0
+        - description: Page size (1..100)
+          example: 20
+          name: size
+          in: query
+          schema:
+            type: integer
+            format: int32
+            maximum: 100
+            minimum: 1
+            default: 20
       requestBody:
         content:
           application/json:
@@ -2235,19 +2234,18 @@ paths:
   /api/v1/history/matches/{riotMatchId}:
     get:
       summary: Get simplified match information by ID
-      description: "Matches must be added through the matchmaking service first before they show up in the history: api/v1/matchmaking/tickets/matches/{matchId}/complete."
       operationId: getMatchById
       tags:
-      - Match History
+        - Match History
       parameters:
-      - description: Riot match id in REGION_MATCHID format
-        example: VN_1417849076
-        name: riotMatchId
-        in: path
-        required: true
-        schema:
-          type: string
-          pattern: \S
+        - description: Riot match id in REGION_MATCHID format
+          example: VN_1417849076
+          name: riotMatchId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: \S
       responses:
         '200':
           description: Successfully retrieved the match details
@@ -2294,9 +2292,9 @@ components:
           title: Reason
       type: object
       required:
-      - replaces
-      - suggested_item
-      - reason
+        - replaces
+        - suggested_item
+        - reason
       title: AlternativeItem
     analysis_BuildAnalysisRequest:
       properties:
@@ -2305,8 +2303,8 @@ components:
           title: Champion
         role:
           anyOf:
-          - $ref: '#/components/schemas/analysis_Role'
-          - type: 'null'
+            - $ref: '#/components/schemas/analysis_Role'
+            - type: 'null'
         items:
           items:
             type: string
@@ -2315,20 +2313,20 @@ components:
           title: Items
         enemy_composition:
           anyOf:
-          - items:
-              type: string
-            type: array
-          - type: 'null'
+            - items:
+                type: string
+              type: array
+            - type: 'null'
           title: Enemy Composition
         model_id:
           anyOf:
-          - type: integer
-          - type: 'null'
+            - type: integer
+            - type: 'null'
           title: Model Id
       type: object
       required:
-      - champion
-      - items
+        - champion
+        - items
       title: BuildAnalysisRequest
     analysis_BuildAnalysisResponse:
       properties:
@@ -2347,8 +2345,8 @@ components:
           title: Score
         win_rate_with_build:
           anyOf:
-          - type: number
-          - type: 'null'
+            - type: number
+            - type: 'null'
           title: Win Rate With Build
         strengths:
           items:
@@ -2367,19 +2365,19 @@ components:
           title: Alternative Items
         model_version:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Model Version
       type: object
       required:
-      - champion
-      - items
-      - score
-      - win_rate_with_build
-      - strengths
-      - weaknesses
-      - alternative_items
-      - model_version
+        - champion
+        - items
+        - score
+        - win_rate_with_build
+        - strengths
+        - weaknesses
+        - alternative_items
+        - model_version
       title: BuildAnalysisResponse
     analysis_ChampionAnalysisRequest:
       properties:
@@ -2388,27 +2386,27 @@ components:
           title: Champion
         position:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Position
         patch:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Patch
         match_type:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Match Type
         model_id:
           anyOf:
-          - type: integer
-          - type: 'null'
+            - type: integer
+            - type: 'null'
           title: Model Id
       type: object
       required:
-      - champion
+        - champion
       title: ChampionAnalysisRequest
     analysis_ChampionAnalysisResponse:
       properties:
@@ -2422,15 +2420,15 @@ components:
           title: Tier
         model_version:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Model Version
       type: object
       required:
-      - champion
-      - stats
-      - tier
-      - model_version
+        - champion
+        - stats
+        - tier
+        - model_version
       title: ChampionAnalysisResponse
     analysis_ChampionInDraft:
       properties:
@@ -2441,8 +2439,8 @@ components:
           $ref: '#/components/schemas/analysis_Role'
       type: object
       required:
-      - name
-      - role
+        - name
+        - role
       title: ChampionInDraft
     analysis_ChampionStats:
       properties:
@@ -2451,8 +2449,8 @@ components:
           title: Champion
         position:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Position
         win_rate:
           type: number
@@ -2500,27 +2498,27 @@ components:
           title: Countered By
       type: object
       required:
-      - champion
-      - position
-      - win_rate
-      - pick_rate
-      - total_games
-      - avg_kda
-      - avg_damage
-      - avg_gold
-      - avg_cs
-      - avg_vision
-      - best_items
-      - best_runes
-      - counters
-      - countered_by
+        - champion
+        - position
+        - win_rate
+        - pick_rate
+        - total_games
+        - avg_kda
+        - avg_damage
+        - avg_gold
+        - avg_cs
+        - avg_vision
+        - best_items
+        - best_runes
+        - counters
+        - countered_by
       title: ChampionStats
     analysis_Concern:
       type: string
       enum:
-      - draft
-      - build
-      - performance
+        - draft
+        - build
+        - performance
       title: Concern
     analysis_DraftAnalysisRequest:
       properties:
@@ -2530,13 +2528,13 @@ components:
           $ref: '#/components/schemas/analysis_DraftTeam'
         model_id:
           anyOf:
-          - type: integer
-          - type: 'null'
+            - type: integer
+            - type: 'null'
           title: Model Id
       type: object
       required:
-      - team_blue
-      - team_red
+        - team_blue
+        - team_red
       title: DraftAnalysisRequest
     analysis_DraftAnalysisResponse:
       properties:
@@ -2581,20 +2579,20 @@ components:
           title: Tips
         model_version:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Model Version
       type: object
       required:
-      - blue_win_probability
-      - red_win_probability
-      - blue_synergies
-      - red_synergies
-      - blue_counters
-      - red_counters
-      - win_conditions
-      - tips
-      - model_version
+        - blue_win_probability
+        - red_win_probability
+        - blue_synergies
+        - red_synergies
+        - blue_counters
+        - red_counters
+        - win_conditions
+        - tips
+        - model_version
       title: DraftAnalysisResponse
     analysis_DraftTeam:
       properties:
@@ -2607,7 +2605,7 @@ components:
           title: Champions
       type: object
       required:
-      - champions
+        - champions
       title: DraftTeam
     analysis_ErrorResponse:
       properties:
@@ -2619,20 +2617,20 @@ components:
           title: Message
         details:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Details
       type: object
       required:
-      - code
-      - message
+        - code
+        - message
       title: ErrorResponse
     analysis_GameAnalysisRequest:
       properties:
         game_id:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Game Id
           description: Game id to analyze. Riot-style values like 'VN_1417849076'
             are supported. From LeagueOfGraphs URLs, combine region + '_' + id (for
@@ -2640,14 +2638,14 @@ components:
             -> VN_1417849076).
         raw_data:
           anyOf:
-          - additionalProperties: true
-            type: object
-          - type: 'null'
+            - additionalProperties: true
+              type: object
+            - type: 'null'
           title: Raw Data
         model_id:
           anyOf:
-          - type: integer
-          - type: 'null'
+            - type: integer
+            - type: 'null'
           title: Model Id
         concern:
           $ref: '#/components/schemas/analysis_Concern'
@@ -2661,18 +2659,18 @@ components:
           title: Game Id
         patch:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Patch
         duration_sec:
           anyOf:
-          - type: integer
-          - type: 'null'
+            - type: integer
+            - type: 'null'
           title: Duration Sec
         winner:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Winner
         players:
           items:
@@ -2690,19 +2688,19 @@ components:
           title: Key Moments
         model_version:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Model Version
       type: object
       required:
-      - game_id
-      - patch
-      - duration_sec
-      - winner
-      - players
-      - team_synergies
-      - key_moments
-      - model_version
+        - game_id
+        - patch
+        - duration_sec
+        - winner
+        - players
+        - team_synergies
+        - key_moments
+        - model_version
       title: GameAnalysisResponse
     analysis_HTTPValidationError:
       properties:
@@ -2716,9 +2714,9 @@ components:
     analysis_ImpactLevel:
       type: string
       enum:
-      - LOW
-      - MEDIUM
-      - HIGH
+        - LOW
+        - MEDIUM
+        - HIGH
       title: ImpactLevel
     analysis_ImprovementTip:
       properties:
@@ -2731,14 +2729,14 @@ components:
           $ref: '#/components/schemas/analysis_ImpactLevel'
         related_metric:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Related Metric
       type: object
       required:
-      - category
-      - tip
-      - impact
+        - category
+        - tip
+        - impact
       title: ImprovementTip
     analysis_PerformanceMetric:
       properties:
@@ -2755,9 +2753,9 @@ components:
           title: Percentile
       type: object
       required:
-      - value
-      - tier_average
-      - percentile
+        - value
+        - tier_average
+        - percentile
       title: PerformanceMetric
     analysis_PlayerAnalysisRequest:
       properties:
@@ -2766,13 +2764,13 @@ components:
           title: Summoner Id
         champion:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Champion
         role:
           anyOf:
-          - $ref: '#/components/schemas/analysis_Role'
-          - type: 'null'
+            - $ref: '#/components/schemas/analysis_Role'
+            - type: 'null'
         last_n_games:
           type: integer
           maximum: 200.0
@@ -2781,12 +2779,12 @@ components:
           default: 20
         match_type:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Match Type
       type: object
       required:
-      - summoner_id
+        - summoner_id
       title: PlayerAnalysisRequest
     analysis_PlayerAnalysisResponse:
       properties:
@@ -2798,37 +2796,37 @@ components:
           title: Matches Analyzed
         champion:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Champion
         role:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Role
         win_rate:
           type: number
           title: Win Rate
         kda:
           anyOf:
-          - $ref: '#/components/schemas/analysis_PerformanceMetric'
-          - type: 'null'
+            - $ref: '#/components/schemas/analysis_PerformanceMetric'
+            - type: 'null'
         avg_damage:
           anyOf:
-          - $ref: '#/components/schemas/analysis_PerformanceMetric'
-          - type: 'null'
+            - $ref: '#/components/schemas/analysis_PerformanceMetric'
+            - type: 'null'
         avg_vision:
           anyOf:
-          - $ref: '#/components/schemas/analysis_PerformanceMetric'
-          - type: 'null'
+            - $ref: '#/components/schemas/analysis_PerformanceMetric'
+            - type: 'null'
         avg_gold_pm:
           anyOf:
-          - $ref: '#/components/schemas/analysis_PerformanceMetric'
-          - type: 'null'
+            - $ref: '#/components/schemas/analysis_PerformanceMetric'
+            - type: 'null'
         obj_participation:
           anyOf:
-          - $ref: '#/components/schemas/analysis_PerformanceMetric'
-          - type: 'null'
+            - $ref: '#/components/schemas/analysis_PerformanceMetric'
+            - type: 'null'
         tips:
           items:
             $ref: '#/components/schemas/analysis_ImprovementTip'
@@ -2836,23 +2834,23 @@ components:
           title: Tips
         model_version:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Model Version
       type: object
       required:
-      - summoner_id
-      - matches_analyzed
-      - champion
-      - role
-      - win_rate
-      - kda
-      - avg_damage
-      - avg_vision
-      - avg_gold_pm
-      - obj_participation
-      - tips
-      - model_version
+        - summoner_id
+        - matches_analyzed
+        - champion
+        - role
+        - win_rate
+        - kda
+        - avg_damage
+        - avg_vision
+        - avg_gold_pm
+        - obj_participation
+        - tips
+        - model_version
       title: PlayerAnalysisResponse
     analysis_PlayerOutcome:
       properties:
@@ -2885,8 +2883,8 @@ components:
           title: Vision
         performance_score:
           anyOf:
-          - type: number
-          - type: 'null'
+            - type: number
+            - type: 'null'
           title: Performance Score
         highlights:
           items:
@@ -2902,43 +2900,43 @@ components:
           default: []
       type: object
       required:
-      - puuid
-      - champion
-      - role
-      - win
-      - kda
-      - damage
-      - gold
-      - cs
-      - vision
+        - puuid
+        - champion
+        - role
+        - win
+        - kda
+        - damage
+        - gold
+        - cs
+        - vision
       title: PlayerOutcome
     analysis_Role:
       type: string
       enum:
-      - TOP
-      - JUNGLE
-      - MID
-      - BOT
-      - SUPPORT
+        - TOP
+        - JUNGLE
+        - MID
+        - BOT
+        - SUPPORT
       title: Role
     analysis_TipCategory:
       type: string
       enum:
-      - VISION
-      - FARMING
-      - DAMAGE
-      - POSITIONING
-      - OBJECTIVE_CONTROL
-      - BUILDS
-      - GAME_SENSE
+        - VISION
+        - FARMING
+        - DAMAGE
+        - POSITIONING
+        - OBJECTIVE_CONTROL
+        - BUILDS
+        - GAME_SENSE
       title: TipCategory
     analysis_ValidationError:
       properties:
         loc:
           items:
             anyOf:
-            - type: string
-            - type: integer
+              - type: string
+              - type: integer
           type: array
           title: Location
         msg:
@@ -2954,18 +2952,18 @@ components:
           title: Context
       type: object
       required:
-      - loc
-      - msg
-      - type
+        - loc
+        - msg
+        - type
       title: ValidationError
     training_Algorithm:
       type: string
       enum:
-      - logistic
-      - gbm
-      - random_forest
-      - lightgbm
-      - auto
+        - logistic
+        - gbm
+        - random_forest
+        - lightgbm
+        - auto
       title: Algorithm
     training_BatchIngestRequest:
       properties:
@@ -2980,7 +2978,7 @@ components:
           default: manual
       type: object
       required:
-      - games
+        - games
       title: BatchIngestRequest
     training_BatchIngestResponse:
       properties:
@@ -2998,16 +2996,16 @@ components:
           title: Errors
       type: object
       required:
-      - ingested
-      - skipped
-      - errors
+        - ingested
+        - skipped
+        - errors
       title: BatchIngestResponse
     training_Concern:
       type: string
       enum:
-      - draft
-      - build
-      - performance
+        - draft
+        - build
+        - performance
       title: Concern
     training_DatasetBuildRequest:
       properties:
@@ -3024,8 +3022,8 @@ components:
           $ref: '#/components/schemas/training_DatasetFilters'
       type: object
       required:
-      - name
-      - concern
+        - name
+        - concern
       title: DatasetBuildRequest
     training_DatasetCreateRequest:
       properties:
@@ -3044,52 +3042,52 @@ components:
           $ref: '#/components/schemas/training_DatasetFilters'
       type: object
       required:
-      - name
-      - concern
+        - name
+        - concern
       title: DatasetCreateRequest
     training_DatasetFilters:
       properties:
         patch:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Patch
         patches:
           anyOf:
-          - items:
-              type: string
-            type: array
-          - type: 'null'
+            - items:
+                type: string
+              type: array
+            - type: 'null'
           title: Patches
         match_type:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Match Type
         min_duration_sec:
           anyOf:
-          - type: integer
-          - type: 'null'
+            - type: integer
+            - type: 'null'
           title: Min Duration Sec
         max_duration_sec:
           anyOf:
-          - type: integer
-          - type: 'null'
+            - type: integer
+            - type: 'null'
           title: Max Duration Sec
         source:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Source
         date_from:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Date From
         date_to:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Date To
       type: object
       title: DatasetFilters
@@ -3102,7 +3100,7 @@ components:
           title: Datasets
       type: object
       required:
-      - datasets
+        - datasets
       title: DatasetListResponse
     training_DatasetMeta:
       properties:
@@ -3136,27 +3134,27 @@ components:
           title: Created At
         built_at:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Built At
         file_path:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: File Path
       type: object
       required:
-      - id
-      - name
-      - description
-      - concern
-      - filters
-      - game_count
-      - row_count
-      - status
-      - created_at
-      - built_at
-      - file_path
+        - id
+        - name
+        - description
+        - concern
+        - filters
+        - game_count
+        - row_count
+        - status
+        - created_at
+        - built_at
+        - file_path
       title: DatasetMeta
     training_ErrorResponse:
       properties:
@@ -3168,29 +3166,29 @@ components:
           title: Message
         details:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Details
       type: object
       required:
-      - code
-      - message
+        - code
+        - message
       title: ErrorResponse
     training_FeatureExtractRequest:
       properties:
         game_id:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Game Id
           description: Stored game id. Riot-style ids like 'VN_1417849076' are supported.
             You can derive this from LeagueOfGraphs match URLs, e.g. https://www.leagueofgraphs.com/match/vn/1417849076#participant8
             -> VN_1417849076.
         raw_data:
           anyOf:
-          - additionalProperties: true
-            type: object
-          - type: 'null'
+            - additionalProperties: true
+              type: object
+            - type: 'null'
           title: Raw Data
         concerns:
           items:
@@ -3198,9 +3196,9 @@ components:
           type: array
           title: Concerns
           default:
-          - draft
-          - build
-          - performance
+            - draft
+            - build
+            - performance
         store:
           type: boolean
           title: Store
@@ -3222,9 +3220,9 @@ components:
           title: Stored
       type: object
       required:
-      - game_id
-      - features
-      - stored
+        - game_id
+        - features
+        - stored
       title: FeatureExtractResponse
     training_FeatureVector:
       properties:
@@ -3252,12 +3250,12 @@ components:
           title: Extracted At
       type: object
       required:
-      - game_id
-      - concern
-      - feature_vector
-      - feature_names
-      - schema_version
-      - extracted_at
+        - game_id
+        - concern
+        - feature_vector
+        - feature_names
+        - schema_version
+        - extracted_at
       title: FeatureVector
     training_GameDetail:
       properties:
@@ -3269,26 +3267,26 @@ components:
           title: Source
         patch:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Patch
         match_type:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Match Type
         ingested_at:
           type: string
           title: Ingested At
         duration_sec:
           anyOf:
-          - type: integer
-          - type: 'null'
+            - type: integer
+            - type: 'null'
           title: Duration Sec
         platform:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Platform
         raw_json:
           additionalProperties: true
@@ -3296,21 +3294,21 @@ components:
           title: Raw Json
       type: object
       required:
-      - id
-      - source
-      - patch
-      - match_type
-      - ingested_at
-      - duration_sec
-      - platform
-      - raw_json
+        - id
+        - source
+        - patch
+        - match_type
+        - ingested_at
+        - duration_sec
+        - platform
+        - raw_json
       title: GameDetail
     training_GameIngest:
       properties:
         id:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Id
           description: 'Optional custom match id. Prefer Riot format REGION_MATCHID
             (example: VN_1417849076).'
@@ -3325,7 +3323,7 @@ components:
           default: manual
       type: object
       required:
-      - data
+        - data
       title: GameIngest
     training_GameIngested:
       properties:
@@ -3337,24 +3335,24 @@ components:
           title: Source
         patch:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Patch
         match_type:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Match Type
         ingested_at:
           type: string
           title: Ingested At
       type: object
       required:
-      - id
-      - source
-      - patch
-      - match_type
-      - ingested_at
+        - id
+        - source
+        - patch
+        - match_type
+        - ingested_at
       title: GameIngested
     training_GameListResponse:
       properties:
@@ -3367,8 +3365,8 @@ components:
           $ref: '#/components/schemas/training_PaginatedMeta'
       type: object
       required:
-      - games
-      - meta
+        - games
+        - meta
       title: GameListResponse
     training_HTTPValidationError:
       properties:
@@ -3382,11 +3380,11 @@ components:
     training_JobStatus:
       type: string
       enum:
-      - PENDING
-      - RUNNING
-      - COMPLETED
-      - FAILED
-      - CANCELLED
+        - PENDING
+        - RUNNING
+        - COMPLETED
+        - FAILED
+        - CANCELLED
       title: JobStatus
     training_ModelListResponse:
       properties:
@@ -3397,7 +3395,7 @@ components:
           title: Models
       type: object
       required:
-      - models
+        - models
       title: ModelListResponse
     training_ModelMeta:
       properties:
@@ -3412,8 +3410,8 @@ components:
           title: Algorithm
         dataset_id:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Dataset Id
         version:
           type: string
@@ -3434,21 +3432,21 @@ components:
           title: Created At
         activated_at:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Activated At
       type: object
       required:
-      - id
-      - concern
-      - algorithm
-      - dataset_id
-      - version
-      - metrics
-      - hyperparams
-      - is_active
-      - created_at
-      - activated_at
+        - id
+        - concern
+        - algorithm
+        - dataset_id
+        - version
+        - metrics
+        - hyperparams
+        - is_active
+        - created_at
+        - activated_at
       title: ModelMeta
     training_PaginatedMeta:
       properties:
@@ -3463,9 +3461,9 @@ components:
           title: Offset
       type: object
       required:
-      - total
-      - limit
-      - offset
+        - total
+        - limit
+        - offset
       title: PaginatedMeta
     training_TrainingJobCreate:
       properties:
@@ -3476,31 +3474,31 @@ components:
           default: auto
         dataset_id:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Dataset Id
           description: Leave empty to train from EUW DB directly.
         sample:
           anyOf:
-          - type: number
-            maximum: 1.0
-            minimum: 0.01
-          - type: 'null'
+            - type: number
+              maximum: 1.0
+              minimum: 0.01
+            - type: 'null'
           title: Sample
         limit:
           anyOf:
-          - type: integer
-            minimum: 1000.0
-          - type: 'null'
+            - type: integer
+              minimum: 1000.0
+            - type: 'null'
           title: Limit
         match_type:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Match Type
       type: object
       required:
-      - concern
+        - concern
       title: TrainingJobCreate
     training_TrainingJobListResponse:
       properties:
@@ -3511,7 +3509,7 @@ components:
           title: Jobs
       type: object
       required:
-      - jobs
+        - jobs
       title: TrainingJobListResponse
     training_TrainingJobResponse:
       properties:
@@ -3526,8 +3524,8 @@ components:
           title: Algorithm
         dataset_id:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Dataset Id
         status:
           type: string
@@ -3544,57 +3542,57 @@ components:
           title: Filters
         metrics:
           anyOf:
-          - additionalProperties: true
-            type: object
-          - type: 'null'
+            - additionalProperties: true
+              type: object
+            - type: 'null'
           title: Metrics
         model_id:
           anyOf:
-          - type: integer
-          - type: 'null'
+            - type: integer
+            - type: 'null'
           title: Model Id
         error:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Error
         created_at:
           type: string
           title: Created At
         started_at:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Started At
         completed_at:
           anyOf:
-          - type: string
-          - type: 'null'
+            - type: string
+            - type: 'null'
           title: Completed At
       type: object
       required:
-      - id
-      - concern
-      - algorithm
-      - dataset_id
-      - status
-      - progress
-      - stage
-      - filters
-      - metrics
-      - model_id
-      - error
-      - created_at
-      - started_at
-      - completed_at
+        - id
+        - concern
+        - algorithm
+        - dataset_id
+        - status
+        - progress
+        - stage
+        - filters
+        - metrics
+        - model_id
+        - error
+        - created_at
+        - started_at
+        - completed_at
       title: TrainingJobResponse
     training_ValidationError:
       properties:
         loc:
           items:
             anyOf:
-            - type: string
-            - type: integer
+              - type: string
+              - type: integer
           type: array
           title: Location
         msg:
@@ -3610,9 +3608,9 @@ components:
           title: Context
       type: object
       required:
-      - loc
-      - msg
-      - type
+        - loc
+        - msg
+        - type
       title: ValidationError
     detail_filling_AccountDTO:
       type: object
@@ -3764,11 +3762,11 @@ components:
     detail_filling_Role:
       type: string
       enum:
-      - TOP
-      - JUNGLE
-      - MID
-      - BOTTOM
-      - SUPPORT
+        - TOP
+        - JUNGLE
+        - MID
+        - BOTTOM
+        - SUPPORT
     detail_filling_SummonerDTO:
       type: object
       properties:
@@ -3781,8 +3779,8 @@ components:
     detail_filling_TeamSide:
       type: string
       enum:
-      - BLUE
-      - RED
+        - BLUE
+        - RED
     detail_filling_TeamStatsDTO:
       type: object
       properties:
@@ -3803,22 +3801,22 @@ components:
     detail_filling_Tier:
       type: string
       enum:
-      - UNRANKED
-      - IRON
-      - BRONZE
-      - SILVER
-      - GOLD
-      - PLATINUM
-      - EMERALD
-      - DIAMOND
-      - MASTER
-      - GRANDMASTER
-      - CHALLENGER
+        - UNRANKED
+        - IRON
+        - BRONZE
+        - SILVER
+        - GOLD
+        - PLATINUM
+        - EMERALD
+        - DIAMOND
+        - MASTER
+        - GRANDMASTER
+        - CHALLENGER
     matchmaking_CreatePlayerRequest:
       type: object
       required:
-      - id
-      - discordUsername
+        - id
+        - discordUsername
       properties:
         id:
           $ref: '#/components/schemas/matchmaking_UUID'
@@ -3828,9 +3826,9 @@ components:
     matchmaking_CreateQueueRequest:
       type: object
       required:
-      - id
-      - name
-      - mode
+        - id
+        - name
+        - mode
       properties:
         id:
           $ref: '#/components/schemas/matchmaking_UUID'
@@ -3863,8 +3861,8 @@ components:
     matchmaking_JoinQueueRequest:
       type: object
       required:
-      - playerId
-      - queueId
+        - playerId
+        - queueId
       properties:
         playerId:
           $ref: '#/components/schemas/matchmaking_UUID'
@@ -3875,7 +3873,7 @@ components:
     matchmaking_LinkMatchRequest:
       type: object
       required:
-      - externalGameId
+        - externalGameId
       properties:
         externalGameId:
           type: string
@@ -3901,7 +3899,7 @@ components:
       type: string
       format: date-time
       examples:
-      - '2022-03-10T12:15:50'
+        - '2022-03-10T12:15:50'
     matchmaking_MatchDTO:
       type: object
       properties:
@@ -3927,14 +3925,14 @@ components:
     matchmaking_MatchState:
       type: string
       enum:
-      - SEARCHING
-      - PENDING_ACCEPTANCE
-      - MATCH_FOUND
-      - ACCEPTED
-      - IN_PROGRESS
-      - COMPLETED
-      - RESULT_REPORTING_FAILED
-      - CANCELLED
+        - SEARCHING
+        - PENDING_ACCEPTANCE
+        - MATCH_FOUND
+        - ACCEPTED
+        - IN_PROGRESS
+        - COMPLETED
+        - RESULT_REPORTING_FAILED
+        - CANCELLED
     matchmaking_MatchTicketDTO:
       type: object
       properties:
@@ -3960,8 +3958,8 @@ components:
     matchmaking_MatchmakingMode:
       type: string
       enum:
-      - RANK_BASED
-      - NORMAL
+        - RANK_BASED
+        - NORMAL
     matchmaking_PlayerDTO:
       type: object
       properties:
@@ -3995,37 +3993,37 @@ components:
     matchmaking_Region:
       type: string
       enum:
-      - BR
-      - EUNE
-      - EUW
-      - LAN
-      - LAS
-      - NA
-      - OCE
-      - RU
-      - TR
-      - ME
-      - JP
-      - KR
-      - SEA
-      - TW
-      - VN
-      - PBE
+        - BR
+        - EUNE
+        - EUW
+        - LAN
+        - LAS
+        - NA
+        - OCE
+        - RU
+        - TR
+        - ME
+        - JP
+        - KR
+        - SEA
+        - TW
+        - VN
+        - PBE
     matchmaking_Role:
       type: string
       enum:
-      - TOP
-      - JUNGLE
-      - MID
-      - BOTTOM
-      - SUPPORT
-      - NONE
+        - TOP
+        - JUNGLE
+        - MID
+        - BOTTOM
+        - SUPPORT
+        - NONE
     matchmaking_TicketStatus:
       type: string
       enum:
-      - IN_QUEUE
-      - MATCHED
-      - CANCELLED
+        - IN_QUEUE
+        - MATCHED
+        - CANCELLED
     matchmaking_UUID:
       type: string
       format: uuid
@@ -4051,15 +4049,15 @@ components:
         region:
           $ref: '#/components/schemas/ranking_Region'
       required:
-      - gameName
-      - tagLine
-      - region
+        - gameName
+        - tagLine
+        - region
     ranking_MMRRuleType:
       type: string
       enum:
-      - FLEX_RANK
-      - SOLOQ_RANK
-      - NONE
+        - FLEX_RANK
+        - SOLOQ_RANK
+        - NONE
     ranking_PaginatedResponseDTO:
       type: object
       properties:
@@ -4133,22 +4131,22 @@ components:
     ranking_Region:
       type: string
       enum:
-      - BR
-      - EUNE
-      - EUW
-      - LAN
-      - LAS
-      - NA
-      - OCE
-      - RU
-      - TR
-      - ME
-      - JP
-      - KR
-      - SEA
-      - TW
-      - VN
-      - PBE
+        - BR
+        - EUNE
+        - EUW
+        - LAN
+        - LAS
+        - NA
+        - OCE
+        - RU
+        - TR
+        - ME
+        - JP
+        - KR
+        - SEA
+        - TW
+        - VN
+        - PBE
     ranking_RiotAccountDTO:
       type: object
       properties:
@@ -4167,7 +4165,7 @@ components:
     ranking_SetPrimaryAccountRequest:
       type: object
       required:
-      - puuid
+        - puuid
       properties:
         puuid:
           type: string
@@ -4181,195 +4179,195 @@ components:
       properties:
         name:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         mmrRuleType:
           $ref: '#/components/schemas/ranking_MMRRuleType'
         initialMMR:
           type:
-          - integer
-          - 'null'
+            - integer
+            - 'null'
           format: int32
         active:
           type:
-          - boolean
-          - 'null'
+            - boolean
+            - 'null'
     match_history_Champion:
       type: string
       enum:
-      - NONE
-      - AATROX
-      - AHRI
-      - AKALI
-      - AKSHAN
-      - ALISTAR
-      - AMBESSA
-      - AMUMU
-      - ANIVIA
-      - ANNIE
-      - APHELIOS
-      - ASHE
-      - AURELION_SOL
-      - AURORA
-      - AZIR
-      - BARD
-      - BELVETH
-      - BLITZCRANK
-      - BRAND
-      - BRAUM
-      - BRIAR
-      - CAITLYN
-      - CAMILLE
-      - CASSIOPEIA
-      - CHOGATH
-      - CORKI
-      - DARIUS
-      - DIANA
-      - DR_MUNDO
-      - DRAVEN
-      - EKKO
-      - ELISE
-      - EVELYNN
-      - EZREAL
-      - FIDDLESTICKS
-      - FIORA
-      - FIZZ
-      - GALIO
-      - GANGPLANK
-      - GAREN
-      - GNAR
-      - GRAGAS
-      - GRAVES
-      - GWEN
-      - HECARIM
-      - HEIMERDINGER
-      - HWEI
-      - ILLAOI
-      - IRELIA
-      - IVERN
-      - JANNA
-      - JARVAN_IV
-      - JAX
-      - JAYCE
-      - JHIN
-      - JINX
-      - KSANTE
-      - KAISA
-      - KALISTA
-      - KARMA
-      - KARTHUS
-      - KASSADIN
-      - KATARINA
-      - KAYLE
-      - KAYN
-      - KENNEN
-      - KHAZIX
-      - KINDRED
-      - KLED
-      - KOGMAW
-      - LEBLANC
-      - LEE_SIN
-      - LEONA
-      - LILLIA
-      - LISSANDRA
-      - LUCIAN
-      - LULU
-      - LUX
-      - MALPHITE
-      - MALZAHAR
-      - MAOKAI
-      - MASTER_YI
-      - MEL
-      - MILIO
-      - MISS_FORTUNE
-      - MORDEKAISER
-      - MORGANA
-      - NAAFIRI
-      - NAMI
-      - NASUS
-      - NAUTILUS
-      - NEEKO
-      - NIDALEE
-      - NILAH
-      - NOCTURNE
-      - NUNU_WILLUMP
-      - OLAF
-      - ORIANNA
-      - ORNN
-      - PANTHEON
-      - POPPY
-      - PYKE
-      - QIYANA
-      - QUINN
-      - RAKAN
-      - RAMMUS
-      - REKSAI
-      - RELL
-      - RENATA_GLASC
-      - RENEKTON
-      - RENGAR
-      - RIVEN
-      - RUMBLE
-      - RYZE
-      - SAMIRA
-      - SEJUANI
-      - SENNA
-      - SERAPHINE
-      - SETT
-      - SHACO
-      - SHEN
-      - SHYVANA
-      - SINGED
-      - SION
-      - SIVIR
-      - SKARNER
-      - SMOLDER
-      - SONA
-      - SORAKA
-      - SWAIN
-      - SYLAS
-      - SYNDRA
-      - TAHM_KENCH
-      - TALIYAH
-      - TALON
-      - TARIC
-      - TEEMO
-      - THRESH
-      - TRISTANA
-      - TRUNDLE
-      - TRYNDAMERE
-      - TWISTED_FATE
-      - TWITCH
-      - UDYR
-      - URGOT
-      - VARUS
-      - VAYNE
-      - VEIGAR
-      - VELKOZ
-      - VEX
-      - VI
-      - VIEGO
-      - VIKTOR
-      - VLADIMIR
-      - VOLIBEAR
-      - WARWICK
-      - WUKONG
-      - XAYAH
-      - XERATH
-      - XIN_ZHAO
-      - YASUO
-      - YONE
-      - YORICK
-      - YUNARA
-      - YUUMI
-      - ZAAHEN
-      - ZAC
-      - ZED
-      - ZERI
-      - ZIGGS
-      - ZILEAN
-      - ZOE
-      - ZYRA
+        - NONE
+        - AATROX
+        - AHRI
+        - AKALI
+        - AKSHAN
+        - ALISTAR
+        - AMBESSA
+        - AMUMU
+        - ANIVIA
+        - ANNIE
+        - APHELIOS
+        - ASHE
+        - AURELION_SOL
+        - AURORA
+        - AZIR
+        - BARD
+        - BELVETH
+        - BLITZCRANK
+        - BRAND
+        - BRAUM
+        - BRIAR
+        - CAITLYN
+        - CAMILLE
+        - CASSIOPEIA
+        - CHOGATH
+        - CORKI
+        - DARIUS
+        - DIANA
+        - DR_MUNDO
+        - DRAVEN
+        - EKKO
+        - ELISE
+        - EVELYNN
+        - EZREAL
+        - FIDDLESTICKS
+        - FIORA
+        - FIZZ
+        - GALIO
+        - GANGPLANK
+        - GAREN
+        - GNAR
+        - GRAGAS
+        - GRAVES
+        - GWEN
+        - HECARIM
+        - HEIMERDINGER
+        - HWEI
+        - ILLAOI
+        - IRELIA
+        - IVERN
+        - JANNA
+        - JARVAN_IV
+        - JAX
+        - JAYCE
+        - JHIN
+        - JINX
+        - KSANTE
+        - KAISA
+        - KALISTA
+        - KARMA
+        - KARTHUS
+        - KASSADIN
+        - KATARINA
+        - KAYLE
+        - KAYN
+        - KENNEN
+        - KHAZIX
+        - KINDRED
+        - KLED
+        - KOGMAW
+        - LEBLANC
+        - LEE_SIN
+        - LEONA
+        - LILLIA
+        - LISSANDRA
+        - LUCIAN
+        - LULU
+        - LUX
+        - MALPHITE
+        - MALZAHAR
+        - MAOKAI
+        - MASTER_YI
+        - MEL
+        - MILIO
+        - MISS_FORTUNE
+        - MORDEKAISER
+        - MORGANA
+        - NAAFIRI
+        - NAMI
+        - NASUS
+        - NAUTILUS
+        - NEEKO
+        - NIDALEE
+        - NILAH
+        - NOCTURNE
+        - NUNU_WILLUMP
+        - OLAF
+        - ORIANNA
+        - ORNN
+        - PANTHEON
+        - POPPY
+        - PYKE
+        - QIYANA
+        - QUINN
+        - RAKAN
+        - RAMMUS
+        - REKSAI
+        - RELL
+        - RENATA_GLASC
+        - RENEKTON
+        - RENGAR
+        - RIVEN
+        - RUMBLE
+        - RYZE
+        - SAMIRA
+        - SEJUANI
+        - SENNA
+        - SERAPHINE
+        - SETT
+        - SHACO
+        - SHEN
+        - SHYVANA
+        - SINGED
+        - SION
+        - SIVIR
+        - SKARNER
+        - SMOLDER
+        - SONA
+        - SORAKA
+        - SWAIN
+        - SYLAS
+        - SYNDRA
+        - TAHM_KENCH
+        - TALIYAH
+        - TALON
+        - TARIC
+        - TEEMO
+        - THRESH
+        - TRISTANA
+        - TRUNDLE
+        - TRYNDAMERE
+        - TWISTED_FATE
+        - TWITCH
+        - UDYR
+        - URGOT
+        - VARUS
+        - VAYNE
+        - VEIGAR
+        - VELKOZ
+        - VEX
+        - VI
+        - VIEGO
+        - VIKTOR
+        - VLADIMIR
+        - VOLIBEAR
+        - WARWICK
+        - WUKONG
+        - XAYAH
+        - XERATH
+        - XIN_ZHAO
+        - YASUO
+        - YONE
+        - YORICK
+        - YUNARA
+        - YUUMI
+        - ZAAHEN
+        - ZAC
+        - ZED
+        - ZERI
+        - ZIGGS
+        - ZILEAN
+        - ZOE
+        - ZYRA
     match_history_DoubleInterval:
       type: object
       properties:
@@ -4600,31 +4598,31 @@ components:
     match_history_Role:
       type: string
       enum:
-      - NONE
-      - TOP
-      - JUNGLE
-      - MID
-      - BOTTOM
-      - SUPPORT
+        - NONE
+        - TOP
+        - JUNGLE
+        - MID
+        - BOTTOM
+        - SUPPORT
     match_history_SortColumn:
       type: string
       enum:
-      - QUEUE_ID
-      - PATCH
-      - TIME
-      - BLUE_KILLS
-      - BLUE_DEATHS
-      - BLUE_ASSISTS
-      - BLUE_HEALING
-      - RED_KILLS
-      - RED_DEATHS
-      - RED_ASSISTS
-      - RED_HEALING
+        - QUEUE_ID
+        - PATCH
+        - TIME
+        - BLUE_KILLS
+        - BLUE_DEATHS
+        - BLUE_ASSISTS
+        - BLUE_HEALING
+        - RED_KILLS
+        - RED_DEATHS
+        - RED_ASSISTS
+        - RED_HEALING
     match_history_SortDirection:
       type: string
       enum:
-      - ASC
-      - DESC
+        - ASC
+        - DESC
     match_history_SortParams:
       type: object
       properties:
@@ -4648,8 +4646,8 @@ components:
     match_history_TeamSide:
       type: string
       enum:
-      - BLUE
-      - RED
+        - BLUE
+        - RED
     match_history_TeamStatsDTO:
       type: object
       properties:
