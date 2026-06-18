@@ -53,7 +53,12 @@ public class PlayerServiceImpl implements PlayerService {
                     "\u001B[33m[WARN]\u001B[0m Player creation failed: Discord Username {} already exists",
                     discordUsername);
             throw new PlayerAlreadyExistsException(
-                    "Player with discord username " + discordUsername + " already exists");
+                    "Player with username " + discordUsername + " already exists");
+        }
+
+        if (id != null && playerRepository.findByIdOptional(id).isPresent()) {
+            log.warn("\u001B[33m[WARN]\u001B[0m Player creation failed: Player ID {} already exists", id);
+            throw new PlayerAlreadyExistsException("Player with ID " + id + " already exists");
         }
 
         Player player = new Player();

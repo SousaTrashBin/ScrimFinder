@@ -92,3 +92,12 @@ analysis_api/models/
 
 k8s/charts/*/charts/
 k8s/charts/*/tmpcharts/
+
+### LaTeX ###
+*.aux
+*.log
+*.out
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.toc

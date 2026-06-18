@@ -1,0 +1,166 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{titlesec}
+\usepackage{xcolor}
+\usepackage{parskip}
+\usepackage{hyperref}
+
+\definecolor{primary}{RGB}{33, 33, 33}
+\definecolor{secondary}{RGB}{85, 85, 85}
+
+\titleformat{\section}
+  {\normalfont\Large\bfseries\color{primary}}{\thesection}{1em}{}
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\color{secondary}}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}
+  {\normalfont\normalsize\bfseries\color{secondary}}{\thesubsubsection}{1em}{}
+
+\setlength{\parskip}{0.8em}
+\setlength{\parindent}{0pt}
+
+\title{\vspace{-2cm}\textbf{\Huge Cloudy Day Report}\vspace{0.5cm}}
+\author{\textbf{Group 21} \\ \textit{Evaluating Target Group 9}}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+
+\vspace{1cm}
+
+\section*{Diogo Sousa}
+
+\subsection*{Documentation Feedback}
+\begin{itemize}
+    \item \textbf{Style Discrepancy:} The query parameter for pagination size is documented as \texttt{pageSize} (camelCase) while the response object uses \texttt{page\_size} (snake\_case). The API Gateway correctly accepts the \texttt{pageSize} parameter and returns the corresponding schema, but this inconsistency should ideally be unified.
+    \item \textbf{Error Response Documentation:} While standard HTTP error codes (400, 401, 404, 500, 502) are consistently mapped across endpoints using reusable components (e.g., \texttt{BadRequestText}), they could be more descriptive. The schema indicates they return a \texttt{text/plain} string without explaining \textit{what} triggers them (e.g., what specific validation failure causes a 400, or under what conditions a 404 is thrown for a specific endpoint).
+\end{itemize}
+
+\subsection*{Testing Results}
+
+\subsubsection*{Smoke Testing (Endpoint: GET /api/listings/search)}
+The smoke test was executed using a Python script checking the endpoint. The test validated the HTTP 200 response, JSON validity, and the presence of all required top-level fields (\texttt{total}, \texttt{page}, \texttt{page\_size}, \texttt{listings}) and listing level attributes.
+\begin{itemize}
+    \item \textbf{Basic Paginated Search:} Passed. Returned 5 listings with a reported total of 50,000 records. Latency: $\approx$ 141ms.
+    \item \textbf{Filtered Search (Toyota Corolla):} Passed. Returned 5 listings with a reported total of 300 records. Latency: $\approx$ 191ms.
+\end{itemize}
+No broken links or malfunctioning behaviors were detected.
+
+\subsubsection*{Stress Testing (Endpoint: GET /api/listings)}
+The stress test was executed using Locust against endpoint.
+\begin{itemize}
+    \item \textbf{Concurrency Settings:} 100 concurrent users, spawning at a rate of 20 users per second, run duration of 30 seconds.
+    \item \textbf{Performance observed:}
+    \begin{itemize}
+        \item \textbf{Total Requests:} 6,899
+        \item \textbf{Failures:} 0 (0.00\%)
+        \item \textbf{Requests Per Second (RPS):} Peaked at $\approx$ 275 req/s (average 248.81 req/s over the duration).
+        \item \textbf{Latency Statistics:} Average = 72ms, Median = 62ms, 95th percentile = 93ms, 99th percentile = 150ms.
+    \end{itemize}
+\end{itemize}
+The endpoint proved to be highly stable under the tested load.
+
+\vspace{1cm}
+\hrule
+\vspace{1cm}
+
+\section*{Bruno Faustino}
+
+\subsection*{Documentation Feedback}
+\begin{itemize}
+    \item \textbf{Some positives:}
+    \begin{itemize}
+        \item The API documentation was in general easy to understand due to the modularity on the groups of endpoints and the descriptive information tagged with each endpoint;
+        \item The introductory paragraph gives a quick overview of all the use cases of the application and in which modules they can be found;
+        \item In general, the exceptions portray in which cases the app may fail (although they could be explained in more detail according to the endpoint in some cases).
+    \end{itemize}
+    \item \textbf{A few suggestions:}
+    \begin{itemize}
+        \item For the chat endpoints, a 404 code should be thrown if the chat id does not exist in the database;
+        \item It would be helpful to have default values already filled-in in the body of the POST methods that serve as an example to further improve the understandability of the API (for some fields it is not trivial what the expected format is, like fuel\_type, drive\_type and end\_time);
+        \item Although it is well explained that the user needs to add the Host header before calling the post/put/delete endpoints, it is never explained that the user needs to be logged in and that the resulting token needs to be added to the header: a quick mention in either the introductory paragraph or the 401 Unauthorized exception in the documentation would generate less confusion and save a few 401s.
+    \end{itemize}
+\end{itemize}
+
+\subsection*{Testing Results}
+
+\subsubsection*{Smoke Testing (Endpoint: GET /api/auctions/{auction\_id}/bids)}
+The smoke test was executed using pytest and requests modules of Python.
+
+Here is the sequence of API calls as a setup before testing the actual endpoint:
+\begin{enumerate}
+    \item \textbf{POST /api/user/login} for the auth token
+    \item \textbf{POST /api/listings} for listing\_id
+    \item \textbf{POST /api/auctions} for auction\_id
+    \item 3x \textbf{POST /api/auctions/{auction\_id}/bid}
+\end{enumerate}
+
+After calling the endpoint: \textbf{GET /api/auctions/{auction\_id}/bids}, it is expected that the command returns successfully ($200$) and with $3$ auction bids in the created auction for the created listing.
+
+\textbf{The smoke test passed!}
+
+\subsubsection*{Stress Testing (Endpoint: GET /api/market/average\_price)}
+The stress test was executed using Locust against the endpoint.
+\begin{itemize}
+    \item \textbf{Concurrency Settings:} 10000 concurrent users, spawning at a rate of 5 users per second, running until failing.
+    \item \textbf{Performance observed:}
+    \begin{itemize}
+        \item \textbf{Total Requests:} 250
+        \item \textbf{Failures:} 4 (1.60\%)
+        \item \textbf{Requests Per Second (RPS):} Very inconsistent, around 19.61 req/s.
+        \item \textbf{Latency Statistics:} Average = 1009ms, Median = 190ms, 95th percentile = 4000ms, 99th percentile = 6700ms.
+    \end{itemize}
+\end{itemize}
+The system fails a few times at 19.61 req/s due to the unavailability of an upstream service (502).
+
+During other rounds of testing, the system could fail at less or more than that value, sometimes managing to survive without failures until around 50 req/s, so it is inconsistent, and the number of failures oscillates a lot between load tests, up to the point of reaching 99\% failures.
+
+The endpoint proved unable to sustain loads above 50 req/s, and shows signs of failing around 19.61 req/s.
+
+\vspace{1cm}
+\hrule
+\vspace{1cm}
+
+
+\section*{Rodrigo Neto}
+
+\subsection*{Documentation Feedback}
+\begin{itemize}
+    \item \textbf{Missing Content-Type Header:} Successful JSON responses do not include the \texttt{Content-Type: application/json} header, which can break strict HTTP clients.
+    \item \textbf{Poor Overload Behaviour:} Under high load, the backend does not gracefully degrade (e.g., return \texttt{429} or \texttt{503}). Instead, the gateway returns \texttt{502 Bad Gateway} after extremely long timeouts (up to 47 seconds).
+\end{itemize}
+
+\subsection*{Testing Results}
+
+\subsubsection*{Smoke Testing (Endpoint: GET /api/market/price-comparison)}
+The smoke test was executed using Postman checking the endpoint. The test validated HTTP 200 responses, JSON validity, pagination, grouping, and sorting behaviors.
+\begin{itemize}
+    \item \textbf{Happy Path:} Passed with warnings. Valid JSON, correct pagination and sorting. \texttt{Content-Type} assertion failed (header omitted).
+    \item \textbf{Validation:} Partial pass (3/6). Missing parameters returned 400. Invalid enum values returned \texttt{502 Bad Gateway} instead of 400.
+\end{itemize}
+Some malfunctioning behaviors were detected during validation tests.
+
+\subsubsection*{Stress Testing (Endpoint: GET /api/listings/stats/by-location)}
+The stress test was executed using Locust against the endpoint.
+\begin{itemize}
+    \item \textbf{Concurrency Settings:} Step-load ramping from 10 to 200 concurrent users.
+    \item \textbf{Performance observed:}
+    \begin{itemize}
+        \item \textbf{Total Requests:} 3,524
+        \item \textbf{Failures:} 123 (3.49\%)
+        \item \textbf{Requests Per Second (RPS):} Peaked at $\approx$ 50 req/s.
+        \item \textbf{Latency Statistics:} Average = 7,280ms, Median = 460ms, 95th percentile = 34,000ms, 99th percentile = 38,000ms.
+    \end{itemize}
+\end{itemize}
+The endpoint proved unable to sustain loads above $\approx$ 50 RPS, leaving the upstream backend in an unhealthy state.
+
+\vspace{1cm}
+\hrule
+\vspace{1cm}
+
+\end{document}
