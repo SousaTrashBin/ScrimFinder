@@ -70,12 +70,24 @@ spec:
         costMetrics:
           enabled: true
           collector: alloy-metrics
+        annotationAutodiscovery:
+          enabled: true
+          collector: alloy-metrics
+        prometheusOperatorObjects:
+          enabled: true
+          collector: alloy-metrics
         clusterEvents:
           enabled: true
           collector: alloy-singleton
+        nodeLogs:
+          enabled: true
+          collector: alloy-logs
         podLogsViaLoki:
           enabled: true
           collector: alloy-logs
+        kubernetesManifests:
+          enabled: true
+          collector: alloy-singleton
         applicationObservability:
           enabled: true
           collector: alloy-receiver
@@ -94,7 +106,7 @@ spec:
           enabled: true
           collector: alloy-metrics
           beyla:
-            deliverTracesToApplicationObservability: false
+            deliverTracesToApplicationObservability: true
         profiling:
           enabled: true
           collector: alloy-profiles
@@ -147,6 +159,18 @@ spec:
                   url: https://prometheus-prod-68-prod-eu-west-6.grafana.net./api/prom
           kepler:
             deploy: true
+          k8s-manifest-tail:
+            deploy: true
+            config:
+              objects:
+                - apiVersion: v1
+                  kind: Pod
+                - apiVersion: apps/v1
+                  kind: Deployment
+                - apiVersion: apps/v1
+                  kind: StatefulSet
+                - apiVersion: apps/v1
+                  kind: DaemonSet
   syncPolicy:
     automated:
       prune: true
