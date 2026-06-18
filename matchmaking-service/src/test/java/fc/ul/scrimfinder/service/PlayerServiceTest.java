@@ -81,6 +81,24 @@ public class PlayerServiceTest {
     }
 
     @Test
+    void testCreatePlayerDuplicateIdThrowsException() {
+        String username1 = "User1";
+        String username2 = "User2";
+        java.util.UUID id = java.util.UUID.randomUUID();
+
+        playerService.createPlayer(id, username1);
+
+        PlayerAlreadyExistsException exception =
+                assertThrows(
+                        PlayerAlreadyExistsException.class,
+                        () -> {
+                            playerService.createPlayer(id, username2);
+                        });
+
+        assertTrue(exception.getMessage().contains("ID " + id + " already exists"));
+    }
+
+    @Test
     void testCreatePlayerNullUsernameThrowsException() {
         assertThrows(
                 IllegalArgumentException.class,
