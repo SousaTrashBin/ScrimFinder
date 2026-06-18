@@ -137,6 +137,11 @@ resource "google_service_account" "gke_nodes_sa" {
   project      = var.project_id
   account_id   = "scrim-gke-nodes-sa"
   display_name = "ScrimFinder GKE Nodes Service Account"
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes  = [display_name, description]
+  }
 }
 
 resource "google_project_iam_member" "gke_nodes_standard" {
@@ -208,12 +213,16 @@ resource "google_secret_manager_secret_version" "scrim_secret_versions" {
   secret_data = each.value
 }
 
+# FIXED: Use local.secret_values instead of google_secret_manager_secret.scrim_secrets
+# for the for_each keys so they are statically known at plan time.
 resource "google_secret_manager_secret_iam_member" "secrets_access" {
-  for_each  = var.manage_secret_manager ? google_secret_manager_secret.scrim_secrets : {}
+  for_each  = var.manage_secret_manager ? local.secret_values : {}
   project   = var.project_id
   secret_id = each.key
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.secrets_sa[0].email}"
+
+  depends_on = [google_secret_manager_secret.scrim_secrets]
 }
 
 # ── GCS Bucket for ML Models ─────────────────────────────────────────────────
@@ -225,7 +234,12 @@ resource "google_storage_bucket" "models_bucket" {
   force_destroy               = true
   uniform_bucket_level_access = true
   labels                      = local.common_labels
-  depends_on                  = [google_project_service.required]
+
+  lifecycle {
+    prevent_destroy = true
+  }
+
+  depends_on = [google_project_service.required]
 }
 
 # ── IAM for BigQuery Job User (dataset-level IAM moved to bigquery.tf) ───────
