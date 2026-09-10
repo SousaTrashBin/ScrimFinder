@@ -31,7 +31,7 @@ SCRIM_MANAGE_SECRET_MANAGER="${SCRIM_MANAGE_SECRET_MANAGER:-true}"
 SCRIM_MANAGE_ARTIFACT_REGISTRY_REPOSITORY="${SCRIM_MANAGE_ARTIFACT_REGISTRY_REPOSITORY:-true}"
 SCRIM_MANAGE_CLOUD_FUNCTIONS_IAM="${SCRIM_MANAGE_CLOUD_FUNCTIONS_IAM:-true}"
 SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER="${SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER:-}"
-SCRIM_FORCE_SECRET_MANAGER_CLEANUP="${SCRIM_FORCE_SECRET_MANAGER_CLEANUP:-false}"
+SCRIM_FORCE_SECRET_MANAGER_CLEANUP="${SCRIM_FORCE_SECRET_MANAGER_CLEANUP:-true}"
 SCRIM_SECRET_NAME_PREFIX="${SCRIM_SECRET_NAME_PREFIX:-}"
 SCRIM_SECRETS_SERVICE_ACCOUNT_ID="${SCRIM_SECRETS_SERVICE_ACCOUNT_ID:-secrets-service-account}"
 
@@ -99,6 +99,11 @@ EOF
 $PROJECT_SERVICE_STATE
 EOF
     fi
+    if [ "${SCRIM_MANAGE_ARTIFACT_REGISTRY_REPOSITORY}" = "true" ]; then
+        echo "deleting Artifact Registry repository to prevent Terraform destroy failure (non-empty repo)..."
+        gcloud artifacts repositories delete "${SCRIM_REPO_NAME}" --location="${REGION}" --project="${PROJECT_ID}" --quiet >/dev/null 2>&1 || true
+    fi
+
     terraform -chdir="$TF_DIR" destroy -input=false -auto-approve \
         -var="project_id=${SCRIM_PROJECT_ID}" \
         -var="region=${SCRIM_REGION}" \
@@ -120,7 +125,7 @@ EOF
         -var="environment_name=${SCRIM_ENVIRONMENT_NAME}" \
         -var="github_run_id=${SCRIM_GITHUB_RUN_ID}" \
         -var="github_pr=${SCRIM_GITHUB_PR}" \
-        -var="cloud_functions_deployer_member=${SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER}"
+        -var="cloud_functions_deployer_member=${SCRIM_CLOUD_FUNCTIONS_DEPLOYER_MEMBER}" || echo "warning: Terraform destroy encountered errors, continuing..."
 fi
 
 if [ "$DELETE_UNUSED_K8S_IPS" = "true" ]; then
@@ -129,7 +134,7 @@ if [ "$DELETE_UNUSED_K8S_IPS" = "true" ]; then
         --project "$PROJECT_ID" \
         --filter="region:($REGION) AND status=RESERVED" \
         --format="csv[no-heading](name,users)" | awk -F',' '
-            $2 == "" && $1 ~ /^(k8s-|scrimfinder|traefik)/ { print $1 }
+            $2 == "" && $1 ~ /^(k8s-|scrimfinder|traefik|a[a-f0-9]{32}$)/ { print $1 }
         ' || true)"
 
     if [ -n "${SCRIM_ENVIRONMENT_NAME:-}" ] && [ "$SCRIM_ENVIRONMENT_NAME" != "manual" ]; then
@@ -174,7 +179,7 @@ if [ "$DELETE_ORPHAN_PVC_DISKS" = "true" ]; then
 
     ORPHAN_PVC_DISKS="$(gcloud compute disks list \
         --project "$PROJECT_ID" \
-        --filter="name~'^pvc-' AND users:*" \
+        --filter="name~'^pvc-'" \
         --format="csv[no-heading](name,zone,users)" | awk -F',' '$3 == "" { print $1,$2 }' || true)"
 
     if [ -n "$ORPHAN_PVC_DISKS" ]; then
